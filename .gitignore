@@ -1,0 +1,103 @@
+# ───────────────────────────────
+# Node / General
+# ───────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+
+# ───────────────────────────────
+# Next.js
+# ───────────────────────────────
+.next/
+out/
+build/
+dist/
+.next-env.d.ts
+
+# ───────────────────────────────
+# Turborepo
+# ───────────────────────────────
+.turbo/
+
+# ───────────────────────────────
+# Husky
+# ───────────────────────────────
+.husky/_/
+.husky/.gitignore
+# only keep hook files tracked (.sh files, pre-commit, etc.)
+# generated husky files shouldn't be tracked
+
+# ───────────────────────────────
+# Public / Runtime Assets
+# ───────────────────────────────
+public/*.svg
+public/*.png
+public/*.jpg
+public/*.jpeg
+public/*.gif
+
+# If you have static assets you want to KEEP:
+# !public/static/**
+
+# Next image optimization cache
+public/_next/
+public/cache/
+*.webp
+
+# ───────────────────────────────
+# Environment files
+# ───────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ───────────────────────────────
+# IntelliJ / VSCode / IDE
+# ───────────────────────────────
+# IntelliJ
+.idea/
+*.iml
+
+# VSCode
+.vscode/
+history/
+.code-workspace
+
+# ───────────────────────────────
+# Logs
+# ───────────────────────────────
+logs/
+*.log
+*.log.*
+*.stacktrace
+*.pid
+
+# ───────────────────────────────
+# Coverage / Test artifacts
+# ───────────────────────────────
+coverage/
+*.lcov
+
+# ───────────────────────────────
+# Misc
+# ───────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.temp
+*.tmp
+*.zip
+
+# ───────────────────────────────
+# Monorepo outputs
+# ───────────────────────────────
+apps/**/build/
+apps/**/dist/
+packages/**/build/
+packages/**/dist/
+
