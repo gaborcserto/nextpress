@@ -93,6 +93,7 @@ Thumbs.db
 *.temp
 *.tmp
 *.zip
+examples/
 
 # ───────────────────────────────
 # Monorepo outputs
