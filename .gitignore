@@ -55,6 +55,7 @@ public/cache/
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
 # ───────────────────────────────
 # IntelliJ / VSCode / IDE

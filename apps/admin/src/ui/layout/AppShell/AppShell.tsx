@@ -1,0 +1,112 @@
+"use client";
+
+import { motion } from "framer-motion";
+import React, { useMemo, useRef, useState } from "react";
+
+import { useLocalStorage } from "@/ui/hooks/useLocalStorage";
+import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
+import Sidebar from "@/ui/layout/Sidebar";
+import Topbar from "@/ui/layout/Topbar";
+import type { ReactNode } from "react";
+
+const MotionDiv = motion.div;
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = () => setIsDesktop(mq.matches);
+    handler();
+    mq.addEventListener?.("change", handler);
+    return () => mq.removeEventListener?.("change", handler);
+  }, []);
+
+  return isDesktop;
+}
+
+export default function AppShell({ children }: { children: ReactNode }) {
+  const isDesktop = useIsDesktop();
+
+  const [collapsed, setCollapsed] = useLocalStorage(
+    "admin.sidebar.collapsed",
+    false
+  );
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrolled = useStickyScrolled(scrollRef);
+
+  const sideW = useMemo(() => (collapsed ? 72 : 240), [collapsed]);
+
+  const handleSidebarTrigger = () => {
+    if (isDesktop) {
+      setCollapsed((v: boolean) => !v);
+    } else {
+      setDrawerOpen(true);
+    }
+  };
+
+  return (
+    <div className="h-dvh overflow-hidden bg-gradient-to-br from-base-200 to-base-300">
+      <div className="flex h-full">
+        <MotionDiv
+          initial={false}
+          animate={{ width: isDesktop ? sideW : 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+          style={{
+            width: isDesktop ? sideW : 0,
+            willChange: "width",
+            height: "calc(100% - 24px)",
+          }}
+          className={[
+            "hidden md:block m-3 me-2 overflow-hidden",
+            "bg-base-100 border border-base-300 rounded-2xl shadow",
+          ].join(" ")}
+          aria-hidden={!isDesktop}
+        >
+          <Sidebar collapsed={collapsed} />
+        </MotionDiv>
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <Topbar
+            collapsed={collapsed}
+            toggleSidebarAction={handleSidebarTrigger}
+            scrolled={scrolled}
+          />
+          <main
+            ref={scrollRef}
+            className="px-4 md:px-6 py-4 overflow-auto min-w-0"
+          >
+            {children}
+          </main>
+        </div>
+      </div>
+
+      <div className="drawer md:hidden">
+        <input
+          id="admin-drawer"
+          type="checkbox"
+          className="drawer-toggle"
+          checked={drawerOpen}
+          onChange={(e) => setDrawerOpen(e.target.checked)}
+        />
+        <div className="drawer-content" />
+        <div className="drawer-side z-30">
+          <label
+            htmlFor="admin-drawer"
+            aria-label="close sidebar"
+            className="drawer-overlay"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <aside className="menu bg-base-100 text-base-content w-72 max-w-[18rem] min-h-full border-r border-base-300 p-0">
+            <Sidebar
+              collapsed={false}
+              onItemClickAction={() => setDrawerOpen(false)}
+            />
+          </aside>
+        </div>
+      </div>
+    </div>
+  );
+}

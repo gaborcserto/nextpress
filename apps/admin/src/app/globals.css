@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+	themes: light --default, dark --prefersdark, cupcake;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+:root {
+	--surface-bg: white;
+	--surface-border: rgba(0,0,0,.2);
+	--text-muted: rgb(75 85 99);         /* gray.600 */
+	--accent-solid: rgb(37 99 235);      /* blue.600 */
+	--accent-soft: rgb(239 246 255);     /* blue.50 */
+}
+
+:root[data-theme="dark"] {
+	--surface-bg: rgb(31 41 55);         /* gray.800 */
+	--surface-border: rgba(255,255,255,.3);
+	--text-muted: rgb(156 163 175);      /* gray.400 */
+	--accent-solid: rgb(147 197 253);    /* blue.300 */
+	--accent-soft: rgba(255,255,255,.10);
+}
