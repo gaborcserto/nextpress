@@ -9,7 +9,7 @@ import type {
   ProfileFormEvent,
 } from "./ProfileScreen.types";
 import { apiFetch } from "@/lib/api";
-import { useSession } from "@/lib/auth";
+import { useSession } from "@/lib/auth/auth-client";
 import Box from "@/ui/components/Box";
 import { Button } from "@/ui/components/Buttons";
 import Input from "@/ui/components/Input";

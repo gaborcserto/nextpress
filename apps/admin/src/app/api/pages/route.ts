@@ -1,14 +1,16 @@
-import {prisma} from "@nextpress/db/src/client";
+import { prisma } from "@nextpress/db/src/client";
 
 export const runtime = "nodejs";
 
 import { ok, bad, conflict, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 import {
-  createPageService,
-  listPagesService,
   PageValidationError,
   PageConflictError,
+} from "@/lib/services/content.shared";
+import {
+  createPageService,
+  listPagesService,
 } from "@/lib/services/page.server";
 
 /**
@@ -43,7 +45,6 @@ export const POST = withAuth(
 
 /**
  * GET /api/pages
- * Optional ?select=parent or paginated list
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);

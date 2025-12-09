@@ -1,9 +1,13 @@
-import EditPostScreen from "@/components/admin/EditPostScreen/EditPostScreen";
+import PostEditorScreen from "@/components/admin/PostEditorScreen";
 
-type Props = { params: Promise<{ id: string }> };
+type RouteParams = { id: string };
 
-export default async function EditPostRoute({ params }: Props) {
+export default async function EditPostRoute({
+  params,
+}: {
+  params: Promise<RouteParams>;
+}) {
   const { id } = await params;
 
-  return <EditPostScreen postId={id} />;
+  return <PostEditorScreen postId={id} />;
 }

@@ -17,7 +17,7 @@ export function PostTagsField({ postId }: Props) {
     <TagsField
       selectedTags={selectedTags}
       isLoading={isLoading}
-      onChange={handleChangeVoid}
+      onChangeAction={handleChangeVoid}
     />
   );
 }

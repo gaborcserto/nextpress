@@ -15,7 +15,7 @@ export function PageTagsField({ pageId }: Props) {
     <TagsField
       selectedTags={selectedTags}
       isLoading={isLoading}
-      onChange={handleChangeVoid}
+      onChangeAction={handleChangeVoid}
     />
   );
 }

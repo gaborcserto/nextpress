@@ -5,9 +5,11 @@ import { withAuth } from "@/lib/auth/auth-server";
 import {
   createPostService,
   listPostsService,
+} from "@/lib/services/post.server";
+import {
   PageValidationError,
   PageConflictError,
-} from "@/lib/services/page.server";
+} from "@/lib/services/content.shared";
 
 /**
  * POST /api/post

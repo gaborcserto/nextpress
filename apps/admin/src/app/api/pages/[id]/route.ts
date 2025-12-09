@@ -4,13 +4,17 @@ import { ok, bad, notfound, conflict, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 import { getPageById, getTagsForPage } from "@/lib/repos";
 import {
-  deletePageService,
-  updatePageWithTagsService,
   PageValidationError,
   PageConflictError,
   PageNotFoundError,
+} from "@/lib/services/content.shared";
+import {
+  deletePageService,
+  updatePageService,
 } from "@/lib/services/page.server";
 import type { PageFormValues } from "@/ui/layout/PageForm";
+
+type RouteParams = { id: string };
 
 type PageExtraFields = {
   listingKind?: PageFormValues["listingKind"];
@@ -22,8 +26,13 @@ type PageExtraFields = {
   redirectTo?: PageFormValues["redirectTo"];
 };
 
-type RouteParams = { id: string };
-type RouteCtx = { params: RouteParams | Promise<RouteParams> };
+function getRouteParams(
+  ctx: { params: Record<string, string> }
+): Promise<RouteParams> {
+  return Promise.resolve(
+    ctx.params as RouteParams | Promise<RouteParams>
+  );
+}
 
 function mapPageToFormValues(
   page: NonNullable<Awaited<ReturnType<typeof getPageById>>>,
@@ -61,9 +70,9 @@ function mapPageToFormValues(
  */
 export async function GET(
   _req: Request,
-  ctx: RouteCtx
+  ctx: { params: Record<string, string> }
 ) {
-  const { id } = await ctx.params;
+  const { id } = await getRouteParams(ctx);
 
   const page = await getPageById(id);
   if (!page) return notfound();
@@ -79,10 +88,10 @@ export async function GET(
  */
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
-  async (req, ctx) => {
-    const { id } = ctx.params as { id: string };
-    let body: unknown;
+  async (req, ctx, _auth) => {
+    const { id } = await getRouteParams(ctx);
 
+    let body: unknown;
     try {
       body = await req.json();
     } catch {
@@ -90,7 +99,7 @@ export const PUT = withAuth(
     }
 
     try {
-      const updated = await updatePageWithTagsService("PAGE", id, body);
+      const updated = await updatePageService(id, body);
       return ok(updated);
     } catch (err) {
       if (err instanceof PageValidationError) {
@@ -111,8 +120,8 @@ export const PUT = withAuth(
  */
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
-  async (_req, ctx) => {
-    const { id } = ctx.params as { id: string };
+  async (_req, ctx, _auth) => {
+    const { id } = await getRouteParams(ctx);
 
     try {
       await deletePageService(id);

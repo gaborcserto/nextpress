@@ -46,14 +46,16 @@ export default function Breadcrumbs() {
     last !== "create";
 
   const detailId = isDetail ? last : null;
+  const isPostDetail = isDetail && secondLast === "posts";
 
   // Fetch title for the current detail item
   useEffect(() => {
     if (!detailId) return;
 
     const controller = new AbortController();
+    const basePath = isPostDetail ? "/api/post" : "/api/pages";
 
-    fetch(`/api/pages/${detailId}`, { signal: controller.signal })
+    fetch(`${basePath}/${detailId}`, { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         const title = data?.item?.title ?? data?.title;
@@ -64,7 +66,7 @@ export default function Breadcrumbs() {
       .catch(() => {});
 
     return () => controller.abort();
-  }, [detailId]);
+  }, [detailId, isPostDetail]);
 
   const items = segments.map((seg, i) => {
     const href = "/" + segments.slice(0, i + 1).join("/");

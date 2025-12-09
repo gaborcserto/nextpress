@@ -1,5 +1,5 @@
-import NewPostScreen from "@/components/admin/NewPostScreen/NewPostScreen";
+import PostEditorScreen from "@/components/admin/PostEditorScreen";
 
 export default function NewPostRoute() {
-  return <NewPostScreen />;
+  return <PostEditorScreen />;
 }

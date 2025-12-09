@@ -1,10 +1,13 @@
-import EditPageScreen from "@/components/admin/EditPageScreen/EditPageScreen";
+import PageEditorScreen from "@/components/admin/PageEditorScreen";
 
-export default async function EditPageRoute({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type RouteParams = { id: string };
+
+type EditPageRouteProps = {
+  params: Promise<RouteParams>;
+};
+
+export default async function EditPageRoute({ params }: EditPageRouteProps) {
   const { id } = await params;
-  return <EditPageScreen id={id} />;
+
+  return <PageEditorScreen id={id} />;
 }

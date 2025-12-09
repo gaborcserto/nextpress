@@ -1,7 +1,11 @@
-/**
- * Shape of the API response from GET /api/post/[id].
- * We only type the fields we actually use.
- */
+export type PostEditorScreenProps = {
+  /**
+   * When postId is present the screen works in edit mode.
+   * When postId is missing the screen works in create mode.
+   */
+  postId?: string;
+};
+
 export type PostDetailItem = {
   id: string;
   type: "POST";
@@ -10,7 +14,7 @@ export type PostDetailItem = {
   title: string;
   excerpt: string | null;
   content: string;
-  publishedAt: string | null; // ISO string
+  publishedAt: string | null;
 };
 
 export type PostDetailTag = {

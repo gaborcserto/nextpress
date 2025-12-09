@@ -1,9 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { useLocalStorage } from "@/ui/hooks/useLocalStorage";
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
 import Sidebar from "@/ui/layout/Sidebar";
 import Topbar from "@/ui/layout/Topbar";
@@ -12,9 +11,9 @@ import type { ReactNode } from "react";
 const MotionDiv = motion.div;
 
 function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const handler = () => setIsDesktop(mq.matches);
     handler();
@@ -28,11 +27,25 @@ function useIsDesktop() {
 export default function AppShell({ children }: { children: ReactNode }) {
   const isDesktop = useIsDesktop();
 
-  const [collapsed, setCollapsed] = useLocalStorage(
-    "admin.sidebar.collapsed",
-    false
-  );
+  // SSR-safe initial state: always false on first render
+  const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const stored = window.localStorage.getItem("admin.sidebar.collapsed");
+      if (stored === null) return;
+
+      const next = stored === "true";
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCollapsed((prev) => (prev === next ? prev : next));
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolled = useStickyScrolled(scrollRef);
@@ -41,7 +54,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const handleSidebarTrigger = () => {
     if (isDesktop) {
-      setCollapsed((v: boolean) => !v);
+      setCollapsed((prev) => {
+        const next = !prev;
+        try {
+          window.localStorage.setItem("admin.sidebar.collapsed", String(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
     } else {
       setDrawerOpen(true);
     }

@@ -12,7 +12,7 @@ import {
 import SignInFormFooter from "./SignInFormFooter";
 import SignInFormOAuthRow, { type Provider } from "./SignInFormOAuthRow";
 import { safeCallbackUrl } from "../utils/safeCallbackUrl";
-import { signIn } from "@/lib/auth";
+import { signIn } from "@/lib/auth/auth-client";
 import Alert from "@/ui/components/Alert";
 import { Button } from "@/ui/components/Buttons";
 import Input from "@/ui/components/Input";
