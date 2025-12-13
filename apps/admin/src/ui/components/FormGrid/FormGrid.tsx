@@ -37,7 +37,7 @@ export function Field({ label, children, hint, span = 12 }: FieldProps) {
       {children}
       {hint && (
         <div className="label">
-          <span className="label-text-alt text-xs text-base-content/60">
+          <span className="label-text-alt text-xs text-base-content/60 whitespace-normal wrap-break-word">
             {hint}
           </span>
         </div>
