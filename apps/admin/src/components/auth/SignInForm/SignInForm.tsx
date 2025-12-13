@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
-import { ValidationError } from "yup";
 
 import {
   signInSchema,
@@ -16,8 +15,6 @@ import { signIn } from "@/lib/auth/auth-client";
 import Alert from "@/ui/components/Alert";
 import { Button } from "@/ui/components/Buttons";
 import Input from "@/ui/components/Input";
-
-/* ------------------ Component ------------------ */
 
 export default function SignInForm() {
   const [form, setForm] = useState<SignInFormValues>({
@@ -41,14 +38,14 @@ export default function SignInForm() {
       params.get("callbackUrl") || params.get("redirectTo")
     ) || "/";
 
-  /* --------------- Load auth errors passed in URL --------------- */
+  // Load auth errors passed in URL
 
   useEffect(() => {
     const errorParam = params.get("error");
     if (errorParam) setErr(errorParam);
   }, [params]);
 
-  /* ------------------ Universal Change Handler ------------------ */
+  // Universal Change Handler
 
   const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, type, value, checked } = e.target;
@@ -75,7 +72,7 @@ export default function SignInForm() {
     }
   };
 
-  /* ------------------ Submit Handler ------------------ */
+  // Submit Handler (Zod)
 
   const onSubmit = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -83,9 +80,25 @@ export default function SignInForm() {
     setFieldErrors({});
     setLoading(true);
 
-    try {
-      await signInSchema.validate(form, { abortEarly: false });
+    const result = signInSchema.safeParse(form);
 
+    if (!result.success) {
+      const validationErrors: Partial<Record<keyof SignInFormValues, string>> =
+        {};
+
+      for (const issue of result.error.issues) {
+        const path = issue.path[0] as keyof SignInFormValues | undefined;
+        if (path && !validationErrors[path]) {
+          validationErrors[path] = issue.message;
+        }
+      }
+
+      setFieldErrors(validationErrors);
+      setLoading(false);
+      return;
+    }
+
+    try {
       const { error } = await signIn.email({
         email: form.email.trim().toLowerCase(),
         password: form.password,
@@ -100,19 +113,7 @@ export default function SignInForm() {
 
       router.push(callbackURL);
     } catch (error) {
-      if (error instanceof ValidationError) {
-        const validationErrors: Partial<Record<keyof SignInFormValues, string>> =
-          {};
-
-        error.inner.forEach((err) => {
-          const path = err.path as keyof SignInFormValues;
-          if (path && !validationErrors[path]) {
-            validationErrors[path] = err.message;
-          }
-        });
-
-        setFieldErrors(validationErrors);
-      } else if (error instanceof Error) {
+      if (error instanceof Error) {
         setErr(error.message);
       } else {
         setErr("Unexpected error");
@@ -122,8 +123,7 @@ export default function SignInForm() {
     }
   };
 
-  /* ------------------ OAuth ------------------ */
-
+  // OAuth
   const oauth = async (provider: Provider) => {
     await signIn.social({
       provider,
@@ -131,10 +131,8 @@ export default function SignInForm() {
     });
   };
 
-  /* ------------------ Render ------------------ */
-
   return (
-    <div className="min-h-dvh grid place-items-center px-4 bg-gradient-to-br from-base-200 to-base-300">
+    <div className="min-h-dvh grid place-items-center px-4 bg-linear-to-br from-base-200 to-base-300">
       <form
         onSubmit={onSubmit}
         className="relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden"
@@ -142,7 +140,7 @@ export default function SignInForm() {
         <div className="p-6 sm:p-8">
           {/* Avatar Icon */}
           <div className="flex justify-center mb-4">
-            <div className="size-16 rounded-full bg-gradient-to-br from-primary/90 to-secondary text-primary-content grid place-items-center shadow-md">
+            <div className="size-16 rounded-full bg-linear-to-br from-primary/90 to-secondary text-primary-content grid place-items-center shadow-md">
               <FaUserAlt size={20} />
             </div>
           </div>
@@ -202,7 +200,7 @@ export default function SignInForm() {
               fullWidth
               loading={loading}
               disabled={loading}
-              className="mt-4 h-12 rounded-xl bg-gradient-to-r from-primary to-secondary text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
+              className="mt-4 h-12 rounded-xl bg-linear-to-br from-primary to-secondary text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
             >
               Sign in
             </Button>

@@ -21,31 +21,6 @@ const EMPTY_INITIAL: PostFormValues = {
   publishedAt: null,
 };
 
-function mapResponseToFormValues(
-  data: PostDetailResponse | undefined
-): PostFormValues | null {
-  if (!data?.item) return null;
-
-  const { item, tags } = data;
-
-  return {
-    status: item.status,
-    slug: item.slug,
-    title: item.title,
-    excerpt: item.excerpt ?? "",
-    content: item.content,
-    tags: tags.map((tag) => ({
-      id: tag.id,
-      name: tag.name,
-      slug: tag.slug,
-    })),
-    cover: null,
-    publishedAt: item.publishedAt
-      ? new Date(item.publishedAt).toISOString().slice(0, 16)
-      : null,
-  };
-}
-
 export function usePostEditor(postId?: string) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -58,7 +33,7 @@ export function usePostEditor(postId?: string) {
   );
 
   const item: PostFormValues | null = isEdit
-    ? mapResponseToFormValues(data)
+    ? data?.item ?? null
     : EMPTY_INITIAL;
 
   const notFound = isEdit && !isLoading && !data?.item;

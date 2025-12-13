@@ -9,6 +9,8 @@ export type PostFormValues = {
   title: string;
   excerpt: string;
   content: string;
+
+  // tags
   tags: TagValue[];
 
   cover: MediaValue | null;
@@ -29,4 +31,7 @@ export type PostFormProps = {
 
   /** Create a new tag (Taxonomy type = TAG) */
   createTagAction: TagCreateFn;
+
+  sidebarTitle?: string;
+  sidebarSubtitle?: string;
 };

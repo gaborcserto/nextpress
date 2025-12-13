@@ -3,26 +3,26 @@
 import type { TagMultiSelectChipProps } from "./TagMultiSelect.types";
 
 /**
- * Small badge-like chip representing a selected tag.
+ * Selected tag "chip" rendered as a DaisyUI button.
+ * The X button removes the tag.
  */
 export function TagMultiSelectChip({
   tag,
   onRemoveAction,
 }: TagMultiSelectChipProps) {
   return (
-    <span className="badge badge-sm badge-neutral gap-1">
-      {tag.name}
-      <button
-        type="button"
-        className="ml-1 text-xs"
-        aria-label={`Remove ${tag.name}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onRemoveAction(tag);
-        }}
-      >
+    <button
+      type="button"
+      className="btn btn-sm btn-soft btn-primary gap-2"
+      onClick={() => onRemoveAction(tag)}
+      aria-label={`Remove tag ${tag.name}`}
+      title="Remove"
+    >
+      <span className="truncate max-w-56">{tag.name}</span>
+      <span aria-hidden="true" className="opacity-70">
         ✕
-      </button>
-    </span>
+      </span>
+    </button>
   );
 }
+

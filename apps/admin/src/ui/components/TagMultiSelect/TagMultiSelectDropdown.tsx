@@ -3,6 +3,31 @@
 import type { TagMultiSelectDropdownProps } from "./TagMultiSelect.types";
 
 /**
+ * Highlight the matching part of the option label by underlining it.
+ * Case-insensitive.
+ */
+function underlineMatch(label: string, query?: string) {
+  const q = (query ?? "").trim();
+  if (!q) return label;
+
+  const lowerLabel = label.toLowerCase();
+  const lowerQ = q.toLowerCase();
+
+  const start = lowerLabel.indexOf(lowerQ);
+  if (start === -1) return label;
+
+  const end = start + q.length;
+
+  return (
+    <>
+      {label.slice(0, start)}
+      <u>{label.slice(start, end)}</u>
+      {label.slice(end)}
+    </>
+  );
+}
+
+/**
  * Dropdown with search results and optional "Create …" CTA.
  * Positioned absolutely under the input (overlay) so it does NOT
  * push down the layout.
@@ -14,6 +39,7 @@ export function TagMultiSelectDropdown({
   showCreate,
   createLabel,
   listboxId,
+  query,
   onSelectOptionAction,
   onCreateOptionAction,
 }: TagMultiSelectDropdownProps) {
@@ -40,9 +66,13 @@ export function TagMultiSelectDropdown({
           role="option"
           aria-selected={false}
           className="block w-full text-left px-3 py-2 text-sm hover:bg-base-200"
-          onClick={() => onSelectOptionAction(option)}
+          onMouseDown={(e) => {
+            // Prevent focus/blur quirks from swallowing the click.
+            e.preventDefault();
+            onSelectOptionAction(option);
+          }}
         >
-          {option.name}
+          {underlineMatch(option.name, query)}
         </button>
       ))}
 
@@ -50,7 +80,10 @@ export function TagMultiSelectDropdown({
         <button
           type="button"
           className="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-base-200"
-          onClick={() => void onCreateOptionAction()}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            void onCreateOptionAction();
+          }}
         >
           {createLabel ?? "Create"}
         </button>

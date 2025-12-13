@@ -3,7 +3,6 @@
 import { usePageEditor } from "./PageEditorScreen.hooks";
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
 import { loadTagOptionsAction, createTagAction } from "@/lib/services/tag.client";
-import Box from "@/ui/components/Box/Box";
 import PageForm from "@/ui/layout/PageForm";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
@@ -22,34 +21,41 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
     : "Add a new page to your site.";
   const submitLabel = isEdit ? "Save" : "Create";
 
-  return (
-    <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold mb-1">{title}</h1>
-        <p className="text-base-content/70">{subtitle}</p>
-      </header>
+  if (isEdit && isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2">
+          <span className="loading loading-spinner" />
+          <span>Loading page…</span>
+        </div>
+      </div>
+    );
+  }
 
-      <Box bare>
-        {isEdit && isLoading ? (
-          <div className="animate-pulse space-y-3">
-            <div className="h-8 w-2/3 bg-base-300 rounded" />
-            <div className="h-40 bg-base-300 rounded" />
-          </div>
-        ) : notFound || !item ? (
-          <div className="py-10 text-center text-base-content/70">
-            Page not found.
-          </div>
-        ) : (
-          <PageForm
-            initial={item}
-            submitting={saving}
-            submitLabel={submitLabel}
-            onSubmitAction={handleSubmit}
-            loadTagOptionsAction={loadTagOptionsAction}
-            createTagAction={createTagAction}
-          />
-        )}
-      </Box>
+  if (isEdit && (notFound || !item)) {
+    return (
+      <div className="p-6">
+        <div className="py-10 text-center text-base-content/70">
+          Page not found.
+        </div>
+      </div>
+    );
+  }
+
+  if (!item) return null;
+
+  return (
+    <div className="p-6 w-full space-y-6">
+      <PageForm
+        initial={item}
+        submitting={saving}
+        submitLabel={submitLabel}
+        onSubmitAction={handleSubmit}
+        loadTagOptionsAction={loadTagOptionsAction}
+        createTagAction={createTagAction}
+        sidebarTitle={title}
+        sidebarSubtitle={subtitle}
+      />
     </div>
   );
 }

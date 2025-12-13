@@ -48,7 +48,7 @@ function getValidationMessage(error: unknown): string {
  */
 export async function searchTagsService(query: string): Promise<TagDto[]> {
   const trimmed = query.trim();
-  if (!trimmed) return [];
+  if (trimmed.length < 2) return [];
 
   const slugified =
     slugify(trimmed) || trimmed.toLowerCase().replace(/\s+/g, "-");
@@ -65,18 +65,14 @@ export async function searchTagsService(query: string): Promise<TagDto[]> {
  * Create a new tag or return the existing one with the same name.
  */
 export async function createTagService(rawName: string): Promise<TagDto> {
-  // 1) Validate with Yup, using unwrapResult
-  const validated = unwrapResult(
-    await tryCatch(
-      TagCreateSchema.validate(
-        { name: rawName },
-        { abortEarly: false, stripUnknown: true }
-      )
-    ),
-    (err: unknown) => new ValidationError(getValidationMessage(err))
-  );
+  // 1) Validate with Zod
+  const parsed = TagCreateSchema.safeParse({ name: rawName });
 
-  const name = validated.name;
+  if (!parsed.success) {
+    throw new ValidationError(getValidationMessage(parsed.error));
+  }
+
+  const name = parsed.data.name;
 
   // 2) Return existing if one matches case-insensitively
   const [existing] = await tryCatch(findTagByNameInsensitive(name));

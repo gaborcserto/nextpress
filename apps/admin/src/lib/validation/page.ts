@@ -1,47 +1,34 @@
-import * as yup from "yup";
+import { z } from "zod";
 
-const TagIdsSchema = yup
-  .array()
-  .of(yup.string().trim().required())
-  .default([]);
+import { TagIdsSchema } from "./tag"
 
 /** Create PAGE / POST */
-export const PageSchema = yup.object({
-  type: yup.mixed<"PAGE" | "POST">().oneOf(["PAGE", "POST"]).required(),
-  status: yup
-    .mixed<"DRAFT" | "PUBLISHED">()
-    .oneOf(["DRAFT", "PUBLISHED"])
-    .required(),
-  slug: yup.string().trim().min(1).required(),
-  title: yup.string().trim().min(1).required(),
-  excerpt: yup.string().default(""),
-  content: yup.string().default(""),
+export const PageSchema = z.object({
+  type: z.enum(["PAGE", "POST"]),
+  status: z.enum(["DRAFT", "PUBLISHED"]),
+  slug: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  excerpt: z.string().default(""),
+  content: z.string().default(""),
 
-  // Tags linked to this page/post
   tagIds: TagIdsSchema,
 });
 
-export type PageCreateInput = Omit<
-  yup.InferType<typeof PageSchema>,
-  "tagIds"
->;
+export type PageCreateInput = Omit<z.infer<typeof PageSchema>, "tagIds">;
 
 /** Update PAGE / POST */
-export const PageUpdateSchema = yup.object({
-  type: yup.mixed<"PAGE" | "POST">().oneOf(["PAGE", "POST"]).optional(),
-  status: yup
-    .mixed<"DRAFT" | "PUBLISHED">()
-    .oneOf(["DRAFT", "PUBLISHED"])
-    .optional(),
-  slug: yup.string().trim().min(1).optional(),
-  title: yup.string().trim().min(1).optional(),
-  excerpt: yup.string().optional(),
-  content: yup.string().optional(),
+export const PageUpdateSchema = z.object({
+  type: z.enum(["PAGE", "POST"]).optional(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+  slug: z.string().trim().min(1).optional(),
+  title: z.string().trim().min(1).optional(),
+  excerpt: z.string().optional(),
+  content: z.string().optional(),
 
   tagIds: TagIdsSchema.optional(),
 });
 
 export type PageUpdateInput = Omit<
-  yup.InferType<typeof PageUpdateSchema>,
+  z.infer<typeof PageUpdateSchema>,
   "tagIds"
 >;

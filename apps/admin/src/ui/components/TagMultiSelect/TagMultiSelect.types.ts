@@ -52,6 +52,9 @@ export type TagMultiSelectDropdownProps = {
   /** Optional ARIA listbox id */
   listboxId?: string;
 
+  /** Current query for highlighting matches */
+  query?: string;
+
   onSelectOptionAction: (tag: TagValue) => void;
   onCreateOptionAction: () => Promise<void> | void;
 };

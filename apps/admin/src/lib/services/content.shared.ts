@@ -3,7 +3,7 @@ import { isSlugConflictError } from "@/lib/utils";
 import {
   PageSchema,
   PageUpdateSchema,
-  yupIssues,
+  zodIssues,
   type ValidationIssue,
 } from "@/lib/validation";
 
@@ -33,34 +33,26 @@ export async function applyTags(pageId: string, tagIds: unknown): Promise<void> 
   await setTagsForPage(pageId, normalized);
 }
 
-export async function validateCreateBody(rawBody: unknown) {
-  try {
-    return await PageSchema.validate(rawBody, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-  } catch (err: unknown) {
-    const issues = yupIssues(err);
-    if (issues) {
-      throw new PageValidationError(issues);
-    }
-    throw err;
+export function validateCreateBody(rawBody: unknown) {
+  const res = PageSchema.safeParse(rawBody);
+  if (!res.success) {
+    const issues = zodIssues(res.error) ?? [
+      { path: null, message: "Validation failed" },
+    ];
+    throw new PageValidationError(issues);
   }
+  return res.data;
 }
 
-export async function validateUpdateBody(rawBody: unknown) {
-  try {
-    return await PageUpdateSchema.validate(rawBody, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-  } catch (err: unknown) {
-    const issues = yupIssues(err);
-    if (issues) {
-      throw new PageValidationError(issues);
-    }
-    throw err;
+export function validateUpdateBody(rawBody: unknown) {
+  const res = PageUpdateSchema.safeParse(rawBody);
+  if (!res.success) {
+    const issues = zodIssues(res.error) ?? [
+      { path: null, message: "Validation failed" },
+    ];
+    throw new PageValidationError(issues);
   }
+  return res.data;
 }
 
 export async function runWithSlugConflictHandling<T>(

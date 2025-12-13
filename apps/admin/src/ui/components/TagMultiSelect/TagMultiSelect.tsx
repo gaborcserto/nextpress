@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   useId,
+  useMemo,
   type KeyboardEvent,
 } from "react";
 
@@ -25,8 +26,13 @@ export function TagMultiSelect({
   createTagAction,
   placeholder = "Add tag…",
 }: TagMultiSelectProps) {
-  /** Ensure we always work with an array */
-  const selectedTags: TagValue[] = Array.isArray(value) ? value : [];
+  /**
+   * Ensure selectedTags has a stable reference
+   * to satisfy exhaustive-deps and avoid unnecessary recalculations.
+   */
+  const selectedTags = useMemo<TagValue[]>(() => {
+    return Array.isArray(value) ? value : [];
+  }, [value]);
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -37,14 +43,24 @@ export function TagMultiSelect({
 
   const { options, loading, setOptions } = useTagMultiSelectSearch(
     query,
-    loadOptionsAction
+    loadOptionsAction,
+    2
   );
+
+  const trimmedQuery = query.trim();
+
+  /**
+   * Hide already-selected tags from the dropdown,
+   * so clicking an item always produces a visible action.
+   */
+  const selectableOptions = useMemo(() => {
+    const selectedIds = new Set(selectedTags.map((t) => t.id));
+    return options.filter((opt) => !selectedIds.has(opt.id));
+  }, [options, selectedTags]);
 
   /** Add tag (avoid duplicates) */
   const addTag = (tag: TagValue): void => {
-    const alreadySelected = selectedTags.some(
-      (current) => current.id === tag.id && current.name === tag.name
-    );
+    const alreadySelected = selectedTags.some((current) => current.id === tag.id);
     if (alreadySelected) return;
 
     onChangeAction([...selectedTags, tag]);
@@ -53,9 +69,7 @@ export function TagMultiSelect({
 
   /** Remove tag */
   const removeTag = (tag: TagValue): void => {
-    onChangeAction(
-      selectedTags.filter((current) => current.id !== tag.id)
-    );
+    onChangeAction(selectedTags.filter((current) => current.id !== tag.id));
   };
 
   /** Reset search input + dropdown */
@@ -69,23 +83,22 @@ export function TagMultiSelect({
   /**
    * Keyboard UX:
    * - Enter with non-empty query:
-   *    - If there are search results → pick the first one.
+   *    - If there are search results → pick the first selectable one.
    *    - Otherwise → create a new tag via `createTagAction`.
    * - Backspace with empty query:
    *    - Remove the last selected tag.
    * - Escape: close dropdown.
    */
   const handleKeyDown = async (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && query.trim()) {
+    if (event.key === "Enter" && trimmedQuery) {
       event.preventDefault();
 
-      if (options.length > 0) {
-        addTag(options[0]);
+      if (selectableOptions.length > 0) {
+        addTag(selectableOptions[0]);
         return;
       }
 
-      const name = query.trim();
-      const newTag = await createTagAction(name);
+      const newTag = await createTagAction(trimmedQuery);
       addTag(newTag);
       return;
     }
@@ -100,12 +113,10 @@ export function TagMultiSelect({
     }
   };
 
-  const trimmedQuery = query.trim();
   const showCreate =
     trimmedQuery.length > 0 &&
-    !options.some(
-      (option) =>
-        option.name.toLowerCase() === trimmedQuery.toLowerCase()
+    !selectableOptions.some(
+      (option) => option.name.toLowerCase() === trimmedQuery.toLowerCase()
     );
 
   const handleCreateClick = async (): Promise<void> => {
@@ -124,7 +135,7 @@ export function TagMultiSelect({
 
       {/* Wrap input + dropdown in a relative container to overlay dropdown */}
       <div className="relative">
-        {/* Wrapper that acts like a "tags input" */}
+        {/* Input row */}
         <div
           role="combobox"
           aria-haspopup="listbox"
@@ -133,22 +144,14 @@ export function TagMultiSelect({
           aria-controls={listboxId}
           aria-label={label ?? "Tag selector"}
           className={cx(
-            "input input-bordered w-full flex items-center flex-wrap gap-1",
-            "min-h-[3rem] px-2 py-1"
+            "input input-bordered w-full flex items-center gap-2",
+            "min-h-12 px-2 py-1"
           )}
           onClick={() => {
             inputRef.current?.focus();
             setOpen(true);
           }}
         >
-          {selectedTags.map((tag) => (
-            <TagMultiSelectChip
-              key={`${tag.id ?? "new"}-${tag.slug}`}
-              tag={tag}
-              onRemoveAction={removeTag}
-            />
-          ))}
-
           <TagMultiSelectInput
             ref={inputRef}
             id={inputId}
@@ -160,7 +163,12 @@ export function TagMultiSelect({
               setOpen(true);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={selectedTags.length === 0 ? placeholder : ""}
+            placeholder={placeholder}
+            className={cx(
+              // Make the input comfortable: not full-width, but still responsive.
+              "bg-transparent outline-none",
+              "w-full max-w-md"
+            )}
           />
         </div>
 
@@ -168,16 +176,28 @@ export function TagMultiSelect({
         <TagMultiSelectDropdown
           open={open}
           loading={loading}
-          options={options}
+          options={selectableOptions}
           listboxId={listboxId}
+          query={trimmedQuery}
           showCreate={showCreate}
-          createLabel={
-            trimmedQuery ? `Create “${trimmedQuery}”` : undefined
-          }
+          createLabel={trimmedQuery ? `Create “${trimmedQuery}”` : undefined}
           onSelectOptionAction={addTag}
           onCreateOptionAction={handleCreateClick}
         />
       </div>
+
+      {/* Selected tags under the input */}
+      {selectedTags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {selectedTags.map((tag) => (
+            <TagMultiSelectChip
+              key={`${tag.id ?? "new"}-${tag.slug}`}
+              tag={tag}
+              onRemoveAction={removeTag}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Screen reader summary */}
       <div className="sr-only" aria-live="polite">

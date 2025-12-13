@@ -22,7 +22,6 @@ export type PageFormValues = {
   status: PageStatus;
   slug: string;
   title: string;
-  excerpt: string;
   content: string;
 
   // tags
@@ -59,4 +58,7 @@ export type PageFormProps = {
   /** Create new tag (required) */
   createTagAction: TagCreateFn;
   initialTags?: TagValue[];
+
+  sidebarTitle?: string;
+  sidebarSubtitle?: string;
 };

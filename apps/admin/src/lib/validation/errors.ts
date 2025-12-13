@@ -1,17 +1,15 @@
-import * as yup from "yup";
+import { ZodError } from "zod";
 
 export type ValidationIssue = {
   path: string | null;
   message: string;
 };
 
-export function yupIssues(err: unknown): ValidationIssue[] | null {
-  if (!(err instanceof yup.ValidationError)) return null;
+export function zodIssues(err: unknown): ValidationIssue[] | null {
+  if (!(err instanceof ZodError)) return null;
 
-  const issues = err.inner.length > 0 ? err.inner : [err];
-
-  return issues.map((e) => ({
-    path: e.path || null,
-    message: e.message,
+  return err.issues.map((issue) => ({
+    path: issue.path.length ? issue.path.join(".") : null,
+    message: issue.message,
   }));
 }

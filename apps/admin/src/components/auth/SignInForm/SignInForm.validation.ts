@@ -1,17 +1,17 @@
-import * as yup from "yup";
+import { z } from "zod";
 
 /**
- * Yup validation schema for sign-in form.
+ * Zod validation schema for sign-in form.
  */
-export const signInSchema = yup.object({
-  email: yup
+export const signInSchema = z.object({
+  email: z
     .string()
-    .email("Please enter a valid email.")
-    .required("Email is required."),
-  password: yup
+    .min(1, "Email is required.")
+    .email("Please enter a valid email."),
+  password: z
     .string()
-    .min(6, "Password must be at least 6 characters.")
-    .required("Password is required."),
+    .min(1, "Password is required.")
+    .min(6, "Password must be at least 6 characters."),
 });
 
-export type SignInFormValues = yup.InferType<typeof signInSchema>;
+export type SignInFormValues = z.infer<typeof signInSchema>;

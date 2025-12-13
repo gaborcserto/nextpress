@@ -10,7 +10,7 @@ import {
 import {
   createPage,
   updatePage,
-  deletePage,       // ← add this
+  deletePage,
   getPageById,
   getTagsForPage,
 } from "@/lib/repos";
@@ -54,6 +54,19 @@ export async function updatePostService(id: string, rawBody: unknown) {
 }
 
 /**
+ * Delete a POST by id.
+ * Ensures the item exists and is type POST.
+ */
+export async function deletePostService(id: string): Promise<void> {
+  const existing = await getPageById(id, { type: "POST" });
+  if (!existing) {
+    throw new PageNotFoundError();
+  }
+
+  await deletePage(id);
+}
+
+/**
  * List posts with pagination (for admin).
  */
 export async function listPostsService(page: number, limit: number) {
@@ -91,6 +104,7 @@ export async function listPostsService(page: number, limit: number) {
 
 /**
  * Get post with tags for edit screen.
+ * Note: returns the raw Page + tags, mapping to form values is done in the route.
  */
 export async function getPostWithTagsService(id: string) {
   const item = await getPageById(id, { type: "POST" });
@@ -101,16 +115,4 @@ export async function getPostWithTagsService(id: string) {
   const tags = await getTagsForPage(item.id);
 
   return { item, tags };
-}
-
-/**
- * Delete post by id. Throws if not found or not a POST.
- */
-export async function deletePostService(id: string): Promise<void> {
-  const existing = await getPageById(id, { type: "POST" });
-  if (!existing) {
-    throw new PageNotFoundError();
-  }
-
-  await deletePage(id);
 }

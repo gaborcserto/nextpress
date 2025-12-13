@@ -1,6 +1,6 @@
 import type { TagValue } from "@/ui/components/TagMultiSelect";
 
-/* ---------- Type guards---------- */
+/* ---------- Type guards ---------- */
 
 function isTagValue(value: unknown): value is TagValue {
   if (typeof value !== "object" || value === null) return false;
@@ -18,9 +18,7 @@ function isTagValueArray(value: unknown): value is TagValue[] {
   return Array.isArray(value) && value.every(isTagValue);
 }
 
-function isPaginatedTagResponse(
-  value: unknown
-): value is { items: TagValue[] } {
+function isPaginatedTagResponse(value: unknown): value is { items: TagValue[] } {
   if (typeof value !== "object" || value === null) return false;
 
   const obj = value as { [key: string]: unknown };
@@ -29,24 +27,35 @@ function isPaginatedTagResponse(
   return isTagValueArray(items);
 }
 
+/**
+ * Many endpoints in this codebase use helpers like `ok(...)`,
+ * which may wrap the payload as `{ data: ... }`.
+ * This helper lets us gracefully handle both wrapped and unwrapped responses.
+ */
+function unwrapOkData(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null) return raw;
+
+  const obj = raw as Record<string, unknown>;
+  return "data" in obj ? obj.data : raw;
+}
+
 /* ---------- loadTagOptionsAction ---------- */
 
-export async function loadTagOptionsAction(
-  query: string
-): Promise<TagValue[]> {
+export async function loadTagOptionsAction(query: string): Promise<TagValue[]> {
   const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`);
   if (!res.ok) return [];
 
   const raw: unknown = await res.json();
+  const unwrapped = unwrapOkData(raw);
 
   // 1) { items: TagValue[] }
-  if (isPaginatedTagResponse(raw)) {
-    return raw.items;
+  if (isPaginatedTagResponse(unwrapped)) {
+    return unwrapped.items;
   }
 
   // 2) TagValue[]
-  if (isTagValueArray(raw)) {
-    return raw;
+  if (isTagValueArray(unwrapped)) {
+    return unwrapped;
   }
 
   return [];
@@ -66,12 +75,17 @@ export async function createTagAction(label: string): Promise<TagValue> {
   }
 
   const raw: unknown = await res.json();
+  const unwrapped = unwrapOkData(raw);
 
-  if (isTagValue(raw)) {
-    return raw;
+  if (isTagValue(unwrapped)) {
+    return unwrapped;
   }
 
-  const obj = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
+  const obj =
+    (typeof unwrapped === "object" && unwrapped !== null ? unwrapped : {}) as Record<
+      string,
+      unknown
+    >;
 
   const id =
     typeof obj.id === "string"
@@ -80,10 +94,7 @@ export async function createTagAction(label: string): Promise<TagValue> {
         ? String(obj.id)
         : crypto.randomUUID();
 
-  const name =
-    typeof obj.name === "string" && obj.name.trim()
-      ? obj.name
-      : label;
+  const name = typeof obj.name === "string" && obj.name.trim() ? obj.name : label;
 
   const slug =
     typeof obj.slug === "string" && obj.slug.trim()
@@ -91,4 +102,37 @@ export async function createTagAction(label: string): Promise<TagValue> {
       : name.toLowerCase().replace(/\s+/g, "-");
 
   return { id, name, slug };
+}
+
+/* ---------- Entity tags (load + persist) ---------- */
+
+/**
+ * Load tags assigned to an entity (Page/Post) by ID.
+ */
+export async function loadEntityTagsAction(entityId: string): Promise<TagValue[]> {
+  const res = await fetch(
+    `/api/tags/link?entityId=${encodeURIComponent(entityId)}`
+  );
+  if (!res.ok) return [];
+
+  const raw: unknown = await res.json();
+  const unwrapped = unwrapOkData(raw);
+
+  if (isTagValueArray(unwrapped)) return unwrapped;
+
+  return [];
+}
+
+/**
+ * Replace all tags assigned to an entity (Page/Post) by ID.
+ */
+export async function updateEntityTagsAction(
+  entityId: string,
+  tagIds: string[]
+): Promise<void> {
+  await fetch(`/api/tags/link?entityId=${encodeURIComponent(entityId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tagIds }),
+  });
 }

@@ -9,7 +9,8 @@ import type { TagLoadOptionsFn, TagValue } from "./TagMultiSelect.types";
  */
 export function useTagMultiSelectSearch(
   query: string,
-  loadOptions: TagLoadOptionsFn
+  loadOptions: TagLoadOptionsFn,
+  minChars = 2
 ) {
   const [options, setOptions] = useState<TagValue[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,8 +18,10 @@ export function useTagMultiSelectSearch(
   useEffect(() => {
     const trimmed = query.trim();
 
-    if (!trimmed) {
+    // Avoid hitting the API for very short queries.
+    if (trimmed.length < minChars) {
       setOptions([]);
+      setLoading(false);
       return;
     }
 
@@ -40,7 +43,7 @@ export function useTagMultiSelectSearch(
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, loadOptions]);
+  }, [query, loadOptions, minChars]);
 
   return { options, loading, setOptions };
 }

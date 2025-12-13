@@ -12,30 +12,57 @@ import {
   updatePostService,
   deletePostService,
 } from "@/lib/services/post.server";
+import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
 
 type RouteParams = { id: string };
-type RawParams = Record<string, string>;
-type ParamsLike = RawParams | Promise<RawParams>;
+
+type GetContext = {
+  params: Promise<RouteParams>;
+};
+
+type PostExtraFields = {
+  publishedAt?: Date | string | null;
+};
 
 /**
- * Normalize Next.js params (can be plain object or Promise).
+ * Map DB entity + tags into PostFormValues used by the form.
  */
-async function getRouteParams(params: ParamsLike): Promise<RouteParams> {
-  const p = await params;
-  return { id: p.id };
+function mapPostToFormValues(
+  page: Awaited<ReturnType<typeof getPostWithTagsService>>["item"],
+  tags: Awaited<ReturnType<typeof getPostWithTagsService>>["tags"]
+): PostFormValues {
+  const p = page as typeof page & PostExtraFields;
+
+  return {
+    status: p.status as PostFormValues["status"],
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt ?? "",
+    content: p.content ?? "",
+    tags: tags.map((t) => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+    })),
+    // TODO: map cover once it's stored on the Page
+    cover: null,
+    publishedAt: p.publishedAt
+      ? new Date(p.publishedAt).toISOString().slice(0, 16)
+      : null,
+  };
 }
 
 /**
  * GET /api/post/[id]
  */
-export async function GET(
-  _req: Request,
-  ctx: { params: ParamsLike }
-) {
+export async function GET(_req: Request, { params }: GetContext) {
   try {
-    const { id } = await getRouteParams(ctx.params);
+    const { id } =  await params;
     const { item, tags } = await getPostWithTagsService(id);
-    return ok({ item, tags });
+
+    const formItem = mapPostToFormValues(item, tags);
+
+    return ok({ item: formItem });
   } catch (err) {
     if (err instanceof PageNotFoundError) {
       return notfound();
@@ -51,10 +78,7 @@ export async function GET(
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
   async (req, ctx) => {
-    const { id } = await getRouteParams(
-      ctx.params as ParamsLike
-    );
-
+    const { id } = ctx.params as RouteParams;
     let body: unknown;
 
     try {
@@ -86,9 +110,7 @@ export const PUT = withAuth(
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
   async (_req, ctx) => {
-    const { id } = await getRouteParams(
-      ctx.params as ParamsLike
-    );
+    const { id } = ctx.params as RouteParams;
 
     try {
       await deletePostService(id);
