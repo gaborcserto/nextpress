@@ -31,34 +31,34 @@ export default function NavItem({
 
   return (
       <Link
-          href={href}
-          onClick={onClickAction}
-          className={wrapperCls}
-          aria-current={active ? "page" : undefined}
+        href={href}
+        onClick={onClickAction}
+        className={wrapperCls}
+        aria-current={active ? "page" : undefined}
       >
         <div
-            className={[
-              "h-full flex items-center",
-              collapsed ? "justify-center gap-0" : "justify-start gap-3",
-            ].join(" ")}
+          className={[
+            "h-full flex items-center",
+            collapsed ? "justify-center gap-0" : "justify-start gap-3",
+          ].join(" ")}
         >
-          <span className={active ? "text-primary flex-shrink-0" : "flex-shrink-0"}>
+          <span className={active ? "text-primary shrink-0" : "shrink-0"}>
             <IconAction size={20} />
           </span>
 
           <AnimatePresence initial={false}>
             {!collapsed && (
-                <MotionSpan
-                    key={label}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.15 }}
-                    className="truncate leading-none"
-                    suppressHydrationWarning
-                >
-                  {label}
-                </MotionSpan>
+              <MotionSpan
+                key={label}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.15 }}
+                className="truncate leading-none"
+                suppressHydrationWarning
+              >
+                {label}
+              </MotionSpan>
             )}
           </AnimatePresence>
         </div>

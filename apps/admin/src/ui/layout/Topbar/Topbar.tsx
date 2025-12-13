@@ -46,9 +46,9 @@ export default function Topbar({
 
           // Scrolled: use CSS variables → consistent with your whole theme
           scrolled && [
-            "bg-[var(--surface-bg)]",         // white / dark-gray depending on theme
-            "border-[var(--surface-border)]", // light/dark border tone
-            "shadow-[0_8px_24px_rgba(0,0,0,0.08)]", // light shadow — works both modes
+            "bg-base-100",
+            "border-base-300",
+            "shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
           ].join(" "),
         ].join(" ")}
 

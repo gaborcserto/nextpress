@@ -140,7 +140,7 @@ export default function SignInForm() {
         <div className="p-6 sm:p-8">
           {/* Avatar Icon */}
           <div className="flex justify-center mb-4">
-            <div className="size-16 rounded-full bg-linear-to-br from-primary/90 to-secondary text-primary-content grid place-items-center shadow-md">
+            <div className="size-16 rounded-full bg-linear-to-r from-emerald-400 to-cyan-400 text-primary-content grid place-items-center shadow-md">
               <FaUserAlt size={20} />
             </div>
           </div>
@@ -200,7 +200,7 @@ export default function SignInForm() {
               fullWidth
               loading={loading}
               disabled={loading}
-              className="mt-4 h-12 rounded-xl bg-linear-to-br from-primary to-secondary text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
+              className="mt-4 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
             >
               Sign in
             </Button>

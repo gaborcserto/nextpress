@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FiTrash2 } from "react-icons/fi";
+import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import type { ContentListProps } from "./ContentList.types";
 
@@ -36,7 +36,7 @@ showTags = false,
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">{heading}</h1>
         <Link href={createHref} className="btn btn-primary">
-          {createLabel}
+          {createLabel} <FaPlus/>
         </Link>
       </div>
 
@@ -100,22 +100,26 @@ showTags = false,
                       {/* Edit button */}
                       <Link
                         href={editHrefAction(item.id)}
-                        className="btn btn-xs btn-outline"
+                        className="btn btn-s btn-soft gap-1"
                       >
-                        Edit
+                        Edit <FaEdit size={14} />
                       </Link>
 
                       {/* Optional delete button */}
                       {onDeleteAction && (
                         <button
-                          className={`btn btn-xs btn-error ${
+                          className={`btn btn-s btn-error gap-1 ${
                             deletingId === item.id ? "loading" : ""
                           }`}
                           onClick={() => onDeleteAction(item.id)}
                           disabled={deletingId === item.id}
                         >
-                          {deletingId === item.id ? "" : (
-                            <FiTrash2 size={14} />
+                          {deletingId === item.id ? (
+                            "Delete"
+                          ) : (
+                            <>
+                              Delete <FaTrash size={14} />
+                            </>
                           )}
                         </button>
                       )}

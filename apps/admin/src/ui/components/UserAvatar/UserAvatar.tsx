@@ -24,7 +24,7 @@ export function UserAvatar({
       : `avatar ${className}`;
 
   // Background gradient (no image)
-  const bgGradient = "bg-gradient-to-br from-primary/90 to-secondary";
+  const bgGradient = "bg-gradient-to-r from-emerald-400 to-cyan-400";
 
   return (
       <div className={wrapper}>
@@ -44,7 +44,7 @@ export function UserAvatar({
               <span
                   className="
                     font-bold
-                    bg-gradient-to-br from-white via-pink-200 to-indigo-300
+                    text-white
                     bg-clip-text text-transparent
                     drop-shadow-sm
                   "

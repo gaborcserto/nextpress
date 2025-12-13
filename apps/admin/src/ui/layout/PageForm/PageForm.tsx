@@ -67,7 +67,7 @@ export default function PageForm({
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
           {/* CONTEXT */}
           {(sidebarTitle || sidebarSubtitle) && (
-            <header className="space-y-1">
+            <header className="h-20 flex flex-col justify-center space-y-1">
               <h1 className="text-2xl font-semibold">{sidebarTitle}</h1>
               <p className="text-base-content/70">{sidebarSubtitle}</p>
             </header>
@@ -99,7 +99,7 @@ export default function PageForm({
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className="lg:col-span-8 space-y-6 min-w-0">
+        <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
           {/* BASIC INFO SECTION */}
           <Section title="Basic info" desc="Set title, status, slug and page type.">
             <FormGrid12>

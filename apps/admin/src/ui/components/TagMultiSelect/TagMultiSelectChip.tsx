@@ -1,5 +1,7 @@
 "use client";
 
+import { FaTimes } from "react-icons/fa";
+
 import type { TagMultiSelectChipProps } from "./TagMultiSelect.types";
 
 /**
@@ -20,9 +22,8 @@ export function TagMultiSelectChip({
     >
       <span className="truncate max-w-56">{tag.name}</span>
       <span aria-hidden="true" className="opacity-70">
-        ✕
+        <FaTimes />
       </span>
     </button>
   );
 }
-
