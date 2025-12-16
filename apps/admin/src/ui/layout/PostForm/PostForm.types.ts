@@ -1,5 +1,6 @@
 import type { MediaValue, UploadFn } from "@/ui/components/ImageUploader";
 import type { TagValue, TagLoadOptionsFn, TagCreateFn } from "@/ui/components/TagMultiSelect";
+import type { Descendant } from "slate";
 
 export type PostStatus = "DRAFT" | "PUBLISHED";
 
@@ -7,8 +8,8 @@ export type PostFormValues = {
   status: PostStatus;
   slug: string;
   title: string;
-  excerpt: string;
-  content: string;
+  excerpt: Descendant[];
+  content: Descendant[];
 
   // tags
   tags: TagValue[];

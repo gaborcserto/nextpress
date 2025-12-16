@@ -83,7 +83,6 @@ export default function ProfileScreen() {
 
   /* --------------------------------------------------
    * Deactivate account
-   * (soft-lock / disable)
    * -------------------------------------------------- */
   const handleDeactivate = async () => {
     if (!confirm("Are you sure you want to deactivate your account?")) return;
@@ -124,16 +123,8 @@ export default function ProfileScreen() {
   /* --------------------------------------------------
    * Render
    * -------------------------------------------------- */
-
   return (
-    <div className="p-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold mb-1">Profile</h1>
-        <p className="text-base-content/70">
-          Update your display name and avatar.
-        </p>
-      </header>
-
+    <div className="space-y-6 w-full">
       {isPending ? (
         <Box bare>
           <div className="p-6 animate-pulse space-y-3">
@@ -142,96 +133,125 @@ export default function ProfileScreen() {
           </div>
         </Box>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-6 max-w-5xl">
-          {/* ------------------- Basic Info Section ------------------- */}
-          <Section
-            title="Basic info"
-            desc="Set your display name and profile image."
-          >
-            <Box bare>
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <UserAvatar
-                  name={values.name}
-                  image={values.image}
-                  size="lg"
-                  className="ring-0"
-                />
+        <form onSubmit={onSubmit} className="space-y-6 w-full">
+          {/* LAYOUT: SIDEBAR (left) + MAIN (right) */}
+          <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+            {/* SIDEBAR */}
+            <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
+              {/* CONTEXT */}
+              <header className="h-20 flex flex-col justify-center space-y-1">
+                <h1 className="text-2xl font-semibold">Profile</h1>
+                <p className="text-base-content/70">
+                  Update your display name and avatar.
+                </p>
+              </header>
 
-                <div className="flex-1 w-full max-w-md space-y-4">
-                  <Input
-                    label="Display name"
-                    value={values.name}
-                    onChange={onChange("name")}
-                    placeholder="Your name"
-                    fullWidth
-                    rounded="lg"
-                  />
+              {/* AVATAR PREVIEW */}
+              <Section title="Avatar" desc="Preview your profile picture.">
+                <Box bare>
+                  <div className="flex items-center gap-4">
+                    <UserAvatar
+                      name={values.name}
+                      image={values.image}
+                      size="lg"
+                      className="ring-0"
+                    />
 
-                  <Input
-                    label="Avatar URL"
-                    type="url"
-                    value={values.image}
-                    onChange={onChange("image")}
-                    placeholder="https://…"
-                    fullWidth
-                    rounded="lg"
-                  />
-                </div>
-              </div>
-            </Box>
-          </Section>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">
+                        {values.name || "Unnamed user"}
+                      </div>
+                      <div className="text-sm text-base-content/70">
+                        Shown across the admin UI.
+                      </div>
+                    </div>
+                  </div>
+                </Box>
+              </Section>
 
-          {/* ------------------- Sticky footer buttons ------------------- */}
-          <StickyWrapper>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => history.back()}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="submit"
-              color="primary"
-              variant="solid"
-              loading={saving}
-            >
-              Save
-            </Button>
-          </StickyWrapper>
-
-          {/* ------------------- Danger Zone ------------------- */}
-          <Section
-            title="Danger zone"
-            desc="These actions affect your account security."
-          >
-            <Box bare className="flex items-center justify-end gap-3">
-              {/* Deactivate = gray outline */}
-              <Button
-                type="button"
-                variant="outline"
-                color="default"
-                loading={deactivating}
-                onClick={handleDeactivate}
-                className="justify-start"
+              {/* DANGER ZONE */}
+              <Section
+                title="Danger zone"
+                desc="These actions affect your account security."
               >
-                Deactivate account
-              </Button>
+                <Box bare className="flex flex-col gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="default"
+                    loading={deactivating}
+                    onClick={handleDeactivate}
+                    className="justify-start"
+                  >
+                    Deactivate account
+                  </Button>
 
-              {/* Delete = red solid */}
-              <Button
-                type="button"
-                variant="solid"
-                color="error"
-                loading={deleting}
-                onClick={handleDelete}
-                className="justify-start"
+                  <Button
+                    type="button"
+                    variant="solid"
+                    color="error"
+                    loading={deleting}
+                    onClick={handleDelete}
+                    className="justify-start"
+                  >
+                    Delete account
+                  </Button>
+                </Box>
+              </Section>
+            </aside>
+
+            {/* MAIN CONTENT */}
+            <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
+              {/* BASIC INFO */}
+              <Section
+                title="Basic info"
+                desc="Set your display name and profile image."
               >
-                Delete account
-              </Button>
-            </Box>
-          </Section>
+                <Box bare>
+                  <div className="space-y-4 max-w-xl">
+                    <Input
+                      label="Display name"
+                      value={values.name}
+                      onChange={onChange("name")}
+                      placeholder="Your name"
+                      fullWidth
+                      rounded="lg"
+                    />
+
+                    <Input
+                      label="Avatar URL"
+                      type="url"
+                      value={values.image}
+                      onChange={onChange("image")}
+                      placeholder="https://…"
+                      fullWidth
+                      rounded="lg"
+                    />
+                  </div>
+                </Box>
+              </Section>
+
+              {/* ACTION BUTTONS */}
+              <StickyWrapper>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => history.back()}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="submit"
+                  color="primary"
+                  variant="solid"
+                  loading={saving}
+                >
+                  Save
+                </Button>
+              </StickyWrapper>
+            </main>
+          </div>
         </form>
       )}
     </div>

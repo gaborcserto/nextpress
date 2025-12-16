@@ -1,8 +1,9 @@
 import type { MediaValue, UploadFn } from "@/ui/components/ImageUploader";
+import type { Descendant } from "slate";
 
 export type PostIntroFieldsProps = {
-  excerpt: string;
-  onExcerptChangeAction: (value: string) => void;
+  excerpt: Descendant[];
+  onExcerptChangeAction: (value: Descendant[]) => void;
 
   cover: MediaValue | null;
   onCoverChangeAction: (value: MediaValue | null) => void;

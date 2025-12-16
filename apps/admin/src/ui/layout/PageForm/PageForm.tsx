@@ -12,10 +12,11 @@ import ListingFields from "@/ui/components/ListingFields";
 import MenuPlacementField from "@/ui/components/MenuPlacementField";
 import PageTypeField from "@/ui/components/PageTypeField";
 import RedirectField from "@/ui/components/RedirectField";
+import SlateEditor, { EMPTY_SLATE_VALUE }  from "@/ui/components/SlateEditor";
 import StickyWrapper from "@/ui/components/StickyWrapper";
 import TagsField from "@/ui/components/TagsField/TagsField";
 import Section from "@/ui/layout/Section";
-import { buildInitialForm, getEntityId } from "@/ui/utils/editorForm";
+import { buildInitialForm, getEntityId, normalizeSlateValue } from "@/ui/utils/editorForm";
 
 export default function PageForm({
   initial,
@@ -26,7 +27,14 @@ export default function PageForm({
   sidebarSubtitle,
 }: PageFormProps) {
   // init state
-  const [form, setForm] = useState<PageFormValues>(() => buildInitialForm(initial));
+  const [form, setForm] = useState<PageFormValues>(() => {
+    const built = buildInitialForm(initial) as PageFormValues;
+
+    return {
+      ...built,
+      content: normalizeSlateValue(built.content),
+    };
+  });
 
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
 
@@ -169,13 +177,8 @@ export default function PageForm({
           )}
 
           {/* CONTENT AREA */}
-          <Section title="Content" desc="Write or paste HTML / text content.">
-            <textarea
-              rows={14}
-              className="textarea textarea-bordered w-full"
-              value={form.content}
-              onChange={(e) => setField("content", e.target.value)}
-            />
+          <Section title="Content" desc="Write your content.">
+            <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
           {/* ACTION BUTTONS (main width only) */}

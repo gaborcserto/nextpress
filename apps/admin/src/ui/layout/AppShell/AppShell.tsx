@@ -50,7 +50,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolled = useStickyScrolled(scrollRef);
 
-  const sideW = useMemo(() => (collapsed ? 72 : 240), [collapsed]);
+  const sideW = useMemo(() => (collapsed ? 60 : 240), [collapsed]);
 
   const handleSidebarTrigger = () => {
     if (isDesktop) {
@@ -69,19 +69,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="h-dvh overflow-hidden bg-gradient-to-br from-base-200 to-base-300">
+    <div className="h-dvh overflow-hidden bg-linear-to-br from-base-200 to-base-300">
       <div className="flex h-full">
         <MotionDiv
           initial={false}
           animate={{ width: isDesktop ? sideW : 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+          transition={{ type: "keyframes", stiffness: 220, damping: 26 }}
           style={{
             width: isDesktop ? sideW : 0,
             willChange: "width",
             height: "calc(100% - 24px)",
           }}
           className={[
-            "hidden md:block m-3 me-2 overflow-hidden",
+            "hidden md:block m-3 me-2",
             "bg-base-100 border border-base-300 rounded-2xl shadow",
           ].join(" ")}
           aria-hidden={!isDesktop}
@@ -120,7 +120,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             className="drawer-overlay"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="menu bg-base-100 text-base-content w-72 max-w-[18rem] min-h-full border-r border-base-300 p-0">
+          <aside className="menu bg-base-100 text-base-content w-60 max-w-[18rem] min-h-full border-r border-base-300 p-0">
             <Sidebar
               collapsed={false}
               onItemClickAction={() => setDrawerOpen(false)}

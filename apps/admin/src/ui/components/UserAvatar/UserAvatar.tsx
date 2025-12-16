@@ -1,5 +1,7 @@
 "use client";
 
+import Avatar from "boring-avatars";
+
 import type { UserAvatarProps } from "./UserAvatar.types";
 
 export function UserAvatar({
@@ -9,7 +11,10 @@ export function UserAvatar({
   asButton = false,
   className = "",
 }: UserAvatarProps) {
-  const initial = name?.trim()?.[0]?.toUpperCase() ?? "?";
+
+  const seed = (name?.trim() || "user").toLowerCase();
+
+  const px = size === "sm" ? 36 : size === "md" ? 64 : 96;
 
   // Size classes
   const sizeClass =
@@ -23,37 +28,23 @@ export function UserAvatar({
       ? `btn btn-ghost btn-circle avatar ${className}`
       : `avatar ${className}`;
 
-  // Background gradient (no image)
-  const bgGradient = "bg-gradient-to-r from-emerald-400 to-cyan-400";
-
   return (
       <div className={wrapper}>
-        <div
-            className={`rounded-full overflow-hidden grid place-items-center ${sizeClass}
-        ${image ? "" : bgGradient}`}
-        >
+        <div className={`rounded-full overflow-hidden ${sizeClass}`}>
           {image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                  src={image}
-                  alt={name || "Avatar"}
-                  className="w-full h-full object-cover"
-              />
-          ) : size === "sm" ? (
-              // SMALL: gradient text using pure Tailwind
-              <span
-                  className="
-                    font-bold
-                    text-white
-                    bg-clip-text text-transparent
-                    drop-shadow-sm
-                  "
-              >
-                {initial}
-              </span>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={image}
+              alt={name ? `${name} avatar` : "Avatar"}
+              className="w-full h-full object-cover"
+            />
           ) : (
-              // large & medium text is simple white
-              <span className="font-semibold text-white">{initial}</span>
+            <Avatar
+              size={px}
+              name={seed}
+              variant="beam"
+              colors={["#0A0310", "#49007E", "#FF005B", "#FF7D10", "#FFB238"]}
+            />
           )}
         </div>
       </div>

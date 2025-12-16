@@ -10,10 +10,11 @@ import type { MediaValue } from "@/ui/components/ImageUploader";
 import Input from "@/ui/components/Input";
 import { PostIntroFields } from "@/ui/components/PostIntroFields";
 import Select from "@/ui/components/Select";
+import SlateEditor, { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
 import StickyWrapper from "@/ui/components/StickyWrapper";
-import TagsField from "@/ui/components/TagsField/TagsField";
+import TagsField from "@/ui/components/TagsField";
 import Section from "@/ui/layout/Section";
-import { buildInitialForm, getEntityId } from "@/ui/utils/editorForm";
+import { buildInitialForm, getEntityId, normalizeSlateValue } from "@/ui/utils/editorForm";
 
 const POST_STATUS_OPTIONS: readonly { value: PostStatus; label: string }[] = [
   { value: "DRAFT", label: "Draft" },
@@ -33,7 +34,15 @@ export default function PostForm({
    * Init state:
    *  - If slug is empty AND title exists → generate slug on mount
    */
-  const [form, setForm] = useState<PostFormValues>(() => buildInitialForm(initial));
+  const [form, setForm] = useState<PostFormValues>(() => {
+    const built = buildInitialForm(initial);
+
+    return {
+      ...built,
+      excerpt: normalizeSlateValue(initial.excerpt),
+      content: normalizeSlateValue(initial.content),
+    } as PostFormValues;
+  });
 
   // Track if slug was manually edited:
   // true only if initial.slug differs from auto-generated slug
@@ -136,8 +145,8 @@ export default function PostForm({
           {/* INTRO: EXCERPT + COVER */}
           <Section title="Intro" desc="Short lead text and optional cover image.">
             <PostIntroFields
-              excerpt={form.excerpt}
-              onExcerptChangeAction={(value: string) => setField("excerpt", value)}
+              excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
+              onExcerptChangeAction={(value) => setField("excerpt", value)}
               cover={form.cover}
               onCoverChangeAction={(media: MediaValue | null) => setField("cover", media)}
               onCoverAltChangeAction={(alt: string) =>
@@ -148,13 +157,8 @@ export default function PostForm({
           </Section>
 
           {/* CONTENT */}
-          <Section title="Content" desc="Write or paste HTML content.">
-            <textarea
-              rows={16}
-              className="textarea textarea-bordered w-full"
-              value={form.content}
-              onChange={(e) => setField("content", e.target.value)}
-            />
+          <Section title="Content" desc="Write your content.">
+            <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
           {/* ACTION BUTTONS (main width only) */}

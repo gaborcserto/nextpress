@@ -36,7 +36,7 @@ showTags = false,
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">{heading}</h1>
         <Link href={createHref} className="btn btn-primary">
-          {createLabel} <FaPlus/>
+          <FaPlus/> {createLabel}
         </Link>
       </div>
 
@@ -69,9 +69,7 @@ showTags = false,
               items.map((item) => (
                 <tr key={item.id}>
                   <td>{item.title}</td>
-                  <td>
-                    <code>{item.slug}</code>
-                  </td>
+                  <td>{item.slug}</td>
 
                   {showAuthor && <td>{item.author || "—"}</td>}
 
@@ -102,7 +100,7 @@ showTags = false,
                         href={editHrefAction(item.id)}
                         className="btn btn-s btn-soft gap-1"
                       >
-                        Edit <FaEdit size={14} />
+                        <FaEdit size={14} /> Edit
                       </Link>
 
                       {/* Optional delete button */}
@@ -118,7 +116,7 @@ showTags = false,
                             "Delete"
                           ) : (
                             <>
-                              Delete <FaTrash size={14} />
+                              <FaTrash size={14} /> Delete
                             </>
                           )}
                         </button>

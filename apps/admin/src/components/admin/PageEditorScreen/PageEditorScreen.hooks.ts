@@ -15,7 +15,6 @@ const EMPTY_INITIAL: PageFormValues = {
   status: "DRAFT",
   slug: "",
   title: "",
-  excerpt: "",
   content: "",
   tags: [],
   parentId: null,

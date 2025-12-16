@@ -52,18 +52,18 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
           <DropdownDivider />
 
           <DropdownItem
-              itemKey="profile"
-              endIcon={<FaUserCircle />}
-              onClick={() => router.push("/admin/profile")}
+            itemKey="profile"
+            startIcon={<FaUserCircle />}
+            onClick={() => router.push("/admin/profile")}
           >
             Profile
           </DropdownItem>
 
           <DropdownItem
-              itemKey="logout"
-              color="danger"
-              endIcon={<FaSignOutAlt />}
-              onClick={handleSignOut}
+            itemKey="logout"
+            color="danger"
+            startIcon={<FaSignOutAlt />}
+            onClick={handleSignOut}
           >
             Sign out
           </DropdownItem>

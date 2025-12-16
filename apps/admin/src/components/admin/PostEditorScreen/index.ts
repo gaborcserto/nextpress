@@ -1,3 +1,3 @@
 export { default } from "./PostEditorScreen";
 
-export type { PostDetailItem, PostDetailResponse, PostDetailTag, PostEditorScreenProps} from "./PostEditorScreen.types";
+export type { PostDetailResponse, PostEditorScreenProps} from "./PostEditorScreen.types";

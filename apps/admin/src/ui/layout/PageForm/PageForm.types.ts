@@ -1,4 +1,5 @@
 import type { TagValue, TagLoadOptionsFn, TagCreateFn } from "@/ui/components/TagMultiSelect";
+import type { Descendant } from "slate";
 
 export type PageType =
   | "STANDARD"
@@ -22,7 +23,7 @@ export type PageFormValues = {
   status: PageStatus;
   slug: string;
   title: string;
-  content: string;
+  content: Descendant[];
 
   // tags
   tags: TagValue[];

@@ -27,7 +27,8 @@ export default function NavItem({
   const idleCls = "hover:bg-base-200";
   const activeCls = "bg-primary/10 text-primary hover:bg-primary/15";
 
-  const wrapperCls = `${baseCls} ${active ? activeCls : idleCls}`;
+  const sizeCls = collapsed ? "w-10 px-0" : "w-full px-3";
+  const wrapperCls = `${baseCls} ${sizeCls} ${active ? activeCls : idleCls}`;
 
   return (
       <Link

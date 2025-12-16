@@ -4,12 +4,8 @@ import type { PostIntroFieldsProps } from "./PostIntroFields.types";
 import { FormGrid12, Field } from "@/ui/components/FormGrid";
 import ImageUploader from "@/ui/components/ImageUploader";
 import Input from "@/ui/components/Input";
+import SlateEditor, { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
 
-/**
- * Intro section of a post:
- * - excerpt (lead text)
- * - optional cover image + alt text
- */
 export function PostIntroFields({
   excerpt,
   onExcerptChangeAction,
@@ -25,11 +21,9 @@ export function PostIntroFields({
         hint="Short intro used on listing pages and social previews."
         span={7}
       >
-        <textarea
-          rows={4}
-          className="textarea textarea-bordered w-full"
-          value={excerpt}
-          onChange={(e) => onExcerptChangeAction(e.target.value)}
+        <SlateEditor
+          value={excerpt ?? EMPTY_SLATE_VALUE}
+          onChangeAction={onExcerptChangeAction}
         />
       </Field>
 

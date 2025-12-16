@@ -45,7 +45,6 @@ function mapPageToFormValues(
     status: page.status as PageFormValues["status"],
     slug: page.slug,
     title: page.title,
-    excerpt: page.excerpt ?? "",
     content: page.content ?? "",
     tags: tags.map((t) => ({
       id: t.id,

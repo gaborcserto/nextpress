@@ -1,12 +1,13 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { FaCopy, FaHome, FaImages, FaTags, FaThumbtack } from "react-icons/fa";
 
 import NavItem from "@/ui/layout/NavItem";
 
 const MotionSpan = motion.span;
+const MotionDiv = motion.div;
 
 const ITEMS = [
   { href: "/admin", label: "DashboardScreen", icon: FaHome },
@@ -31,40 +32,32 @@ export default function Sidebar({
   };
 
   return (
-    <aside className="h-full overflow-hidden flex flex-col">
-      <div
-        className={`h-14 px-3 flex items-center ${
-          collapsed ? "justify-center" : "justify-start"
-        }`}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {collapsed ? (
-            <MotionSpan
-              key="np"
-              className="font-semibold"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              suppressHydrationWarning
-            >
-              NP
-            </MotionSpan>
-          ) : (
-            <MotionSpan
-              key="nextpress"
-              className="font-semibold"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              suppressHydrationWarning
-            >
-              NextPress
-            </MotionSpan>
-          )}
-        </AnimatePresence>
+    <aside className="h-full overflow-visible flex flex-col">
+      <div className="h-14 px-3 flex items-center">
+        <MotionDiv
+          layout
+          initial={false}
+          className="w-full font-semibold whitespace-nowrap"
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+        >
+          <MotionSpan
+            layout
+            initial={false}
+            className={collapsed ? "block w-full text-center" : "block w-full text-left"}
+            animate={{
+              scale: collapsed ? 1.03 : 1,
+              letterSpacing: collapsed ? "0.08em" : "0em",
+              opacity: 1,
+            }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            suppressHydrationWarning
+          >
+            {collapsed ? "NP" : "NextPress"}
+          </MotionSpan>
+        </MotionDiv>
       </div>
 
-      <div className="flex-1 px-2 py-2 space-y-1">
+      <div className="flex-1 px-2 py-2 flex flex-col gap-1">
         {ITEMS.map((it) => {
           const active = isActive(it.href);
 
