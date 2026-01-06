@@ -13,6 +13,7 @@ import {
   updatePageService,
 } from "@/lib/services/page.server";
 import type { PageFormValues } from "@/ui/layout/PageForm";
+import { normalizeSlateValue } from "@/ui/utils/editorForm";
 
 type RouteParams = { id: string };
 
@@ -45,7 +46,7 @@ function mapPageToFormValues(
     status: page.status as PageFormValues["status"],
     slug: page.slug,
     title: page.title,
-    content: page.content ?? "",
+    content: normalizeSlateValue(page.content),
     tags: tags.map((t) => ({
       id: t.id,
       name: t.name,
@@ -64,14 +65,18 @@ function mapPageToFormValues(
   };
 }
 
+type GetContext = {
+  params: Promise<RouteParams>;
+};
+
 /**
  * GET /api/pages/[id]
  */
 export async function GET(
   _req: Request,
-  ctx: { params: Record<string, string> }
+  { params }: GetContext
 ) {
-  const { id } = await getRouteParams(ctx);
+  const { id } = await params;
 
   const page = await getPageById(id);
   if (!page) return notfound();

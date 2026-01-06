@@ -93,7 +93,7 @@ export default function SlateEditor({ value, onChangeAction }: SlateEditorProps)
             </label>
 
             <textarea
-              className="textarea textarea-bordered w-full font-mono text-sm min-h-[220px]"
+              className="textarea textarea-bordered w-full font-mono text-sm min-h-55"
               value={JSON.stringify(safeValue, null, 2)}
               onChange={(e) => {
                 try {
@@ -113,7 +113,7 @@ export default function SlateEditor({ value, onChangeAction }: SlateEditorProps)
             placeholder="Write your content..."
             renderElement={renderElement}
             renderLeaf={renderLeaf}
-            className="min-h-[300px] p-4 outline-none prose max-w-none"
+            className="min-h-75 p-4 outline-none prose max-w-none"
           />
         )}
       </Slate>

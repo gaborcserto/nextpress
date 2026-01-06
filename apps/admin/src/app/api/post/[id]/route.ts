@@ -13,6 +13,7 @@ import {
   deletePostService,
 } from "@/lib/services/post.server";
 import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
+import { normalizeSlateValue } from "@/ui/utils/editorForm";
 
 type RouteParams = { id: string };
 
@@ -37,8 +38,8 @@ function mapPostToFormValues(
     status: p.status as PostFormValues["status"],
     slug: p.slug,
     title: p.title,
-    excerpt: p.excerpt ?? "",
-    content: p.content ?? "",
+    excerpt: normalizeSlateValue(p.excerpt),
+    content: normalizeSlateValue(p.content),
     tags: tags.map((t) => ({
       id: t.id,
       name: t.name,

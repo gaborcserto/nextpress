@@ -2,6 +2,7 @@
 
 import { apiFetch } from "@/lib/api";
 import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
+import { slateToString } from "@/ui/utils/editorForm";
 
 export type PostDto = {
   type: "POST";
@@ -24,8 +25,8 @@ export function postValuesToDto(values: PostFormValues): PostDto {
     status: values.status,
     slug: values.slug,
     title: values.title,
-    excerpt: values.excerpt ?? "",
-    content: values.content,
+    excerpt: values.excerpt ? slateToString(values.excerpt) : null,
+    content: slateToString(values.content),
     tagIds,
     cover: values.cover,
     publishedAt: values.publishedAt,

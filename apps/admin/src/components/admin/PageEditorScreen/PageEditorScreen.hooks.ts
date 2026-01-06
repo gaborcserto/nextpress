@@ -7,6 +7,7 @@ import useSWR from "swr";
 import type { EditPageResponse } from "./PageEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
+import { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
 import type { PageFormValues } from "@/ui/layout/PageForm";
 import { showToast } from "@/ui/utils/toast";
 
@@ -15,7 +16,7 @@ const EMPTY_INITIAL: PageFormValues = {
   status: "DRAFT",
   slug: "",
   title: "",
-  content: "",
+  content: EMPTY_SLATE_VALUE,
   tags: [],
   parentId: null,
   inHeaderMenu: false,

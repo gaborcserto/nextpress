@@ -7,6 +7,7 @@ import useSWR from "swr";
 import type { PostDetailResponse } from "./PostEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
+import { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
 import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
 import { showToast } from "@/ui/utils/toast";
 
@@ -14,8 +15,8 @@ const EMPTY_INITIAL: PostFormValues = {
   status: "DRAFT",
   slug: "",
   title: "",
-  excerpt: "",
-  content: "",
+  excerpt: EMPTY_SLATE_VALUE,
+  content: EMPTY_SLATE_VALUE,
   tags: [],
   cover: null,
   publishedAt: null,

@@ -37,7 +37,7 @@ import type { ReactNode } from "react";
 
 const ICON_SIZE = 18;
 
-function IconBtn({
+function SlateToolbarButton({
   active,
   title,
   onClick,
@@ -52,6 +52,8 @@ function IconBtn({
     <button
       type="button"
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       onMouseDown={(e) => {
         e.preventDefault();
         onClick();
@@ -78,169 +80,169 @@ export default function SlateToolbar({
       <div className="flex flex-wrap items-center gap-2">
         {/* MARKS */}
         <div className="flex items-center gap-1 shrink-0">
-          <IconBtn
+          <SlateToolbarButton
             title="Bold"
             active={isMarkActive(editor, "bold")}
             onClick={() => toggleMark(editor, "bold")}
           >
             <BsTypeBold size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Italic"
             active={isMarkActive(editor, "italic")}
             onClick={() => toggleMark(editor, "italic")}
           >
             <BsTypeItalic size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Underline"
             active={isMarkActive(editor, "underline")}
             onClick={() => toggleMark(editor, "underline")}
           >
             <BsTypeUnderline size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Strikethrough"
             active={isMarkActive(editor, "strikethrough")}
             onClick={() => toggleMark(editor, "strikethrough")}
           >
             <BsTypeStrikethrough size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Inline code"
             active={isMarkActive(editor, "code")}
             onClick={() => toggleMark(editor, "code")}
           >
             <BsCodeSlash size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
         </div>
 
         <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
 
         {/* HEADINGS */}
         <div className="flex items-center gap-1 shrink-0">
-          <IconBtn
+          <SlateToolbarButton
             title="Heading 2"
             active={isHeadingActive(editor, 2)}
             onClick={() => toggleHeading(editor, 2)}
           >
             <BsTypeH2 size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Heading 3"
             active={isHeadingActive(editor, 3)}
             onClick={() => toggleHeading(editor, 3)}
           >
             <BsTypeH3 size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Heading 4"
             active={isHeadingActive(editor, 4)}
             onClick={() => toggleHeading(editor, 4)}
           >
             <BsTypeH4 size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Heading 5"
             active={isHeadingActive(editor, 5)}
             onClick={() => toggleHeading(editor, 5)}
           >
             <BsTypeH5 size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Heading 6"
             active={isHeadingActive(editor, 6)}
             onClick={() => toggleHeading(editor, 6)}
           >
             <BsTypeH6 size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
         </div>
 
         <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
 
         {/* BLOCKS */}
         <div className="flex items-center gap-1 shrink-0">
-          <IconBtn
+          <SlateToolbarButton
             title="Quote"
             active={isBlockActive(editor, "blockquote")}
             onClick={() => toggleBlock(editor, "blockquote")}
           >
             <BsQuote size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Bulleted list"
             active={isBlockActive(editor, "bulleted-list")}
             onClick={() => toggleBlock(editor, "bulleted-list")}
           >
             <BsListUl size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Numbered list"
             active={isBlockActive(editor, "numbered-list")}
             onClick={() => toggleBlock(editor, "numbered-list")}
           >
             <BsListOl size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
         </div>
 
         <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
 
         {/* ALIGN */}
         <div className="flex items-center gap-1 shrink-0">
-          <IconBtn
+          <SlateToolbarButton
             title="Align left"
             active={activeAlign === "left"}
             onClick={() => setAlign(editor, "left")}
           >
             <BsTextLeft size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Align center"
             active={activeAlign === "center"}
             onClick={() => setAlign(editor, "center")}
           >
             <BsTextCenter size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Align right"
             active={activeAlign === "right"}
             onClick={() => setAlign(editor, "right")}
           >
             <BsTextRight size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
 
-          <IconBtn
+          <SlateToolbarButton
             title="Justify"
             active={activeAlign === "justify"}
             onClick={() => setAlign(editor, "justify")}
           >
             <BsJustify size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
         </div>
 
         <div className="ml-auto shrink-0" />
 
         {/* CODE VIEW */}
         <div className="flex items-center gap-1 shrink-0">
-          <IconBtn
+          <SlateToolbarButton
             title={isCodeView ? "Back to editor" : "JSON code view"}
             active={isCodeView}
             onClick={onToggleCodeViewAction}
           >
             <BsCode size={ICON_SIZE} />
-          </IconBtn>
+          </SlateToolbarButton>
         </div>
       </div>
     </div>

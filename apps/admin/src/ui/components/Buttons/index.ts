@@ -1,4 +1,4 @@
-export { Button, IconButton } from "./Buttons";
+export { Button, IconButton, LinkIconButton, LinkButton } from "./Buttons";
 
 export type {
   ButtonProps,

@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
+
 import type {
   BaseProps,
   ButtonProps,
   IconButtonProps,
   IconProps,
+  LinkButtonProps,
+  LinkIconButtonProps,
   Size,
 } from "./Buttons.types";
 import type { ReactNode } from "react";
@@ -227,5 +231,94 @@ export function IconButton({
     >
       {content}
     </button>
+  );
+}
+
+/* ---------------- LinkButton ---------------- */
+
+export function LinkButton({
+  href,
+  children,
+  className,
+  variant,
+  color,
+  size,
+  fullWidth,
+  wide,
+  active,
+  ...anchorProps
+}: LinkButtonProps) {
+  const classes = buildClasses({
+    variant,
+    color,
+    size,
+    fullWidth,
+    wide,
+    active,
+    className,
+  });
+
+  return (
+    <Link href={href} className={classes} {...anchorProps}>
+      <span className="inline-flex items-center gap-2">
+        {children}
+      </span>
+    </Link>
+  );
+}
+
+/* ---------------- LinkIconButton ---------------- */
+
+export function LinkIconButton({
+  href,
+  icon: Icon,
+  rightIcon: RightIcon,
+  iconSize = 16,
+  children,
+  className,
+  variant,
+  color,
+  size,
+  fullWidth,
+  wide,
+  active,
+  "aria-label": ariaLabel,
+  ...anchorProps
+}: LinkIconButtonProps) {
+  const classes = buildClasses({
+    variant,
+    color,
+    size,
+    fullWidth,
+    wide,
+    active,
+    className,
+  });
+
+  let content: ReactNode;
+
+  if (children) {
+    content = (
+      <span className="inline-flex items-center gap-2">
+        {Icon && <Icon size={iconSize} />}
+        <span>{children}</span>
+        {RightIcon && <RightIcon size={iconSize} />}
+      </span>
+    );
+  } else if (Icon) {
+    content = <Icon size={iconSize} />;
+  } else {
+    content = null;
+  }
+
+  return (
+    <Link
+      href={href}
+      className={classes}
+      aria-label={ariaLabel}
+      {...anchorProps}
+    >
+      {content}
+    </Link>
   );
 }

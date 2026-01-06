@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import type { ContentListProps } from "./ContentList.types";
+import { IconButton, LinkIconButton } from "@/ui/components/Buttons";
 
 /**
  * Reusable admin list view for content items (Pages, Posts, etc.).
@@ -35,9 +35,14 @@ showTags = false,
       {/* --- Header: title + primary action --- */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">{heading}</h1>
-        <Link href={createHref} className="btn btn-primary">
-          <FaPlus/> {createLabel}
-        </Link>
+        <LinkIconButton
+          href={createHref}
+          color="primary"
+          icon={FaPlus}
+          aria-label={createLabel}
+        >
+          {createLabel}
+        </LinkIconButton>
       </div>
 
       {/* --- Loading state --- */}
@@ -95,31 +100,26 @@ showTags = false,
 
                   <td className="text-right">
                     <div className="flex justify-end gap-2">
-                      {/* Edit button */}
-                      <Link
+                      <LinkIconButton
                         href={editHrefAction(item.id)}
-                        className="btn btn-s btn-soft gap-1"
+                        size="sm"
+                        variant="soft"
+                        icon={FaEdit}
+                        aria-label={`Edit ${item.title}`}
                       >
-                        <FaEdit size={14} /> Edit
-                      </Link>
-
-                      {/* Optional delete button */}
+                        Edit
+                      </LinkIconButton>
                       {onDeleteAction && (
-                        <button
-                          className={`btn btn-s btn-error gap-1 ${
-                            deletingId === item.id ? "loading" : ""
-                          }`}
+                        <IconButton
+                          icon={FaTrash}
+                          size="sm"
+                          color="error"
+                          loading={deletingId === item.id}
                           onClick={() => onDeleteAction(item.id)}
-                          disabled={deletingId === item.id}
+                          aria-label={`Delete ${item.title}`}
                         >
-                          {deletingId === item.id ? (
-                            "Delete"
-                          ) : (
-                            <>
-                              <FaTrash size={14} /> Delete
-                            </>
-                          )}
-                        </button>
+                          Delete
+                        </IconButton>
                       )}
                     </div>
                   </td>

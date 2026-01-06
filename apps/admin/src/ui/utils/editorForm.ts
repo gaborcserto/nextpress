@@ -105,3 +105,8 @@ export function normalizeSlateValue(input: SlateLike): Descendant[] {
 
   return EMPTY_SLATE_VALUE;
 }
+
+export function slateToString(value: SlateLike): string {
+  const normalized = normalizeSlateValue(value);
+  return JSON.stringify(normalized);
+}
