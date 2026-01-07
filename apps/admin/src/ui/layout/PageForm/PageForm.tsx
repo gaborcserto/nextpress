@@ -69,11 +69,8 @@ export default function PageForm({
 
   return (
     <div className="space-y-6 w-full">
-      {/* LAYOUT: SIDEBAR (left) + MAIN (right) */}
       <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        {/* SIDEBAR */}
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-          {/* CONTEXT */}
           {(sidebarTitle || sidebarSubtitle) && (
             <header className="h-20 flex flex-col justify-center space-y-1">
               <h1 className="text-2xl font-semibold">{sidebarTitle}</h1>
@@ -81,7 +78,6 @@ export default function PageForm({
             </header>
           )}
 
-          {/* TAGS */}
           <Section title="Tags" desc="Categorize page with tags.">
             <TagsField
               entityId={entityId}
@@ -91,12 +87,10 @@ export default function PageForm({
             />
           </Section>
 
-          {/* HIERARCHY (PARENT PAGE) */}
           <Section title="Hierarchy" desc="Optional parent page selection.">
             <HierarchyField parentId={form.parentId} onChangeAction={(value) => setField("parentId", value)} />
           </Section>
 
-          {/* MENU PLACEMENT */}
           <Section title="Menu placement" desc="Where should this page appear?">
             <MenuPlacementField
               inHeader={form.inHeaderMenu}
@@ -106,12 +100,9 @@ export default function PageForm({
           </Section>
         </aside>
 
-        {/* MAIN CONTENT */}
         <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
-          {/* BASIC INFO SECTION */}
           <Section title="Basic info" desc="Set title, status, slug and page type.">
             <FormGrid12>
-              {/* TITLE */}
               <Field label="Title" span={8}>
                 <input
                   className="input input-bordered w-full"
@@ -121,7 +112,6 @@ export default function PageForm({
                 />
               </Field>
 
-              {/* STATUS */}
               <Field label="Status" span={4}>
                 <select
                   className="select select-bordered w-full"
@@ -133,7 +123,6 @@ export default function PageForm({
                 </select>
               </Field>
 
-              {/* SLUG */}
               <Field label="Slug" hint="Auto-generated from title until you edit it." span={8}>
                 <input
                   className="input input-bordered w-full"
@@ -146,14 +135,12 @@ export default function PageForm({
                 />
               </Field>
 
-              {/* PAGE TYPE SELECT */}
               <Field label="Page Type" span={4}>
                 <PageTypeField value={form.type} onChange={(v) => setField("type", v)} />
               </Field>
             </FormGrid12>
           </Section>
 
-          {/* DYNAMIC FIELDS BASED ON PAGE TYPE */}
           {form.type === "LISTING" && (
             <Section title="Listing configuration" desc="Choose what type of content should be listed.">
               <ListingFields
@@ -176,12 +163,10 @@ export default function PageForm({
             </Section>
           )}
 
-          {/* CONTENT AREA */}
           <Section title="Content" desc="Write your content.">
             <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
-          {/* ACTION BUTTONS (main width only) */}
           <StickyWrapper>
             <Button variant="ghost" color="neutral" onClick={() => history.back()}>
               Cancel

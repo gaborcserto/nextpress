@@ -138,30 +138,26 @@ export default function SignInForm() {
         className="relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden"
       >
         <div className="p-6 sm:p-8">
-          {/* Avatar Icon */}
+
           <div className="flex justify-center mb-4">
             <div className="size-16 rounded-full bg-linear-to-r from-emerald-400 to-cyan-400 text-primary-content grid place-items-center shadow-md">
               <FaUserAlt size={20} />
             </div>
           </div>
 
-          {/* Header */}
           <h1 className="text-center text-2xl font-semibold">Welcome back</h1>
           <p className="text-center text-sm text-base-content/70 mt-1 mb-5">
             Please enter your details to sign in.
           </p>
 
-          {/* Auth errors (from URL or API) */}
           <Alert status="error" message={err} />
 
-          {/* OAuth providers */}
           <SignInFormOAuthRow onProviderAction={oauth} compact />
 
           <div className="my-4">
             <div className="divider text-xs text-base-content/60">OR</div>
           </div>
 
-          {/* Form fields */}
           <div className="space-y-4">
             <Input
               id="signin-email"
@@ -191,7 +187,6 @@ export default function SignInForm() {
               error={fieldErrors.password}
             />
 
-            {/* Submit Button */}
             <Button
               type="submit"
               variant="solid"

@@ -38,7 +38,6 @@ export function PostIntroFields({
           uploaderAction={uploaderAction}
         />
 
-        {/* Alt text only visible when there is a cover image */}
         {cover && (
           <div className="mt-2">
             <label className="label">

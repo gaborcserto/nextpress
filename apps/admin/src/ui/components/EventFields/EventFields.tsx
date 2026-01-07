@@ -1,4 +1,5 @@
 "use client";
+
 import type { EventFieldsProps } from "./EventFields.types";
 import { Field, FormGrid12 } from "@/ui/components/FormGrid";
 import Input from "@/ui/components/Input";

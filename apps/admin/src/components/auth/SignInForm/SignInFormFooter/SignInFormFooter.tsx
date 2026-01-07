@@ -11,7 +11,6 @@ export function SignInFormFooter({
   return (
     <>
       <div className="flex items-center justify-between pt-1">
-        {/* Remember Me */}
         <label className="label cursor-pointer gap-2 px-0">
           <input
             type="checkbox"
@@ -22,13 +21,11 @@ export function SignInFormFooter({
           <span className="label-text">Remember me</span>
         </label>
 
-        {/* Forgot password */}
         <Link href="/auth/forgot-password" className="link link-hover">
           Forgot password?
         </Link>
       </div>
 
-      {/* Sign Up link */}
       <p className="text-center mt-5 text-sm text-base-content/70">
         Don&apos;t have an account yet?{" "}
         <Link href="/auth/sign-up" className="font-semibold link link-primary">

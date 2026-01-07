@@ -1,4 +1,5 @@
 "use client";
+
 import { type DragEvent, useState, useRef } from "react";
 
 import type { ImageUploaderProps, UploadFn } from "./ImageUploader.types";

@@ -33,12 +33,11 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
 
   return (
       <Dropdown align="end">
-        {/* Trigger (Avatar) */}
+
         <DropdownTrigger ariaLabel="Open user menu" className="btn btn-ghost btn-circle">
           <UserAvatar name={name} image={image} size="sm" />
         </DropdownTrigger>
 
-        {/* Menu */}
         <DropdownMenu aria-label="User menu">
           <DropdownLabel>
             <div className="flex flex-col">

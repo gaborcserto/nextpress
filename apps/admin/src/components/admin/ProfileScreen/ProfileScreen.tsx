@@ -134,11 +134,8 @@ export default function ProfileScreen() {
         </Box>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6 w-full">
-          {/* LAYOUT: SIDEBAR (left) + MAIN (right) */}
           <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-            {/* SIDEBAR */}
             <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-              {/* CONTEXT */}
               <header className="h-20 flex flex-col justify-center space-y-1">
                 <h1 className="text-2xl font-semibold">Profile</h1>
                 <p className="text-base-content/70">
@@ -146,7 +143,6 @@ export default function ProfileScreen() {
                 </p>
               </header>
 
-              {/* AVATAR PREVIEW */}
               <Section title="Avatar" desc="Preview your profile picture.">
                 <Box bare>
                   <div className="flex items-center gap-4">
@@ -169,7 +165,6 @@ export default function ProfileScreen() {
                 </Box>
               </Section>
 
-              {/* DANGER ZONE */}
               <Section
                 title="Danger zone"
                 desc="These actions affect your account security."
@@ -200,9 +195,7 @@ export default function ProfileScreen() {
               </Section>
             </aside>
 
-            {/* MAIN CONTENT */}
             <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
-              {/* BASIC INFO */}
               <Section
                 title="Basic info"
                 desc="Set your display name and profile image."
@@ -231,7 +224,6 @@ export default function ProfileScreen() {
                 </Box>
               </Section>
 
-              {/* ACTION BUTTONS */}
               <StickyWrapper>
                 <Button
                   type="button"

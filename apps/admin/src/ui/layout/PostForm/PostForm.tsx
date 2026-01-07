@@ -74,11 +74,8 @@ export default function PostForm({
 
   return (
     <div className="space-y-6 w-full">
-      {/* LAYOUT: SIDEBAR (left) + MAIN (right) */}
       <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        {/* SIDEBAR */}
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-          {/* CONTEXT */}
           {(sidebarTitle || sidebarSubtitle) && (
             <header className="h-20 flex flex-col justify-center space-y-1">
               <h1 className="text-2xl font-semibold">{sidebarTitle}</h1>
@@ -86,7 +83,6 @@ export default function PostForm({
             </header>
           )}
 
-          {/* TAGS */}
           <Section title="Tags" desc="Organize your post with tags.">
             <TagsField
               entityId={entityId}
@@ -97,17 +93,13 @@ export default function PostForm({
           </Section>
         </aside>
 
-        {/* MAIN CONTENT */}
         <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
-          {/* BASIC INFO */}
           <Section title="Basic info" desc="Set title, slug and publication status.">
             <FormGrid12>
-              {/* TITLE */}
               <Field label="Title" span={8}>
                 <Input fullWidth value={form.title} onChange={(e) => onTitleChange(e.target.value)} required />
               </Field>
 
-              {/* STATUS */}
               <Field label="Status" span={4}>
                 <Select
                   fullWidth
@@ -117,7 +109,6 @@ export default function PostForm({
                 />
               </Field>
 
-              {/* SLUG */}
               <Field label="Slug" hint="Auto-generates from title until you edit it." span={8}>
                 <Input
                   fullWidth
@@ -130,7 +121,6 @@ export default function PostForm({
                 />
               </Field>
 
-              {/* PUBLISH DATE */}
               <Field label="Publish date" hint="Leave empty to publish immediately when status is PUBLISHED." span={4}>
                 <Input
                   type="datetime-local"
@@ -142,7 +132,6 @@ export default function PostForm({
             </FormGrid12>
           </Section>
 
-          {/* INTRO: EXCERPT + COVER */}
           <Section title="Intro" desc="Short lead text and optional cover image.">
             <PostIntroFields
               excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
@@ -156,12 +145,10 @@ export default function PostForm({
             />
           </Section>
 
-          {/* CONTENT */}
           <Section title="Content" desc="Write your content.">
             <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
-          {/* ACTION BUTTONS (main width only) */}
           <StickyWrapper>
             <Button variant="ghost" color="neutral" onClick={() => history.back()}>
               Cancel

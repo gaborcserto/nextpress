@@ -32,7 +32,7 @@ showTags = false,
 
   return (
     <>
-      {/* --- Header: title + primary action --- */}
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">{heading}</h1>
         <LinkIconButton
@@ -45,7 +45,6 @@ showTags = false,
         </LinkIconButton>
       </div>
 
-      {/* --- Loading state --- */}
       {isLoading && (
         <div className="flex items-center gap-2">
           <span className="loading loading-spinner" />
@@ -53,7 +52,6 @@ showTags = false,
         </div>
       )}
 
-      {/* --- Table --- */}
       {!isLoading && (
         <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow border border-base-300">
           <table className="table table-zebra w-full">

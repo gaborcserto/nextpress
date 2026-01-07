@@ -133,9 +133,7 @@ export function TagMultiSelect({
         </label>
       )}
 
-      {/* Wrap input + dropdown in a relative container to overlay dropdown */}
       <div className="relative">
-        {/* Input row */}
         <div
           role="combobox"
           aria-haspopup="listbox"
@@ -172,7 +170,6 @@ export function TagMultiSelect({
           />
         </div>
 
-        {/* Dropdown with search results / create option */}
         <TagMultiSelectDropdown
           open={open}
           loading={loading}
@@ -186,7 +183,6 @@ export function TagMultiSelect({
         />
       </div>
 
-      {/* Selected tags under the input */}
       {selectedTags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {selectedTags.map((tag) => (

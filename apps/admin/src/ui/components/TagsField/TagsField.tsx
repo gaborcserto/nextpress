@@ -13,14 +13,14 @@ import { TagMultiSelect } from "@/ui/components/TagMultiSelect";
 import type { TagValue } from "@/ui/components/TagMultiSelect";
 
 export default function TagsField({
-                                    entityId,
-                                    value,
-                                    defaultValue,
-                                    onChangeAction,
-                                    label = "Tags",
-                                    placeholder = "Add tag…",
-                                    persist = true,
-                                  }: TagsFieldProps) {
+  entityId,
+  value,
+  defaultValue,
+  onChangeAction,
+  label = "Tags",
+  placeholder = "Add tag…",
+  persist = true,
+}: TagsFieldProps) {
   const isControlled = typeof value !== "undefined";
 
   const [internalTags, setInternalTags] = useState<TagValue[]>(defaultValue ?? []);
@@ -98,7 +98,6 @@ export default function TagsField({
         placeholder={placeholder}
       />
 
-      {/* Lightweight status text (optional UX sugar) */}
       {loadingInitial && (
         <div className="text-xs text-base-content/60">Loading tags…</div>
       )}
