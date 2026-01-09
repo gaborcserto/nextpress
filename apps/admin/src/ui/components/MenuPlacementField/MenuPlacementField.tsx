@@ -1,7 +1,7 @@
 "use client";
 
 import type { MenuPlacementFieldProps } from "./MenuPlacementField.types";
-import Checkbox from "@/ui/components/Checkbox";
+import { Checkbox } from "@/ui/primitives";
 
 /**
  * Two checkboxes controlling header/footer menu placement.

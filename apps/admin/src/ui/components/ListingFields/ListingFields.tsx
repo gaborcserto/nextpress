@@ -1,9 +1,7 @@
 "use client";
 
 import type { ListingFieldsProps, ListingKind } from "./ListingFields.types";
-import { Field, FormGrid12 } from "@/ui/components/FormGrid";
-import Input from "@/ui/components/Input";
-import Select from "@/ui/components/Select";
+import { Field, FormGrid12, Input, Select } from "@/ui/primitives";
 import type { ChangeEvent } from "react";
 
 /**

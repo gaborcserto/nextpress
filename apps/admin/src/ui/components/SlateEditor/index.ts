@@ -1,4 +1,4 @@
-export { default } from "./SlateEditor";
+export { default as SlateEditor } from "./SlateEditor";
 export type { SlateEditorProps, SlateValue, ToolbarProps } from "./slate.types";
 
 export { EMPTY_SLATE_VALUE } from "./slate.constants";

@@ -1,7 +1,7 @@
 "use client";
 
 import type { EmailFieldProps } from "./EmailField.types";
-import Input from "@/ui/components/Input";
+import { Input } from "@/ui/primitives";
 import type { ChangeEvent } from "react";
 
 export function EmailField({

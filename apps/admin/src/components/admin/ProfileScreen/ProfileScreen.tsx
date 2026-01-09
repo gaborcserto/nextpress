@@ -10,13 +10,15 @@ import type {
 } from "./ProfileScreen.types";
 import { apiFetch } from "@/lib/api";
 import { useSession } from "@/lib/auth/auth-client";
-import Box from "@/ui/components/Box";
-import { Button } from "@/ui/components/Buttons";
-import Input from "@/ui/components/Input";
-import StickyWrapper from "@/ui/components/StickyWrapper";
-import UserAvatar from "@/ui/components/UserAvatar";
-import Section from "@/ui/layout/Section";
-import { showToast } from "@/ui/utils/toast";
+import { UserAvatar } from "@/ui/components";
+import {
+  Box,
+  Button,
+  Input,
+  StickyWrapper,
+  Section,
+} from "@/ui/primitives";
+import { showToast } from "@/ui/utils";
 
 export default function ProfileScreen() {
   const { data, isPending, refetch } = useSession();

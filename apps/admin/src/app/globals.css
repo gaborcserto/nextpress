@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
@@ -24,7 +23,7 @@
   --color-success-content: oklch(96% 0.007 247.896);
   --color-warning: oklch(87% 0.169 91.605);
   --color-warning-content: oklch(41% 0.112 45.904);
-  --color-error: oklch(0.643 0.215 28.806);
+  --color-error: oklch(64% 0.215 28.806);
   --color-error-content: oklch(96% 0.007 247.896);
   --radius-selector: 1rem;
   --radius-field: 0.5rem;
@@ -60,7 +59,7 @@
   --color-success-content: oklch(96% 0.007 247.896);
   --color-warning: oklch(82% 0.189 84.429);
   --color-warning-content: oklch(41% 0.112 45.904);
-  --color-error: oklch(0.643 0.215 28.806);
+  --color-error: oklch(64% 0.215 28.806);
   --color-error-content: oklch(96% 0.007 247.896);
   --radius-selector: 1rem;
   --radius-field: 0.5rem;

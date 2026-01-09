@@ -1,8 +1,7 @@
 "use client";
 
 import type { EventFieldsProps } from "./EventFields.types";
-import { Field, FormGrid12 } from "@/ui/components/FormGrid";
-import Input from "@/ui/components/Input";
+import { Field, FormGrid12, Input } from "@/ui/primitives";
 import type { ChangeEvent } from "react";
 
 /**

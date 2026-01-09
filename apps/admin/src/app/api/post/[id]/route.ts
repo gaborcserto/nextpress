@@ -12,8 +12,8 @@ import {
   updatePostService,
   deletePostService,
 } from "@/lib/services/post.server";
-import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
-import { normalizeSlateValue } from "@/ui/utils/editorForm";
+import type { PostFormValues } from "@/ui/shell";
+import { normalizeSlateValue } from "@/ui/utils";
 
 type RouteParams = { id: string };
 

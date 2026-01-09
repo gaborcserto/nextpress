@@ -1,3 +1,3 @@
-export { PostIntroFields } from "./PostIntroFields";
+export { PostIntroFields as PostIntroFields } from "./PostIntroFields";
 
 export type { PostIntroFieldsProps } from "./PostIntroFields.types";

@@ -1,4 +1,4 @@
-import type { MediaValue, UploadFn } from "@/ui/components/ImageUploader";
+import type { MediaValue, UploadFn } from "@/ui/components";
 import type { Descendant } from "slate";
 
 export type PostIntroFieldsProps = {

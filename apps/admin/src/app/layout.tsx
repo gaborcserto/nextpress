@@ -2,7 +2,7 @@ import "./globals.css";
 import { cookies } from "next/headers";
 
 import { Providers } from "./providers";
-import { ToastHost } from "@/ui/components/ToastHost";
+import { ToastHost } from "@/ui/primitives/ToastHost";
 import type { Metadata } from "next";
 import type { ReactNode } from 'react';
 

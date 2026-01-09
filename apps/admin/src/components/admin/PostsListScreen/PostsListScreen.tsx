@@ -1,8 +1,7 @@
 "use client";
 
 import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
-import ContentList from "@/ui/components/ContentList";
-import type { ContentListItem } from "@/ui/components/ContentList";
+import { ContentList, type ContentListItem } from "@/ui/components";
 
 /**
  * Admin page for listing and managing posts.

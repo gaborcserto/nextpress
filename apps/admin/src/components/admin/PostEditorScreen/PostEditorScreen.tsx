@@ -3,7 +3,7 @@
 import { usePostEditor } from "./PostEditorScreen.hooks";
 import type { PostEditorScreenProps } from "./PostEditorScreen.types";
 import { loadTagOptionsAction, createTagAction } from "@/lib/services/tag.client";
-import PostForm from "@/ui/layout/PostForm";
+import { PostForm } from "@/ui/shell";
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const {
@@ -45,7 +45,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <div className="p-6 w-full space-y-6">
+    <div className="py-6 px-3 w-full space-y-6">
       <PostForm
         initial={item}
         submitting={saving}

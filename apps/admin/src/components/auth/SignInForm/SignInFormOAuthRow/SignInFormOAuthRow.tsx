@@ -15,7 +15,7 @@ import type {
   ProviderIconMap,
   SignInFormOAuthRowProps,
 } from "./SignInFormOAuthRow.types";
-import { IconButton } from "@/ui/components/Buttons";
+import { IconButton } from "@/ui/primitives";
 
 const ICONS: ProviderIconMap = {
   apple: FaApple,

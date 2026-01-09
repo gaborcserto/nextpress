@@ -1,10 +1,8 @@
 "use client";
 
 import type { PostIntroFieldsProps } from "./PostIntroFields.types";
-import { FormGrid12, Field } from "@/ui/components/FormGrid";
-import ImageUploader from "@/ui/components/ImageUploader";
-import Input from "@/ui/components/Input";
-import SlateEditor, { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
+import { ImageUploader, SlateEditor, EMPTY_SLATE_VALUE } from "@/ui/components";
+import { Field, FormGrid12, Input } from "@/ui/primitives";
 
 export function PostIntroFields({
   excerpt,

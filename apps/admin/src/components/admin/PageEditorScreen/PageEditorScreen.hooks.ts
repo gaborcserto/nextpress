@@ -8,8 +8,8 @@ import type { EditPageResponse } from "./PageEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
 import { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
-import type { PageFormValues } from "@/ui/layout/PageForm";
-import { showToast } from "@/ui/utils/toast";
+import type { PageFormValues } from "@/ui/shell";
+import { showToast } from "@/ui/utils";
 
 const EMPTY_INITIAL: PageFormValues = {
   type: "STANDARD",

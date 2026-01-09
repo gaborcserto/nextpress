@@ -5,7 +5,7 @@ import useSWR from "swr";
 
 import type { PostListResponse } from "./PostsListScreen.types";
 import { apiFetch, jsonFetcher } from "@/lib/api";
-import { showToast } from "@/ui/utils/toast";
+import { showToast } from "@/ui/utils";
 
 /**
  * Load paginated list of posts from /api/post.

@@ -1,7 +1,7 @@
 "use client";
 
 import { apiFetch } from "@/lib/api";
-import type { PageFormValues } from "@/ui/layout/PageForm";
+import type { PageFormValues } from "@/ui/shell";
 
 export type PageDto = Omit<PageFormValues, "tags"> & {
   tagIds: string[];

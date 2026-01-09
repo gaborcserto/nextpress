@@ -3,7 +3,7 @@
 import { usePageEditor } from "./PageEditorScreen.hooks";
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
 import { loadTagOptionsAction, createTagAction } from "@/lib/services/tag.client";
-import PageForm from "@/ui/layout/PageForm";
+import { PageForm } from "@/ui/shell";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   const {
@@ -45,7 +45,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <div className="p-6 w-full space-y-6">
+    <div className="py-6 px-3 w-full space-y-6">
       <PageForm
         initial={item}
         submitting={saving}

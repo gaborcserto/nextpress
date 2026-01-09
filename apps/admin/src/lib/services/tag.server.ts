@@ -122,7 +122,8 @@ export async function getTagsForPageService(pageId: string): Promise<TagDto[]> {
 }
 
 /**
- * Replace all tags for a page.
+ * Replace all tags assigned to a page.
+ * Accepts raw tag IDs and normalizes them before persisting.
  */
 export async function setTagsForPageService(
   pageId: string,
@@ -136,6 +137,10 @@ export async function setTagsForPageService(
   );
 }
 
+/**
+ * List all tags together with their usage count.
+ * Used by the admin taxonomy screen.
+ */
 export async function listTagsWithUsageService(): Promise<TagWithUsageDto[]> {
   return unwrapResult(
     await tryCatch(listTagsWithUsage()),

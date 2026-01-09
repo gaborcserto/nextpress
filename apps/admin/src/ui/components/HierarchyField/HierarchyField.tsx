@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { HierarchyFieldProps, PageOption } from "./HierarchyField.types";
 import { jsonResult } from "@/lib/api";
-import Select from "@/ui/components/Select";
+import { Select } from "@/ui/primitives";
 
 export default function HierarchyField({ parentId, onChangeAction }: HierarchyFieldProps) {
   const [options, setOptions] = useState<PageOption[]>([]);

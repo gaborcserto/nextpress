@@ -1,3 +1,3 @@
-export { default } from "./ContentList";
+export { default as ContentList } from "./ContentList";
 
 export * from "./ContentList.types";

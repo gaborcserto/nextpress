@@ -1,8 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/auth/auth-client";
-import Box from "@/ui/components/Box/Box";
-import SkeletonBox from "@/ui/components/SkeletonBox/SkeletonBox";
+import { Box, SkeletonBox } from "@/ui/primitives";
 
 export default function DashboardScreen() {
   const { data, isPending } = useSession();

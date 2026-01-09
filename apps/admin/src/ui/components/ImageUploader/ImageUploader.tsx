@@ -3,8 +3,7 @@
 import { type DragEvent, useState, useRef } from "react";
 
 import type { ImageUploaderProps, UploadFn } from "./ImageUploader.types";
-import Alert from "@/ui/components/Alert";
-import { Button } from "@/ui/components/Buttons";
+import { Alert, Button } from "@/ui/primitives";
 
 /**
  * Default local uploader:

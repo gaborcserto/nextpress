@@ -1,3 +1,3 @@
-export { default } from "./TagsField";
+export { default as TagsField } from "./TagsField";
 
 export type { TagsFieldProps } from "./TagsField.types"

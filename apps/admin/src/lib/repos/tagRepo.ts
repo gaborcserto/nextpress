@@ -149,8 +149,16 @@ export async function setTagsForPage(
   ]);
 }
 
+/**
+ * Tag DTO extended with usage count.
+ * `usedCount` represents how many pages/posts reference this tag.
+ */
 export type TagWithUsageDto = TagDto & { usedCount: number };
 
+/**
+ * List all tags together with their usage count.
+ * Usage is calculated based on PageOnTaxonomy relations.
+ */
 export async function listTagsWithUsage(): Promise<TagWithUsageDto[]> {
   const items = await prisma.taxonomy.findMany({
     where: { type: "TAG" },

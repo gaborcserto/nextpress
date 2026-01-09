@@ -1,4 +1,4 @@
-import type { PageFormValues } from "@/ui/layout/PageForm";
+import type { PageFormValues } from "@/ui/shell";
 
 export type EventFieldsProps = {
   values: PageFormValues;

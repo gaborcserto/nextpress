@@ -2,9 +2,8 @@
 
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
-import type { ContentListProps } from "./ContentList.types";
-import { IconButton, LinkIconButton } from "@/ui/components/Buttons";
-import { ConfirmDialog, useConfirmDialog } from "@/ui/components/ConfirmDialog";
+import type { ContentListProps } from "@/ui/components";
+import { IconButton, LinkIconButton, ConfirmDialog, useConfirmDialog } from "@/ui/primitives";
 
 type ConfirmPayload = { id: string; title: string };
 
@@ -12,7 +11,7 @@ type ConfirmPayload = { id: string; title: string };
  * Reusable admin list view for content items (Pages, Posts, etc.).
  * Renders a DaisyUI table with optional columns.
  *
- * Layout/behaviour is loosely inspired by the WordPress admin lists.
+ * Layout/behavior is loosely inspired by the WordPress admin lists.
  */
 export default function ContentList({
   heading,
@@ -126,6 +125,7 @@ export default function ContentList({
                           icon={FaTrash}
                           size="sm"
                           color="error"
+                          variant="solid"
                           loading={deletingId === item.id}
                           aria-label={`Delete ${item.title}`}
                           onClick={() => askDelete(item.id, item.title)}

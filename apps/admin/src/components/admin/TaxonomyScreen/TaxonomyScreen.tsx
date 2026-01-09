@@ -10,12 +10,18 @@ import {
   loadTagsAdminAction,
 } from "@/lib/services/tag.client";
 import { slugify } from "@/lib/utils";
-import Box from "@/ui/components/Box";
-import { Button, IconButton } from "@/ui/components/Buttons";
-import { ConfirmDialog, useConfirmDialog } from "@/ui/components/ConfirmDialog";
-import { FormGrid12, Field } from "@/ui/components/FormGrid";
-import Input from "@/ui/components/Input";
-import Section from "@/ui/layout/Section";
+import {
+  Box,
+  Button,
+  IconButton,
+  ConfirmDialog,
+  useConfirmDialog,
+  FormGrid12,
+  Field,
+  Input,
+  Section,
+} from "@/ui/primitives";
+
 
 
 type ConfirmPayload = { id: string; name: string; usedCount: number };
@@ -116,7 +122,7 @@ export default function TaxonomyScreen() {
   };
 
   return (
-    <div className="p-6 w-full space-y-6">
+    <div className="py-6 px-3 w-full space-y-6">
       <div className="space-y-6 w-full">
         <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
           <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
@@ -201,6 +207,7 @@ export default function TaxonomyScreen() {
                               icon={FaTrash}
                               size="sm"
                               color="error"
+                              variant="solid"
                               loading={deletingId === t.id}
                               aria-label={`Delete tag ${t.name}`}
                               onClick={() => onAskDelete(t)}

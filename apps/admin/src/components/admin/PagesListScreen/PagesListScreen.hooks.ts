@@ -5,7 +5,7 @@ import useSWR from "swr";
 
 import type { PageListResponse } from "./PagesListScreen.types";
 import { apiFetch, jsonFetcher } from "@/lib/api";
-import { showToast } from "@/ui/utils/toast";
+import { showToast } from "@/ui/utils";
 
 export function usePagesList() {
   const { data, isLoading, mutate } = useSWR<PageListResponse>(

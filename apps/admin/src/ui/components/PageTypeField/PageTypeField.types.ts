@@ -1,4 +1,4 @@
-import type { PageType } from "@/ui/layout/PageForm";
+import type { PageType } from "@/ui/shell";
 
 export type PageTypeFieldProps = {
   value: PageType;

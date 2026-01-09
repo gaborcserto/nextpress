@@ -12,8 +12,8 @@ import {
   deletePageService,
   updatePageService,
 } from "@/lib/services/page.server";
-import type { PageFormValues } from "@/ui/layout/PageForm";
-import { normalizeSlateValue } from "@/ui/utils/editorForm";
+import type { PageFormValues } from "@/ui/shell";
+import { normalizeSlateValue } from "@/ui/utils";
 
 type RouteParams = { id: string };
 

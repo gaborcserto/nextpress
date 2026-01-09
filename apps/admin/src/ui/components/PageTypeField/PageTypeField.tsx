@@ -1,6 +1,6 @@
 import type { PageTypeFieldProps } from "./PageTypeField.types";
-import Select from "@/ui/components/Select";
-import type { PageType } from "@/ui/layout/PageForm"
+import { Select } from "@/ui/primitives";
+import type { PageType } from "@/ui/shell"
 
 const PAGE_TYPE_OPTIONS = [
   { value: "STANDARD",      label: "Standard Page" },

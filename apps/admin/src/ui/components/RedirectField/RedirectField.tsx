@@ -1,7 +1,7 @@
 "use client";
 
 import type { RedirectFieldProps } from "./RedirectField.types";
-import Input from "@/ui/components/Input";
+import { Input } from "@/ui/primitives";
 import type { ChangeEvent } from "react";
 
 /**

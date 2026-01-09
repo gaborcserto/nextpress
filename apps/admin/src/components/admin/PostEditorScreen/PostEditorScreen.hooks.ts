@@ -7,9 +7,9 @@ import useSWR from "swr";
 import type { PostDetailResponse } from "./PostEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
-import { EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
-import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
-import { showToast } from "@/ui/utils/toast";
+import { EMPTY_SLATE_VALUE } from "@/ui/components";
+import type { PostFormValues } from "@/ui/shell";
+import { showToast } from "@/ui/utils";
 
 const EMPTY_INITIAL: PostFormValues = {
   status: "DRAFT",

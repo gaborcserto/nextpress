@@ -1,4 +1,4 @@
-import type { PostFormValues } from "@/ui/layout/PostForm/PostForm.types";
+import type { PostFormValues } from "@/ui/shell";
 
 export type PostEditorScreenProps = {
   /**
