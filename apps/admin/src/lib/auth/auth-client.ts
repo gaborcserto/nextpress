@@ -7,4 +7,11 @@ export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
   plugins: [inferAdditionalFields<AppAuth>()],
 });
-export const { useSession, signIn, signOut } = authClient;
+export const {
+  useSession,
+  signIn,
+  signOut,
+  signUp,
+  requestPasswordReset,
+  resetPassword,
+} = authClient;

@@ -8,10 +8,8 @@ export function EmailField({
   id,
   value,
   onChangeAction,
-  label = "E-Mail Address",
-  placeholder = "Enter your email…",
-  required = true,
-autoComplete = "email",
+  autoComplete = "email",
+  ...rest
 }: EmailFieldProps) {
   const handleChangeAction = (e: ChangeEvent<HTMLInputElement>) => {
     onChangeAction(e.target.value);
@@ -19,12 +17,10 @@ autoComplete = "email",
 
   return (
     <Input
+      {...rest}
       id={id}
       type="email"
-      label={label}
-      placeholder={placeholder}
       autoComplete={autoComplete}
-      required={required}
       value={value}
       onChange={handleChangeAction}
     />
