@@ -4,6 +4,9 @@ import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import type { ContentListProps } from "./ContentList.types";
 import { IconButton, LinkIconButton } from "@/ui/components/Buttons";
+import { ConfirmDialog, useConfirmDialog } from "@/ui/components/ConfirmDialog";
+
+type ConfirmPayload = { id: string; title: string };
 
 /**
  * Reusable admin list view for content items (Pages, Posts, etc.).
@@ -12,17 +15,17 @@ import { IconButton, LinkIconButton } from "@/ui/components/Buttons";
  * Layout/behaviour is loosely inspired by the WordPress admin lists.
  */
 export default function ContentList({
-heading,
-createHref,
-createLabel,
-editHrefAction,
-items,
-isLoading = false,
-deletingId,
-onDeleteAction,
-showAuthor = false,
-showCategories = false,
-showTags = false,
+  heading,
+  createHref,
+  createLabel,
+  editHrefAction,
+  items,
+  isLoading = false,
+  deletingId,
+  onDeleteAction,
+  showAuthor = false,
+  showCategories = false,
+  showTags = false,
 }: ContentListProps) {
   // Calculate colspan for the "empty" row based on enabled columns
   const baseCols = 5; // Title, Slug, Status, Date, Actions
@@ -30,9 +33,18 @@ showTags = false,
     Number(showAuthor) + Number(showCategories) + Number(showTags);
   const colSpan = baseCols + extraCols;
 
+  const confirm = useConfirmDialog<ConfirmPayload>();
+
+  const askDelete = (id: string, title: string) => confirm.show({ id, title });
+
+  const confirmDelete = () => {
+    if (!confirm.payload || !onDeleteAction) return;
+    onDeleteAction(confirm.payload.id);
+    confirm.hide();
+  };
+
   return (
     <>
-
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">{heading}</h1>
         <LinkIconButton
@@ -67,6 +79,7 @@ showTags = false,
               <th className="text-right">Actions</th>
             </tr>
             </thead>
+
             <tbody>
             {items.length ? (
               items.map((item) => (
@@ -107,14 +120,15 @@ showTags = false,
                       >
                         Edit
                       </LinkIconButton>
+
                       {onDeleteAction && (
                         <IconButton
                           icon={FaTrash}
                           size="sm"
                           color="error"
                           loading={deletingId === item.id}
-                          onClick={() => onDeleteAction(item.id)}
                           aria-label={`Delete ${item.title}`}
+                          onClick={() => askDelete(item.id, item.title)}
                         >
                           Delete
                         </IconButton>
@@ -134,6 +148,22 @@ showTags = false,
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title="Delete item?"
+        confirmLabel="Delete"
+        confirmColor="error"
+        loading={!!deletingId && deletingId === confirm.payload?.id}
+        onCancelAction={confirm.hide}
+        onConfirmAction={confirmDelete}
+      >
+        {confirm.payload ? (
+          <p>
+            You are about to delete <span className="font-medium">{confirm.payload.title}</span>.
+          </p>
+        ) : null}
+      </ConfirmDialog>
     </>
   );
 }

@@ -25,7 +25,7 @@ enum TaxonomyType {
   TAG
 }
 
-// Layout / template típus a PageForm-hoz (STANDARD, HOMEPAGE, LISTING, stb.)
+// Layout / template type for PageForm (STANDARD, HOMEPAGE, LISTING, etc.)
 enum PageLayout {
   STANDARD
   HOMEPAGE
@@ -39,7 +39,7 @@ enum PageLayout {
   EVENT_PAGE
 }
 
-// Listing konfigurációhoz (LISTING page-ek)
+// Listing configuration (for LISTING pages)
 enum ListingKind {
   POSTS
   PRODUCTS
@@ -116,19 +116,19 @@ model Page {
   excerpt String?
   content String // HTML
 
-  // Layout / template (PageForm.type-nek felel meg)
+  // Layout / template (corresponds to PageForm.type)
   layout PageLayout @default(STANDARD)
 
   // Cover image
   coverId String?
   cover   Media?  @relation(fields: [coverId], references: [id])
 
-  // Author + publish meta
+  // Author + publish metadata
   authorId    String?
   author      User?     @relation(fields: [authorId], references: [id])
   publishedAt DateTime?
 
-  // Menu elhelyezés
+  // Menu placement
   inHeaderMenu Boolean @default(false)
   inFooterMenu Boolean @default(false)
 
@@ -140,18 +140,18 @@ model Page {
   // Taxonomies
   taxonomies PageOnTaxonomy[]
 
-  // Listing config (LISTING layout-hoz)
+  // Listing config (for LISTING layout)
   listingKind       ListingKind?
   listingTaxonomyId String?
   listingTaxonomy   Taxonomy?    @relation(fields: [listingTaxonomyId], references: [id])
 
-  // Event-specific fields (EVENT_PAGE layout-hoz)
+  // Event-specific fields (for EVENT_PAGE layout)
   eventStart      DateTime?
   eventEnd        DateTime?
   eventLocation   String?
   registrationUrl String?
 
-  // Redirect (REDIRECT layout-hoz)
+  // Redirect (for REDIRECT layout)
   redirectTo String?
 
   // Gallery (ordered media)

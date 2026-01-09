@@ -148,3 +148,25 @@ export async function setTagsForPage(
       : []),
   ]);
 }
+
+export type TagWithUsageDto = TagDto & { usedCount: number };
+
+export async function listTagsWithUsage(): Promise<TagWithUsageDto[]> {
+  const items = await prisma.taxonomy.findMany({
+    where: { type: "TAG" },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      _count: { select: { pages: true } },
+    },
+  });
+
+  return items.map((t) => ({
+    id: t.id,
+    name: t.name,
+    slug: t.slug,
+    usedCount: t._count.pages,
+  }));
+}

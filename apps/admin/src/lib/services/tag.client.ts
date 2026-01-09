@@ -136,3 +136,45 @@ export async function updateEntityTagsAction(
     body: JSON.stringify({ tagIds }),
   });
 }
+
+export type TagWithUsageValue = TagValue & { usedCount: number };
+
+function isTagWithUsageValue(value: unknown): value is TagWithUsageValue {
+  if (!isTagValue(value)) return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj.usedCount === "number";
+}
+
+function isTagWithUsageArray(value: unknown): value is TagWithUsageValue[] {
+  return Array.isArray(value) && value.every(isTagWithUsageValue);
+}
+
+export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
+  const res = await fetch("/api/admin/tags", { cache: "no-store" });
+  if (!res.ok) return [];
+
+  const raw: unknown = await res.json();
+  const unwrapped = unwrapOkData(raw);
+
+  if (isTagWithUsageArray(unwrapped)) return unwrapped;
+
+  const obj =
+    (typeof unwrapped === "object" && unwrapped !== null ? unwrapped : {}) as Record<
+      string,
+      unknown
+    >;
+
+  if (isTagWithUsageArray(obj.items)) return obj.items;
+
+  return [];
+}
+
+export async function deleteTagAdminAction(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/tags/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to delete tag");
+  }
+}

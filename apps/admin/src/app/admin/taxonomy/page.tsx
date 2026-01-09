@@ -1,3 +1,5 @@
-export default function AdminPagesRoute() {
-  return <h1>Taxonomy</h1>
+import TaxonomyScreen from "@/components/admin/TaxonomyScreen";
+
+export default function AdminTaxonomyRoute() {
+  return <TaxonomyScreen />;
 }

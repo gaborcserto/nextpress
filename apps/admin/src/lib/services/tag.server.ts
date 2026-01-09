@@ -1,6 +1,9 @@
 import { tryCatch, unwrapResult } from "@nextpress/shared";
 
-import type { TagDto } from "@/lib/repos";
+import type {
+  TagDto ,
+  TagWithUsageDto
+} from "@/lib/repos";
 import {
   searchTagsRaw,
   findTagByNameInsensitive,
@@ -10,6 +13,7 @@ import {
   getTagsForPage,
   setTagsForPage,
   normalizeTagIds,
+  listTagsWithUsage
 } from "@/lib/repos";
 import { slugify } from "@/lib/utils";
 import { TagCreateSchema } from "@/lib/validation";
@@ -129,5 +133,12 @@ export async function setTagsForPageService(
   unwrapResult(
     await tryCatch(setTagsForPage(pageId, ids)),
     () => new Error("Failed to update tags for page")
+  );
+}
+
+export async function listTagsWithUsageService(): Promise<TagWithUsageDto[]> {
+  return unwrapResult(
+    await tryCatch(listTagsWithUsage()),
+    () => new Error("Failed to load tags")
   );
 }
