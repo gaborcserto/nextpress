@@ -28,7 +28,7 @@ const ICONS: ProviderIconMap = {
 
 export function SignInFormOAuthRow({
   onProviderAction,
-  providers = ["apple", "google", "twitter"],
+  providers = ["facebook", "google", "github",],
   compact = false,
   stacked = false,
   labelOnMobile = false,

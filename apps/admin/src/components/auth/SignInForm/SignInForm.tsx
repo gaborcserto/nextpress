@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
 import { signInSchema, type SignInFormValues } from "./SignInForm.validation";
@@ -37,28 +37,6 @@ export default function SignInForm() {
     const errorParam = params.get("error");
     if (errorParam) setErr(errorParam);
   }, [params]);
-
-  const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, type, value, checked } = e.target;
-
-    if (type !== "checkbox") {
-      setForm((prev) => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-
-    if (type === "checkbox" && name === "rememberMe") {
-      setRememberMe(checked);
-    }
-
-    if (fieldErrors[name as keyof SignInFormValues]) {
-      setFieldErrors((prev) => ({
-        ...prev,
-        [name]: undefined
-      }));
-    }
-  };
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();

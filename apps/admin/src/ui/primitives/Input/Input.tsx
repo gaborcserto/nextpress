@@ -107,6 +107,7 @@ function Input(props: InputProps) {
         )}
 
         <input
+          {...inputProps}
           id={inputId}
           type={actualType}
           aria-invalid={!!error}
@@ -114,7 +115,6 @@ function Input(props: InputProps) {
           className={inputClasses}
           value={currentValue}
           onChange={handleChange}
-          {...inputProps}
         />
 
         {showPasswordToggle && (

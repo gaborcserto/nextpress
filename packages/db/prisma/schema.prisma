@@ -6,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ---------- Enums ----------
@@ -54,12 +53,13 @@ model Role {
 }
 
 model User {
-  id     String  @id @default(cuid())
-  name   String?
-  email  String? @unique
-  image  String?
-  roleId String?
-  role   Role?   @relation(fields: [roleId], references: [id])
+  id            String  @id @default(cuid())
+  name          String?
+  email         String? @unique
+  emailVerified Boolean @default(false)
+  image         String?
+  roleId        String?
+  role          Role?   @relation(fields: [roleId], references: [id])
 
   accounts  Account[]
   sessions  Session[]
@@ -104,6 +104,17 @@ model Session {
   userAgent    String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 // ---------- CMS Content ----------

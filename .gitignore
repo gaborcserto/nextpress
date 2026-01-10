@@ -103,3 +103,10 @@ apps/**/dist/
 packages/**/build/
 packages/**/dist/
 
+# ───────────────────────────────
+# Prisma (generated / local)
+# ───────────────────────────────
+
+packages/**/generated/prisma/
+packages/**/prisma/migrations/
+

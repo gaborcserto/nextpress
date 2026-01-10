@@ -3,18 +3,24 @@
   "tasks": {
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**"]
+      "outputs": [".next/**", "dist/**"],
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
     },
-    "lint": {},
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
+    },
     "prisma:generate": {
-      "cache": false
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"]
     },
     "prisma:migrate": {
-      "cache": false
+      "cache": false,
+      "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"]
     }
   }
 }

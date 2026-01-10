@@ -1,7 +1,6 @@
 import type {
   ReactNode,
-  ButtonHTMLAttributes,
-  ComponentType,
+  ButtonHTMLAttributes
 } from "react";
 
 export type Align = "start" | "end";

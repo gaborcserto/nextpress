@@ -22,6 +22,7 @@ import {
 } from "react-icons/bs";
 import { useSlate } from "slate-react";
 
+import { ICON_SIZE } from "./slate.constants"
 import type { ToolbarProps } from "./slate.types"
 import {
   toggleMark,
@@ -34,8 +35,6 @@ import {
   isHeadingActive,
 } from "./slate.utils";
 import type { ReactNode } from "react";
-
-const ICON_SIZE = 18;
 
 function SlateToolbarButton({
   active,

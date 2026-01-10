@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   ProfileFormValues,
@@ -10,14 +10,8 @@ import type {
 } from "./ProfileScreen.types";
 import { apiFetch } from "@/lib/api";
 import { useSession } from "@/lib/auth/auth-client";
-import { UserAvatar } from "@/ui/components";
-import {
-  Box,
-  Button,
-  Input,
-  StickyWrapper,
-  Section,
-} from "@/ui/primitives";
+import { UserAvatar, isProviderAvatar } from "@/ui/components";
+import { Box, Button, Input, StickyWrapper, Section } from "@/ui/primitives";
 import { showToast } from "@/ui/utils";
 
 export default function ProfileScreen() {
@@ -28,9 +22,16 @@ export default function ProfileScreen() {
     image: "",
   });
 
+  const [useCustomAvatar, setUseCustomAvatar] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const avatarSource = useMemo<"none" | "provider" | "custom">(() => {
+    if (!values.image) return "none";
+    return isProviderAvatar(values.image) ? "provider" : "custom";
+  }, [values.image]);
 
   /* --------------------------------------------------
    * Load initial user data
@@ -38,13 +39,30 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (data?.user) {
       const user = data.user as UserWithProfileImage;
+      const img = user.image ?? "";
 
       setValues({
         name: user.name ?? "",
-        image: user.image ?? "",
+        image: img,
       });
+
+      // Show custom input only if it's already a custom URL
+      setUseCustomAvatar(img !== "" && !isProviderAvatar(img));
     }
   }, [data?.user, data?.user?.id]);
+
+  // If image changes (e.g., after refetch), keep toggle in sync
+  useEffect(() => {
+    if (!values.image) {
+      setUseCustomAvatar(false);
+      return;
+    }
+
+    // If provider image is present, default to hiding the raw URL
+    if (isProviderAvatar(values.image)) {
+      setUseCustomAvatar(false);
+    }
+  }, [values.image]);
 
   /* --------------------------------------------------
    * Handle input changes
@@ -123,6 +141,24 @@ export default function ProfileScreen() {
   };
 
   /* --------------------------------------------------
+   * Avatar helpers
+   * -------------------------------------------------- */
+  const enableCustomAvatar = () => {
+    setUseCustomAvatar(true);
+    // Clear provider URL to avoid saving provider URLs as "custom"
+    if (isProviderAvatar(values.image)) {
+      setValues((p) => ({ ...p, image: "" }));
+    }
+  };
+
+  const useProviderAvatar = () => {
+    setUseCustomAvatar(false);
+    // If user had typed a custom URL and wants to revert, clear it.
+    // The app should then fall back to provider image (server-side) or generated avatar.
+    setValues((p) => ({ ...p, image: "" }));
+  };
+
+  /* --------------------------------------------------
    * Render
    * -------------------------------------------------- */
   return (
@@ -159,8 +195,11 @@ export default function ProfileScreen() {
                       <div className="font-medium truncate">
                         {values.name || "Unnamed user"}
                       </div>
+
                       <div className="text-sm text-base-content/70">
-                        Shown across the admin UI.
+                        {avatarSource === "provider" && "Using social profile photo."}
+                        {avatarSource === "custom" && "Using a custom avatar URL."}
+                        {avatarSource === "none" && "Using a generated avatar."}
                       </div>
                     </div>
                   </div>
@@ -213,15 +252,81 @@ export default function ProfileScreen() {
                       rounded="lg"
                     />
 
-                    <Input
-                      label="Avatar URL"
-                      type="url"
-                      value={values.image}
-                      onChange={onChange("image")}
-                      placeholder="https://…"
-                      fullWidth
-                      rounded="lg"
-                    />
+                    {/* Avatar URL UI */}
+                    {useCustomAvatar ? (
+                      <div className="space-y-2">
+                        <Input
+                          label="Avatar URL"
+                          type="url"
+                          value={values.image}
+                          onChange={onChange("image")}
+                          placeholder="https://…"
+                          fullWidth
+                          rounded="lg"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={useProviderAvatar}
+                          >
+                            Use social avatar instead
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setValues((p) => ({ ...p, image: "" }))}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Input
+                          label="Avatar"
+                          value={
+                            avatarSource === "provider"
+                              ? "Managed by social login"
+                              : avatarSource === "none"
+                                ? "No avatar set"
+                                : "Custom avatar"
+                          }
+                          disabled
+                          fullWidth
+                          rounded="lg"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={enableCustomAvatar}
+                          >
+                            Use custom avatar URL
+                          </Button>
+
+                          {avatarSource === "provider" ? null : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setValues((p) => ({ ...p, image: "" }))}
+                            >
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+
+                        {avatarSource === "provider" && (
+                          <div className="text-sm text-base-content/60">
+                            To change this, update your profile photo at the provider
+                            (e.g., Google), or override it with a custom URL.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </Box>
               </Section>

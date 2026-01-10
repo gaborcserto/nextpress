@@ -1,5 +1,5 @@
-import { PrismaClient, PageType, PublishStatus, PageLayout } from "../generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import {PageLayout, PageType, PrismaClient, PublishStatus} from "../generated/prisma/client";
+import {PrismaPg} from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({
@@ -15,17 +15,31 @@ export const prisma =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
+async function ensureRoles() {
+  const roles = ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] as const;
+
+  const out: Record<(typeof roles)[number], { id: string; name: string }> =
+    {} as any;
+
+  for (const name of roles) {
+    out[name] = await prisma.role.upsert({
+      where: {name},
+      create: {name},
+      update: {},
+      select: {id: true, name: true},
+    });
+  }
+
+  return out;
+}
 
 async function main() {
   const email = (process.env.ADMIN_EMAIL || "admin@example.com").toLowerCase();
   const pass = process.env.ADMIN_PASSWORD || "admin123";
 
   // Ensure ADMIN role exists
-  const adminRole = await prisma.role.upsert({
-    where: { name: "ADMIN" },
-    create: { name: "ADMIN" },
-    update: {},
-  });
+  const roles = await ensureRoles();
+  const adminRole = roles.ADMIN;
 
   const hash = await bcrypt.hash(pass, Number(process.env.BCRYPT_COST ?? 12));
 
@@ -36,10 +50,13 @@ async function main() {
       email,
       name: "Admin",
       role: { connect: { id: adminRole.id } },
+      emailVerified: true,
     },
     update: {
       role: { connect: { id: adminRole.id } },
+      emailVerified: true,
     },
+    select: { id: true, email: true },
   });
 
   // Ensure credential account exists for admin
@@ -49,6 +66,7 @@ async function main() {
       provider: "credential",
       providerAccountId: email,
     },
+    select: { id: true, password: true },
   });
 
   if (!credential) {
