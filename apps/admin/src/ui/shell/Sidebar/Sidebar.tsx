@@ -8,17 +8,25 @@ import {
   FaImages,
   FaTags,
   FaThumbtack,
-  FaAngleDoubleLeft,
-  FaAngleDoubleRight,
+  FaUsers,
+  FaCog,
 } from "react-icons/fa";
+import {
+  TbLayoutSidebarLeftCollapseFilled,
+  TbLayoutSidebarRightExpandFilled,
+} from "react-icons/tb";
 
+import type { NavConfig, SidebarProps } from "./Sidebar.types";
 import { IconButton } from "@/ui/primitives";
 import { NavItem } from "@/ui/shell";
+import type { IconType } from "react-icons";
 
 const MotionSpan = motion.span;
 const MotionDiv = motion.div;
 
-const ITEMS = [
+type ItemInput = { href: string; label: string; icon: IconType };
+
+const ITEMS: readonly ItemInput[] = [
   { href: "/admin", label: "DashboardScreen", icon: FaHome },
   { href: "/admin/pages", label: "Pages", icon: FaCopy },
   { href: "/admin/posts", label: "Posts", icon: FaThumbtack },
@@ -26,21 +34,40 @@ const ITEMS = [
   { href: "/admin/taxonomy", label: "Taxonomy", icon: FaTags },
 ];
 
+const ADMIN_ITEMS: readonly ItemInput[] = [
+  { href: "/admin/users", label: "Users", icon: FaUsers },
+  { href: "/admin/settings", label: "Settings", icon: FaCog },
+];
+
 export default function Sidebar({
   collapsed,
+  role,
   onItemClickAction,
   onToggleCollapsedAction,
-}: {
-  collapsed: boolean;
-  onItemClickAction?: () => void;
-  onToggleCollapsedAction?: () => void;
-}) {
+}: SidebarProps) {
   const pathname = usePathname();
 
-  const isActive = (href: string) => {
-    if (href === "/admin") return pathname === "/admin";
-    return pathname === href || pathname.startsWith(href + "/");
-  };
+  const isActive = (href: string) =>
+    href === "/admin"
+      ? pathname === "/admin"
+      : pathname === href || pathname.startsWith(href + "/");
+
+  const renderItem = (it: NavConfig) => (
+    <div
+      key={it.href}
+      className={collapsed ? "tooltip tooltip-right" : undefined}
+      data-tip={collapsed ? it.label : undefined}
+    >
+      <NavItem
+        href={it.href}
+        label={it.label}
+        IconAction={it.icon}
+        active={isActive(it.href)}
+        collapsed={collapsed}
+        onClickAction={onItemClickAction}
+      />
+    </div>
+  );
 
   return (
     <aside className="h-full overflow-visible flex flex-col">
@@ -54,13 +81,10 @@ export default function Sidebar({
           <MotionSpan
             layout
             initial={false}
-            className={
-              collapsed ? "block w-full text-center" : "block w-full text-left"
-            }
+            className={collapsed ? "block w-full text-center" : "block w-full text-left"}
             animate={{
               scale: collapsed ? 1.03 : 1,
               letterSpacing: collapsed ? "0.08em" : "0em",
-              opacity: 1,
             }}
             transition={{ type: "spring", stiffness: 260, damping: 22 }}
             suppressHydrationWarning
@@ -71,37 +95,24 @@ export default function Sidebar({
       </div>
 
       <div className="flex-1 px-2 py-2 flex flex-col gap-1">
-        {ITEMS.map((it) => {
-          const active = isActive(it.href);
+        {ITEMS.map((it) => renderItem(it))}
 
-          return (
-            <div
-              key={it.href}
-              className={collapsed ? "tooltip tooltip-right" : undefined}
-              data-tip={collapsed ? it.label : undefined}
-            >
-              <NavItem
-                href={it.href}
-                label={it.label}
-                IconAction={it.icon}
-                active={active}
-                collapsed={collapsed}
-                onClickAction={onItemClickAction}
-              />
-            </div>
-          );
-        })}
+        {role === "ADMIN" && (
+          <>
+            <div className="divider my-2" />
+            {ADMIN_ITEMS.map((it) => renderItem(it))}
+          </>
+        )}
       </div>
 
       <div className="px-2 pb-2">
         <div className="divider my-2" />
-
         <div
-          className="tooltip tooltip-right w-full flex justify-leftr h-10"
+          className="tooltip tooltip-right w-full flex justify-start h-10"
           data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <IconButton
-            icon={collapsed ? FaAngleDoubleRight : FaAngleDoubleLeft}
+            icon={collapsed ? TbLayoutSidebarLeftCollapseFilled : TbLayoutSidebarRightExpandFilled}
             variant="ghost"
             size="sm"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

@@ -258,8 +258,14 @@ export function LinkButton({
   fullWidth,
   wide,
   active,
+  disabled,
+  loading,
+  onClick,
+  tabIndex,
   ...anchorProps
 }: LinkButtonProps) {
+  const isDisabled = !!disabled || !!loading;
+
   const classes = buildClasses({
     variant,
     color,
@@ -267,17 +273,44 @@ export function LinkButton({
     fullWidth,
     wide,
     active,
-    className,
+    className: cx(
+      className,
+      isDisabled && "btn-disabled pointer-events-none opacity-60"
+    ),
   });
 
   return (
-    <Link href={href} className={classes} {...anchorProps}>
+    <Link
+      href={href}
+      className={classes}
+      aria-disabled={isDisabled || undefined}
+      tabIndex={isDisabled ? -1 : tabIndex}
+      onClick={(e) => {
+        if (isDisabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        onClick?.(e);
+      }}
+      {...anchorProps}
+    >
       <span className="inline-flex items-center gap-2">
+        {loading && (
+          <>
+            <span
+              className={cx("loading loading-spinner", spinnerSize(size))}
+              aria-hidden="true"
+            />
+            <span className="sr-only">Loading</span>
+          </>
+        )}
         {children}
       </span>
     </Link>
   );
 }
+
 
 /* ---------------- LinkIconButton ---------------- */
 
@@ -294,9 +327,15 @@ export function LinkIconButton({
   fullWidth,
   wide,
   active,
+  disabled,
+  loading,
+  onClick,
+  tabIndex,
   "aria-label": ariaLabel,
   ...anchorProps
 }: LinkIconButtonProps) {
+  const isDisabled = !!disabled || !!loading;
+
   const classes = buildClasses({
     variant,
     color,
@@ -304,12 +343,26 @@ export function LinkIconButton({
     fullWidth,
     wide,
     active,
-    className,
+    className: cx(
+      className,
+      isDisabled && "btn-disabled pointer-events-none opacity-60"
+    ),
   });
 
   let content: ReactNode;
 
-  if (children) {
+  if (loading) {
+    content = (
+      <span className="inline-flex items-center gap-2">
+        <span
+          className={cx("loading loading-spinner", spinnerSize(size))}
+          aria-hidden="true"
+        />
+        <span className="sr-only">Loading</span>
+        {children ? <span>{children}</span> : null}
+      </span>
+    );
+  } else if (children) {
     content = (
       <span className="inline-flex items-center gap-2">
         {Icon && <Icon size={iconSize} />}
@@ -328,6 +381,16 @@ export function LinkIconButton({
       href={href}
       className={classes}
       aria-label={ariaLabel}
+      aria-disabled={isDisabled || undefined}
+      tabIndex={isDisabled ? -1 : tabIndex}
+      onClick={(e) => {
+        if (isDisabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        onClick?.(e);
+      }}
       {...anchorProps}
     >
       {content}

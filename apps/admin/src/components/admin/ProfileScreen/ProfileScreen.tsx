@@ -217,7 +217,6 @@ export default function ProfileScreen() {
                     color="default"
                     loading={deactivating}
                     onClick={handleDeactivate}
-                    className="justify-start"
                   >
                     Deactivate account
                   </Button>
@@ -228,7 +227,6 @@ export default function ProfileScreen() {
                     color="error"
                     loading={deleting}
                     onClick={handleDelete}
-                    className="justify-start"
                   >
                     Delete account
                   </Button>

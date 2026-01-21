@@ -6,10 +6,20 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
+import { cache } from "react";
 
+import { isRole, type RoleName } from "./roles";
 import { unauthorized } from "@/lib/api";
 
-export type RoleName = "ADMIN" | "EDITOR" | "AUTHOR" | "SUBSCRIBER";
+/* -------------------------------------------------------------------------- */
+/* Roles                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const DEFAULT_ROLE: RoleName = "SUBSCRIBER";
+
+/* -------------------------------------------------------------------------- */
+/* Config                                                                      */
+/* -------------------------------------------------------------------------- */
 
 const BASE_URL =
   process.env.BETTER_AUTH_URL ||
@@ -17,9 +27,21 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_ADMIN_URL ||
   "http://localhost:49101";
 
+const TRUSTED_ORIGINS = [
+  process.env.NEXT_PUBLIC_ADMIN_URL,
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+  process.env.BETTER_AUTH_URL,
+  "http://localhost:3000",
+  "http://localhost:5174",
+  "http://localhost:49101",
+].filter(Boolean) as string[];
+
+/* -------------------------------------------------------------------------- */
+/* Auth                                                                        */
+/* -------------------------------------------------------------------------- */
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "postgresql" }),
-
   baseURL: BASE_URL,
 
   emailAndPassword: {
@@ -95,53 +117,118 @@ export const auth = betterAuth({
     modelName: "User",
   },
 
-  trustedOrigins: [
-    process.env.NEXT_PUBLIC_ADMIN_URL,
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-    process.env.BETTER_AUTH_URL,
-    "http://localhost:3000",
-    "http://localhost:5174",
-    "http://localhost:49101",
-  ].filter(Boolean) as string[],
-
+  trustedOrigins: TRUSTED_ORIGINS,
   basePath: "/api/auth",
   plugins: [nextCookies()],
 });
 
 export type AppAuth = typeof auth;
 
-// --- helpers: session, roles, withAuth ---
+/* -------------------------------------------------------------------------- */
+/* DB helpers                                                                  */
+/* -------------------------------------------------------------------------- */
 
-export async function getSession() {
-  const header = await headers();
-  // Read session from Better Auth using the current request headers
-  return auth.api.getSession({ headers: header });
-}
-
-export async function getUserRole(userId?: string | null) {
-  if (!userId) return null;
-
+async function readRoleName(userId: string): Promise<RoleName | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: { select: { name: true } } },
+    select: { role: { select: { name: true } }, roleId: true },
   });
 
-  return user?.role?.name ?? null;
+  const name = user?.role?.name ?? null;
+  return isRole(name) ? name : null;
 }
 
 /**
- * Check if the given role is one of the allowed roles.
- * Acts as a type guard to avoid casts later.
+ * Ensures the user has a role set in the DB.
+ * If roleId is null, assigns DEFAULT_ROLE and returns it.
+ *
+ * Note: assumes Role rows are seeded (ADMIN/EDITOR/AUTHOR/SUBSCRIBER).
  */
-export function hasAnyRole(
-  roleName: string | null | undefined,
-  allowed: readonly RoleName[]
-): roleName is RoleName {
-  if (!roleName) return false;
+async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { roleId: true },
+  });
 
-  const normalized = roleName.toUpperCase() as RoleName;
-  return allowed.includes(normalized);
+  if (!user) return null;
+
+  // Already has a roleId -> just read role name safely
+  if (user.roleId) return await readRoleName(userId);
+
+  // Assign default role
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { role: { connect: { name: DEFAULT_ROLE } } },
+    select: { role: { select: { name: true } } },
+  });
+
+  const name = updated.role?.name ?? null;
+  return isRole(name) ? name : null;
 }
+
+/**
+ * Reads the user's role name from DB.
+ * Use ensureDefaultRole() if you want to guarantee a default role exists.
+ */
+export async function getUserRole(userId?: string | null): Promise<RoleName | null> {
+  if (!userId) return null;
+  return await readRoleName(userId);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Session helpers                                                             */
+/* -------------------------------------------------------------------------- */
+
+export async function getSession() {
+  const header = await headers();
+  return auth.api.getSession({ headers: header });
+}
+
+type BaseSession = Awaited<ReturnType<typeof getSession>>;
+type BaseUser = NonNullable<BaseSession>["user"];
+
+export type SessionWithRole =
+  | (NonNullable<BaseSession> & {
+  user: NonNullable<BaseUser> & { role: RoleName | null };
+})
+  | null;
+
+
+/**
+ * Cached per request.
+ * Returns the session plus user.role (from DB).
+ * Better Auth's session payload does not include DB relations by default.
+ */
+export const getSessionWithRole = cache(async (): Promise<SessionWithRole> => {
+  const session = await getSession();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  const role = await ensureDefaultRole(userId);
+
+  return {
+    ...session,
+    user: {
+      ...session.user!,
+      role,
+    },
+  };
+});
+
+/* -------------------------------------------------------------------------- */
+/* Role utils                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export function hasAnyRole(
+  role: RoleName | null | undefined,
+  allowed: readonly RoleName[]
+): role is RoleName {
+  return !!role && allowed.includes(role);
+}
+
+/* -------------------------------------------------------------------------- */
+/* withAuth                                                                    */
+/* -------------------------------------------------------------------------- */
 
 type HandlerCtx<P extends Record<string, string> = Record<string, string>> = {
   params: P;
@@ -152,43 +239,23 @@ type RawHandlerCtx<P extends Record<string, string> = Record<string, string>> = 
 };
 
 type Authed = {
-  session: NonNullable<Awaited<ReturnType<typeof getSession>>>;
+  session: NonNullable<Awaited<ReturnType<typeof getSessionWithRole>>>;
   roleName: RoleName;
 };
 
-/**
- * Wrap a route handler with auth + role check.
- *
- * Usage in route.ts:
- * export const GET = withAuth(["ADMIN"], async (req, ctx, auth) => { ... })
- */
-export function withAuth<
-  P extends Record<string, string> = Record<string, string>
->(
+export function withAuth<P extends Record<string, string> = Record<string, string>>(
   allowed: RoleName[],
-  handler: (
-    req: Request,
-    ctx: HandlerCtx<P>,
-    auth: Authed
-  ) => Promise<Response> | Response
+  handler: (req: Request, ctx: HandlerCtx<P>, auth: Authed) => Promise<Response> | Response
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
     const params = await ctx.params;
-    const handlerCtx: HandlerCtx<P> = { params };
 
-    const session = await getSession();
-    if (!session?.user?.id) {
-      return unauthorized();
-    }
+    const session = await getSessionWithRole();
+    if (!session?.user?.id) return unauthorized();
 
-    const roleName = await getUserRole(session.user.id);
-    if (!hasAnyRole(roleName, allowed)) {
-      return unauthorized();
-    }
+    const role = session.user.role;
+    if (!hasAnyRole(role, allowed)) return unauthorized();
 
-    return handler(req, handlerCtx, {
-      session,
-      roleName,
-    });
+    return handler(req, { params }, { session, roleName: role });
   };
 }

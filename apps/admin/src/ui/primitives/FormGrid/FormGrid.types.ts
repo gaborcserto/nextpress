@@ -7,7 +7,7 @@ export type FormGrid12Props = {
 };
 
 export type FieldProps = {
-  label: string;
+  label?: string;
   children: ReactNode;
   hint?: string;
   span?: Span;

@@ -30,11 +30,15 @@ const spanClass = (span: Span) =>
 
 export function Field({ label, children, hint, span = 12 }: FieldProps) {
   return (
-    <label className={`form-control ${spanClass(span)}`}>
-      <div className="label">
-        <span className="label-text text-sm">{label}</span>
-      </div>
+    <div className={`form-control ${spanClass(span)}`}>
+      {label && (
+        <label className="label">
+          <span className="label-text text-sm">{label}</span>
+        </label>
+      )}
+
       {children}
+
       {hint && (
         <div className="label">
           <span className="label-text-alt text-xs text-base-content/60 whitespace-normal wrap-break-word">
@@ -42,6 +46,6 @@ export function Field({ label, children, hint, span = 12 }: FieldProps) {
           </span>
         </div>
       )}
-    </label>
+    </div>
   );
 }

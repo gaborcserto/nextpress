@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+import type { RoleName } from "@/lib/auth/roles";
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
 import { Sidebar, Topbar } from "@/ui/shell";
 import type { ReactNode } from "react";
@@ -23,7 +24,13 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-export default function AppShell({ children }: { children: ReactNode }) {
+export default function AppShell({
+  children,
+  role,
+}: {
+  children: ReactNode;
+  role: RoleName | null;
+}) {
   const isDesktop = useIsDesktop();
 
   // SSR-safe initial state: always false on first render
@@ -86,6 +93,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           aria-hidden={!isDesktop}
         >
           <Sidebar
+            role={role}
             collapsed={collapsed}
             onToggleCollapsedAction={handleSidebarTrigger}
           />
@@ -123,6 +131,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           />
           <aside className="menu bg-base-100 text-base-content w-60 max-w-[18rem] min-h-full border-r border-base-300 p-0">
             <Sidebar
+              role={role}
               collapsed={false}
               onItemClickAction={() => setDrawerOpen(false)}
             />

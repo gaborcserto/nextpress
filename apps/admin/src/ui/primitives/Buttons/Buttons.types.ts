@@ -47,6 +47,12 @@ export type LinkBaseProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   wide?: boolean;
   active?: boolean;
   className?: string;
+
+  /** Visual + behavior disable (since <a> has no real disabled attr) */
+  disabled?: boolean;
+
+  /** Shows spinner + disables interaction */
+  loading?: boolean;
 };
 
 export type LinkButtonProps = Omit<LinkBaseProps, keyof IconProps> & {

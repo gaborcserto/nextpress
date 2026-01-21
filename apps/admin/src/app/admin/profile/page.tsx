@@ -1,5 +1,5 @@
-import ProfileScree from "@/components/admin/ProfileScreen";
+import ProfileScreen from "@/components/admin/ProfileScreen";
 
 export default function AdminProfilePage() {
-  return <ProfileScree />;
+  return <ProfileScreen />;
 }

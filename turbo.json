@@ -4,15 +4,90 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"],
+      "env": [
+        "BETTER_AUTH_URL",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+
+        "APPLE_CLIENT_ID",
+        "APPLE_TEAM_ID",
+        "APPLE_KEY_ID",
+        "APPLE_PRIVATE_KEY",
+
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+
+        "FACEBOOK_CLIENT_ID",
+        "FACEBOOK_CLIENT_SECRET",
+
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET"
+      ]
     },
     "build": {
       "dependsOn": ["^build"],
       "outputs": [".next/**", "dist/**"],
-      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"],
+      "env": [
+        "BETTER_AUTH_URL",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+
+        "APPLE_CLIENT_ID",
+        "APPLE_TEAM_ID",
+        "APPLE_KEY_ID",
+        "APPLE_PRIVATE_KEY",
+
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+
+        "FACEBOOK_CLIENT_ID",
+        "FACEBOOK_CLIENT_SECRET",
+
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET"
+      ]
     },
     "lint": {
-      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"]
+      "inputs": ["$TURBO_DEFAULT$", "apps/admin/.env", "apps/web/.env", "packages/db/.env"],
+      "env": [
+        "BETTER_AUTH_URL",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+
+        "APPLE_CLIENT_ID",
+        "APPLE_TEAM_ID",
+        "APPLE_KEY_ID",
+        "APPLE_PRIVATE_KEY",
+
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+
+        "FACEBOOK_CLIENT_ID",
+        "FACEBOOK_CLIENT_SECRET",
+
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET"
+      ]
     },
     "prisma:generate": {
       "cache": false,
