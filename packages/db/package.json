@@ -6,7 +6,7 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "validate": "prisma validate",
     "format": "prisma format",
     "prisma:generate": "prisma generate",

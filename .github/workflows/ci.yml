@@ -43,8 +43,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      # There is no reliable root test command yet. Add this stage with the
-      # testing baseline in Phase 2.
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build

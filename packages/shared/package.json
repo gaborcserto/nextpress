@@ -10,6 +10,12 @@
     "./types/*": "./src/types/*"
   },
   "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@nextpress/eslint-config": "*"
   }
 }

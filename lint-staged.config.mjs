@@ -26,7 +26,19 @@ export default {
       );
     }
 
-    const configuredFiles = new Set([...adminFiles, ...webFiles, ...dbFiles]);
+    const sharedFiles = normalizedFiles.filter((file) => file.includes("/packages/shared/"));
+    if (sharedFiles.length > 0) {
+      commands.push(
+        `eslint --config packages/shared/eslint.config.mjs --no-warn-ignored ${sharedFiles.join(" ")}`
+      );
+    }
+
+    const configuredFiles = new Set([
+      ...adminFiles,
+      ...webFiles,
+      ...dbFiles,
+      ...sharedFiles,
+    ]);
     const otherFiles = normalizedFiles.filter((file) => !configuredFiles.has(file));
     if (otherFiles.length > 0) {
       commands.push(`eslint --no-warn-ignored ${otherFiles.join(" ")}`);

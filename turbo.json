@@ -92,6 +92,10 @@
         "DISCORD_CLIENT_SECRET"
       ]
     },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": []
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "outputs": []
