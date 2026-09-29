@@ -38,6 +38,8 @@
         "NEXT_PUBLIC_BETTER_AUTH_URL",
         "NEXT_PUBLIC_ADMIN_URL",
 
+        "DATABASE_URL",
+
         "APPLE_CLIENT_ID",
         "APPLE_CLIENT_SECRET",
 
