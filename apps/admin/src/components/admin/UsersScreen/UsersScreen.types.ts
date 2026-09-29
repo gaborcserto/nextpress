@@ -1,4 +1,4 @@
-import type { RoleName } from "@/lib/auth/auth-server";
+import type { RoleName } from "@/lib/auth/roles";
 
 export type UserRow = {
   id: string;

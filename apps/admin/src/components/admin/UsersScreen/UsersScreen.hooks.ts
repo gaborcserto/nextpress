@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 import type { RoleName } from "@/lib/auth/roles";
@@ -12,6 +12,7 @@ async function api<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 export function useUsersScreen() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultRole, setDefaultRole] = useState<RoleName>("SUBSCRIBER");
 
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState<CreateUserValues>({
@@ -27,7 +28,7 @@ export function useUsersScreen() {
   const [editingRole, setEditingRole] = useState<RoleName>("SUBSCRIBER");
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api<UserRow[]>("/api/admin/users");
@@ -35,11 +36,20 @@ export function useUsersScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]);
+
+  useEffect(() => {
+    void api<{ defaultUserRole: RoleName }>("/api/admin/settings").then((settings) => {
+      setDefaultRole(settings.defaultUserRole);
+      setCreateForm((current) => ({
+        ...current,
+        role: settings.defaultUserRole,
+      }));
+    });
   }, []);
 
   const sorted = useMemo(() => users, [users]);
@@ -58,7 +68,7 @@ export function useUsersScreen() {
         }),
       });
 
-      setCreateForm({ email: "", name: "", role: "SUBSCRIBER", password: "" });
+      setCreateForm({ email: "", name: "", role: defaultRole, password: "" });
       await load();
     } finally {
       setCreating(false);

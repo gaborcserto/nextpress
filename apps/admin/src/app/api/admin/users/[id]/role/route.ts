@@ -3,7 +3,8 @@ export const runtime = "nodejs";
 import { prisma } from "@nextpress/db/src/client";
 
 import { ok, bad, oops } from "@/lib/api";
-import { withAuth, ROLES, type RoleName } from "@/lib/auth/auth-server";
+import { withAuth } from "@/lib/auth/auth-server";
+import { ROLES, type RoleName } from "@/lib/auth/roles";
 
 type Body = { role: RoleName };
 
