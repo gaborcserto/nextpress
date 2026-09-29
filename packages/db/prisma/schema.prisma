@@ -117,6 +117,37 @@ model Verification {
   @@index([identifier])
 }
 
+// ---------- CMS Settings ---------
+model SiteSettings {
+  id              String  @id @default("default")
+  siteName        String  @default("NextPress")
+  siteDescription String? // meta description
+  siteUrl         String? // canonical base url
+  ogImageUrl      String? // default og:image
+
+  defaultUserRole String @default("SUBSCRIBER") // must match Role.name
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  oauthProviders OAuthProvider[]
+}
+
+model OAuthProvider {
+  id       String  @id @default(cuid())
+  provider String  @unique // "google" | "github" | "apple" | ...
+  enabled  Boolean @default(false)
+
+  clientId     String?
+  clientSecret String?
+
+  settingsId String
+  settings   SiteSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
 // ---------- CMS Content ----------
 model Page {
   id      String        @id @default(cuid())

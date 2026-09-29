@@ -108,5 +108,6 @@ packages/**/dist/
 # ───────────────────────────────
 
 packages/**/generated/prisma/
-packages/**/prisma/migrations/
-
+packages/**/prisma/migrations/*
+!packages/db/prisma/migrations/20260929120000_add_site_settings/
+!packages/db/prisma/migrations/20260929120000_add_site_settings/migration.sql

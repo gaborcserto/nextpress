@@ -33,13 +33,48 @@ async function ensureRoles() {
   return out;
 }
 
+async function ensureSiteSettings() {
+  const providers = [
+    "google",
+    "github",
+    "apple",
+    "facebook",
+    "discord",
+    "twitter",
+  ];
+
+  const settings = await prisma.siteSettings.upsert({
+    where: {id: "default"},
+    create: {
+      id: "default",
+      siteName: "NextPress",
+      siteDescription: "NextPress admin",
+      siteUrl: process.env.NEXT_PUBLIC_SITE_URL || null,
+      defaultUserRole: "SUBSCRIBER",
+    },
+    update: {},
+    select: {id: true},
+  });
+
+  for (const provider of providers) {
+    await prisma.oAuthProvider.upsert({
+      where: {provider},
+      update: {},
+      create: {
+        provider,
+        settingsId: settings.id,
+      },
+    });
+  }
+}
 async function main() {
   const email = (process.env.ADMIN_EMAIL || "admin@example.com").toLowerCase();
   const pass = process.env.ADMIN_PASSWORD || "admin123";
 
-  // Ensure ADMIN role exists
   const roles = await ensureRoles();
   const adminRole = roles.ADMIN;
+
+  await ensureSiteSettings();
 
   const hash = await bcrypt.hash(pass, Number(process.env.BCRYPT_COST ?? 12));
 
