@@ -13,7 +13,11 @@ import { EmailField, PasswordField } from "@/ui/components";
 import { Alert, Button } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 
-export default function SignInForm() {
+type SignInFormProps = {
+  providers: Provider[];
+};
+
+export default function SignInForm({ providers }: SignInFormProps) {
   const [form, setForm] = useState<SignInFormValues>({
     email: "admin@example.com",
     password: "admin123",
@@ -101,11 +105,19 @@ export default function SignInForm() {
     >
       <Alert status="error" message={err} />
 
-      <SignInFormOAuthRow onProviderAction={oauth} compact />
+      {providers.length ? (
+        <SignInFormOAuthRow
+          onProviderAction={oauth}
+          providers={providers}
+          compact
+        />
+      ) : null}
 
-      <div className="my-4">
-        <div className="divider text-xs text-base-content/60">OR</div>
-      </div>
+      {providers.length ? (
+        <div className="my-4">
+          <div className="divider text-xs text-base-content/60">OR</div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <EmailField

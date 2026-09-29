@@ -1,2 +1,9 @@
 import SignInView from "@/components/auth/SignInForm";
-export default function SignInPageRoute() { return <SignInView />; }
+import { getOperationalOAuthProviders } from "@/lib/auth/auth-server";
+
+export const dynamic = "force-dynamic";
+
+export default async function SignInPageRoute() {
+  const providers = await getOperationalOAuthProviders();
+  return <SignInView providers={providers} />;
+}

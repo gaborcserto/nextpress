@@ -14,7 +14,11 @@ import { Button, Input } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
-export function SignUpForm() {
+type SignUpFormProps = {
+  providers: Provider[];
+};
+
+export function SignUpForm({ providers }: SignUpFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -76,11 +80,19 @@ export function SignUpForm() {
       asForm
       onSubmitAction={onSubmitAction}
     >
-      <SignInFormOAuthRow onProviderAction={oauth} compact />
+      {providers.length ? (
+        <SignInFormOAuthRow
+          onProviderAction={oauth}
+          providers={providers}
+          compact
+        />
+      ) : null}
 
-      <div className="my-4">
-        <div className="divider text-xs text-base-content/60">OR</div>
-      </div>
+      {providers.length ? (
+        <div className="my-4">
+          <div className="divider text-xs text-base-content/60">OR</div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <Input

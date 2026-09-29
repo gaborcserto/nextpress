@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/lib/auth/auth-server";
+import { getAuth } from "@/lib/auth/auth-server";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -12,7 +12,8 @@ export async function GET() {
     value: (c.value ?? "").slice(0, 10) + "…",
   }));
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: headerStore });
 
   return NextResponse.json({
     ok: !!session,

@@ -12,3 +12,4 @@ export * from "./Select";
 export * from "./SkeletonBox";
 export * from "./StickyWrapper";
 export * from "./ToastHost";
+export * from "./Toggle";

@@ -8,14 +8,15 @@ import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { cache } from "react";
 
+import { OAUTH_PROVIDERS } from "./oauth-providers";
+import {
+  buildSocialProviders,
+  operationalProviderNames,
+  type OAuthProviderRow,
+} from "./oauth-providers.server";
 import { isRole, type RoleName } from "./roles";
 import { unauthorized } from "@/lib/api";
-
-/* -------------------------------------------------------------------------- */
-/* Roles                                                                      */
-/* -------------------------------------------------------------------------- */
-
-const DEFAULT_ROLE: RoleName = "SUBSCRIBER";
+import { getDefaultUserRole } from "@/lib/settings/site-settings";
 
 /* -------------------------------------------------------------------------- */
 /* Config                                                                      */
@@ -40,89 +41,92 @@ const TRUSTED_ORIGINS = [
 /* Auth                                                                        */
 /* -------------------------------------------------------------------------- */
 
-export const auth = betterAuth({
-  database: prismaAdapter(prisma, { provider: "postgresql" }),
-  baseURL: BASE_URL,
+function createAuth(providerRows: readonly OAuthProviderRow[]) {
+  return betterAuth({
+    database: prismaAdapter(prisma, { provider: "postgresql" }),
+    baseURL: BASE_URL,
 
-  emailAndPassword: {
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: false,
+      password: {
+        hash: async (password: string) => bcrypt.hash(password, 10),
+        verify: async ({ hash, password }: { hash: string; password: string }) =>
+          bcrypt.compare(password, hash),
+      },
+    },
+
+    socialProviders: buildSocialProviders(providerRows),
+
+    session: {
+      modelName: "Session",
+      fields: {
+        id: "id",
+        token: "sessionToken",
+        expiresAt: "expires",
+        createdAt: "createdAt",
+        updatedAt: "updatedAt",
+        ipAddress: "ipAddress",
+        userAgent: "userAgent",
+        userId: "userId",
+      },
+    },
+
+    account: {
+      modelName: "Account",
+      fields: {
+        providerId: "provider",
+        accountId: "providerAccountId",
+        refreshToken: "refresh_token",
+        accessToken: "access_token",
+        accessTokenExpiresAt: "expires_at",
+        tokenType: "token_type",
+        scope: "scope",
+        idToken: "id_token",
+        sessionState: "session_state",
+        password: "password",
+      },
+    },
+
+    user: {
+      modelName: "User",
+    },
+
+    trustedOrigins: TRUSTED_ORIGINS,
+    basePath: "/api/auth",
+    plugins: [nextCookies()],
+  });
+}
+
+export type AppAuth = ReturnType<typeof createAuth>;
+
+async function readOAuthProviderRows(): Promise<OAuthProviderRow[]> {
+  const rows = await prisma.oAuthProvider.findMany({
+    where: { provider: { in: [...OAUTH_PROVIDERS] } },
+    select: {
+      provider: true,
+      enabled: true,
+      clientId: true,
+      clientSecret: true,
+    },
+  });
+
+  if (rows.length) return rows;
+  return OAUTH_PROVIDERS.map((provider) => ({
+    provider,
     enabled: true,
-    requireEmailVerification: false,
-    password: {
-      hash: async (password: string) => bcrypt.hash(password, 10),
-      verify: async ({ hash, password }: { hash: string; password: string }) =>
-        bcrypt.compare(password, hash),
-    },
-  },
+    clientId: null,
+    clientSecret: null,
+  }));
+}
 
-  socialProviders: {
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID!,
-      teamId: process.env.APPLE_TEAM_ID!,
-      keyId: process.env.APPLE_KEY_ID!,
-      privateKey: process.env.APPLE_PRIVATE_KEY!,
-    },
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-    twitter: {
-      clientId: process.env.TWITTER_CLIENT_ID!,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    },
-    facebook: {
-      clientId: process.env.FACEBOOK_CLIENT_ID!,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
-    },
-    discord: {
-      clientId: process.env.DISCORD_CLIENT_ID!,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
-    },
-  },
+export async function getAuth(): Promise<AppAuth> {
+  return createAuth(await readOAuthProviderRows());
+}
 
-  session: {
-    modelName: "Session",
-    fields: {
-      id: "id",
-      token: "sessionToken",
-      expiresAt: "expires",
-      createdAt: "createdAt",
-      updatedAt: "updatedAt",
-      ipAddress: "ipAddress",
-      userAgent: "userAgent",
-      userId: "userId",
-    },
-  },
-
-  account: {
-    modelName: "Account",
-    fields: {
-      providerId: "provider",
-      accountId: "providerAccountId",
-      refreshToken: "refresh_token",
-      accessToken: "access_token",
-      accessTokenExpiresAt: "expires_at",
-      tokenType: "token_type",
-      scope: "scope",
-      idToken: "id_token",
-      sessionState: "session_state",
-      password: "password",
-    },
-  },
-
-  user: {
-    modelName: "User",
-  },
-
-  trustedOrigins: TRUSTED_ORIGINS,
-  basePath: "/api/auth",
-  plugins: [nextCookies()],
-});
-
-export type AppAuth = typeof auth;
+export async function getOperationalOAuthProviders() {
+  return operationalProviderNames(await readOAuthProviderRows());
+}
 
 /* -------------------------------------------------------------------------- */
 /* DB helpers                                                                  */
@@ -140,7 +144,7 @@ async function readRoleName(userId: string): Promise<RoleName | null> {
 
 /**
  * Ensures the user has a role set in the DB.
- * If roleId is null, assigns DEFAULT_ROLE and returns it.
+ * If roleId is null, assigns the configured default role and returns it.
  *
  * Note: assumes Role rows are seeded (ADMIN/EDITOR/AUTHOR/SUBSCRIBER).
  */
@@ -155,10 +159,10 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
   // Already has a roleId -> just read role name safely
   if (user.roleId) return await readRoleName(userId);
 
-  // Assign default role
+  const defaultRole = await getDefaultUserRole();
   const updated = await prisma.user.update({
     where: { id: userId },
-    data: { role: { connect: { name: DEFAULT_ROLE } } },
+    data: { role: { connect: { name: defaultRole } } },
     select: { role: { select: { name: true } } },
   });
 
@@ -181,6 +185,7 @@ export async function getUserRole(userId?: string | null): Promise<RoleName | nu
 
 export async function getSession() {
   const header = await headers();
+  const auth = await getAuth();
   return auth.api.getSession({ headers: header });
 }
 
