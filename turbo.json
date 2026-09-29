@@ -96,7 +96,8 @@
     },
     "prisma:generate": {
       "cache": false,
-      "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"]
+      "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"],
+      "env": ["DATABASE_URL"]
     },
     "prisma:migrate": {
       "cache": false,
