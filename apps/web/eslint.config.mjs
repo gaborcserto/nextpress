@@ -1,3 +1,3 @@
-import { nextJsConfig } from "@nextpress/eslint-config/next-js";
+import config from "@nextpress/eslint-config/next";
 
-export default nextJsConfig;
+export default config;

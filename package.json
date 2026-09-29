@@ -14,15 +14,19 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
+    "typecheck": "turbo run typecheck",
     "prisma:generate": "turbo run prisma:generate",
     "prisma:migrate": "turbo run prisma:migrate",
     "db:up": "docker compose up -d",
-    "bootstrap": "npm run db:up && npm run dev"
+    "bootstrap": "npm run db:up && npm run dev",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "cross-env": "^10.1.0",
     "dotenv-cli": "^11.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "turbo": "^2.7.3",
     "typescript": "^5.9.3"
   }

@@ -64,6 +64,13 @@
         "NEXT_PUBLIC_BETTER_AUTH_URL",
         "NEXT_PUBLIC_ADMIN_URL",
 
+        "DATABASE_URL",
+        "BCRYPT_COST",
+        "NODE_ENV",
+        "NEXT_PUBLIC_SITE_URL",
+        "ADMIN_EMAIL",
+        "ADMIN_PASSWORD",
+
         "APPLE_CLIENT_ID",
         "APPLE_CLIENT_SECRET",
 
@@ -82,6 +89,10 @@
         "DISCORD_CLIENT_ID",
         "DISCORD_CLIENT_SECRET"
       ]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
     },
     "prisma:generate": {
       "cache": false,
