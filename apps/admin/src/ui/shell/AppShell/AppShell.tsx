@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import type { RoleName } from "@/lib/auth/roles";
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
@@ -56,7 +56,7 @@ export default function AppShell({
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolled = useStickyScrolled(scrollRef);
 
-  const sideW = useMemo(() => (collapsed ? 60 : 240), [collapsed]);
+  const sideW = collapsed ? 60 : 240;
 
   const handleSidebarTrigger = () => {
     if (isDesktop) {

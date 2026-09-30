@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { TagsFieldProps } from "./TagsField.types";
 import type { TagValue } from "@/lib/content/contracts";
@@ -28,13 +28,7 @@ export default function TagsField({
 
   const [internalTags, setInternalTags] = useState<TagValue[]>(defaultValue ?? []);
 
-  /**
-   * Keep `tags` stable via useMemo to satisfy exhaustive-deps
-   * and to avoid accidental referential changes.
-   */
-  const tags = useMemo<TagValue[]>(() => {
-    return isControlled ? (value ?? []) : internalTags;
-  }, [isControlled, value, internalTags]);
+  const tags = isControlled ? (value ?? []) : internalTags;
 
   const [loadingInitial, setLoadingInitial] = useState<boolean>(Boolean(entityId));
   const [saving, setSaving] = useState<boolean>(false);

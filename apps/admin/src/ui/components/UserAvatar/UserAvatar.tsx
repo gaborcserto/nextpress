@@ -1,7 +1,7 @@
 "use client";
 
 import Avatar from "boring-avatars";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import type { UserAvatarProps } from "./UserAvatar.types";
 import { normalizeAvatarUrl } from "./UserAvatar.utils";
@@ -29,7 +29,7 @@ export function UserAvatar({
     ? `btn btn-ghost btn-circle avatar ${className}`
     : `avatar ${className}`;
 
-  const src = useMemo(() => (image ? normalizeAvatarUrl(image, px) : null), [image, px]);
+  const src = image ? normalizeAvatarUrl(image, px) : null;
 
   return (
     <div className={wrapper}>

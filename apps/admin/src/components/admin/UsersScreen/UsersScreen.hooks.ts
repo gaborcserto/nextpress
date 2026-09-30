@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 import { jsonFetcher } from "@/lib/api";
@@ -62,8 +62,6 @@ export function useUsersScreen() {
         );
       });
   }, []);
-
-  const sorted = useMemo(() => users, [users]);
 
   const createUser = async () => {
     setCreating(true);
@@ -143,7 +141,7 @@ export function useUsersScreen() {
 
   return {
     // data
-    users: sorted,
+    users,
     loading,
     error,
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type ChangeEvent } from "react";
+import { useId, useState, type ChangeEvent } from "react";
 
 import type { ToggleProps } from "./Toggle.types";
 
@@ -19,11 +19,11 @@ export function useToggle(props: Pick<
 
   const currentChecked = isControlled ? (props.checked as boolean) : uncontrolledChecked;
 
-  const describedBy = useMemo(() => {
-    if (props.error) return `${inputId}-error`;
-    if (props.hint) return `${inputId}-hint`;
-    return undefined;
-  }, [props.error, props.hint, inputId]);
+  const describedBy = props.error
+    ? `${inputId}-error`
+    : props.hint
+      ? `${inputId}-hint`
+      : undefined;
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const next = e.target.checked;

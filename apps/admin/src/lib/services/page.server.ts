@@ -17,7 +17,7 @@ import {
  * Create a PAGE with tags, validate body with PageSchema.
  */
 export async function createPageService(rawBody: unknown, authorId: string) {
-  const parsed = await validateCreateBody(rawBody);
+  const parsed = validateCreateBody(rawBody);
   const { tagIds, ...pageData } = parsed;
 
   const created = await runWithSlugConflictHandling(() =>
@@ -36,7 +36,7 @@ export async function createPageService(rawBody: unknown, authorId: string) {
  * Update PAGE with tags, validate body with PageUpdateSchema.
  */
 export async function updatePageService(id: string, rawBody: unknown) {
-  const parsed = await validateUpdateBody(rawBody);
+  const parsed = validateUpdateBody(rawBody);
 
   const { tagIds = [], ...pageData } = parsed;
 

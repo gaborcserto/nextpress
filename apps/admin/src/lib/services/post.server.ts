@@ -19,7 +19,7 @@ import {
  * Create a POST with tags, validate body with PageSchema.
  */
 export async function createPostService(rawBody: unknown, authorId: string) {
-  const parsed = await validateCreateBody(rawBody);
+  const parsed = validateCreateBody(rawBody);
   const { tagIds, ...pageData } = parsed;
 
   const created = await runWithSlugConflictHandling(() =>
@@ -38,7 +38,7 @@ export async function createPostService(rawBody: unknown, authorId: string) {
  * Update POST with tags, validate body with PageUpdateSchema.
  */
 export async function updatePostService(id: string, rawBody: unknown) {
-  const parsed = await validateUpdateBody(rawBody);
+  const parsed = validateUpdateBody(rawBody);
 
   const { tagIds = [], ...pageData } = parsed;
 
