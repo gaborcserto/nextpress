@@ -1,4 +1,4 @@
-import config from "@nextpress/eslint-config/next";
+import config from "@nextpress/eslint-config/base";
 
 const dbConfig = [
   {

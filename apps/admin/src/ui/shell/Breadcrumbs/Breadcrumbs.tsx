@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
-import type { DetailTitle } from "./Breadrcumbs.types";
+import type { DetailTitle } from "./Breadcrumbs.types";
 
 
 // Build a readable label for each segment

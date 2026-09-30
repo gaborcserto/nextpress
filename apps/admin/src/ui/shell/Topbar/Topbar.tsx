@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import React from "react";
 
-import type { UserWithRole } from "./TopBar.types"
+import type { UserWithRole } from "./TopBar.types";
 import { useSession } from "@/lib/auth/auth-client";
 import { ThemeToggle, UserAvatar } from "@/ui/components";
 import { Breadcrumbs } from "@/ui/shell";

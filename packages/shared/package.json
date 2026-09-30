@@ -5,9 +5,7 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./utils/*": "./src/utils/*",
-    "./hooks/*": "./src/hooks/*",
-    "./types/*": "./src/types/*"
+    "./utils/*": "./src/utils/*"
   },
   "scripts": {
     "lint": "eslint .",

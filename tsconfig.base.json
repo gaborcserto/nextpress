@@ -7,14 +7,6 @@
 
     "strict": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-
-    "baseUrl": ".",
-    "paths": {
-      "@db/*": ["packages/db/*"],
-      "@ui/*": ["packages/ui/*"],
-      "@config/*": ["packages/config/*"],
-      "@shared/*": ["packages/shared/*"]
-    }
+    "allowSyntheticDefaultImports": true
   }
 }

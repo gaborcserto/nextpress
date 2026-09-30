@@ -1,6 +1,6 @@
 export * from "./AppShell";
 export * from "./AuthShell";
-export * from "./Breadrcumbs";
+export * from "./Breadcrumbs";
 export * from "./NavItem";
 export * from "./PageForm";
 export * from "./PostForm";

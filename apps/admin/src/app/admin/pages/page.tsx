@@ -1,5 +1,5 @@
 import PagesListScreen from "@/components/admin/PagesListScreen/PagesListScreen";
 
-export default function AdminPagesRoute() {
+export default function AdminPagesPage() {
   return <PagesListScreen />;
 }
