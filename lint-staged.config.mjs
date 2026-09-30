@@ -33,11 +33,21 @@ export default {
       );
     }
 
+    const eslintConfigFiles = normalizedFiles.filter((file) =>
+      file.includes("/packages/eslint-config/")
+    );
+    if (eslintConfigFiles.length > 0) {
+      commands.push(
+        `eslint --config packages/eslint-config/eslint.config.mjs --no-warn-ignored ${eslintConfigFiles.join(" ")}`
+      );
+    }
+
     const configuredFiles = new Set([
       ...adminFiles,
       ...webFiles,
       ...dbFiles,
       ...sharedFiles,
+      ...eslintConfigFiles,
     ]);
     const otherFiles = normalizedFiles.filter((file) => !configuredFiles.has(file));
     if (otherFiles.length > 0) {

@@ -5,16 +5,18 @@ import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
  * Shared ESLint config for Next.js apps (admin + web).
  * Uses flat config arrays from eslint-config-turbo and eslint-config-next.
  */
-export default [
+const config = [
+  { ignores: ["coverage/**"] },
+
   // Turborepo recommended rules
   ...turboConfig,
 
   // Next.js + React + TypeScript + a11y rules
   ...nextCoreWebVitals,
 
-  // Extra shared rules for all JS/TS files
+  // Extra shared rules for TypeScript files
   {
-    files: ["**/*.{ts,tsx,js,jsx}"],
+    files: ["**/*.{ts,tsx}"],
     rules: {
       // TypeScript
       "@typescript-eslint/no-explicit-any": "warn",
@@ -59,3 +61,5 @@ export default [
     }
   }
 ];
+
+export default config;

@@ -8,6 +8,10 @@
     "./next": "./next.js",
     "./next.js": "./next.js"
   },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
     "@typescript-eslint/eslint-plugin": "^8.71.0",
