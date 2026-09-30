@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Admin application
 
-## Getting Started
+The admin workspace is the authenticated Next.js administration application. It contains the Better Auth integration, role-aware API routes, and the current CMS administration screens.
 
-First, run the development server:
+Implemented areas include:
+
+- email/password sign-in, sign-up, password reset flows, and configured OAuth provider support;
+- dashboard, pages, posts, taxonomy, users, settings, and profile/session screens;
+- server-side authorization for protected API routes using the supported ADMIN, EDITOR, AUTHOR, and SUBSCRIBER roles;
+- API routes for authentication, pages, posts, tags, users, settings, and health checking.
+
+Run it from the repository root with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev:admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+It listens on `http://127.0.0.1:49101`. Configure local values in `apps/admin/.env` using [`.env.example`](.env.example). The root [README](../../README.md) documents repository setup, shared commands, and testing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful workspace checks:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm --workspace admin run lint
+npm --workspace admin run typecheck
+npm --workspace admin test
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The public web application is a separate workspace and is not rendered by this application.
