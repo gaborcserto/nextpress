@@ -1,3 +1,3 @@
 export { default as PageForm } from "./PageForm";
 
-export type { PageType, PageStatus, PageFormValues, PageFormProps } from "./PageForm.types";
+export type { PageFormProps } from "./PageForm.types";

@@ -1,3 +1,3 @@
 export { default as ListingFields } from "./ListingFields";
 
-export * from "./ListingFields.types";
+export type { ListingFieldsProps } from "./ListingFields.types";

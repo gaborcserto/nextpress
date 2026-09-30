@@ -1,8 +1,8 @@
 "use client";
 
 import { apiFetch } from "@/lib/api";
-import type { PostFormValues } from "@/ui/shell";
-import { slateToString } from "@/ui/utils";
+import type { PostFormValues } from "@/lib/content/contracts";
+import { slateToString } from "@/lib/content/editor";
 
 /**
  * Data Transfer Object used when creating or updating a Post via the API.

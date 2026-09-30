@@ -1,22 +1,13 @@
-import type { MediaValue, UploadFn } from "@/ui/components/ImageUploader";
-import type { TagValue, TagLoadOptionsFn, TagCreateFn } from "@/ui/components/TagMultiSelect";
-import type { Descendant } from "slate";
+import type {
+  PostFormValues,
+  TagCreateFn,
+  TagLoadEntityFn,
+  TagLoadOptionsFn,
+  TagUpdateEntityFn,
+  UploadFn,
+} from "@/lib/content/contracts";
 
-export type PostStatus = "DRAFT" | "PUBLISHED";
-
-export type PostFormValues = {
-  status: PostStatus;
-  slug: string;
-  title: string;
-  excerpt: Descendant[];
-  content: Descendant[];
-
-  // tags
-  tags: TagValue[];
-
-  cover: MediaValue | null;
-  publishedAt?: string | null; // ISO string (optional)
-};
+export type { PostFormValues, PostStatus } from "@/lib/content/contracts";
 
 export type PostFormProps = {
   initial: PostFormValues;
@@ -32,6 +23,8 @@ export type PostFormProps = {
 
   /** Create a new tag (Taxonomy type = TAG) */
   createTagAction: TagCreateFn;
+  loadEntityTagsAction: TagLoadEntityFn;
+  updateEntityTagsAction: TagUpdateEntityFn;
 
   sidebarTitle?: string;
   sidebarSubtitle?: string;

@@ -44,6 +44,7 @@ export default function UsersScreen() {
   const {
     users,
     loading,
+    error,
 
     creating,
     createForm,
@@ -79,6 +80,11 @@ export default function UsersScreen() {
 
   return (
     <div className="space-y-6 w-full">
+      {error ? (
+        <div role="alert" className="alert alert-error">
+          {error}
+        </div>
+      ) : null}
       <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
           <header className="h-20 flex flex-col justify-center space-y-1">

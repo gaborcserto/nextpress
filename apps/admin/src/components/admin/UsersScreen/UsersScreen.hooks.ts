@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CreateUserValues, UserRow } from "./UsersScreen.types";
+import { jsonFetcher } from "@/lib/api";
 import type { RoleName } from "@/lib/auth/roles";
-
-async function api<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, { ...init, cache: "no-store" });
-  if (!res.ok) throw new Error(await res.text().catch(() => "Request failed"));
-  return (await res.json()) as T;
-}
 
 export function useUsersScreen() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [defaultRole, setDefaultRole] = useState<RoleName>("SUBSCRIBER");
 
   const [creating, setCreating] = useState(false);
@@ -30,9 +26,14 @@ export function useUsersScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await api<UserRow[]>("/api/admin/users");
+      const data = await jsonFetcher<UserRow[]>("/api/admin/users", {
+        cache: "no-store",
+      });
       setUsers(data);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to load users.");
     } finally {
       setLoading(false);
     }
@@ -43,21 +44,32 @@ export function useUsersScreen() {
   }, [load]);
 
   useEffect(() => {
-    void api<{ defaultUserRole: RoleName }>("/api/admin/settings").then((settings) => {
-      setDefaultRole(settings.defaultUserRole);
-      setCreateForm((current) => ({
-        ...current,
-        role: settings.defaultUserRole,
-      }));
-    });
+    void jsonFetcher<{ defaultUserRole: RoleName }>("/api/admin/settings", {
+      cache: "no-store",
+    })
+      .then((settings) => {
+        setDefaultRole(settings.defaultUserRole);
+        setCreateForm((current) => ({
+          ...current,
+          role: settings.defaultUserRole,
+        }));
+      })
+      .catch((caught: unknown) => {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Failed to load the default user role.",
+        );
+      });
   }, []);
 
   const sorted = useMemo(() => users, [users]);
 
   const createUser = async () => {
     setCreating(true);
+    setError(null);
     try {
-      await api("/api/admin/users/create", {
+      await jsonFetcher("/api/admin/users/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -70,6 +82,8 @@ export function useUsersScreen() {
 
       setCreateForm({ email: "", name: "", role: defaultRole, password: "" });
       await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to create user.");
     } finally {
       setCreating(false);
     }
@@ -87,22 +101,25 @@ export function useUsersScreen() {
 
   const saveRole = async (userId: string) => {
     setSavingRoleId(userId);
+    setError(null);
 
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, roleName: editingRole } : u))
     );
 
     try {
-      await api(`/api/admin/users/${userId}/role`, {
+      await jsonFetcher(`/api/admin/users/${userId}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: editingRole }),
       });
 
       setEditingId(null);
-    } catch (e) {
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Failed to update role.";
       await load();
-      throw e;
+      setError(message);
     } finally {
       setSavingRoleId(null);
     }
@@ -110,12 +127,15 @@ export function useUsersScreen() {
 
   const deleteUser = async (userId: string) => {
     setDeletingId(userId);
+    setError(null);
     try {
-      await api(`/api/admin/users/${userId}`, { method: "DELETE" });
+      await jsonFetcher(`/api/admin/users/${userId}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (e) {
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Failed to delete user.";
       await load();
-      throw e;
+      setError(message);
     } finally {
       setDeletingId(null);
     }
@@ -125,6 +145,7 @@ export function useUsersScreen() {
     // data
     users: sorted,
     loading,
+    error,
 
     // create
     creating,

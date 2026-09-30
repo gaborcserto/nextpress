@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   FaCopy,
   FaHome,
-  FaImages,
   FaTags,
   FaThumbtack,
   FaUsers,
@@ -27,10 +26,9 @@ const MotionDiv = motion.div;
 type ItemInput = { href: string; label: string; icon: IconType };
 
 const ITEMS: readonly ItemInput[] = [
-  { href: "/admin", label: "DashboardScreen", icon: FaHome },
+  { href: "/admin", label: "Dashboard", icon: FaHome },
   { href: "/admin/pages", label: "Pages", icon: FaCopy },
   { href: "/admin/posts", label: "Posts", icon: FaThumbtack },
-  { href: "/admin/media", label: "Media", icon: FaImages },
   { href: "/admin/taxonomy", label: "Taxonomy", icon: FaTags },
 ];
 

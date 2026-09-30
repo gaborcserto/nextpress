@@ -2,6 +2,8 @@ export const runtime = "nodejs";
 
 import { ok, bad, notfound, conflict, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
+import type { PageFormValues } from "@/lib/content/contracts";
+import { normalizeSlateValue } from "@/lib/content/editor";
 import { getPageById, getTagsForPage } from "@/lib/repos";
 import {
   PageValidationError,
@@ -12,8 +14,6 @@ import {
   deletePageService,
   updatePageService,
 } from "@/lib/services/page.server";
-import type { PageFormValues } from "@/ui/shell";
-import { normalizeSlateValue } from "@/ui/utils";
 
 type RouteParams = { id: string };
 

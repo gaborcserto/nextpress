@@ -12,6 +12,7 @@ import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import { ROLES, type RoleName } from "@/lib/auth/roles";
 import {
   Button,
+  Alert,
   Field,
   FormGrid12,
   Input,
@@ -55,7 +56,7 @@ function readCredentialUpdates(
 
 export default function SettingsScreen() {
   const credentialForm = useRef<HTMLFormElement>(null);
-  const { form, setForm, loading, saving, save } =
+  const { form, setForm, loading, saving, error, save } =
     useSettingsScreen("SUBSCRIBER");
 
   const saveSettings = async () => {
@@ -78,6 +79,7 @@ export default function SettingsScreen() {
 
   return (
     <form ref={credentialForm} className="space-y-6 w-full">
+      <Alert message={error} status="error" />
       <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
           <header className="h-20 flex flex-col justify-center space-y-1">

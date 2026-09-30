@@ -1,356 +1,59 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-import type {
-  ProfileFormValues,
-  UserWithProfileImage,
-  ProfileInputChangeEvent,
-  ProfileFormEvent,
-} from "./ProfileScreen.types";
-import { apiFetch } from "@/lib/api";
 import { useSession } from "@/lib/auth/auth-client";
-import { UserAvatar, isProviderAvatar } from "@/ui/components";
-import { Box, Button, Input, StickyWrapper, Section } from "@/ui/primitives";
-import { showToast } from "@/ui/utils";
+import { UserAvatar } from "@/ui/components";
+import { Alert, Box, Section } from "@/ui/primitives";
 
 export default function ProfileScreen() {
-  const { data, isPending, refetch } = useSession();
+  const { data, isPending } = useSession();
 
-  const [values, setValues] = useState<ProfileFormValues>({
-    name: "",
-    image: "",
-  });
+  if (isPending) {
+    return (
+      <Box bare>
+        <div className="p-6 animate-pulse space-y-3" aria-label="Loading profile">
+          <div className="h-8 w-2/3 bg-base-300 rounded" />
+          <div className="h-40 bg-base-300 rounded" />
+        </div>
+      </Box>
+    );
+  }
 
-  const [useCustomAvatar, setUseCustomAvatar] = useState(false);
+  const user = data?.user;
+  const name = user?.name || "Unnamed user";
 
-  const [saving, setSaving] = useState(false);
-  const [deactivating, setDeactivating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const avatarSource = useMemo<"none" | "provider" | "custom">(() => {
-    if (!values.image) return "none";
-    return isProviderAvatar(values.image) ? "provider" : "custom";
-  }, [values.image]);
-
-  /* --------------------------------------------------
-   * Load initial user data
-   * -------------------------------------------------- */
-  useEffect(() => {
-    if (data?.user) {
-      const user = data.user as UserWithProfileImage;
-      const img = user.image ?? "";
-
-      setValues({
-        name: user.name ?? "",
-        image: img,
-      });
-
-      // Show custom input only if it's already a custom URL
-      setUseCustomAvatar(img !== "" && !isProviderAvatar(img));
-    }
-  }, [data?.user, data?.user?.id]);
-
-  // If image changes (e.g., after refetch), keep toggle in sync
-  useEffect(() => {
-    if (!values.image) {
-      setUseCustomAvatar(false);
-      return;
-    }
-
-    // If provider image is present, default to hiding the raw URL
-    if (isProviderAvatar(values.image)) {
-      setUseCustomAvatar(false);
-    }
-  }, [values.image]);
-
-  /* --------------------------------------------------
-   * Handle input changes
-   * -------------------------------------------------- */
-  const onChange =
-    (key: keyof ProfileFormValues) =>
-      (e: ProfileInputChangeEvent) => {
-        setValues((prev) => ({ ...prev, [key]: e.target.value }));
-      };
-
-  /* --------------------------------------------------
-   * Save profile
-   * -------------------------------------------------- */
-  const onSubmit = async (e?: ProfileFormEvent) => {
-    e?.preventDefault();
-    setSaving(true);
-
-    try {
-      const res = await apiFetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      if (!res.ok) {
-        showToast(`Save failed: ${res.status}`, "error");
-        return;
-      }
-
-      showToast("Profile saved.", "success");
-      refetch?.();
-    } catch {
-      showToast("Unexpected error while saving.", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  /* --------------------------------------------------
-   * Deactivate account
-   * -------------------------------------------------- */
-  const handleDeactivate = async () => {
-    if (!confirm("Are you sure you want to deactivate your account?")) return;
-    setDeactivating(true);
-
-    try {
-      const res = await apiFetch("/api/profile/deactivate", { method: "POST" });
-      if (!res.ok) {
-        showToast("Deactivate failed.", "error");
-        return;
-      }
-      showToast("Account deactivated.", "success");
-    } finally {
-      setDeactivating(false);
-    }
-  };
-
-  /* --------------------------------------------------
-   * Delete account (permanent)
-   * -------------------------------------------------- */
-  const handleDelete = async () => {
-    if (!confirm("This action is permanent. Delete account?")) return;
-    setDeleting(true);
-
-    try {
-      const res = await apiFetch("/api/profile/delete", { method: "DELETE" });
-      if (!res.ok) {
-        showToast("Delete failed.", "error");
-        return;
-      }
-      showToast("Account deleted.", "success");
-      // Optional: redirect or logout
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  /* --------------------------------------------------
-   * Avatar helpers
-   * -------------------------------------------------- */
-  const enableCustomAvatar = () => {
-    setUseCustomAvatar(true);
-    // Clear provider URL to avoid saving provider URLs as "custom"
-    if (isProviderAvatar(values.image)) {
-      setValues((p) => ({ ...p, image: "" }));
-    }
-  };
-
-  const useProviderAvatar = () => {
-    setUseCustomAvatar(false);
-    // If user had typed a custom URL and wants to revert, clear it.
-    // The app should then fall back to provider image (server-side) or generated avatar.
-    setValues((p) => ({ ...p, image: "" }));
-  };
-
-  /* --------------------------------------------------
-   * Render
-   * -------------------------------------------------- */
   return (
     <div className="space-y-6 w-full">
-      {isPending ? (
-        <Box bare>
-          <div className="p-6 animate-pulse space-y-3">
-            <div className="h-8 w-2/3 bg-base-300 rounded" />
-            <div className="h-40 bg-base-300 rounded" />
-          </div>
-        </Box>
-      ) : (
-        <form onSubmit={onSubmit} className="space-y-6 w-full">
-          <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-            <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-              <header className="h-20 flex flex-col justify-center space-y-1">
-                <h1 className="text-2xl font-semibold">Profile</h1>
-                <p className="text-base-content/70">
-                  Update your display name and avatar.
-                </p>
-              </header>
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold">Profile</h1>
+        <p className="text-base-content/70">Review your current account details.</p>
+      </header>
 
-              <Section title="Avatar" desc="Preview your profile picture.">
-                <Box bare>
-                  <div className="flex items-center gap-4">
-                    <UserAvatar
-                      name={values.name}
-                      image={values.image}
-                      size="lg"
-                      className="ring-0"
-                    />
+      <Alert
+        status="info"
+        message="Profile editing and account management are not available in the admin yet. Your account details continue to be managed by the configured sign-in provider."
+      />
 
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">
-                        {values.name || "Unnamed user"}
-                      </div>
+      <Section title="Account" desc="Details from your current session.">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <UserAvatar
+            name={user?.name}
+            image={user?.image}
+            size="lg"
+            className="ring-0"
+          />
 
-                      <div className="text-sm text-base-content/70">
-                        {avatarSource === "provider" && "Using social profile photo."}
-                        {avatarSource === "custom" && "Using a custom avatar URL."}
-                        {avatarSource === "none" && "Using a generated avatar."}
-                      </div>
-                    </div>
-                  </div>
-                </Box>
-              </Section>
-
-              <Section
-                title="Danger zone"
-                desc="These actions affect your account security."
-              >
-                <Box bare className="flex flex-col gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    color="default"
-                    loading={deactivating}
-                    onClick={handleDeactivate}
-                  >
-                    Deactivate account
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="solid"
-                    color="error"
-                    loading={deleting}
-                    onClick={handleDelete}
-                  >
-                    Delete account
-                  </Button>
-                </Box>
-              </Section>
-            </aside>
-
-            <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
-              <Section
-                title="Basic info"
-                desc="Set your display name and profile image."
-              >
-                <Box bare>
-                  <div className="space-y-4 max-w-xl">
-                    <Input
-                      label="Display name"
-                      value={values.name}
-                      onChange={onChange("name")}
-                      placeholder="Your name"
-                      fullWidth
-                      rounded="lg"
-                    />
-
-                    {/* Avatar URL UI */}
-                    {useCustomAvatar ? (
-                      <div className="space-y-2">
-                        <Input
-                          label="Avatar URL"
-                          type="url"
-                          value={values.image}
-                          onChange={onChange("image")}
-                          placeholder="https://…"
-                          fullWidth
-                          rounded="lg"
-                        />
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={useProviderAvatar}
-                          >
-                            Use social avatar instead
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setValues((p) => ({ ...p, image: "" }))}
-                          >
-                            Clear
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Input
-                          label="Avatar"
-                          value={
-                            avatarSource === "provider"
-                              ? "Managed by social login"
-                              : avatarSource === "none"
-                                ? "No avatar set"
-                                : "Custom avatar"
-                          }
-                          disabled
-                          fullWidth
-                          rounded="lg"
-                        />
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={enableCustomAvatar}
-                          >
-                            Use custom avatar URL
-                          </Button>
-
-                          {avatarSource === "provider" ? null : (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              onClick={() => setValues((p) => ({ ...p, image: "" }))}
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-
-                        {avatarSource === "provider" && (
-                          <div className="text-sm text-base-content/60">
-                            To change this, update your profile photo at the provider
-                            (e.g., Google), or override it with a custom URL.
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Box>
-              </Section>
-
-              <StickyWrapper>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => history.back()}
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  type="submit"
-                  color="primary"
-                  variant="solid"
-                  loading={saving}
-                >
-                  Save
-                </Button>
-              </StickyWrapper>
-            </main>
-          </div>
-        </form>
-      )}
+          <dl className="grid gap-3 text-sm">
+            <div>
+              <dt className="text-base-content/60">Display name</dt>
+              <dd className="font-medium">{name}</dd>
+            </div>
+            <div>
+              <dt className="text-base-content/60">Email</dt>
+              <dd className="font-medium">{user?.email || "Not available"}</dd>
+            </div>
+          </dl>
+        </div>
+      </Section>
     </div>
   );
 }

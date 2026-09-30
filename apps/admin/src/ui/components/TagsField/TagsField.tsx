@@ -1,27 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { TagsFieldProps } from "./TagsField.types";
-import {
-  createTagAction,
-  loadEntityTagsAction,
-  loadTagOptionsAction,
-  updateEntityTagsAction,
-} from "@/lib/services/tag.client";
+import type { TagValue } from "@/lib/content/contracts";
 import { TagMultiSelect } from "@/ui/components/TagMultiSelect";
-import type { TagValue } from "@/ui/components/TagMultiSelect";
 
 export default function TagsField({
   entityId,
   value,
   defaultValue,
   onChangeAction,
+  loadOptionsAction,
+  createTagAction,
+  loadEntityTagsAction,
+  updateEntityTagsAction,
   label = "Tags",
   placeholder = "Add tag…",
   persist = true,
 }: TagsFieldProps) {
   const isControlled = typeof value !== "undefined";
+  const onChangeRef = useRef(onChangeAction);
+
+  useEffect(() => {
+    onChangeRef.current = onChangeAction;
+  }, [onChangeAction]);
 
   const [internalTags, setInternalTags] = useState<TagValue[]>(defaultValue ?? []);
 
@@ -39,7 +42,7 @@ export default function TagsField({
   // Managed mode: load initial tags from DB if entityId is provided.
   useEffect(() => {
     const id = entityId?.trim();
-    if (!id) return;
+    if (!id || !loadEntityTagsAction) return;
 
     let cancelled = false;
 
@@ -51,10 +54,10 @@ export default function TagsField({
 
         // If controlled, notify parent; otherwise store internally.
         if (isControlled) {
-          onChangeAction?.(loaded);
+          onChangeRef.current?.(loaded);
         } else {
           setInternalTags(loaded);
-          onChangeAction?.(loaded);
+          onChangeRef.current?.(loaded);
         }
       } finally {
         if (!cancelled) setLoadingInitial(false);
@@ -64,9 +67,7 @@ export default function TagsField({
     return () => {
       cancelled = true;
     };
-    // Intentionally not including callbacks to avoid reloading loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entityId, isControlled]);
+  }, [entityId, isControlled, loadEntityTagsAction]);
 
   const setTags = async (next: TagValue[]) => {
     // Update local state (or delegate to controlled parent)
@@ -77,7 +78,7 @@ export default function TagsField({
 
     // Persist changes if managed mode is enabled
     const id = entityId?.trim();
-    if (id && persist) {
+    if (id && persist && updateEntityTagsAction) {
       setSaving(true);
       try {
         await updateEntityTagsAction(id, next.map((t) => t.id));
@@ -93,7 +94,7 @@ export default function TagsField({
         label={label}
         value={tags}
         onChangeAction={(next) => void setTags(next)}
-        loadOptionsAction={loadTagOptionsAction}
+        loadOptionsAction={loadOptionsAction}
         createTagAction={createTagAction}
         placeholder={placeholder}
       />

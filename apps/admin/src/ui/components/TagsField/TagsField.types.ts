@@ -1,4 +1,10 @@
-import type { TagValue } from "@/ui/components/TagMultiSelect";
+import type {
+  TagCreateFn,
+  TagLoadEntityFn,
+  TagLoadOptionsFn,
+  TagUpdateEntityFn,
+  TagValue,
+} from "@/lib/content/contracts";
 
 export type TagsFieldProps = {
   /**
@@ -26,6 +32,10 @@ export type TagsFieldProps = {
    */
   onChangeAction?: (tags: TagValue[]) => void;
 
+  loadOptionsAction: TagLoadOptionsFn;
+  createTagAction: TagCreateFn;
+  loadEntityTagsAction?: TagLoadEntityFn;
+  updateEntityTagsAction?: TagUpdateEntityFn;
 
   label?: string;
   placeholder?: string;

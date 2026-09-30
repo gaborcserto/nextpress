@@ -2,7 +2,12 @@
 
 import { usePageEditor } from "./PageEditorScreen.hooks";
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
-import { loadTagOptionsAction, createTagAction } from "@/lib/services/tag.client";
+import {
+  createTagAction,
+  loadEntityTagsAction,
+  loadTagOptionsAction,
+  updateEntityTagsAction,
+} from "@/lib/services/tag.client";
 import { PageForm } from "@/ui/shell";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
@@ -53,6 +58,8 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
         onSubmitAction={handleSubmit}
         loadTagOptionsAction={loadTagOptionsAction}
         createTagAction={createTagAction}
+        loadEntityTagsAction={loadEntityTagsAction}
+        updateEntityTagsAction={updateEntityTagsAction}
         sidebarTitle={title}
         sidebarSubtitle={subtitle}
       />

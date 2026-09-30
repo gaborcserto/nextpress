@@ -1,6 +1,7 @@
 "use client";
 
-import type { ListingFieldsProps, ListingKind } from "./ListingFields.types";
+import type { ListingFieldsProps } from "./ListingFields.types";
+import type { ListingKind } from "@/lib/content/contracts";
 import { Field, FormGrid12, Input, Select } from "@/ui/primitives";
 import type { ChangeEvent } from "react";
 

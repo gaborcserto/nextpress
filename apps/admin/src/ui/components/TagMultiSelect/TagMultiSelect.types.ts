@@ -1,16 +1,12 @@
+import type {
+  TagCreateFn,
+  TagLoadOptionsFn,
+  TagValue,
+} from "@/lib/content/contracts";
 import type { KeyboardEvent, InputHTMLAttributes } from "react";
 
-export type TagValue = {
-  id: string;
-  name: string;
-  slug: string;
-};
 
-/** Async function to load tag options from API */
-export type TagLoadOptionsFn = (query: string) => Promise<TagValue[]>;
-
-/** Async function to create a new tag in API */
-export type TagCreateFn = (name: string) => Promise<TagValue>;
+export type { TagCreateFn, TagLoadOptionsFn, TagValue } from "@/lib/content/contracts";
 
 export type TagMultiSelectProps = {
   label?: string;

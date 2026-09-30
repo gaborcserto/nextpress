@@ -2,7 +2,12 @@
 
 import { usePostEditor } from "./PostEditorScreen.hooks";
 import type { PostEditorScreenProps } from "./PostEditorScreen.types";
-import { loadTagOptionsAction, createTagAction } from "@/lib/services/tag.client";
+import {
+  createTagAction,
+  loadEntityTagsAction,
+  loadTagOptionsAction,
+  updateEntityTagsAction,
+} from "@/lib/services/tag.client";
 import { PostForm } from "@/ui/shell";
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
@@ -53,6 +58,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         onSubmitAction={handleSubmit}
         loadTagOptionsAction={loadTagOptionsAction}
         createTagAction={createTagAction}
+        loadEntityTagsAction={loadEntityTagsAction}
+        updateEntityTagsAction={updateEntityTagsAction}
         sidebarTitle={title}
         sidebarSubtitle={subtitle}
         // imageUploadAction

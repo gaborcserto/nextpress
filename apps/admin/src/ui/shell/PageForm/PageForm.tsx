@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+import type { PageFormProps } from "./PageForm.types";
+import type { PageFormValues } from "@/lib/content/contracts";
+import {
+  buildInitialForm,
+  getEntityId,
+  normalizeSlateValue,
+} from "@/lib/content/editor";
 import { slugify } from "@/lib/utils";
 import {
   EventFields,
@@ -21,14 +28,16 @@ import {
   Section,
   StickyWrapper,
 } from "@/ui/primitives";
-import type { PageFormProps, PageFormValues } from "@/ui/shell";
-import { buildInitialForm, getEntityId, normalizeSlateValue } from "@/ui/utils";
 
 export default function PageForm({
   initial,
   onSubmitAction,
   submitting = false,
   submitLabel = "Save",
+  loadTagOptionsAction,
+  createTagAction,
+  loadEntityTagsAction,
+  updateEntityTagsAction,
   sidebarTitle,
   sidebarSubtitle,
 }: PageFormProps) {
@@ -89,6 +98,10 @@ export default function PageForm({
               entityId={entityId}
               value={form.tags}
               onChangeAction={(tags) => setField("tags", tags)}
+              loadOptionsAction={loadTagOptionsAction}
+              createTagAction={createTagAction}
+              loadEntityTagsAction={loadEntityTagsAction}
+              updateEntityTagsAction={updateEntityTagsAction}
               persist={Boolean(entityId)}
             />
           </Section>

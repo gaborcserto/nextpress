@@ -64,10 +64,3 @@ export function normalizeAvatarUrl(url: string, px: number) {
   const rule = AVATAR_RULES.find((r) => r.match(url));
   return rule ? rule.normalize(url, px) : url;
 }
-
-const AVATAR_HOST_VALUES = Object.values(AVATAR_HOSTS);
-
-export function isProviderAvatar(url?: string | null): boolean {
-  if (!url) return false;
-  return AVATAR_HOST_VALUES.some((host) => url.includes(host));
-}

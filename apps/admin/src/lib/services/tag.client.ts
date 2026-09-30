@@ -1,4 +1,4 @@
-import type { TagValue } from "@/ui/components/TagMultiSelect";
+import type { TagValue } from "@/lib/content/contracts";
 
 /* ---------- Type guards ---------- */
 
@@ -236,4 +236,3 @@ export async function deleteTagAdminAction(
     throw new Error("Failed to delete tag");
   }
 }
-

@@ -1,12 +1,6 @@
 "use client";
 
-export type MediaValue = {
-  id: string;
-  url: string;
-  alt?: string | null;
-};
-
-export type UploadFn = (file: File) => Promise<MediaValue>;
+import type { MediaValue, UploadFn } from "@/lib/content/contracts";
 
 export type ImageUploaderProps = {
   label?: string;
@@ -15,10 +9,7 @@ export type ImageUploaderProps = {
   /** Fired when the selected media changes (upload / remove) */
   onChangeAction: (value: MediaValue | null) => void;
 
-  /**
-   * Optionally override upload backend.
-   * If not provided, local /api/uploads endpoint is used.
-   */
+  /** Upload implementation supplied by the owning feature. */
   uploaderAction?: UploadFn;
 
   disabled?: boolean;

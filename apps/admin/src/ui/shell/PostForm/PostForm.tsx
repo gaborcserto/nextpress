@@ -3,13 +3,18 @@
 import { useState } from "react";
 
 import type { PostFormProps, PostFormValues, PostStatus } from "./PostForm.types";
+import type { MediaValue } from "@/lib/content/contracts";
+import {
+  buildInitialForm,
+  getEntityId,
+  normalizeSlateValue,
+} from "@/lib/content/editor";
 import { slugify } from "@/lib/utils";
 import {
   EMPTY_SLATE_VALUE,
   PostIntroFields,
   SlateEditor,
   TagsField,
-  type MediaValue,
 } from "@/ui/components";
 import {
   Button,
@@ -20,7 +25,6 @@ import {
   Select,
   StickyWrapper
 } from "@/ui/primitives"
-import { buildInitialForm, getEntityId, normalizeSlateValue} from "@/ui/utils";
 
 const POST_STATUS_OPTIONS: readonly { value: PostStatus; label: string }[] = [
   { value: "DRAFT", label: "Draft" },
@@ -33,6 +37,10 @@ export default function PostForm({
   submitting = false,
   submitLabel = "Save post",
   imageUploadAction,
+  loadTagOptionsAction,
+  createTagAction,
+  loadEntityTagsAction,
+  updateEntityTagsAction,
   sidebarTitle,
   sidebarSubtitle,
 }: PostFormProps) {
@@ -94,6 +102,10 @@ export default function PostForm({
               entityId={entityId}
               value={form.tags}
               onChangeAction={(tags) => setField("tags", tags)}
+              loadOptionsAction={loadTagOptionsAction}
+              createTagAction={createTagAction}
+              loadEntityTagsAction={loadEntityTagsAction}
+              updateEntityTagsAction={updateEntityTagsAction}
               persist={Boolean(entityId)}
             />
           </Section>

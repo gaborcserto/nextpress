@@ -1,4 +1,4 @@
-import type { PageFormValues } from "@/ui/shell";
+import type { PageFormValues } from "@/lib/content/contracts";
 
 export type EventFieldsProps = {
   values: PageFormValues;

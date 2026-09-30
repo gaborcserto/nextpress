@@ -1,4 +1,4 @@
-export type ListingKind = "POSTS" | "PRODUCTS" | "EVENTS";
+import type { ListingKind } from "@/lib/content/contracts";
 
 export type ListingFieldsProps = {
   listingKind?: ListingKind | null;

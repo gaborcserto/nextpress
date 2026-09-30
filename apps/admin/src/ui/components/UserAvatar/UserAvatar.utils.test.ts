@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isProviderAvatar, normalizeAvatarUrl } from "./UserAvatar.utils";
+import { normalizeAvatarUrl } from "./UserAvatar.utils";
 
 describe("avatar URL helpers", () => {
   it("adds provider-specific size parameters", () => {
@@ -23,9 +23,4 @@ describe("avatar URL helpers", () => {
     );
   });
 
-  it("identifies known provider hosts", () => {
-    expect(isProviderAvatar("https://avatars.githubusercontent.com/u/1")).toBe(true);
-    expect(isProviderAvatar(null)).toBe(false);
-    expect(isProviderAvatar("https://example.com/avatar.png")).toBe(false);
-  });
 });

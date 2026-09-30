@@ -7,33 +7,19 @@ import { withAuth } from "@/lib/auth/auth-server";
 import {
   OAUTH_PROVIDERS,
   isOAuthProviderName,
-  type OAuthProviderName,
 } from "@/lib/auth/oauth-providers";
 import {
   getOAuthProviderStatus,
   type OAuthProviderRow,
 } from "@/lib/auth/oauth-providers.server";
-import { isRole, type RoleName } from "@/lib/auth/roles";
+import { isRole } from "@/lib/auth/roles";
+import type { SettingsApiPayload } from "@/lib/settings/admin-settings";
 import {
   FALLBACK_USER_ROLE,
   SITE_SETTINGS_ID,
 } from "@/lib/settings/site-settings";
 
-type ProviderInput = {
-  provider: OAuthProviderName;
-  enabled: boolean;
-  clientId: string;
-  clientSecret?: string;
-};
-
-type SettingsPayload = {
-  siteName: string;
-  siteDescription: string;
-  siteUrl: string;
-  ogImageUrl: string;
-  defaultUserRole: RoleName;
-  oauthProviders: ProviderInput[];
-};
+type ProviderInput = SettingsApiPayload["oauthProviders"][number];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -53,7 +39,7 @@ function isProviderInput(value: unknown): value is ProviderInput {
   );
 }
 
-function isSettingsPayload(value: unknown): value is SettingsPayload {
+function isSettingsPayload(value: unknown): value is SettingsApiPayload {
   if (
     !isRecord(value) ||
     typeof value.siteName !== "string" ||

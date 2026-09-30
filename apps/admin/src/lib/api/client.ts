@@ -1,55 +1,74 @@
-
 import { tryCatch, unwrapResult, type Result } from "@nextpress/shared";
 
-/**
- * Thin wrapper around fetch, kept generic and browser-safe.
- */
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
+function messageFromBody(body: string, status: number): string {
+  if (!body) return `Request failed: ${status}`;
+
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "error" in parsed &&
+      typeof parsed.error === "string"
+    ) {
+      return parsed.error;
+    }
+  } catch {
+    return body;
+  }
+
+  return body;
+}
+
 export async function apiFetch(
   input: RequestInfo,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Response> {
   return fetch(input, init);
 }
 
-/**
- * JSON fetch that returns a Result instead of throwing.
- */
 export async function jsonResult<T>(
   input: RequestInfo,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<Result<T>> {
-  // 1) Fetch
-  const [res, fetchErr] = await tryCatch<Response>(apiFetch(input, init));
+  const [response, fetchError] = await tryCatch<Response>(apiFetch(input, init));
 
-  if (fetchErr || !res) {
-    const error =
-      fetchErr instanceof Error
-        ? fetchErr
-        : new Error("Network error while fetching");
-    return [null, error];
+  if (fetchError || !response) {
+    return [
+      null,
+      fetchError instanceof Error
+        ? fetchError
+        : new Error("Network error while fetching"),
+    ];
   }
 
-  // 2) Non-OK HTTP status → also error branch
-  if (!res.ok) {
-    const [text] = await tryCatch<string>(res.text());
-    const error = new Error(text || `Request failed: ${res.status}`);
-    return [null, error];
+  if (!response.ok) {
+    const [text] = await tryCatch<string>(response.text());
+    return [
+      null,
+      new ApiRequestError(
+        messageFromBody(text ?? "", response.status),
+        response.status,
+      ),
+    ];
   }
 
-  // 3) Parse JSON
-  return tryCatch<T>(await res.json() as Promise<T>);
+  return tryCatch<T>(response.json() as Promise<T>);
 }
 
-/**
- * JSON fetch that throws on error.
- * Built on top of jsonResult + unwrapResult.
- */
 export async function jsonFetcher<T>(
   input: RequestInfo,
-  init?: RequestInit
+  init?: RequestInit,
 ): Promise<T> {
-  return unwrapResult(
-    await jsonResult<T>(input, init),
-    (err: Error) => err
-  );
+  return unwrapResult(await jsonResult<T>(input, init), (error: Error) => error);
 }

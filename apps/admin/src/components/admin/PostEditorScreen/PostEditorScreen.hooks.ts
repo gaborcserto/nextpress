@@ -6,9 +6,9 @@ import useSWR from "swr";
 
 import type { PostDetailResponse } from "./PostEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
+import type { PostFormValues } from "@/lib/content/contracts";
+import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
-import { EMPTY_SLATE_VALUE } from "@/ui/components";
-import type { PostFormValues } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
 const EMPTY_INITIAL: PostFormValues = {
