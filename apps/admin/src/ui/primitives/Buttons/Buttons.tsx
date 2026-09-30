@@ -16,7 +16,6 @@ import type { ReactNode } from "react";
 const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
 
-/** DaisyUI/Tailwind classes **/
 const COLOR_MAP: Record<string, string> = {
   primary: "btn-primary",
   secondary: "btn-secondary",
@@ -54,7 +53,6 @@ function buildClasses({
             ? "btn-xl"
             : "";
 
-  // color mapping
   const colorCls = COLOR_MAP[color ?? "primary"] ?? "";
 
   const varCls =
@@ -96,8 +94,6 @@ function spinnerSize(size?: Size) {
         ? "loading-lg"
         : "loading-md";
 }
-
-/* ---------------- BaseButton ---------------- */
 
 function BaseButton({
   children,
@@ -156,13 +152,9 @@ function BaseButton({
   );
 }
 
-/* ---------------- Button ---------------- */
-
 export function Button(props: ButtonProps) {
   return <BaseButton {...props} />;
 }
-
-/* ---------------- IconButton ---------------- */
 
 export function IconButton({
   icon: Icon,

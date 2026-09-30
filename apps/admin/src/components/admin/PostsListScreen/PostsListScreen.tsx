@@ -3,9 +3,6 @@
 import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
 import { ContentList, type ContentListItem } from "@/ui/components";
 
-/**
- * Admin page for listing and managing posts.
- */
 export default function PostsListScreen() {
   const { items, isLoading, mutate } = usePostsList();
   const { deletingId, deletePost } = useDeletePost(async () => mutate());
@@ -15,7 +12,6 @@ export default function PostsListScreen() {
     title: p.title,
     slug: p.slug,
     status: p.status,
-    // Add author/categories/tags here once the API returns them
     dateLabel:
       p.status === "PUBLISHED"
         ? `Published: ${new Date(p.updatedAt).toLocaleString()}`
@@ -32,7 +28,6 @@ export default function PostsListScreen() {
       isLoading={isLoading}
       deletingId={deletingId}
       onDeleteAction={deletePost}
-      // Later: showAuthor, showCategories, showTags once you wire up taxonomies
     />
   );
 }

@@ -18,10 +18,6 @@ import { isRole, type RoleName } from "./roles";
 import { unauthorized } from "@/lib/api";
 import { getDefaultUserRole } from "@/lib/settings/site-settings";
 
-/* -------------------------------------------------------------------------- */
-/* Config                                                                      */
-/* -------------------------------------------------------------------------- */
-
 const BASE_URL =
   process.env.BETTER_AUTH_URL ||
   process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
@@ -36,10 +32,6 @@ const TRUSTED_ORIGINS = [
   "http://localhost:5174",
   "http://localhost:49101",
 ].filter(Boolean) as string[];
-
-/* -------------------------------------------------------------------------- */
-/* Auth                                                                        */
-/* -------------------------------------------------------------------------- */
 
 function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
@@ -128,10 +120,6 @@ export async function getOperationalOAuthProviders() {
   return operationalProviderNames(await readOAuthProviderRows());
 }
 
-/* -------------------------------------------------------------------------- */
-/* DB helpers                                                                  */
-/* -------------------------------------------------------------------------- */
-
 async function readRoleName(userId: string): Promise<RoleName | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -156,8 +144,7 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
 
   if (!user) return null;
 
-  // Already has a roleId -> just read role name safely
-  if (user.roleId) return await readRoleName(userId);
+  if (user.roleId) return readRoleName(userId);
 
   const defaultRole = await getDefaultUserRole();
   const updated = await prisma.user.update({
@@ -176,12 +163,8 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
  */
 export async function getUserRole(userId?: string | null): Promise<RoleName | null> {
   if (!userId) return null;
-  return await readRoleName(userId);
+  return readRoleName(userId);
 }
-
-/* -------------------------------------------------------------------------- */
-/* Session helpers                                                             */
-/* -------------------------------------------------------------------------- */
 
 export async function getSession() {
   const header = await headers();
@@ -220,20 +203,12 @@ export const getSessionWithRole = cache(async (): Promise<SessionWithRole> => {
   };
 });
 
-/* -------------------------------------------------------------------------- */
-/* Role utils                                                                  */
-/* -------------------------------------------------------------------------- */
-
 export function hasAnyRole(
   role: RoleName | null | undefined,
   allowed: readonly RoleName[]
 ): role is RoleName {
   return !!role && allowed.includes(role);
 }
-
-/* -------------------------------------------------------------------------- */
-/* withAuth                                                                    */
-/* -------------------------------------------------------------------------- */
 
 type HandlerCtx<P extends Record<string, string> = Record<string, string>> = {
   params: P;
