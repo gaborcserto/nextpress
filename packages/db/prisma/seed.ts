@@ -18,8 +18,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 async function ensureRoles() {
   const roles = ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] as const;
 
-  const out: Record<(typeof roles)[number], { id: string; name: string }> =
-    {} as any;
+  const out = {} as Record<(typeof roles)[number], { id: string; name: string }>;
 
   for (const name of roles) {
     out[name] = await prisma.role.upsert({

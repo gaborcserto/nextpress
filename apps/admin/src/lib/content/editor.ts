@@ -21,7 +21,9 @@ export function buildInitialForm<T extends { slug: string; title: string }>(
 export function getEntityId(value: unknown): string | undefined {
   if (typeof value !== "object" || value === null) return undefined;
 
-  const id = (value as Record<string, unknown>).id;
+  if (!("id" in value)) return undefined;
+
+  const id = value.id;
   return typeof id === "string" && id.trim() ? id : undefined;
 }
 

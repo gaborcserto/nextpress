@@ -17,30 +17,10 @@ import {
 
 type RouteParams = { id: string };
 
-type PageExtraFields = {
-  listingKind?: PageFormValues["listingKind"];
-  listingTaxonomyId?: PageFormValues["listingTaxonomyId"];
-  eventStart?: PageFormValues["eventStart"];
-  eventEnd?: PageFormValues["eventEnd"];
-  eventLocation?: PageFormValues["eventLocation"];
-  registrationUrl?: PageFormValues["registrationUrl"];
-  redirectTo?: PageFormValues["redirectTo"];
-};
-
-function getRouteParams(
-  ctx: { params: Record<string, string> }
-): Promise<RouteParams> {
-  return Promise.resolve(
-    ctx.params as RouteParams | Promise<RouteParams>
-  );
-}
-
 function mapPageToFormValues(
   page: NonNullable<Awaited<ReturnType<typeof getPageById>>>,
   tags: Awaited<ReturnType<typeof getTagsForPage>>
 ): PageFormValues {
-  const pageWithExtras = page as typeof page & PageExtraFields;
-
   return {
     type: page.type as PageFormValues["type"],
     status: page.status as PageFormValues["status"],
@@ -55,13 +35,13 @@ function mapPageToFormValues(
     parentId: page.parentId,
     inHeaderMenu: page.inHeaderMenu,
     inFooterMenu: page.inFooterMenu,
-    listingKind: pageWithExtras.listingKind ?? null,
-    listingTaxonomyId: pageWithExtras.listingTaxonomyId ?? null,
-    eventStart: pageWithExtras.eventStart ?? null,
-    eventEnd: pageWithExtras.eventEnd ?? null,
-    eventLocation: pageWithExtras.eventLocation ?? null,
-    registrationUrl: pageWithExtras.registrationUrl ?? null,
-    redirectTo: pageWithExtras.redirectTo ?? null,
+    listingKind: page.listingKind,
+    listingTaxonomyId: page.listingTaxonomyId,
+    eventStart: page.eventStart?.toISOString() ?? null,
+    eventEnd: page.eventEnd?.toISOString() ?? null,
+    eventLocation: page.eventLocation,
+    registrationUrl: page.registrationUrl,
+    redirectTo: page.redirectTo,
   };
 }
 
@@ -93,7 +73,7 @@ export async function GET(
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
   async (req, ctx, _auth) => {
-    const { id } = await getRouteParams(ctx);
+    const { id } = ctx.params;
 
     let body: unknown;
     try {
@@ -125,7 +105,7 @@ export const PUT = withAuth(
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
   async (_req, ctx, _auth) => {
-    const { id } = await getRouteParams(ctx);
+    const { id } = ctx.params;
 
     try {
       await deletePageService(id);

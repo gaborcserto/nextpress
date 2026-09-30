@@ -10,6 +10,14 @@ import {
   NotFoundError,
 } from "@/lib/services/tag.server";
 
+function getTagName(body: unknown): string {
+  if (typeof body !== "object" || body === null || !("name" in body)) {
+    return "";
+  }
+
+  return typeof body.name === "string" ? body.name : "";
+}
+
 /**
  * GET /api/tags?query=foo
  */
@@ -44,7 +52,7 @@ export const POST = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
     return bad("Invalid JSON");
   }
 
-  const name = (body as { name?: string }).name ?? "";
+  const name = getTagName(body);
 
   try {
     const tag = await createTagService(name);

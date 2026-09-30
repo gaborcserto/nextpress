@@ -19,13 +19,14 @@ export function bad<E extends object = {}>(
   msg = "Bad Request",
   extra?: E
 ): NextResponse<ErrorBody<E>> {
-  const body = (
-    extra
-      ? { error: msg, ...extra }
-      : { error: msg }
-  ) as ErrorBody<E>;
+  const body = extra
+    ? { error: msg, ...extra }
+    : { error: msg };
 
-  return NextResponse.json<ErrorBody<E>>(body, { status: 400 });
+  // TypeScript cannot prove that the branch without `extra` contains an
+  // arbitrary caller-supplied E; the response contract is still enforced at
+  // this typed helper boundary.
+  return NextResponse.json<ErrorBody<E>>(body as ErrorBody<E>, { status: 400 });
 }
 
 /**

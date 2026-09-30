@@ -4,13 +4,7 @@ import { prisma } from "@nextpress/db/src/client";
 
 import { ok, bad, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
-import { ROLES, type RoleName } from "@/lib/auth/roles";
-
-type Body = { role: RoleName };
-
-function isRole(x: unknown): x is RoleName {
-  return typeof x === "string" && (ROLES as readonly string[]).includes(x);
-}
+import { isRole } from "@/lib/auth/roles";
 
 export const PATCH = withAuth(["ADMIN"], async (_req, ctx) => {
   let body: unknown;
@@ -20,7 +14,10 @@ export const PATCH = withAuth(["ADMIN"], async (_req, ctx) => {
     return bad("Invalid JSON");
   }
 
-  const role = (body as Partial<Body>)?.role;
+  const role =
+    typeof body === "object" && body !== null && "role" in body
+      ? body.role
+      : undefined;
   if (!isRole(role)) return bad("Invalid role");
 
   try {

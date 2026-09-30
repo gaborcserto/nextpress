@@ -29,19 +29,21 @@ function getValidationMessage(error: unknown): string {
     typeof error === "object" &&
     error !== null &&
     "errors" in error &&
-    Array.isArray((error as { errors?: unknown }).errors)
+    Array.isArray(error.errors)
   ) {
-    const errors = (error as { errors?: string[] }).errors;
-    if (errors?.length) return errors.join(", ");
+    const errors = error.errors;
+    if (errors.length && errors.every((item): item is string => typeof item === "string")) {
+      return errors.join(", ");
+    }
   }
 
   if (
     typeof error === "object" &&
     error !== null &&
     "message" in error &&
-    typeof (error as { message?: unknown }).message === "string"
+    typeof error.message === "string"
   ) {
-    return (error as { message: string }).message;
+    return error.message;
   }
 
   return "Invalid tag data";

@@ -7,6 +7,6 @@ export function isSlugConflictError(err: unknown): err is SlugConflictError {
     typeof err === "object" &&
     err !== null &&
     "code" in err &&
-    (err as { code?: unknown }).code === "SLUG_CONFLICT"
+    err.code === "SLUG_CONFLICT"
   );
 }

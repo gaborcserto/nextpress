@@ -21,10 +21,6 @@ type GetContext = {
   params: Promise<RouteParams>;
 };
 
-type PostExtraFields = {
-  publishedAt?: Date | string | null;
-};
-
 /**
  * Map DB entity + tags into PostFormValues used by the form.
  */
@@ -32,14 +28,12 @@ function mapPostToFormValues(
   page: Awaited<ReturnType<typeof getPostWithTagsService>>["item"],
   tags: Awaited<ReturnType<typeof getPostWithTagsService>>["tags"]
 ): PostFormValues {
-  const p = page as typeof page & PostExtraFields;
-
   return {
-    status: p.status as PostFormValues["status"],
-    slug: p.slug,
-    title: p.title,
-    excerpt: normalizeSlateValue(p.excerpt),
-    content: normalizeSlateValue(p.content),
+    status: page.status,
+    slug: page.slug,
+    title: page.title,
+    excerpt: normalizeSlateValue(page.excerpt),
+    content: normalizeSlateValue(page.content),
     tags: tags.map((t) => ({
       id: t.id,
       name: t.name,
@@ -47,8 +41,8 @@ function mapPostToFormValues(
     })),
     // TODO: map cover once it's stored on the Page
     cover: null,
-    publishedAt: p.publishedAt
-      ? new Date(p.publishedAt).toISOString().slice(0, 16)
+    publishedAt: page.publishedAt
+      ? page.publishedAt.toISOString().slice(0, 16)
       : null,
   };
 }
@@ -79,7 +73,7 @@ export async function GET(_req: Request, { params }: GetContext) {
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
   async (req, ctx) => {
-    const { id } = ctx.params as RouteParams;
+    const { id } = ctx.params;
     let body: unknown;
 
     try {
@@ -111,7 +105,7 @@ export const PUT = withAuth(
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
   async (_req, ctx) => {
-    const { id } = ctx.params as RouteParams;
+    const { id } = ctx.params;
 
     try {
       await deletePostService(id);

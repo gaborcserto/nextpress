@@ -38,9 +38,7 @@ export async function createPageService(rawBody: unknown, authorId: string) {
 export async function updatePageService(id: string, rawBody: unknown) {
   const parsed = await validateUpdateBody(rawBody);
 
-  const { tagIds = [], ...pageData } = parsed as typeof parsed & {
-    tagIds?: string[];
-  };
+  const { tagIds = [], ...pageData } = parsed;
 
   const updated = await runWithSlugConflictHandling(() =>
     updatePage(id, { ...pageData, type: "PAGE" })

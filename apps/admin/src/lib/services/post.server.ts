@@ -40,9 +40,7 @@ export async function createPostService(rawBody: unknown, authorId: string) {
 export async function updatePostService(id: string, rawBody: unknown) {
   const parsed = await validateUpdateBody(rawBody);
 
-  const { tagIds = [], ...pageData } = parsed as typeof parsed & {
-    tagIds?: string[];
-  };
+  const { tagIds = [], ...pageData } = parsed;
 
   const updated = await runWithSlugConflictHandling(() =>
     updatePage(id, { ...pageData, type: "POST" })

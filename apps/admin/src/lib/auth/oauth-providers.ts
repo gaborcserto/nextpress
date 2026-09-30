@@ -12,6 +12,6 @@ export type OAuthProviderName = (typeof OAUTH_PROVIDERS)[number];
 export function isOAuthProviderName(value: unknown): value is OAuthProviderName {
   return (
     typeof value === "string" &&
-    (OAUTH_PROVIDERS as readonly string[]).includes(value)
+    OAUTH_PROVIDERS.some((provider) => provider === value)
   );
 }

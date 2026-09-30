@@ -58,7 +58,10 @@ export const PUT = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
   // Allow both payload shapes:
   // 1) { tagIds: [...] }
   // 2) [...]
-  const rawTagIds = (body as { tagIds?: unknown })?.tagIds ?? body;
+  const rawTagIds =
+    typeof body === "object" && body !== null && "tagIds" in body
+      ? body.tagIds
+      : body;
 
   try {
     await setTagsForPageService(entityId, rawTagIds);
