@@ -2,9 +2,17 @@ name: CI
 
 on:
   pull_request:
+    paths-ignore:
+      - README.md
+      - apps/admin/README.md
+      - apps/web/README.md
   push:
     branches:
       - master
+    paths-ignore:
+      - README.md
+      - apps/admin/README.md
+      - apps/web/README.md
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
