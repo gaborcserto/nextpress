@@ -104,7 +104,12 @@ export function ToastHost() {
                           setToasts((prev) => prev.filter((x) => x.id !== t.id));
                         }}
                     >
-                      <div className={`alert ${getVariantClass(t.type)}`}>
+                      <div
+                        className={`alert ${getVariantClass(t.type)}`}
+                        role={t.type === "error" ? "alert" : "status"}
+                        aria-live={t.type === "error" ? "assertive" : "polite"}
+                        aria-atomic="true"
+                      >
                         <div>
                           <div className="font-semibold">{t.msg}</div>
                           {t.desc && (

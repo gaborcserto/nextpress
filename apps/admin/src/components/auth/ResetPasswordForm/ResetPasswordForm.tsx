@@ -139,7 +139,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         </Button>
 
         {done && (
-          <div className="alert alert-success">
+          <div className="alert alert-success" role="status">
             <span>Password updated successfully.</span>
           </div>
         )}

@@ -37,6 +37,7 @@ export default function AppShell({
   // SSR-safe initial state: always false on first render
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -55,14 +56,44 @@ export default function AppShell({
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileNavRef = useRef<HTMLElement | null>(null);
+  const openedPathRef = useRef(pathname);
+  const wasDrawerOpenRef = useRef(false);
   const scrolled = useStickyScrolled(scrollRef);
-  const pathname = usePathname();
-
   useEffect(() => {
     // Keep the drawer in sync with browser back/forward navigation.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDrawerOpen(false);
+    if (openedPathRef.current !== pathname) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDrawerOpen(false);
+    }
   }, [pathname]);
+
+  useEffect(() => {
+    if (drawerOpen) {
+      if (!wasDrawerOpenRef.current) {
+        openedPathRef.current = pathname;
+        wasDrawerOpenRef.current = true;
+        mobileNavRef.current?.querySelector<HTMLElement>("a")?.focus();
+      }
+      return;
+    }
+    if (wasDrawerOpenRef.current && mobileTriggerRef.current && openedPathRef.current === pathname) {
+      mobileTriggerRef.current.focus();
+    }
+    wasDrawerOpenRef.current = false;
+  }, [drawerOpen, pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
 
   const sideW = collapsed ? 60 : 240;
 
@@ -84,7 +115,7 @@ export default function AppShell({
 
   return (
     <div className="h-dvh overflow-hidden bg-linear-to-br from-base-200 to-base-300">
-      <div className="flex h-full">
+      <div className="flex h-full" inert={drawerOpen}>
         <MotionDiv
           initial={false}
           animate={{ width: isDesktop ? sideW : 0 }}
@@ -108,7 +139,12 @@ export default function AppShell({
         </MotionDiv>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <Topbar scrolled={scrolled} onMobileNavOpenAction={() => setDrawerOpen(true)} />
+          <Topbar
+            scrolled={scrolled}
+            mobileNavOpen={drawerOpen}
+            mobileNavTriggerRef={(node) => { mobileTriggerRef.current = node; }}
+            onMobileNavOpenAction={() => setDrawerOpen(true)}
+          />
           <main
             ref={scrollRef}
             className="px-3 md:px-6 py-4 overflow-auto min-w-0"
@@ -134,7 +170,31 @@ export default function AppShell({
             className="drawer-overlay"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="menu bg-base-100 text-base-content w-60 max-w-[18rem] min-h-full border-r border-base-300 p-0">
+          <aside
+            id="admin-mobile-navigation"
+            ref={mobileNavRef}
+            className="menu bg-base-100 text-base-content w-60 max-w-[18rem] min-h-full border-r border-base-300 p-0"
+            role={drawerOpen ? "dialog" : undefined}
+            aria-modal={drawerOpen ? "true" : undefined}
+            aria-label={drawerOpen ? "Admin navigation" : undefined}
+            aria-hidden={!drawerOpen}
+            inert={!drawerOpen}
+            onKeyDown={(event) => {
+              if (event.key === "Tab") {
+                const links = mobileNavRef.current?.querySelectorAll<HTMLElement>("a, button:not([disabled])");
+                if (!links?.length) return;
+                const first = links[0];
+                const last = links[links.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+          >
             <Sidebar
               role={role}
               collapsed={false}

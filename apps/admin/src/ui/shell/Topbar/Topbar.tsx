@@ -16,9 +16,13 @@ const UserMenu = dynamic(
 
 export default function Topbar({
  scrolled,
+ mobileNavOpen,
+ mobileNavTriggerRef,
  onMobileNavOpenAction,
 }: {
   scrolled: boolean;
+  mobileNavOpen: boolean;
+  mobileNavTriggerRef: (node: HTMLButtonElement | null) => void;
   onMobileNavOpenAction: () => void;
 }) {
   const { data } = useSession(); // { data, isPending, ... }
@@ -55,9 +59,13 @@ export default function Topbar({
       >
         <div className="flex items-center gap-3">
           <button
+            ref={mobileNavTriggerRef}
             type="button"
+            id="admin-navigation-trigger"
             className="btn btn-ghost btn-square lg:hidden"
             aria-label="Open navigation"
+            aria-expanded={mobileNavOpen}
+            aria-controls="admin-mobile-navigation"
             onClick={onMobileNavOpenAction}
           >
             <FaBars aria-hidden="true" />

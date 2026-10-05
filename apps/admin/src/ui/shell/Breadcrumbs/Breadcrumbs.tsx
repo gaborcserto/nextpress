@@ -86,7 +86,7 @@ export default function Breadcrumbs() {
 
   if (items.length === 0) {
     return (
-      <div className="breadcrumbs text-sm">
+      <nav aria-label="Breadcrumb" className="breadcrumbs text-sm">
         <ul>
           <li>
             <Link href="/admin" className="link link-hover">
@@ -94,12 +94,12 @@ export default function Breadcrumbs() {
             </Link>
           </li>
         </ul>
-      </div>
+      </nav>
     );
   }
 
   return (
-    <div aria-label="Breadcrumb" className="breadcrumbs text-sm">
+    <nav aria-label="Breadcrumb" className="breadcrumbs text-sm">
       <ul>
         {items.map(({ href, label, isLast }) => (
           <li key={href} className="max-w-[20ch] sm:max-w-[28ch]">
@@ -113,6 +113,6 @@ export default function Breadcrumbs() {
           </li>
         ))}
       </ul>
-    </div>
+    </nav>
   );
 }

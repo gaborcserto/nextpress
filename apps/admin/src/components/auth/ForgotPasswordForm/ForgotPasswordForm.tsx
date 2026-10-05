@@ -86,7 +86,7 @@ export function ForgotPasswordForm() {
         </Button>
 
         {sent && (
-          <div className="alert alert-info">
+          <div className="alert alert-info" role="status">
             <span>Check your inbox (and spam) for the reset link.</span>
           </div>
         )}

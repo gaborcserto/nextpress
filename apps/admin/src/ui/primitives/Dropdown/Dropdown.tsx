@@ -18,7 +18,7 @@ import type {
   DropdownLabelProps,
   DropdownDividerProps,
 } from "./Dropdown.types";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { KeyboardEvent, MouseEvent as ReactMouseEvent, RefObject } from "react";
 
 
 const cx = (...xs: Array<string | false | undefined>) =>
@@ -28,6 +28,8 @@ type DropdownContextValue = {
   open: boolean;
   setOpen: (value: boolean) => void;
   menuId: string;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+  menuRef: RefObject<HTMLUListElement | null>;
   onAction?: DropdownAction;
   setOnAction?: (fn?: DropdownAction) => void;
 };
@@ -49,6 +51,13 @@ export function Dropdown({ children, align = "end", className }: DropdownProps) 
   const [onAction, setOnAction] = useState<DropdownAction | undefined>();
   const menuId = useId();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+  }, [open]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -71,6 +80,8 @@ export function Dropdown({ children, align = "end", className }: DropdownProps) 
     open,
     setOpen,
     menuId,
+    triggerRef,
+    menuRef,
     onAction,
     setOnAction,
   };
@@ -99,7 +110,7 @@ export function DropdownTrigger({
   className,
   ariaLabel,
 }: DropdownTriggerProps) {
-  const { open, setOpen, menuId } = useDropdownContext();
+  const { open, setOpen, menuId, triggerRef } = useDropdownContext();
 
   const handleClick = () => {
     setOpen(!open);
@@ -107,6 +118,7 @@ export function DropdownTrigger({
 
   return (
     <button
+      ref={triggerRef}
       type="button"
       className={cx("btn btn-ghost", className)}
       aria-haspopup="menu"
@@ -128,7 +140,7 @@ export function DropdownMenu({
   "aria-label": ariaLabel,
   onAction,
 }: DropdownMenuProps) {
-  const { open, menuId, setOnAction } = useDropdownContext();
+  const { open, menuId, setOnAction, menuRef, setOpen, triggerRef } = useDropdownContext();
 
   useEffect(() => {
     setOnAction?.(onAction);
@@ -137,9 +149,28 @@ export function DropdownMenu({
 
   if (!open) return null;
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? []);
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    let nextIndex: number | undefined;
+    if (event.key === "ArrowDown") nextIndex = index < items.length - 1 ? index + 1 : 0;
+    if (event.key === "ArrowUp") nextIndex = index > 0 ? index - 1 : items.length - 1;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = items.length - 1;
+    if (nextIndex !== undefined) {
+      event.preventDefault();
+      items[nextIndex]?.focus();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  };
+
   return (
     <ul
       id={menuId}
+      ref={menuRef}
       role="menu"
       aria-label={ariaLabel}
       tabIndex={0}
@@ -147,6 +178,7 @@ export function DropdownMenu({
         "dropdown-content menu bg-base-100 rounded-xl shadow border border-base-300 w-56 p-2",
         className
       )}
+      onKeyDown={handleKeyDown}
     >
       {children}
     </ul>
@@ -166,13 +198,14 @@ export function DropdownItem({
   onClick,
   ...buttonProps
 }: DropdownItemProps) {
-  const { setOpen, onAction } = useDropdownContext();
+  const { setOpen, onAction, triggerRef } = useDropdownContext();
 
   const handleClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
     if (disabled) return;
     onClick?.(e);
     onAction?.(itemKey);
     setOpen(false);
+    triggerRef.current?.focus();
   };
 
   const colorCls = color === "danger" ? "text-error" : "";
@@ -182,6 +215,7 @@ export function DropdownItem({
       <button
         type="button"
         role="menuitem"
+        tabIndex={-1}
         className={cx(
           "flex w-full items-center justify-between gap-2 px-3 py-2 rounded-md text-sm",
           "hover:bg-base-200",

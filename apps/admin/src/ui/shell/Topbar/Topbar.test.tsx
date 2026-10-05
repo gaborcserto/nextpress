@@ -20,9 +20,18 @@ vi.mock("@/ui/shell", () => ({
 describe("Topbar mobile navigation", () => {
   it("provides an accessible trigger for opening mobile navigation", () => {
     const onOpen = vi.fn();
-    render(<Topbar scrolled={false} onMobileNavOpenAction={onOpen} />);
+    render(
+      <Topbar
+        scrolled={false}
+        mobileNavOpen={false}
+        mobileNavTriggerRef={() => {}}
+        onMobileNavOpenAction={onOpen}
+      />,
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const trigger = screen.getByRole("button", { name: "Open navigation", expanded: false });
+    expect(trigger).toHaveAttribute("aria-controls", "admin-mobile-navigation");
+    fireEvent.click(trigger);
 
     expect(onOpen).toHaveBeenCalledOnce();
   });
