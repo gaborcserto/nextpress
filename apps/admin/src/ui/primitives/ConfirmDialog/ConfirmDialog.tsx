@@ -32,6 +32,10 @@ export function ConfirmDialog({
     return () => returnFocusRef.current?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (loading) dialogRef.current?.focus();
+  }, [loading]);
+
   const close = () => {
     if (disableClose || loading) return;
     onCancelAction();
@@ -48,7 +52,11 @@ export function ConfirmDialog({
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
     );
-    if (!focusable?.length) return;
+    if (!focusable?.length) {
+      event.preventDefault();
+      dialogRef.current?.focus();
+      return;
+    }
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) {
@@ -64,7 +72,7 @@ export function ConfirmDialog({
 
   return (
     <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={children ? descriptionId : undefined} onKeyDown={handleKeyDown}>
-      <div className="modal-box" ref={dialogRef}>
+      <div className="modal-box" ref={dialogRef} tabIndex={-1}>
         <h3 id={titleId} className="font-semibold text-lg">{title}</h3>
 
         {children ? <div id={descriptionId} className="mt-3 text-base-content/80">{children}</div> : null}

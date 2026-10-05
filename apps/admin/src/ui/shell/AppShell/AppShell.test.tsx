@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import Link from "next/link";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -62,5 +62,39 @@ describe("AppShell mobile navigation", () => {
     fireEvent.keyDown(drawer, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+  });
+
+  it("clears the mobile drawer and restores desktop interaction at the breakpoint", () => {
+    let matches = false;
+    let onChange: (() => void) | undefined;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn(() => ({
+        get matches() { return matches; },
+        addEventListener: (_type: string, listener: () => void) => { onChange = listener; },
+        removeEventListener: vi.fn(),
+      })),
+    });
+    const onPageAction = vi.fn();
+    render(<AppShell role="ADMIN"><button onClick={onPageAction}>Page action</button></AppShell>);
+    const trigger = screen.getByRole("button", { name: "Open navigation" });
+    fireEvent.click(trigger);
+
+    const drawer = screen.getByRole("dialog", { name: "Admin navigation" });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger.closest(".flex.h-full")).toHaveAttribute("inert");
+    expect(within(drawer).getByRole("link", { name: "Dashboard" })).toHaveFocus();
+
+    act(() => {
+      matches = true;
+      onChange?.();
+    });
+
+    expect(screen.queryByRole("dialog", { name: "Admin navigation" })).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger.closest(".flex.h-full")).not.toHaveAttribute("inert");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "Page action" }));
+    expect(onPageAction).toHaveBeenCalledOnce();
   });
 });

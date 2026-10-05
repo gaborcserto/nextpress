@@ -56,11 +56,19 @@ export default function AppShell({
   }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const desktopNavRef = useRef<HTMLDivElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileNavRef = useRef<HTMLElement | null>(null);
   const openedPathRef = useRef(pathname);
   const wasDrawerOpenRef = useRef(false);
   const scrolled = useStickyScrolled(scrollRef);
+  useEffect(() => {
+    if (!isDesktop || !drawerOpen) return;
+    // The media query is an external lifecycle boundary; clear its dependent UI state here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrawerOpen(false);
+    desktopNavRef.current?.querySelector<HTMLElement>("a")?.focus();
+  }, [drawerOpen, isDesktop]);
   useEffect(() => {
     // Keep the drawer in sync with browser back/forward navigation.
     if (openedPathRef.current !== pathname) {
@@ -78,11 +86,11 @@ export default function AppShell({
       }
       return;
     }
-    if (wasDrawerOpenRef.current && mobileTriggerRef.current && openedPathRef.current === pathname) {
+    if (!isDesktop && wasDrawerOpenRef.current && mobileTriggerRef.current && openedPathRef.current === pathname) {
       mobileTriggerRef.current.focus();
     }
     wasDrawerOpenRef.current = false;
-  }, [drawerOpen, pathname]);
+  }, [drawerOpen, isDesktop, pathname]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -117,6 +125,7 @@ export default function AppShell({
     <div className="h-dvh overflow-hidden bg-linear-to-br from-base-200 to-base-300">
       <div className="flex h-full" inert={drawerOpen}>
         <MotionDiv
+          ref={desktopNavRef}
           initial={false}
           animate={{ width: isDesktop ? sideW : 0 }}
           transition={{ type: "keyframes", stiffness: 220, damping: 26 }}

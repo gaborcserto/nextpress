@@ -37,4 +37,36 @@ describe("ConfirmDialog", () => {
     fireEvent.keyDown(confirm, { key: "Tab" });
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
   });
+
+  it("keeps focus in the dialog while a destructive action is pending", () => {
+    const trigger = document.createElement("button");
+    trigger.textContent = "Delete user";
+    document.body.append(trigger);
+    trigger.focus();
+    const onConfirmAction = vi.fn();
+    const onCancelAction = vi.fn();
+    const view = render(
+      <ConfirmDialog open title="Delete user?" loading onConfirmAction={onConfirmAction} onCancelAction={onCancelAction} />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Delete user?" });
+    const confirm = screen.getByRole("button", { name: /Confirm/ });
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(confirm).toBeDisabled();
+    expect(cancel).toBeDisabled();
+    expect(dialog.querySelector(".modal-box")).toHaveFocus();
+
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(dialog.querySelector(".modal-box")).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(onCancelAction).not.toHaveBeenCalled();
+    expect(onConfirmAction).not.toHaveBeenCalled();
+    expect(trigger).not.toHaveFocus();
+
+    view.rerender(
+      <ConfirmDialog open={false} onConfirmAction={onConfirmAction} onCancelAction={onCancelAction} />,
+    );
+    expect(trigger).toHaveFocus();
+    trigger.remove();
+  });
 });
