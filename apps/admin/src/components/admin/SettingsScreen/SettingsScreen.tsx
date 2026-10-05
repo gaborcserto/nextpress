@@ -10,6 +10,7 @@ import type {
 } from "./SettingsScreen.types";
 import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import { ROLES, type RoleName } from "@/lib/auth/roles";
+import { DataListEmptyRow, DataListSurface } from "@/ui/components/DataList";
 import {
   Button,
   Alert,
@@ -177,8 +178,8 @@ export default function SettingsScreen() {
             title="OAuth providers"
             desc="Only enabled providers with complete credentials are available for sign-in. Environment credentials are used when stored values are blank."
           >
-            <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow border border-base-300">
-              <table className="table table-zebra w-full">
+            <DataListSurface>
+              <table className="table min-w-[720px] table-zebra w-full">
                 <thead className="bg-base-200">
                   <tr>
                     <th>Provider</th>
@@ -189,7 +190,7 @@ export default function SettingsScreen() {
                 </thead>
 
                 <tbody>
-                  {form.oauthProviders.map((provider, index) => {
+                  {form.oauthProviders.length ? form.oauthProviders.map((provider, index) => {
                     const configured =
                       provider.hasClientId &&
                       provider.hasClientSecret;
@@ -244,10 +245,12 @@ export default function SettingsScreen() {
                         </td>
                       </tr>
                     );
-                  })}
+                  }) : (
+                    <DataListEmptyRow colSpan={4}>No OAuth providers configured.</DataListEmptyRow>
+                  )}
                 </tbody>
               </table>
-            </div>
+            </DataListSurface>
           </Section>
         </AdminPageColumns>
       </AdminPageLayout>

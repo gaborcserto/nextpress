@@ -3,7 +3,9 @@
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import type { ContentListProps } from "@/ui/components";
+import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
 import { IconButton, LinkIconButton, ConfirmDialog, useConfirmDialog } from "@/ui/primitives";
+import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 type ConfirmPayload = { id: string; title: string };
 
@@ -43,9 +45,9 @@ export default function ContentList({
   };
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">{heading}</h1>
+    <AdminPageLayout
+      title={heading}
+      actions={
         <LinkIconButton
           href={createHref}
           color="primary"
@@ -54,47 +56,43 @@ export default function ContentList({
         >
           {createLabel}
         </LinkIconButton>
-      </div>
+      }
+    >
 
-      {isLoading && (
-        <div className="flex items-center gap-2">
-          <span className="loading loading-spinner" />
-          <span>Loading…</span>
-        </div>
-      )}
-
-      {!isLoading && (
-        <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow border border-base-300">
-          <table className="table table-zebra w-full">
+      {isLoading ? (
+        <DataListLoading label={heading.toLowerCase()} />
+      ) : (
+        <DataListSurface>
+          <table className="table min-w-[900px] table-zebra w-full">
             <thead className="bg-base-200">
-            <tr>
-              <th>Title</th>
-              <th>Slug</th>
-              {showAuthor && <th>Author</th>}
-              {showCategories && <th>Categories</th>}
-              {showTags && <th>Tags</th>}
-              <th>Status</th>
-              <th>Date</th>
-              <th className="text-right">Actions</th>
-            </tr>
+              <tr>
+                <th>Title</th>
+                <th>Slug</th>
+                {showAuthor && <th>Author</th>}
+                {showCategories && <th>Categories</th>}
+                {showTags && <th>Tags</th>}
+                <th>Status</th>
+                <th>Date</th>
+                <th className="whitespace-nowrap text-right">Actions</th>
+              </tr>
             </thead>
 
             <tbody>
-            {items.length ? (
-              items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.title}</td>
-                  <td>{item.slug}</td>
+              {items.length ? (
+                items.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td>{item.slug}</td>
 
-                  {showAuthor && <td>{item.author || "—"}</td>}
+                    {showAuthor && <td>{item.author || "—"}</td>}
 
-                  {showCategories && (
-                    <td>{item.categories?.join(", ") || "—"}</td>
-                  )}
+                    {showCategories && (
+                      <td>{item.categories?.join(", ") || "—"}</td>
+                    )}
 
-                  {showTags && <td>{item.tags?.join(", ") || "—"}</td>}
+                    {showTags && <td>{item.tags?.join(", ") || "—"}</td>}
 
-                  <td>
+                    <td>
                       <span
                         className={`badge ${
                           item.status === "PUBLISHED"
@@ -104,13 +102,13 @@ export default function ContentList({
                       >
                         {item.status}
                       </span>
-                  </td>
+                    </td>
 
-                  <td>{item.dateLabel ?? "—"}</td>
+                    <td>{item.dateLabel ?? "—"}</td>
 
-                  <td className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <LinkIconButton
+                    <td className="whitespace-nowrap text-right">
+                      <div className="flex justify-end gap-2">
+                        <LinkIconButton
                         href={editHrefAction(item.id)}
                         size="sm"
                         variant="soft"
@@ -118,10 +116,10 @@ export default function ContentList({
                         aria-label={`Edit ${item.title}`}
                       >
                         Edit
-                      </LinkIconButton>
+                        </LinkIconButton>
 
-                      {onDeleteAction && (
-                        <IconButton
+                        {onDeleteAction && (
+                          <IconButton
                           icon={FaTrash}
                           size="sm"
                           color="error"
@@ -131,22 +129,18 @@ export default function ContentList({
                           onClick={() => askDelete(item.id, item.title)}
                         >
                           Delete
-                        </IconButton>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={colSpan} className="text-center py-6 opacity-50">
-                  No items found.
-                </td>
-              </tr>
-            )}
+                          </IconButton>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <DataListEmptyRow colSpan={colSpan}>No items found.</DataListEmptyRow>
+              )}
             </tbody>
           </table>
-        </div>
+        </DataListSurface>
       )}
 
       <ConfirmDialog
@@ -164,6 +158,6 @@ export default function ContentList({
           </p>
         ) : null}
       </ConfirmDialog>
-    </>
+    </AdminPageLayout>
   );
 }

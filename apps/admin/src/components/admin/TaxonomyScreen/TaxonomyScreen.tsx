@@ -10,6 +10,7 @@ import {
   loadTagsAdminAction,
 } from "@/lib/services/tag.client";
 import { slugify } from "@/lib/utils";
+import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
 import {
   Box,
   Button,
@@ -174,19 +175,16 @@ export default function TaxonomyScreen() {
 
             <Section title="Tags" desc="Used = number of pages/posts linked to the tag.">
               {loading ? (
-                <div className="flex items-center gap-2">
-                  <span className="loading loading-spinner" />
-                  <span>Loading…</span>
-                </div>
+                <DataListLoading label="tags" />
               ) : (
-                <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow border border-base-300">
-                  <table className="table table-zebra w-full">
+                <DataListSurface>
+                  <table className="table min-w-[520px] table-zebra w-full">
                     <thead className="bg-base-200">
                     <tr>
                       <th>Name</th>
                       <th>Slug</th>
                       <th className="text-right">Used</th>
-                      <th className="text-right">Actions</th>
+                      <th className="whitespace-nowrap text-right">Actions</th>
                     </tr>
                     </thead>
 
@@ -197,7 +195,7 @@ export default function TaxonomyScreen() {
                           <td className="font-medium">{t.name}</td>
                           <td className="opacity-80">{t.slug}</td>
                           <td className="text-right tabular-nums font-medium"><div className="badge badge-soft badge-primary">{t.usedCount}</div></td>
-                          <td className="text-right">
+                          <td className="whitespace-nowrap text-right">
                             <IconButton
                               icon={FaTrash}
                               size="sm"
@@ -213,15 +211,11 @@ export default function TaxonomyScreen() {
                         </tr>
                       ))
                     ) : (
-                      <tr>
-                        <td colSpan={4} className="text-center py-6 opacity-50">
-                          No tags found.
-                        </td>
-                      </tr>
+                      <DataListEmptyRow colSpan={4}>No tags found.</DataListEmptyRow>
                     )}
                     </tbody>
                   </table>
-                </div>
+                </DataListSurface>
               )}
             </Section>
 

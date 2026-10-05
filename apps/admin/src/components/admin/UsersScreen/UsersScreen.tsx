@@ -7,6 +7,7 @@ import { useUsersScreen } from "./UsersScreen.hooks";
 import type { UserRow } from "./UsersScreen.types";
 import type { RoleName } from "@/lib/auth/roles";
 import { ROLES } from "@/lib/auth/roles";
+import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
 import {
   ConfirmDialog,
   Field,
@@ -163,16 +164,11 @@ export default function UsersScreen() {
         }>
 
           <Section title="All users" desc="Edit roles or delete users.">
-            {loading && (
-              <div className="flex items-center gap-2">
-                <span className="loading loading-spinner" />
-                <span>Loading…</span>
-              </div>
-            )}
-
-            {!loading && (
-              <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow border border-base-300">
-                <table className="table table-zebra w-full">
+            {loading ? (
+              <DataListLoading label="users" />
+            ) : (
+              <DataListSurface>
+                <table className="table min-w-[760px] table-zebra w-full">
                   <thead className="bg-base-200">
                   <tr>
                     <th>Name</th>
@@ -180,7 +176,7 @@ export default function UsersScreen() {
                     <th>Role</th>
                     <th>Verified</th>
                     <th>Created</th>
-                    <th className="text-right">Actions</th>
+                    <th className="whitespace-nowrap text-right">Actions</th>
                   </tr>
                   </thead>
 
@@ -215,7 +211,7 @@ export default function UsersScreen() {
                             {new Date(u.createdAt).toLocaleString()}
                           </td>
 
-                          <td className="text-right">
+                          <td className="whitespace-nowrap text-right">
                             <div className="flex justify-end gap-2">
                               {isEditing ? (
                                 <>
@@ -272,15 +268,11 @@ export default function UsersScreen() {
                       );
                     })
                   ) : (
-                    <tr>
-                      <td colSpan={6} className="text-center py-6 opacity-50">
-                        No users found.
-                      </td>
-                    </tr>
+                    <DataListEmptyRow colSpan={6}>No users found.</DataListEmptyRow>
                   )}
                   </tbody>
                 </table>
-              </div>
+              </DataListSurface>
             )}
           </Section>
         </AdminPageColumns>
