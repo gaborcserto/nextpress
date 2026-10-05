@@ -88,7 +88,7 @@ export default function SettingsScreen() {
     <form
       ref={credentialForm}
       onSubmit={(event) => void saveSettings(event)}
-      className="space-y-6 w-full"
+      className="space-y-6"
     >
       <Alert message={error} status="error" />
       <AdminPageLayout title="Settings" description="Site name, defaults, and OAuth providers.">

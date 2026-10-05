@@ -8,6 +8,9 @@ export function AuthShell({
   asForm = false,
   onSubmitAction,
 }: AuthShellProps) {
+  const cardClass =
+    "relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden";
+
   const inner = (
     <div className="p-6 sm:p-8">
       {icon && (
@@ -35,12 +38,12 @@ export function AuthShell({
       {asForm ? (
         <form
           onSubmit={onSubmitAction}
-          className="relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden"
+          className={cardClass}
         >
           {inner}
         </form>
       ) : (
-        <div className="relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden">
+        <div className={cardClass}>
           {inner}
         </div>
       )}

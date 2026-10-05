@@ -9,9 +9,10 @@ import SignInFormFooter from "./SignInFormFooter";
 import SignInFormOAuthRow, { type Provider } from "./SignInFormOAuthRow";
 import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { safeCallbackUrl } from "../utils/safeCallbackUrl";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { signIn } from "@/lib/auth/auth-client";
 import { EmailField, PasswordField } from "@/ui/components";
-import { Alert, Button } from "@/ui/primitives";
+import { Alert } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 
 type SignInFormProps = {
@@ -152,18 +153,9 @@ export default function SignInForm({ providers }: SignInFormProps) {
           minLength={6}
         />
 
-        <Button
-          type="submit"
-          variant="solid"
-          color="primary"
-          size="md"
-          fullWidth
-          loading={loading}
-          disabled={loading}
-          className="mt-4 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
-        >
+        <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
           Sign in
-        </Button>
+        </AuthSubmitButton>
 
         <SignInFormFooter
           rememberMe={rememberMe}

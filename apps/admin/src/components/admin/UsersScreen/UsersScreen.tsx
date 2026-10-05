@@ -81,7 +81,7 @@ export default function UsersScreen() {
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-6">
       <Alert status="error" message={error} />
       <AdminPageLayout title="Users" description="Create, delete, and manage roles.">
         <AdminPageColumns sidebar={

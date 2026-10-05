@@ -8,7 +8,7 @@ import {
   loadTagOptionsAction,
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
-import { PageForm } from "@/ui/shell";
+import { AdminPageLayout, PageForm } from "@/ui/shell";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   const {
@@ -28,22 +28,22 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
 
   if (isEdit && isLoading) {
     return (
-      <div className="mx-auto w-full max-w-screen-2xl">
-        <div className="flex items-center gap-2">
+      <AdminPageLayout title={title} description={subtitle}>
+        <div className="flex items-center gap-2" role="status">
           <span className="loading loading-spinner" />
           <span>Loading page…</span>
         </div>
-      </div>
+      </AdminPageLayout>
     );
   }
 
   if (isEdit && (notFound || !item)) {
     return (
-      <div className="mx-auto w-full max-w-screen-2xl">
+      <AdminPageLayout title={title} description={subtitle}>
         <div className="py-10 text-center text-base-content/70">
           Page not found.
         </div>
-      </div>
+      </AdminPageLayout>
     );
   }
 

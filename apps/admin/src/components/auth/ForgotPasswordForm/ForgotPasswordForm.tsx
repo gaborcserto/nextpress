@@ -6,9 +6,9 @@ import { FaUserAlt } from "react-icons/fa";
 
 import { forgotPasswordSchema } from "./ForgotPasswordForm.validation";
 import { fieldErrorsFromIssues } from "../utils/fieldErrors";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { requestPasswordReset } from "@/lib/auth/auth-client";
 import { EmailField } from "@/ui/components";
-import { Button } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 
 export function ForgotPasswordForm() {
@@ -72,18 +72,9 @@ export function ForgotPasswordForm() {
           error={fieldError}
         />
 
-        <Button
-          type="submit"
-          variant="solid"
-          color="primary"
-          size="md"
-          fullWidth
-          loading={loading}
-          disabled={loading || sent}
-          className="mt-2 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
-        >
+        <AuthSubmitButton type="submit" loading={loading} disabled={loading || sent}>
           Send reset link
-        </Button>
+        </AuthSubmitButton>
 
         {sent && (
           <div className="alert alert-info" role="status">

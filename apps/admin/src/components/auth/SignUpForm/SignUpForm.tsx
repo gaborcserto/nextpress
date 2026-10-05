@@ -6,12 +6,13 @@ import { useState, useCallback, useRef, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
 import { signUpSchema, type SignUpFormValues } from "./SignUpForm.validation";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import SignInFormOAuthRow, { type Provider } from "@/components/auth/SignInForm/SignInFormOAuthRow";
 import { fieldErrorsFromIssues } from "@/components/auth/utils/fieldErrors";
 import { safeCallbackUrl } from "@/components/auth/utils/safeCallbackUrl";
 import { signIn, signUp } from "@/lib/auth/auth-client";
 import { EmailField, PasswordField } from "@/ui/components";
-import { Alert, Button, Input } from "@/ui/primitives";
+import { Alert, Input } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
@@ -164,18 +165,9 @@ export function SignUpForm({ providers }: SignUpFormProps) {
           error={fieldErrors.password}
         />
 
-        <Button
-          type="submit"
-          variant="solid"
-          color="primary"
-          size="md"
-          fullWidth
-          loading={loading}
-          disabled={loading}
-          className="mt-2 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
-        >
+        <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
           Sign up
-        </Button>
+        </AuthSubmitButton>
 
         <p className="text-sm text-center">
           Already have an account?{" "}

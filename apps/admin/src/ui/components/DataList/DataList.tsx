@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 export function DataListSurface({ children }: { children: ReactNode }) {
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-base-300 bg-base-100 shadow">
+    <div className="w-full overflow-x-auto rounded-lg border border-base-300 bg-base-100 shadow-sm">
       {children}
     </div>
   );

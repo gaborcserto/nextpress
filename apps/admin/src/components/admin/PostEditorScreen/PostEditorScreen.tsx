@@ -8,7 +8,7 @@ import {
   loadTagOptionsAction,
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
-import { PostForm } from "@/ui/shell";
+import { AdminPageLayout, PostForm } from "@/ui/shell";
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   const {
@@ -28,22 +28,22 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   if (isEdit && isLoading) {
     return (
-      <div className="mx-auto w-full max-w-screen-2xl">
-        <div className="flex items-center gap-2">
+      <AdminPageLayout title={title} description={subtitle}>
+        <div className="flex items-center gap-2" role="status">
           <span className="loading loading-spinner" />
           <span>Loading post…</span>
         </div>
-      </div>
+      </AdminPageLayout>
     );
   }
 
   if (isEdit && notFound) {
     return (
-      <div className="mx-auto w-full max-w-screen-2xl">
+      <AdminPageLayout title={title} description={subtitle}>
         <div className="py-10 text-center text-base-content/70">
           Post not found.
         </div>
-      </div>
+      </AdminPageLayout>
     );
   }
 

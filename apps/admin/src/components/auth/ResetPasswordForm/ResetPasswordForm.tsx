@@ -6,9 +6,10 @@ import { FaUserAlt } from "react-icons/fa";
 
 import { resetPasswordSchema } from "./ResetPasswordForm.validation";
 import { fieldErrorsFromIssues } from "../utils/fieldErrors";
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { resetPassword } from "@/lib/auth/auth-client";
 import { PasswordField } from "@/ui/components";
-import { Alert, Button } from "@/ui/primitives";
+import { Alert } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 
 export function ResetPasswordForm({ token }: { token: string }) {
@@ -125,18 +126,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
           error={fieldErrors.confirm}
         />
 
-        <Button
-          type="submit"
-          variant="solid"
-          color="primary"
-          size="md"
-          fullWidth
-          loading={loading}
-          disabled={loading || done}
-          className="mt-2 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
-        >
+        <AuthSubmitButton type="submit" loading={loading} disabled={loading || done}>
           Update password
-        </Button>
+        </AuthSubmitButton>
 
         {done && (
           <div className="alert alert-success" role="status">
