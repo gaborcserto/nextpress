@@ -18,6 +18,7 @@ import {
   Select,
   useConfirmDialog,
 } from "@/ui/primitives";
+import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import type { MouseEvent } from "react";
 
 type RoleOption = { value: RoleName; label: string };
@@ -85,13 +86,9 @@ export default function UsersScreen() {
           {error}
         </div>
       ) : null}
-      <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-          <header className="h-20 flex flex-col justify-center space-y-1">
-            <h1 className="text-2xl font-semibold">Users</h1>
-            <p className="text-base-content/70">Create, delete, and manage roles.</p>
-          </header>
-
+      <AdminPageLayout title="Users" description="Create, delete, and manage roles.">
+        <AdminPageColumns sidebar={
+          <>
           <Section title="Create user" desc="Create a new user and set an initial role.">
             <FormGrid12>
               <Field label="Email" span={12}>
@@ -162,9 +159,9 @@ export default function UsersScreen() {
               </LinkIconButton>
             </div>
           </Section>
-        </aside>
+          </>
+        }>
 
-        <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
           <Section title="All users" desc="Edit roles or delete users.">
             {loading && (
               <div className="flex items-center gap-2">
@@ -286,8 +283,8 @@ export default function UsersScreen() {
               </div>
             )}
           </Section>
-        </main>
-      </div>
+        </AdminPageColumns>
+      </AdminPageLayout>
 
       <ConfirmDialog
         open={confirm.open}

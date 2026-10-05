@@ -28,7 +28,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
 
   if (isEdit && isLoading) {
     return (
-      <div className="p-6">
+      <div className="mx-auto w-full max-w-screen-2xl">
         <div className="flex items-center gap-2">
           <span className="loading loading-spinner" />
           <span>Loading page…</span>
@@ -39,7 +39,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
 
   if (isEdit && (notFound || !item)) {
     return (
-      <div className="p-6">
+      <div className="mx-auto w-full max-w-screen-2xl">
         <div className="py-10 text-center text-base-content/70">
           Page not found.
         </div>
@@ -50,8 +50,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <div className="py-6 px-3 w-full space-y-6">
-      <PageForm
+    <PageForm
         initial={item}
         submitting={saving}
         submitLabel={submitLabel}
@@ -62,7 +61,6 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
         updateEntityTagsAction={updateEntityTagsAction}
         sidebarTitle={title}
         sidebarSubtitle={subtitle}
-      />
-    </div>
+    />
   );
 }

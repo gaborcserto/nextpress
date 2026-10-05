@@ -3,6 +3,7 @@
 import { useSession } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components";
 import { Alert, Box, Section } from "@/ui/primitives";
+import { AdminPageLayout } from "@/ui/shell";
 
 export default function ProfileScreen() {
   const { data, isPending } = useSession();
@@ -22,12 +23,7 @@ export default function ProfileScreen() {
   const name = user?.name || "Unnamed user";
 
   return (
-    <div className="space-y-6 w-full">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-base-content/70">Review your current account details.</p>
-      </header>
-
+    <AdminPageLayout title="Profile" description="Review your current account details.">
       <Alert
         status="info"
         message="Profile editing and account management are not available in the admin yet. Your account details continue to be managed by the configured sign-in provider."
@@ -54,6 +50,6 @@ export default function ProfileScreen() {
           </dl>
         </div>
       </Section>
-    </div>
+    </AdminPageLayout>
   );
 }

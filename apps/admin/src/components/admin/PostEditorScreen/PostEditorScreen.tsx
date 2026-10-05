@@ -28,7 +28,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   if (isEdit && isLoading) {
     return (
-      <div className="p-6">
+      <div className="mx-auto w-full max-w-screen-2xl">
         <div className="flex items-center gap-2">
           <span className="loading loading-spinner" />
           <span>Loading post…</span>
@@ -39,7 +39,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   if (isEdit && notFound) {
     return (
-      <div className="p-6">
+      <div className="mx-auto w-full max-w-screen-2xl">
         <div className="py-10 text-center text-base-content/70">
           Post not found.
         </div>
@@ -50,8 +50,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <div className="py-6 px-3 w-full space-y-6">
-      <PostForm
+    <PostForm
         initial={item}
         submitting={saving}
         submitLabel={submitLabel}
@@ -63,7 +62,6 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         sidebarTitle={title}
         sidebarSubtitle={subtitle}
         // imageUploadAction
-      />
-    </div>
+    />
   );
 }

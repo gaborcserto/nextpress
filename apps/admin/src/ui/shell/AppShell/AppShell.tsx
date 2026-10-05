@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
 import type { RoleName } from "@/lib/auth/roles";
@@ -14,7 +15,7 @@ function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = window.matchMedia("(min-width: 1024px)");
     const handler = () => setIsDesktop(mq.matches);
     handler();
     mq.addEventListener?.("change", handler);
@@ -55,6 +56,13 @@ export default function AppShell({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolled = useStickyScrolled(scrollRef);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Keep the drawer in sync with browser back/forward navigation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrawerOpen(false);
+  }, [pathname]);
 
   const sideW = collapsed ? 60 : 240;
 
@@ -87,7 +95,7 @@ export default function AppShell({
             height: "calc(100% - 24px)",
           }}
           className={[
-            "hidden md:block m-3 me-2",
+            "hidden lg:block m-3 me-2",
             "bg-base-100 border border-base-300 rounded-2xl shadow",
           ].join(" ")}
           aria-hidden={!isDesktop}
@@ -100,10 +108,7 @@ export default function AppShell({
         </MotionDiv>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <Topbar
-            collapsed={collapsed}
-            scrolled={scrolled}
-          />
+          <Topbar scrolled={scrolled} onMobileNavOpenAction={() => setDrawerOpen(true)} />
           <main
             ref={scrollRef}
             className="px-3 md:px-6 py-4 overflow-auto min-w-0"
@@ -113,7 +118,7 @@ export default function AppShell({
         </div>
       </div>
 
-      <div className="drawer md:hidden">
+      <div className="drawer lg:hidden">
         <input
           id="admin-drawer"
           type="checkbox"

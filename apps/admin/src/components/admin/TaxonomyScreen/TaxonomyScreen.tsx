@@ -21,6 +21,7 @@ import {
   Input,
   Section,
 } from "@/ui/primitives";
+import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 
 
 
@@ -122,15 +123,9 @@ export default function TaxonomyScreen() {
   };
 
   return (
-    <div className="py-6 px-3 w-full space-y-6">
-      <div className="space-y-6 w-full">
-        <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-            <header className="h-20 flex flex-col justify-center space-y-1">
-              <h1 className="text-2xl font-semibold">Taxonomy</h1>
-              <p className="text-base-content/70">Manage tags and track usage.</p>
-            </header>
-
+    <AdminPageLayout title="Taxonomy" description="Manage tags and track usage.">
+      <AdminPageColumns sidebar={
+        <>
             <Section title="Create tag" desc="Add a new tag.">
               <FormGrid12>
                 <Field label="Name" span={12}>
@@ -174,9 +169,9 @@ export default function TaxonomyScreen() {
                 </div>
               </Box>
             </Section>
-          </aside>
+        </>
+      }>
 
-          <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
             <Section title="Tags" desc="Used = number of pages/posts linked to the tag.">
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -239,8 +234,7 @@ export default function TaxonomyScreen() {
                 Refresh
               </Button>
             </div>
-          </main>
-        </div>
+      </AdminPageColumns>
 
         <ConfirmDialog
           open={confirm.open}
@@ -264,7 +258,6 @@ export default function TaxonomyScreen() {
             </>
           ) : null}
         </ConfirmDialog>
-      </div>
-    </div>
+    </AdminPageLayout>
   );
 }

@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import React from "react";
+import { FaBars } from "react-icons/fa";
 
 import type { UserWithRole } from "./Topbar.types";
 import { useSession } from "@/lib/auth/auth-client";
@@ -15,9 +16,10 @@ const UserMenu = dynamic(
 
 export default function Topbar({
  scrolled,
+ onMobileNavOpenAction,
 }: {
-  collapsed: boolean;
   scrolled: boolean;
+  onMobileNavOpenAction: () => void;
 }) {
   const { data } = useSession(); // { data, isPending, ... }
 
@@ -52,6 +54,14 @@ export default function Topbar({
 
       >
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="btn btn-ghost btn-square lg:hidden"
+            aria-label="Open navigation"
+            onClick={onMobileNavOpenAction}
+          >
+            <FaBars aria-hidden="true" />
+          </button>
           <Breadcrumbs />
         </div>
 

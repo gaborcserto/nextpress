@@ -21,6 +21,7 @@ import {
   StickyWrapper,
   Toggle,
 } from "@/ui/primitives";
+import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 
 const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: role }));
 
@@ -80,15 +81,9 @@ export default function SettingsScreen() {
   return (
     <form ref={credentialForm} className="space-y-6 w-full">
       <Alert message={error} status="error" />
-      <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-          <header className="h-20 flex flex-col justify-center space-y-1">
-            <h1 className="text-2xl font-semibold">Settings</h1>
-            <p className="text-base-content/70">
-              Site name, defaults, and OAuth providers.
-            </p>
-          </header>
-
+      <AdminPageLayout title="Settings" description="Site name, defaults, and OAuth providers.">
+        <AdminPageColumns sidebar={
+          <>
           <Section title="General" desc="Basic metadata used across the site.">
             <FormGrid12>
               <Field label="Site name" span={12}>
@@ -175,9 +170,9 @@ export default function SettingsScreen() {
               Save settings
             </Button>
           </StickyWrapper>
-        </aside>
+          </>
+        }>
 
-        <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
           <Section
             title="OAuth providers"
             desc="Only enabled providers with complete credentials are available for sign-in. Environment credentials are used when stored values are blank."
@@ -254,8 +249,8 @@ export default function SettingsScreen() {
               </table>
             </div>
           </Section>
-        </main>
-      </div>
+        </AdminPageColumns>
+      </AdminPageLayout>
     </form>
   );
 }

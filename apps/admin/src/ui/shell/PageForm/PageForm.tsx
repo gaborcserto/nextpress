@@ -28,6 +28,7 @@ import {
   Section,
   StickyWrapper,
 } from "@/ui/primitives";
+import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 export default function PageForm({
   initial,
@@ -83,16 +84,9 @@ export default function PageForm({
   const entityId = getEntityId(initial);
 
   return (
-    <div className="space-y-6 w-full">
-      <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 self-start">
-          {(sidebarTitle || sidebarSubtitle) && (
-            <header className="h-20 flex flex-col justify-center space-y-1">
-              <h1 className="text-2xl font-semibold">{sidebarTitle}</h1>
-              <p className="text-base-content/70">{sidebarSubtitle}</p>
-            </header>
-          )}
-
+    <AdminPageLayout title={sidebarTitle ?? "Page"} description={sidebarSubtitle}>
+      <AdminPageColumns sidebar={
+        <>
           <Section title="Tags" desc="Categorize page with tags.">
             <TagsField
               entityId={entityId}
@@ -117,9 +111,9 @@ export default function PageForm({
               onChangeAction={(key, value) => setField(key, value)}
             />
           </Section>
-        </aside>
+        </>
+      }>
 
-        <main className="lg:col-span-8 space-y-6 min-w-0 lg:pt-26">
           <Section title="Basic info" desc="Set title, status, slug and page type.">
             <FormGrid12>
               <Field label="Title" span={8}>
@@ -194,8 +188,7 @@ export default function PageForm({
               {submitLabel}
             </Button>
           </StickyWrapper>
-        </main>
-      </div>
-    </div>
+      </AdminPageColumns>
+    </AdminPageLayout>
   );
 }
