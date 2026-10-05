@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import type { PageFormProps } from "./PageForm.types";
 import type { PageFormValues } from "@/lib/content/contracts";
@@ -25,10 +25,17 @@ import {
   Button,
   Field,
   FormGrid12,
+  Input,
+  Select,
   Section,
   StickyWrapper,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+const PAGE_STATUS_OPTIONS: readonly { value: PageFormValues["status"]; label: string }[] = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "PUBLISHED", label: "Published" },
+];
 
 export default function PageForm({
   initial,
@@ -53,6 +60,7 @@ export default function PageForm({
   });
 
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; slug?: string }>({});
 
   const setField = <K extends keyof PageFormValues>(key: K, value: PageFormValues[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -77,14 +85,24 @@ export default function PageForm({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    const errors = {
+      ...(form.title.trim() ? {} : { title: "Title is required." }),
+      ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
+    };
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
     onSubmitAction(form);
   };
 
   const entityId = getEntityId(initial);
 
   return (
+    <form onSubmit={handleSubmit}>
     <AdminPageLayout title={sidebarTitle ?? "Page"} description={sidebarSubtitle}>
+      <fieldset disabled={submitting} className="contents">
       <AdminPageColumns sidebar={
         <>
           <Section title="Tags" desc="Categorize page with tags.">
@@ -116,35 +134,46 @@ export default function PageForm({
 
           <Section title="Basic info" desc="Set title, status, slug and page type.">
             <FormGrid12>
-              <Field label="Title" span={8}>
-                <input
-                  className="input input-bordered w-full"
+              <Field label="Title" htmlFor="page-title" span={8}>
+                <Input
+                  id="page-title"
+                  fullWidth
                   value={form.title}
-                  onChange={(e) => onTitleChange(e.target.value)}
+                  onChange={(e) => {
+                    onTitleChange(e.target.value);
+                    setFieldErrors((current) => ({
+                      ...current,
+                      title: undefined,
+                      slug: slugEdited ? current.slug : undefined,
+                    }));
+                  }}
                   required
+                  error={fieldErrors.title}
                 />
               </Field>
 
-              <Field label="Status" span={4}>
-                <select
-                  className="select select-bordered w-full"
+              <Field label="Status" htmlFor="page-status" span={4}>
+                <Select
+                  id="page-status"
+                  fullWidth
                   value={form.status}
-                  onChange={(e) => setField("status", e.target.value as PageFormValues["status"])}
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
-                </select>
+                  options={PAGE_STATUS_OPTIONS}
+                  onChangeAction={(value) => setField("status", value as PageFormValues["status"])}
+                />
               </Field>
 
-              <Field label="Slug" hint="Auto-generated from title until you edit it." span={8}>
-                <input
-                  className="input input-bordered w-full"
+              <Field label="Slug" htmlFor="page-slug" hint="Auto-generated from title until you edit it." span={8}>
+                <Input
+                  id="page-slug"
+                  fullWidth
                   value={form.slug}
                   onChange={(e) => {
                     setSlugEdited(true);
                     setField("slug", slugify(e.target.value));
+                    setFieldErrors((current) => ({ ...current, slug: undefined }));
                   }}
                   required
+                  error={fieldErrors.slug}
                 />
               </Field>
 
@@ -181,14 +210,16 @@ export default function PageForm({
           </Section>
 
           <StickyWrapper>
-            <Button variant="ghost" color="neutral" onClick={() => history.back()}>
+            <Button type="button" variant="ghost" color="neutral" onClick={() => history.back()}>
               Cancel
             </Button>
-            <Button color="primary" className="min-w-30" loading={submitting} onClick={handleSubmit}>
+            <Button type="submit" color="primary" className="min-w-30" loading={submitting}>
               {submitLabel}
             </Button>
           </StickyWrapper>
       </AdminPageColumns>
+      </fieldset>
     </AdminPageLayout>
+    </form>
   );
 }

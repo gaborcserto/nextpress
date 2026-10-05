@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 import type { PostFormProps, PostFormValues, PostStatus } from "./PostForm.types";
 import type { MediaValue } from "@/lib/content/contracts";
@@ -66,6 +66,7 @@ export default function PostForm({
     const autoSlug = slugify(initial.title);
     return initial.slug !== autoSlug;
   });
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; slug?: string }>({});
 
   /** Named setter for specific field */
   const setField = <K extends keyof PostFormValues>(key: K, value: PostFormValues[K]) => {
@@ -81,14 +82,24 @@ export default function PostForm({
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    const errors = {
+      ...(form.title.trim() ? {} : { title: "Title is required." }),
+      ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
+    };
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
     onSubmitAction(form);
   };
 
   const entityId = getEntityId(initial);
 
   return (
+    <form onSubmit={handleSubmit}>
     <AdminPageLayout title={sidebarTitle ?? "Post"} description={sidebarSubtitle}>
+      <fieldset disabled={submitting} className="contents">
       <AdminPageColumns sidebar={
         <>
           <Section title="Tags" desc="Organize your post with tags.">
@@ -108,8 +119,22 @@ export default function PostForm({
 
           <Section title="Basic info" desc="Set title, slug and publication status.">
             <FormGrid12>
-              <Field label="Title" span={8}>
-                <Input fullWidth value={form.title} onChange={(e) => onTitleChange(e.target.value)} required />
+              <Field label="Title" htmlFor="post-title" span={8}>
+                <Input
+                  id="post-title"
+                  fullWidth
+                  value={form.title}
+                  onChange={(e) => {
+                    onTitleChange(e.target.value);
+                    setFieldErrors((current) => ({
+                      ...current,
+                      title: undefined,
+                      slug: slugEdited ? current.slug : undefined,
+                    }));
+                  }}
+                  required
+                  error={fieldErrors.title}
+                />
               </Field>
 
               <Field label="Status" span={4}>
@@ -121,15 +146,18 @@ export default function PostForm({
                 />
               </Field>
 
-              <Field label="Slug" hint="Auto-generates from title until you edit it." span={8}>
+              <Field label="Slug" htmlFor="post-slug" hint="Auto-generates from title until you edit it." span={8}>
                 <Input
+                  id="post-slug"
                   fullWidth
                   value={form.slug}
                   onChange={(e) => {
                     setSlugEdited(true);
                     setField("slug", slugify(e.target.value));
+                    setFieldErrors((current) => ({ ...current, slug: undefined }));
                   }}
                   required
+                  error={fieldErrors.slug}
                 />
               </Field>
 
@@ -162,14 +190,16 @@ export default function PostForm({
           </Section>
 
           <StickyWrapper>
-            <Button variant="ghost" color="neutral" onClick={() => history.back()}>
+            <Button type="button" variant="ghost" color="neutral" onClick={() => history.back()}>
               Cancel
             </Button>
-            <Button color="primary" className="min-w-30" loading={submitting} onClick={handleSubmit}>
+            <Button type="submit" color="primary" className="min-w-30" loading={submitting}>
               {submitLabel}
             </Button>
           </StickyWrapper>
       </AdminPageColumns>
+      </fieldset>
     </AdminPageLayout>
+    </form>
   );
 }

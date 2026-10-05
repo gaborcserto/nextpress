@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import useSWR from "swr";
 
 import type { PostDetailResponse } from "./PostEditorScreen.types";
@@ -25,6 +25,7 @@ const EMPTY_INITIAL: PostFormValues = {
 export function usePostEditor(postId?: string) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const isEdit = !!postId;
 
@@ -40,11 +41,13 @@ export function usePostEditor(postId?: string) {
   const notFound = isEdit && !isLoading && !data?.item;
 
   const handleSubmit = async (values: PostFormValues): Promise<void> => {
+    if (savingRef.current) return;
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     try {
       const { ok, status } = isEdit
@@ -66,7 +69,13 @@ export function usePostEditor(postId?: string) {
       } else {
         router.push("/admin/posts");
       }
+    } catch {
+      showToast(
+        `Unable to ${isEdit ? "update" : "create"} post. Please try again.`,
+        "error",
+      );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

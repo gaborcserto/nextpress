@@ -1,30 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
 import { forgotPasswordSchema } from "./ForgotPasswordForm.validation";
+import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { requestPasswordReset } from "@/lib/auth/auth-client";
 import { EmailField } from "@/ui/components";
 import { Button } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
-import { showToast } from "@/ui/utils";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [fieldError, setFieldError] = useState<string | undefined>();
+  const submissionLock = useRef(false);
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (submissionLock.current || sent) return;
 
     const parsed = forgotPasswordSchema.safeParse({ email });
     if (!parsed.success) {
-      showToast(parsed.error.issues[0]?.message ?? "Invalid email", "error");
+      setFieldError(fieldErrorsFromIssues(parsed.error.issues).email);
       return;
     }
 
+    submissionLock.current = true;
     setLoading(true);
     try {
       await requestPasswordReset({
@@ -33,11 +37,10 @@ export function ForgotPasswordForm() {
       });
 
       setSent(true);
-      showToast("If the email exists, a reset link has been sent.", "success");
     } catch {
       setSent(true);
-      showToast("If the email exists, a reset link has been sent.", "success");
     } finally {
+      submissionLock.current = false;
       setLoading(false);
     }
   };
@@ -51,16 +54,22 @@ export function ForgotPasswordForm() {
       onSubmitAction={onSubmitAction}
     >
       <div className="space-y-4">
+        <fieldset disabled={loading || sent} className="contents">
         <EmailField
           id="forgot-email"
           name="email"
           label="Email"
           value={email}
-          onChangeAction={setEmail}
+          onChangeAction={(value) => {
+            setEmail(value);
+            setFieldError(undefined);
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="email"
+          required
+          error={fieldError}
         />
 
         <Button
@@ -70,7 +79,7 @@ export function ForgotPasswordForm() {
           size="md"
           fullWidth
           loading={loading}
-          disabled={loading}
+          disabled={loading || sent}
           className="mt-2 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
         >
           Send reset link
@@ -87,6 +96,7 @@ export function ForgotPasswordForm() {
             Back to sign in
           </Link>
         </p>
+        </fieldset>
       </div>
     </AuthShell>
   );

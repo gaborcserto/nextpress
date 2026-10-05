@@ -4,6 +4,7 @@ import { forgotPasswordSchema } from "./ForgotPasswordForm/ForgotPasswordForm.va
 import { resetPasswordSchema } from "./ResetPasswordForm/ResetPasswordForm.validation";
 import { signInSchema } from "./SignInForm/SignInForm.validation";
 import { signUpSchema } from "./SignUpForm/SignUpForm.validation";
+import { fieldErrorsFromIssues } from "./utils/fieldErrors";
 
 describe("authentication form validation", () => {
   it("requires a valid email and a six-character sign-in password", () => {
@@ -48,5 +49,20 @@ describe("authentication form validation", () => {
         confirm: "different",
       }).success
     ).toBe(false);
+  });
+
+  it("maps the first validation issue for each field", () => {
+    const result = resetPasswordSchema.safeParse({
+      token: "token",
+      password: "short",
+      confirm: "short",
+    });
+
+    if (result.success) throw new Error("Expected invalid password values");
+
+    expect(fieldErrorsFromIssues(result.error.issues)).toMatchObject({
+      password: "Password must be at least 8 characters",
+      confirm: "Password must be at least 8 characters",
+    });
   });
 });

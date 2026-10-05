@@ -1,31 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
 import { resetPasswordSchema } from "./ResetPasswordForm.validation";
+import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { resetPassword } from "@/lib/auth/auth-client";
 import { PasswordField } from "@/ui/components";
-import { Button } from "@/ui/primitives";
+import { Alert, Button } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
-import { showToast } from "@/ui/utils";
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirm?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const submissionLock = useRef(false);
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (submissionLock.current || done) return;
+    setFieldErrors({});
+    setFormError(null);
 
     const parsed = resetPasswordSchema.safeParse({ token, password, confirm });
     if (!parsed.success) {
-      showToast(parsed.error.issues[0]?.message ?? "Invalid form", "error");
+      setFieldErrors(fieldErrorsFromIssues(parsed.error.issues));
       return;
     }
 
+    submissionLock.current = true;
     setLoading(true);
     try {
       const { error } = await resetPassword({
@@ -34,16 +41,16 @@ export function ResetPasswordForm({ token }: { token: string }) {
       });
 
       if (error) {
-        showToast(error.message || "Reset failed", "error");
+        setFormError(error.message || "Reset failed");
         return;
       }
 
       setDone(true);
-      showToast("Password updated. You can sign in now.", "success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Reset failed";
-      showToast(msg, "error");
+      setFormError(msg);
     } finally {
+      submissionLock.current = false;
       setLoading(false);
     }
   };
@@ -72,17 +79,31 @@ export function ResetPasswordForm({ token }: { token: string }) {
       asForm
       onSubmitAction={onSubmitAction}
     >
+      <Alert status="error" message={formError} />
+
       <div className="space-y-4">
+        <fieldset disabled={loading || done} className="contents">
         <PasswordField
           id="reset-password"
           name="password"
           label="New password"
           value={password}
-          onChangeAction={setPassword}
+          onChangeAction={(value) => {
+            setPassword(value);
+            setFieldErrors((current) => ({
+              ...current,
+              password: undefined,
+              confirm: current.confirm === "Passwords do not match" ? undefined : current.confirm,
+            }));
+            setFormError(null);
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="new-password"
+          required
+          minLength={8}
+          error={fieldErrors.password}
         />
 
         <PasswordField
@@ -90,11 +111,18 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="confirm"
           label="Confirm password"
           value={confirm}
-          onChangeAction={setConfirm}
+          onChangeAction={(value) => {
+            setConfirm(value);
+            setFieldErrors((current) => ({ ...current, confirm: undefined }));
+            setFormError(null);
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="new-password"
+          required
+          minLength={8}
+          error={fieldErrors.confirm}
         />
 
         <Button
@@ -104,7 +132,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           size="md"
           fullWidth
           loading={loading}
-          disabled={loading}
+          disabled={loading || done}
           className="mt-2 h-12 rounded-xl bg-linear-to-r from-emerald-400 to-cyan-400 text-white shadow-md hover:brightness-[1.05] transition-all duration-200 border-0"
         >
           Update password
@@ -121,6 +149,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
             Back to sign in
           </Link>
         </p>
+        </fieldset>
       </div>
     </AuthShell>
   );

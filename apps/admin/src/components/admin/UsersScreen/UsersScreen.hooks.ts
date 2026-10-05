@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import type { RoleName } from "@/lib/auth/roles";
+import { showToast } from "@/ui/utils";
 
 export function useUsersScreen() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -11,6 +12,7 @@ export function useUsersScreen() {
   const [defaultRole, setDefaultRole] = useState<RoleName>("SUBSCRIBER");
 
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
   const [createForm, setCreateForm] = useState<CreateUserValues>({
     email: "",
     name: "",
@@ -19,10 +21,12 @@ export function useUsersScreen() {
   });
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletingRef = useRef<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<RoleName>("SUBSCRIBER");
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+  const savingRoleRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,6 +68,8 @@ export function useUsersScreen() {
   }, []);
 
   const createUser = async () => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
     setError(null);
     try {
@@ -80,9 +86,11 @@ export function useUsersScreen() {
 
       setCreateForm({ email: "", name: "", role: defaultRole, password: "" });
       await load();
+      showToast("User created.", "success");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to create user.");
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   };
@@ -98,6 +106,8 @@ export function useUsersScreen() {
   };
 
   const saveRole = async (userId: string) => {
+    if (savingRoleRef.current) return;
+    savingRoleRef.current = userId;
     setSavingRoleId(userId);
     setError(null);
 
@@ -113,28 +123,34 @@ export function useUsersScreen() {
       });
 
       setEditingId(null);
+      showToast("User role updated.", "success");
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : "Failed to update role.";
       await load();
       setError(message);
     } finally {
+      savingRoleRef.current = null;
       setSavingRoleId(null);
     }
   };
 
   const deleteUser = async (userId: string) => {
+    if (deletingRef.current) return;
+    deletingRef.current = userId;
     setDeletingId(userId);
     setError(null);
     try {
       await jsonFetcher(`/api/admin/users/${userId}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== userId));
+      showToast("User deleted.", "success");
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : "Failed to delete user.";
       await load();
       setError(message);
     } finally {
+      deletingRef.current = null;
       setDeletingId(null);
     }
   };

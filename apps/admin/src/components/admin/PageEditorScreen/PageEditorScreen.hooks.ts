@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import useSWR from "swr";
 
 import type { EditPageResponse } from "./PageEditorScreen.types";
@@ -26,6 +26,7 @@ const EMPTY_INITIAL: PageFormValues = {
 export function usePageEditor(id?: string) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const isEdit = !!id;
 
@@ -39,11 +40,13 @@ export function usePageEditor(id?: string) {
 
   // Note: returns Promise<void> to match PageForm onSubmitAction type
   const handleSubmit = async (values: PageFormValues): Promise<void> => {
+    if (savingRef.current) return;
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     try {
       const { ok, status } = isEdit
@@ -65,7 +68,13 @@ export function usePageEditor(id?: string) {
       } else {
         router.push("/admin/pages");
       }
+    } catch {
+      showToast(
+        `Unable to ${isEdit ? "update" : "create"} page. Please try again.`,
+        "error",
+      );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

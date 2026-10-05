@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 
 import type { TagUsageRow } from "./TaxonomyScreen.types";
@@ -23,6 +23,7 @@ import {
   Section,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
+import { showToast } from "@/ui/utils";
 
 
 
@@ -37,7 +38,9 @@ export default function TaxonomyScreen() {
   const [slugEdited, setSlugEdited] = useState(false);
 
   const [creating, setCreating] = useState(false);
+  const creatingRef = useRef(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const confirm = useConfirmDialog<ConfirmPayload>();
@@ -77,7 +80,8 @@ export default function TaxonomyScreen() {
   const canCreate = name.trim().length > 0 && slug.trim().length > 0 && !creating;
 
   const onCreate = async () => {
-    if (!canCreate) return;
+    if (!canCreate || creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
     setError(null);
 
@@ -94,9 +98,11 @@ export default function TaxonomyScreen() {
       setSlugEdited(false);
 
       void reload();
+      showToast("Tag created.", "success");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create tag.");
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   };
@@ -106,7 +112,8 @@ export default function TaxonomyScreen() {
   };
 
   const onConfirmDelete = async () => {
-    if (!confirm.payload) return;
+    if (!confirm.payload || deletingRef.current) return;
+    deletingRef.current = true;
 
     const { id } = confirm.payload;
     setDeletingId(id);
@@ -116,9 +123,11 @@ export default function TaxonomyScreen() {
       await deleteTagAdminAction(id);
       setItems((prev) => prev.filter((x) => x.id !== id));
       confirm.hide();
+      showToast("Tag deleted.", "success");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete tag.");
     } finally {
+      deletingRef.current = false;
       setDeletingId(null);
     }
   };
@@ -128,9 +137,17 @@ export default function TaxonomyScreen() {
       <AdminPageColumns sidebar={
         <>
             <Section title="Create tag" desc="Add a new tag.">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void onCreate();
+                }}
+              >
+              <fieldset disabled={creating}>
               <FormGrid12>
-                <Field label="Name" span={12}>
+                <Field label="Name" htmlFor="tag-name" span={12}>
                   <Input
+                    id="tag-name"
                     fullWidth
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -138,8 +155,9 @@ export default function TaxonomyScreen() {
                   />
                 </Field>
 
-                <Field label="Slug" hint="Auto-generates from name until you edit it." span={12}>
+                <Field label="Slug" htmlFor="tag-slug" hint="Auto-generates from name until you edit it." span={12}>
                   <Input
+                    id="tag-slug"
                     fullWidth
                     value={slug}
                     onChange={(e) => {
@@ -155,20 +173,22 @@ export default function TaxonomyScreen() {
                 <div className="flex items-center gap-2">
                   {error ? <div className="text-sm text-error">{error}</div> : null}
 
-                  <IconButton
-                    icon={FaPlus}
+                <IconButton
+                  type="submit"
+                  icon={FaPlus}
                     color="primary"
                     variant="solid"
                     size="sm"
                     loading={creating}
                     disabled={!canCreate}
-                    onClick={onCreate}
-                    aria-label="Create tag"
+                  aria-label="Create tag"
                   >
                     Create
                   </IconButton>
                 </div>
               </Box>
+              </fieldset>
+              </form>
             </Section>
         </>
       }>
@@ -202,6 +222,7 @@ export default function TaxonomyScreen() {
                               color="error"
                               variant="solid"
                               loading={deletingId === t.id}
+                              disabled={Boolean(deletingId)}
                               aria-label={`Delete tag ${t.name}`}
                               onClick={() => onAskDelete(t)}
                             >

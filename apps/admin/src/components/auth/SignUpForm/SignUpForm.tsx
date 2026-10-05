@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useCallback, type FormEvent } from "react";
+import { useState, useCallback, useRef, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
-import { signUpSchema } from "./SignUpForm.validation";
+import { signUpSchema, type SignUpFormValues } from "./SignUpForm.validation";
 import SignInFormOAuthRow, { type Provider } from "@/components/auth/SignInForm/SignInFormOAuthRow";
+import { fieldErrorsFromIssues } from "@/components/auth/utils/fieldErrors";
 import { safeCallbackUrl } from "@/components/auth/utils/safeCallbackUrl";
 import { signIn, signUp } from "@/lib/auth/auth-client";
 import { EmailField, PasswordField } from "@/ui/components";
-import { Button, Input } from "@/ui/primitives";
+import { Alert, Button, Input } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
@@ -23,6 +24,9 @@ export function SignUpForm({ providers }: SignUpFormProps) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SignUpFormValues, string>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const submissionLock = useRef(false);
 
   const router = useRouter();
   const params = useSearchParams();
@@ -39,13 +43,17 @@ export function SignUpForm({ providers }: SignUpFormProps) {
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+    if (submissionLock.current) return;
+    setFieldErrors({});
+    setFormError(null);
 
     const parsed = signUpSchema.safeParse({ email, password, name });
     if (!parsed.success) {
-      showToast(parsed.error.issues[0]?.message ?? "Invalid form", "error");
+      setFieldErrors(fieldErrorsFromIssues(parsed.error.issues));
       return;
     }
 
+    submissionLock.current = true;
     setLoading(true);
     try {
       const safeName = name.trim() || email.split("@")[0];
@@ -58,7 +66,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
       });
 
       if (error) {
-        showToast(error.message || "Sign up failed", "error");
+        setFormError(error.message || "Sign up failed");
         return;
       }
 
@@ -66,8 +74,9 @@ export function SignUpForm({ providers }: SignUpFormProps) {
       router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
-      showToast(msg, "error");
+      setFormError(msg);
     } finally {
+      submissionLock.current = false;
       setLoading(false);
     }
   };
@@ -80,6 +89,8 @@ export function SignUpForm({ providers }: SignUpFormProps) {
       asForm
       onSubmitAction={onSubmitAction}
     >
+      <Alert status="error" message={formError} />
+
       {providers.length ? (
         <SignInFormOAuthRow
           onProviderAction={oauth}
@@ -95,17 +106,25 @@ export function SignUpForm({ providers }: SignUpFormProps) {
       ) : null}
 
       <div className="space-y-4">
+        <fieldset disabled={loading} className="contents">
         <Input
           id="signup-name"
           name="name"
           label="Name"
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            setFormError(null);
+            setFieldErrors((current) => ({ ...current, name: undefined }));
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="name"
+          minLength={2}
+          maxLength={64}
+          error={fieldErrors.name}
         />
 
         <EmailField
@@ -113,11 +132,17 @@ export function SignUpForm({ providers }: SignUpFormProps) {
           name="email"
           label="Email"
           value={email}
-          onChangeAction={setEmail}
+          onChangeAction={(value) => {
+            setEmail(value);
+            setFormError(null);
+            setFieldErrors((current) => ({ ...current, email: undefined }));
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="email"
+          required
+          error={fieldErrors.email}
         />
 
         <PasswordField
@@ -125,11 +150,18 @@ export function SignUpForm({ providers }: SignUpFormProps) {
           name="password"
           label="Password"
           value={password}
-          onChangeAction={setPassword}
+          onChangeAction={(value) => {
+            setPassword(value);
+            setFormError(null);
+            setFieldErrors((current) => ({ ...current, password: undefined }));
+          }}
           fullWidth
           rounded="lg"
           color="neutral"
           autoComplete="new-password"
+          required
+          minLength={8}
+          error={fieldErrors.password}
         />
 
         <Button
@@ -154,6 +186,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
             Sign in
           </Link>
         </p>
+        </fieldset>
       </div>
     </AuthShell>
   );

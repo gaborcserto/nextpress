@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type FormEvent } from "react";
 import { FaSave } from "react-icons/fa";
 
 import { useSettingsScreen } from "./SettingsScreen.hooks";
@@ -23,6 +23,7 @@ import {
   Toggle,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
+import { showToast } from "@/ui/utils";
 
 const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: role }));
 
@@ -61,13 +62,17 @@ export default function SettingsScreen() {
   const { form, setForm, loading, saving, error, save } =
     useSettingsScreen("SUBSCRIBER");
 
-  const saveSettings = async () => {
-    if (!credentialForm.current) return;
+  const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!credentialForm.current || saving) return;
     const credentials = readCredentialUpdates(
       credentialForm.current,
       form.oauthProviders.map((provider) => provider.provider),
     );
-    if (await save(credentials)) credentialForm.current.reset();
+    if (await save(credentials)) {
+      credentialForm.current.reset();
+      showToast("Settings saved.", "success");
+    }
   };
 
   if (loading) {
@@ -80,16 +85,24 @@ export default function SettingsScreen() {
   }
 
   return (
-    <form ref={credentialForm} className="space-y-6 w-full">
+    <form
+      ref={credentialForm}
+      onSubmit={(event) => void saveSettings(event)}
+      className="space-y-6 w-full"
+    >
       <Alert message={error} status="error" />
       <AdminPageLayout title="Settings" description="Site name, defaults, and OAuth providers.">
+        <fieldset disabled={saving} className="contents">
         <AdminPageColumns sidebar={
           <>
           <Section title="General" desc="Basic metadata used across the site.">
             <FormGrid12>
-              <Field label="Site name" span={12}>
+              <Field label="Site name" htmlFor="site-name" span={12}>
                 <Input
+                  id="site-name"
                   fullWidth
+                  required
+                  maxLength={200}
                   value={form.siteName}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -100,9 +113,11 @@ export default function SettingsScreen() {
                 />
               </Field>
 
-              <Field label="Description" span={12}>
+              <Field label="Description" htmlFor="site-description" span={12}>
                 <Input
+                  id="site-description"
                   fullWidth
+                  maxLength={1000}
                   value={form.siteDescription}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -113,9 +128,12 @@ export default function SettingsScreen() {
                 />
               </Field>
 
-              <Field label="Site URL" hint="Used for canonical URLs." span={12}>
+              <Field label="Site URL" htmlFor="site-url" hint="Used for canonical URLs." span={12}>
                 <Input
+                  id="site-url"
+                  type="url"
                   fullWidth
+                  maxLength={2000}
                   value={form.siteUrl}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -126,9 +144,12 @@ export default function SettingsScreen() {
                 />
               </Field>
 
-              <Field label="Default OG image URL" span={12}>
+              <Field label="Default OG image URL" htmlFor="og-image-url" span={12}>
                 <Input
+                  id="og-image-url"
+                  type="url"
                   fullWidth
+                  maxLength={2000}
                   value={form.ogImageUrl}
                   onChange={(event) =>
                     setForm((current) => ({
@@ -143,8 +164,9 @@ export default function SettingsScreen() {
 
           <Section title="Defaults" desc="Defaults for newly created users.">
             <FormGrid12>
-              <Field label="Default user role" span={12}>
+              <Field label="Default user role" htmlFor="default-user-role" span={12}>
                 <Select
+                  id="default-user-role"
                   fullWidth
                   value={form.defaultUserRole}
                   options={ROLE_OPTIONS}
@@ -161,10 +183,9 @@ export default function SettingsScreen() {
 
           <StickyWrapper>
             <Button
-              type="button"
+              type="submit"
               color="primary"
               loading={saving}
-              onClick={() => void saveSettings()}
               className="min-w-40"
             >
               <FaSave />
@@ -218,6 +239,7 @@ export default function SettingsScreen() {
                         <td>
                           <Input
                             fullWidth
+                            maxLength={2000}
                             value={provider.clientId}
                             placeholder={provider.hasClientId ? "Using environment value" : ""}
                             onChange={(event) =>
@@ -234,6 +256,7 @@ export default function SettingsScreen() {
                           <input
                             className="input w-full"
                             type="password"
+                            maxLength={10000}
                             name={`clientSecret:${provider.provider}`}
                             autoComplete="new-password"
                             placeholder={
@@ -253,6 +276,7 @@ export default function SettingsScreen() {
             </DataListSurface>
           </Section>
         </AdminPageColumns>
+        </fieldset>
       </AdminPageLayout>
     </form>
   );

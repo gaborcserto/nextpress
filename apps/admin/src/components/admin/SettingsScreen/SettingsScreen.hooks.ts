@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   ProviderCredentialUpdates,
@@ -18,6 +18,7 @@ import {
 export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<SettingsFormValues>(() =>
     normalizeSettingsForm(undefined, fallbackRole),
@@ -43,6 +44,8 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
 
   const save = useCallback(
     async (credentials: ProviderCredentialUpdates) => {
+      if (savingRef.current) return false;
+      savingRef.current = true;
       setSaving(true);
       setError(null);
       try {
@@ -57,6 +60,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
         setError(caught instanceof Error ? caught.message : "Failed to save settings.");
         return false;
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     },

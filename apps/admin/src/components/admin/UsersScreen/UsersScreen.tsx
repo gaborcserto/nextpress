@@ -10,17 +10,17 @@ import { ROLES } from "@/lib/auth/roles";
 import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
 import {
   ConfirmDialog,
+  Alert,
+  Button,
   Field,
   FormGrid12,
   IconButton,
-  LinkIconButton,
   Input,
   Section,
   Select,
   useConfirmDialog,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
-import type { MouseEvent } from "react";
 
 type RoleOption = { value: RoleName; label: string };
 const ROLE_OPTIONS: RoleOption[] = ROLES.map((r) => ({ value: r, label: r }));
@@ -82,30 +82,38 @@ export default function UsersScreen() {
 
   return (
     <div className="space-y-6 w-full">
-      {error ? (
-        <div role="alert" className="alert alert-error">
-          {error}
-        </div>
-      ) : null}
+      <Alert status="error" message={error} />
       <AdminPageLayout title="Users" description="Create, delete, and manage roles.">
         <AdminPageColumns sidebar={
           <>
           <Section title="Create user" desc="Create a new user and set an initial role.">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createUser();
+              }}
+            >
+            <fieldset disabled={creating}>
             <FormGrid12>
-              <Field label="Email" span={12}>
+              <Field label="Email" htmlFor="create-user-email" span={12}>
                 <Input
+                  id="create-user-email"
                   fullWidth
+                  type="email"
+                  required
+                  maxLength={320}
                   value={createForm.email}
                   onChange={(e) =>
                     setCreateForm((p) => ({ ...p, email: e.target.value }))
                   }
-                  required
                 />
               </Field>
 
-              <Field label="Name" span={12}>
+              <Field label="Name" htmlFor="create-user-name" span={12}>
                 <Input
+                  id="create-user-name"
                   fullWidth
+                  maxLength={200}
                   value={createForm.name}
                   onChange={(e) =>
                     setCreateForm((p) => ({ ...p, name: e.target.value }))
@@ -113,11 +121,12 @@ export default function UsersScreen() {
                 />
               </Field>
 
-              <Field label="Role" span={12}>
+              <Field label="Role" htmlFor="create-user-role" span={12}>
                 <Select
+                  id="create-user-role"
                   fullWidth
                   value={createForm.role}
-                  options={ROLE_OPTIONS as unknown as { value: string; label: string }[]}
+                  options={ROLE_OPTIONS}
                   onChangeAction={(value) =>
                     setCreateForm((p) => ({ ...p, role: value as RoleName }))
                   }
@@ -126,12 +135,15 @@ export default function UsersScreen() {
 
               <Field
                 label="Password (optional)"
+                htmlFor="create-user-password"
                 hint="Leave empty to rely on social login or reset flow."
                 span={12}
               >
                 <Input
+                  id="create-user-password"
                   type="password"
                   fullWidth
+                  maxLength={128}
                   value={createForm.password}
                   onChange={(e) =>
                     setCreateForm((p) => ({ ...p, password: e.target.value }))
@@ -145,20 +157,18 @@ export default function UsersScreen() {
 
             {/* right-aligned button with top padding */}
             <div className="flex justify-end pt-1">
-              <LinkIconButton
-                href="#"
+              <Button
+                type="submit"
                 color="primary"
-                icon={FaPlus}
-                aria-label="Create user"
-                onClick={(e: MouseEvent<HTMLAnchorElement>) => {
-                  e.preventDefault();
-                  void createUser();
-                }}
+                loading={creating}
                 disabled={creating}
               >
+                <FaPlus aria-hidden="true" />
                 Create user
-              </LinkIconButton>
+              </Button>
             </div>
+            </fieldset>
+            </form>
           </Section>
           </>
         }>
@@ -193,13 +203,21 @@ export default function UsersScreen() {
 
                           <td className="whitespace-nowrap">
                             {isEditing ? (
-                              <Select
-                                value={editingRole}
-                                options={ROLE_OPTIONS as unknown as { value: string; label: string }[]}
-                                onChangeAction={(value) =>
-                                  setEditingRole(value as RoleName)
-                                }
-                              />
+                              <form
+                                id={`edit-user-role-${u.id}`}
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  void saveRole(u.id);
+                                }}
+                              >
+                                <Select
+                                  value={editingRole}
+                                  options={ROLE_OPTIONS}
+                                  onChangeAction={(value) =>
+                                    setEditingRole(value as RoleName)
+                                  }
+                                />
+                              </form>
                             ) : (
                               <span className={roleBadgeClass(role)}>{role}</span>
                             )}
@@ -216,21 +234,25 @@ export default function UsersScreen() {
                               {isEditing ? (
                                 <>
                                   <IconButton
+                                    type="submit"
+                                    form={`edit-user-role-${u.id}`}
                                     icon={FaSave}
                                     size="sm"
                                     color="primary"
                                     variant="solid"
                                     loading={savingRoleId === u.id}
+                                    disabled={savingRoleId === u.id}
                                     aria-label="Save role"
-                                    onClick={() => void saveRole(u.id)}
                                   >
                                     Save
                                   </IconButton>
 
                                   <IconButton
+                                    type="button"
                                     icon={FaTimes}
                                     size="sm"
                                     variant="soft"
+                                    disabled={savingRoleId === u.id}
                                     aria-label="Cancel"
                                     onClick={cancelEdit}
                                   >
@@ -240,21 +262,25 @@ export default function UsersScreen() {
                               ) : (
                                 <>
                                   <IconButton
+                                    type="button"
                                     icon={FaEdit}
                                     size="sm"
                                     variant="soft"
                                     aria-label="Edit role"
+                                    disabled={Boolean(savingRoleId)}
                                     onClick={() => startEdit(u)}
                                   >
                                     Edit
                                   </IconButton>
 
                                   <IconButton
+                                    type="button"
                                     icon={FaTrash}
                                     size="sm"
                                     color="error"
                                     variant="solid"
                                     loading={deletingId === u.id}
+                                    disabled={Boolean(deletingId)}
                                     aria-label="Delete user"
                                     onClick={() => askDelete(u)}
                                   >
