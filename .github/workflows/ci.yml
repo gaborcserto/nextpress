@@ -2,17 +2,9 @@ name: CI
 
 on:
   pull_request:
-    paths-ignore:
-      - README.md
-      - apps/admin/README.md
-      - apps/web/README.md
   push:
     branches:
       - master
-    paths-ignore:
-      - README.md
-      - apps/admin/README.md
-      - apps/web/README.md
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -22,8 +14,90 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect affected workspaces
+    runs-on: ubuntu-latest
+    outputs:
+      should_validate: ${{ steps.filter.outputs.should_validate }}
+      turbo_filters: ${{ steps.filter.outputs.turbo_filters }}
+      generate_prisma: ${{ steps.filter.outputs.generate_prisma }}
+
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Select affected workspaces
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          full_validation=false
+          has_workspace_change=false
+          generate_prisma=false
+
+          if [[ -z "$BASE_SHA" ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            full_validation=true
+          else
+            changed_files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+            if [[ -z "$changed_files" ]]; then
+              full_validation=true
+            fi
+
+            while IFS= read -r file; do
+              [[ -z "$file" ]] && continue
+              case "$file" in
+                *.md) ;;
+                apps/web/*)
+                  has_workspace_change=true
+                  ;;
+                apps/admin/*|packages/db/*|packages/shared/*|packages/eslint-config/*)
+                  has_workspace_change=true
+                  generate_prisma=true
+                  ;;
+                apps/*|packages/*) full_validation=true ;;
+                .github/*|.husky/*|package.json|package-lock.json|turbo.json|tsconfig.base.json|eslint.config.mjs|lint-staged.config.mjs)
+                  full_validation=true
+                  ;;
+                *)
+                  # Unknown paths may affect any workspace, so validate all of them.
+                  full_validation=true
+                  ;;
+              esac
+            done <<< "$changed_files"
+          fi
+
+          if [[ "$full_validation" == false && "$has_workspace_change" == false && -n "$changed_files" ]]; then
+            # A diff containing only Markdown needs no application validation.
+            should_validate=false
+          else
+            should_validate=true
+          fi
+
+          if [[ "$full_validation" == true ]]; then
+            turbo_filters=""
+            generate_prisma=true
+          elif [[ "$should_validate" == true ]]; then
+            turbo_filters="--filter=...[$BASE_SHA]"
+          else
+            turbo_filters=""
+          fi
+
+          if [[ "$full_validation" == true ]]; then
+            should_validate=true
+          fi
+
+          printf 'should_validate=%s\n' "$should_validate" >> "$GITHUB_OUTPUT"
+          printf 'generate_prisma=%s\n' "$generate_prisma" >> "$GITHUB_OUTPUT"
+          printf 'turbo_filters=%s\n' "$turbo_filters" >> "$GITHUB_OUTPUT"
+
   validate:
     name: Validate
+    needs: changes
+    if: needs.changes.outputs.should_validate == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -47,16 +121,12 @@ jobs:
         run: npm ci
 
       - name: Generate Prisma Client
+        if: needs.changes.outputs.generate_prisma == 'true'
         run: npm run prisma:generate
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test and coverage
-        run: npm run coverage
-
-      - name: Build
-        run: npm run build
+      - name: Validate affected workspaces
+        env:
+          TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}
+        run: |
+          read -r -a filters <<< "$TURBO_FILTERS"
+          npx turbo run lint typecheck test:coverage build "${filters[@]}"
