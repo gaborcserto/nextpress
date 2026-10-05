@@ -25,8 +25,6 @@ import {
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
-
-
 type ConfirmPayload = { id: string; name: string; usedCount: number };
 
 export default function TaxonomyScreen() {

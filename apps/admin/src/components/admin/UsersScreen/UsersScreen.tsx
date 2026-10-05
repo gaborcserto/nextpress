@@ -1,6 +1,5 @@
 "use client";
 
-
 import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
 import { useUsersScreen } from "./UsersScreen.hooks";
@@ -84,210 +83,220 @@ export default function UsersScreen() {
     <div className="space-y-6">
       <Alert status="error" message={error} />
       <AdminPageLayout title="Users" description="Create, delete, and manage roles.">
-        <AdminPageColumns sidebar={
-          <>
-          <Section title="Create user" desc="Create a new user and set an initial role.">
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                void createUser();
-              }}
-            >
-            <fieldset disabled={creating}>
-            <FormGrid12>
-              <Field label="Email" htmlFor="create-user-email" span={12}>
-                <Input
-                  id="create-user-email"
-                  fullWidth
-                  type="email"
-                  required
-                  maxLength={320}
-                  value={createForm.email}
-                  onChange={(e) =>
-                    setCreateForm((p) => ({ ...p, email: e.target.value }))
-                  }
-                />
-              </Field>
-
-              <Field label="Name" htmlFor="create-user-name" span={12}>
-                <Input
-                  id="create-user-name"
-                  fullWidth
-                  maxLength={200}
-                  value={createForm.name}
-                  onChange={(e) =>
-                    setCreateForm((p) => ({ ...p, name: e.target.value }))
-                  }
-                />
-              </Field>
-
-              <Field label="Role" htmlFor="create-user-role" span={12}>
-                <Select
-                  id="create-user-role"
-                  fullWidth
-                  value={createForm.role}
-                  options={ROLE_OPTIONS}
-                  onChangeAction={(value) =>
-                    setCreateForm((p) => ({ ...p, role: value as RoleName }))
-                  }
-                />
-              </Field>
-
-              <Field
-                label="Password (optional)"
-                htmlFor="create-user-password"
-                hint="Leave empty to rely on social login or reset flow."
-                span={12}
+        <AdminPageColumns
+          sidebar={
+            <Section title="Create user" desc="Create a new user and set an initial role.">
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void createUser();
+                }}
               >
-                <Input
-                  id="create-user-password"
-                  type="password"
-                  fullWidth
-                  maxLength={128}
-                  value={createForm.password}
-                  onChange={(e) =>
-                    setCreateForm((p) => ({ ...p, password: e.target.value }))
-                  }
-                />
-              </Field>
-            </FormGrid12>
+                <fieldset disabled={creating}>
+                  <FormGrid12>
+                    <Field label="Email" htmlFor="create-user-email" span={12}>
+                      <Input
+                        id="create-user-email"
+                        fullWidth
+                        type="email"
+                        required
+                        maxLength={320}
+                        value={createForm.email}
+                        onChange={(event) =>
+                          setCreateForm((current) => ({
+                            ...current,
+                            email: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
 
-            {/* divider + spacing */}
-            <div className="divider my-4" />
+                    <Field label="Name" htmlFor="create-user-name" span={12}>
+                      <Input
+                        id="create-user-name"
+                        fullWidth
+                        maxLength={200}
+                        value={createForm.name}
+                        onChange={(event) =>
+                          setCreateForm((current) => ({
+                            ...current,
+                            name: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
 
-            {/* right-aligned button with top padding */}
-            <div className="flex justify-end pt-1">
-              <Button
-                type="submit"
-                color="primary"
-                loading={creating}
-                disabled={creating}
-              >
-                <FaPlus aria-hidden="true" />
-                Create user
-              </Button>
-            </div>
-            </fieldset>
-            </form>
-          </Section>
-          </>
-        }>
+                    <Field label="Role" htmlFor="create-user-role" span={12}>
+                      <Select
+                        id="create-user-role"
+                        fullWidth
+                        value={createForm.role}
+                        options={ROLE_OPTIONS}
+                        onChangeAction={(value) =>
+                          setCreateForm((current) => ({
+                            ...current,
+                            role: value as RoleName,
+                          }))
+                        }
+                      />
+                    </Field>
 
-          <Section title="All users" desc="Edit roles or delete users.">
-            {loading ? (
-              <DataListLoading label="users" />
+                    <Field
+                      label="Password (optional)"
+                      htmlFor="create-user-password"
+                      hint="Leave empty to rely on social login or reset flow."
+                      span={12}
+                    >
+                      <Input
+                        id="create-user-password"
+                        type="password"
+                        fullWidth
+                        maxLength={128}
+                        value={createForm.password}
+                        onChange={(event) =>
+                          setCreateForm((current) => ({
+                            ...current,
+                            password: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </FormGrid12>
+
+                  <div className="divider my-4" />
+
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      type="submit"
+                      color="primary"
+                      loading={creating}
+                      disabled={creating}
+                    >
+                      <FaPlus aria-hidden="true" />
+                      Create user
+                    </Button>
+                  </div>
+                </fieldset>
+                </form>
+              </Section>
+            }
+          >
+
+            <Section title="All users" desc="Edit roles or delete users.">
+              {loading ? (
+                <DataListLoading label="users" />
             ) : (
               <DataListSurface>
                 <table className="table min-w-[760px] table-zebra w-full">
-                  <thead className="bg-base-200">
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Verified</th>
-                    <th>Created</th>
-                    <th className="whitespace-nowrap text-right">Actions</th>
-                  </tr>
-                  </thead>
+                    <thead className="bg-base-200">
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Verified</th>
+                      <th>Created</th>
+                      <th className="whitespace-nowrap text-right">Actions</th>
+                    </tr>
+                    </thead>
 
-                  <tbody>
-                  {users.length ? (
-                    users.map((u) => {
-                      const isEditing = editingId === u.id;
-                      const role = (u.roleName ?? "SUBSCRIBER") as RoleName;
+                    <tbody>
+                    {users.length ? (
+                      users.map((u) => {
+                        const isEditing = editingId === u.id;
+                        const role = (u.roleName ?? "SUBSCRIBER") as RoleName;
 
-                      return (
-                        <tr key={u.id}>
-                          <td className="whitespace-nowrap">{u.name ?? "—"}</td>
-                          <td className="whitespace-nowrap">{u.email ?? "—"}</td>
+                        return (
+                          <tr key={u.id}>
+                            <td className="whitespace-nowrap">{u.name ?? "—"}</td>
+                            <td className="whitespace-nowrap">{u.email ?? "—"}</td>
 
-                          <td className="whitespace-nowrap">
-                            {isEditing ? (
-                              <form
-                                id={`edit-user-role-${u.id}`}
-                                onSubmit={(event) => {
-                                  event.preventDefault();
-                                  void saveRole(u.id);
-                                }}
-                              >
-                                <Select
-                                  value={editingRole}
-                                  options={ROLE_OPTIONS}
-                                  onChangeAction={(value) =>
-                                    setEditingRole(value as RoleName)
-                                  }
-                                />
-                              </form>
-                            ) : (
-                              <span className={roleBadgeClass(role)}>{role}</span>
-                            )}
-                          </td>
-
-                          <td>{u.emailVerified ? "Yes" : "No"}</td>
-
-                          <td className="whitespace-nowrap">
-                            {new Date(u.createdAt).toLocaleString()}
-                          </td>
-
-                          <td className="whitespace-nowrap text-right">
-                            <div className="flex justify-end gap-2">
+                            <td className="whitespace-nowrap">
                               {isEditing ? (
-                                <>
-                                  <IconButton
-                                    type="submit"
-                                    form={`edit-user-role-${u.id}`}
-                                    icon={FaSave}
-                                    size="sm"
-                                    color="primary"
-                                    variant="solid"
-                                    loading={savingRoleId === u.id}
-                                    disabled={savingRoleId === u.id}
-                                    aria-label="Save role"
-                                  >
-                                    Save
-                                  </IconButton>
-
-                                  <IconButton
-                                    type="button"
-                                    icon={FaTimes}
-                                    size="sm"
-                                    variant="soft"
-                                    disabled={savingRoleId === u.id}
-                                    aria-label="Cancel"
-                                    onClick={cancelEdit}
-                                  >
-                                    Cancel
-                                  </IconButton>
-                                </>
+                                <form
+                                  id={`edit-user-role-${u.id}`}
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    void saveRole(u.id);
+                                  }}
+                                >
+                                  <Select
+                                    value={editingRole}
+                                    options={ROLE_OPTIONS}
+                                    onChangeAction={(value) =>
+                                      setEditingRole(value as RoleName)
+                                    }
+                                  />
+                                </form>
                               ) : (
-                                <>
-                                  <IconButton
-                                    type="button"
-                                    icon={FaEdit}
-                                    size="sm"
-                                    variant="soft"
-                                    aria-label="Edit role"
-                                    disabled={Boolean(savingRoleId)}
-                                    onClick={() => startEdit(u)}
-                                  >
-                                    Edit
-                                  </IconButton>
-
-                                  <IconButton
-                                    type="button"
-                                    icon={FaTrash}
-                                    size="sm"
-                                    color="error"
-                                    variant="solid"
-                                    loading={deletingId === u.id}
-                                    disabled={Boolean(deletingId)}
-                                    aria-label="Delete user"
-                                    onClick={() => askDelete(u)}
-                                  >
-                                    Delete
-                                  </IconButton>
-                                </>
+                                <span className={roleBadgeClass(role)}>{role}</span>
                               )}
+                            </td>
+
+                            <td>{u.emailVerified ? "Yes" : "No"}</td>
+
+                            <td className="whitespace-nowrap">
+                              {new Date(u.createdAt).toLocaleString()}
+                            </td>
+
+                            <td className="whitespace-nowrap text-right">
+                              <div className="flex justify-end gap-2">
+                                {isEditing ? (
+                                  <>
+                                    <IconButton
+                                      type="submit"
+                                      form={`edit-user-role-${u.id}`}
+                                      icon={FaSave}
+                                      size="sm"
+                                      color="primary"
+                                      variant="solid"
+                                      loading={savingRoleId === u.id}
+                                      disabled={savingRoleId === u.id}
+                                      aria-label="Save role"
+                                    >
+                                      Save
+                                    </IconButton>
+
+                                    <IconButton
+                                      type="button"
+                                      icon={FaTimes}
+                                      size="sm"
+                                      variant="soft"
+                                      disabled={savingRoleId === u.id}
+                                      aria-label="Cancel"
+                                      onClick={cancelEdit}
+                                    >
+                                      Cancel
+                                    </IconButton>
+                                  </>
+                                ) : (
+                                  <>
+                                    <IconButton
+                                      type="button"
+                                      icon={FaEdit}
+                                      size="sm"
+                                      variant="soft"
+                                      aria-label="Edit role"
+                                      disabled={Boolean(savingRoleId)}
+                                      onClick={() => startEdit(u)}
+                                    >
+                                      Edit
+                                    </IconButton>
+
+                                    <IconButton
+                                      type="button"
+                                      icon={FaTrash}
+                                      size="sm"
+                                      color="error"
+                                      variant="solid"
+                                      loading={deletingId === u.id}
+                                      disabled={Boolean(deletingId)}
+                                      aria-label="Delete user"
+                                      onClick={() => askDelete(u)}
+                                    >
+                                      Delete
+                                    </IconButton>
+                                  </>
+                                )}
                             </div>
                           </td>
                         </tr>

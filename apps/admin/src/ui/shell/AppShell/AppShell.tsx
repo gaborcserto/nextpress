@@ -39,6 +39,13 @@ export default function AppShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const desktopNavRef = useRef<HTMLDivElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileNavRef = useRef<HTMLElement | null>(null);
+  const openedPathRef = useRef(pathname);
+  const wasDrawerOpenRef = useRef(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -55,13 +62,8 @@ export default function AppShell({
     }
   }, []);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const desktopNavRef = useRef<HTMLDivElement>(null);
-  const mobileTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const mobileNavRef = useRef<HTMLElement | null>(null);
-  const openedPathRef = useRef(pathname);
-  const wasDrawerOpenRef = useRef(false);
   const scrolled = useStickyScrolled(scrollRef);
+
   useEffect(() => {
     if (!isDesktop || !drawerOpen) return;
     // The media query is an external lifecycle boundary; clear its dependent UI state here.
@@ -69,8 +71,9 @@ export default function AppShell({
     setDrawerOpen(false);
     desktopNavRef.current?.querySelector<HTMLElement>("a")?.focus();
   }, [drawerOpen, isDesktop]);
+
+  // Keep the drawer in sync with browser back/forward navigation.
   useEffect(() => {
-    // Keep the drawer in sync with browser back/forward navigation.
     if (openedPathRef.current !== pathname) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setDrawerOpen(false);

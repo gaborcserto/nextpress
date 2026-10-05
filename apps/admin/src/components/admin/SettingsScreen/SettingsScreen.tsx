@@ -93,107 +93,109 @@ export default function SettingsScreen() {
       <Alert message={error} status="error" />
       <AdminPageLayout title="Settings" description="Site name, defaults, and OAuth providers.">
         <fieldset disabled={saving} className="contents">
-        <AdminPageColumns sidebar={
-          <>
-          <Section title="General" desc="Basic metadata used across the site.">
-            <FormGrid12>
-              <Field label="Site name" htmlFor="site-name" span={12}>
-                <Input
-                  id="site-name"
-                  fullWidth
-                  required
-                  maxLength={200}
-                  value={form.siteName}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      siteName: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
+          <AdminPageColumns
+            sidebar={
+              <>
+                <Section title="General" desc="Basic metadata used across the site.">
+                  <FormGrid12>
+                    <Field label="Site name" htmlFor="site-name" span={12}>
+                      <Input
+                        id="site-name"
+                        fullWidth
+                        required
+                        maxLength={200}
+                        value={form.siteName}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            siteName: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
 
-              <Field label="Description" htmlFor="site-description" span={12}>
-                <Input
-                  id="site-description"
-                  fullWidth
-                  maxLength={1000}
-                  value={form.siteDescription}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      siteDescription: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
+                    <Field label="Description" htmlFor="site-description" span={12}>
+                      <Input
+                        id="site-description"
+                        fullWidth
+                        maxLength={1000}
+                        value={form.siteDescription}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            siteDescription: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
 
-              <Field label="Site URL" htmlFor="site-url" hint="Used for canonical URLs." span={12}>
-                <Input
-                  id="site-url"
-                  type="url"
-                  fullWidth
-                  maxLength={2000}
-                  value={form.siteUrl}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      siteUrl: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
+                    <Field label="Site URL" htmlFor="site-url" hint="Used for canonical URLs." span={12}>
+                      <Input
+                        id="site-url"
+                        type="url"
+                        fullWidth
+                        maxLength={2000}
+                        value={form.siteUrl}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            siteUrl: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
 
-              <Field label="Default OG image URL" htmlFor="og-image-url" span={12}>
-                <Input
-                  id="og-image-url"
-                  type="url"
-                  fullWidth
-                  maxLength={2000}
-                  value={form.ogImageUrl}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      ogImageUrl: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
-            </FormGrid12>
-          </Section>
+                    <Field label="Default OG image URL" htmlFor="og-image-url" span={12}>
+                      <Input
+                        id="og-image-url"
+                        type="url"
+                        fullWidth
+                        maxLength={2000}
+                        value={form.ogImageUrl}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            ogImageUrl: event.target.value,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </FormGrid12>
+                </Section>
 
-          <Section title="Defaults" desc="Defaults for newly created users.">
-            <FormGrid12>
-              <Field label="Default user role" htmlFor="default-user-role" span={12}>
-                <Select
-                  id="default-user-role"
-                  fullWidth
-                  value={form.defaultUserRole}
-                  options={ROLE_OPTIONS}
-                  onChangeAction={(value) =>
-                    setForm((current) => ({
-                      ...current,
-                      defaultUserRole: value as RoleName,
-                    }))
-                  }
-                />
-              </Field>
-            </FormGrid12>
-          </Section>
+                <Section title="Defaults" desc="Defaults for newly created users.">
+                  <FormGrid12>
+                    <Field label="Default user role" htmlFor="default-user-role" span={12}>
+                      <Select
+                        id="default-user-role"
+                        fullWidth
+                        value={form.defaultUserRole}
+                        options={ROLE_OPTIONS}
+                        onChangeAction={(value) =>
+                          setForm((current) => ({
+                            ...current,
+                            defaultUserRole: value as RoleName,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </FormGrid12>
+                </Section>
 
-          <StickyWrapper>
-            <Button
-              type="submit"
-              color="primary"
-              loading={saving}
-              className="min-w-40"
-            >
-              <FaSave />
-              Save settings
-            </Button>
-          </StickyWrapper>
-          </>
-        }>
+                <StickyWrapper>
+                  <Button
+                    type="submit"
+                    color="primary"
+                    loading={saving}
+                    className="min-w-40"
+                  >
+                    <FaSave />
+                    Save settings
+                  </Button>
+                </StickyWrapper>
+              </>
+            }
+          >
 
           <Section
             title="OAuth providers"
@@ -215,6 +217,10 @@ export default function SettingsScreen() {
                     const configured =
                       provider.hasClientId &&
                       provider.hasClientSecret;
+                    let statusLabel = "Disabled";
+                    if (provider.enabled) {
+                      statusLabel = configured ? "Ready" : "Credentials required";
+                    }
 
                     return (
                       <tr key={provider.provider}>
@@ -227,13 +233,7 @@ export default function SettingsScreen() {
                                 updateProviderAtIndex(current, index, { enabled }),
                               )
                             }
-                            inlineLabel={
-                              provider.enabled
-                                ? configured
-                                  ? "Ready"
-                                  : "Credentials required"
-                                : "Disabled"
-                            }
+                            inlineLabel={statusLabel}
                           />
                         </td>
                         <td>
