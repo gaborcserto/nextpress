@@ -6,9 +6,7 @@ import { SkipLink } from "@/components/public-ui/SkipLink";
 import type { ReactNode } from "react";
 
 
-const siteName = "NextPress";
-
-export function PublicShell({ children }: { children: ReactNode }) {
+export function PublicShell({ children, siteName }: { children: ReactNode; siteName: string }) {
   return (
     <>
       <SkipLink />

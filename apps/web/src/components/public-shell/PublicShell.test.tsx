@@ -6,7 +6,7 @@ import { PublicShell } from "./PublicShell";
 describe("PublicShell", () => {
   it("provides skip navigation to the single main landmark", () => {
     render(
-      <PublicShell>
+      <PublicShell siteName="NextPress">
         <p>Page content</p>
       </PublicShell>
     );
@@ -26,12 +26,13 @@ describe("PublicShell", () => {
 
   it("links the site identity and primary navigation to the public home route", () => {
     render(
-      <PublicShell>
+      <PublicShell siteName="Example Publication">
         <p>Page content</p>
       </PublicShell>
     );
 
-    expect(screen.getByRole("link", { name: "NextPress" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Example Publication" })).toHaveAttribute("href", "/");
+    expect(within(screen.getByRole("contentinfo")).getByText("Example Publication")).toBeInTheDocument();
     expect(
       within(screen.getByRole("navigation", { name: "Primary" })).getByRole("link", {
         name: "Home",

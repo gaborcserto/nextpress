@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { PublicShell } from "@/components/public-shell/PublicShell";
+import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { activeSkin, resolveColorMode } from "@/lib/skin";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -16,16 +17,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "NextPress",
-  description: "A publication powered by NextPress.",
-};
+export const dynamic = "force-dynamic";
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicSiteSettings();
+  return { title: settings.siteName, description: settings.siteDescription };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const settings = await getPublicSiteSettings();
+
   return (
     <html
       lang="en"
@@ -34,7 +39,7 @@ export default function RootLayout({
       data-color-mode={resolveColorMode(activeSkin)}
     >
       <body>
-        <PublicShell>{children}</PublicShell>
+        <PublicShell siteName={settings.siteName}>{children}</PublicShell>
       </body>
     </html>
   );
