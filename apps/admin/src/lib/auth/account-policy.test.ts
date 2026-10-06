@@ -77,10 +77,15 @@ async function registeredAuth() {
 
 describe("authentication abuse boundaries with the installed Better Auth", () => {
   it("throttles normalized failed credentials without revealing account existence, then expires", async () => {
-    const auth = await registeredAuth();
+    const auth = await getAuth();
+    const passwordWork = (await auth.$context).password;
+    vi.spyOn(passwordWork, "hash").mockResolvedValue("test-hash");
+    const verify = vi.spyOn(passwordWork, "verify").mockImplementation(async ({ hash, password: candidate }) => {
+      return hash === "test-hash" && candidate === password;
+    });
+    expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(200);
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
     const start = Date.now();
-    const verify = vi.spyOn((await auth.$context).password, "verify");
     let failure: unknown;
     for (let i = 0; i < 5; i++) {
       const known = await sessionRequest(auth, "/sign-in/email", { email: i % 2 ? " USER@Example.com " : "user@example.com", password: "wrong password" });
