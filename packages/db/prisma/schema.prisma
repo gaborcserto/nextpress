@@ -157,7 +157,7 @@ model Page {
   slug    String        @unique
   title   String
   excerpt String?
-  content String // HTML
+  content String // Serialized RichDocument; legacy HTML is read as literal text.
 
   // Layout / template (corresponds to PageForm.type)
   layout PageLayout @default(STANDARD)
