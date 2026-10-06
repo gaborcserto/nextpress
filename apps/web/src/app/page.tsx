@@ -5,7 +5,7 @@ import styles from "./page.module.css";
 export default function Home() {
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
+      <div className={styles.main}>
         <Image
           className={styles.logo}
           src="/next.svg"
@@ -46,8 +46,8 @@ export default function Home() {
             Read our docs
           </a>
         </div>
-      </main>
-      <footer className={styles.footer}>
+      </div>
+      <div className={styles.footer}>
         <a
           href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
           target="_blank"
@@ -90,7 +90,7 @@ export default function Home() {
           />
           Go to nextjs.org →
         </a>
-      </footer>
+      </div>
     </div>
   );
 }
