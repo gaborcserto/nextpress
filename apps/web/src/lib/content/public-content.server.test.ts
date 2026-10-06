@@ -1,10 +1,10 @@
 import { serializeRichContent } from "@nextpress/shared/content";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findUnique } = vi.hoisted(() => ({ findUnique: vi.fn() }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique } } }));
+const { findUnique, findMany } = vi.hoisted(() => ({ findUnique: vi.fn(), findMany: vi.fn() }));
+vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique, findMany } } }));
 
-import { getPublishedContent } from "./public-content.server";
+import { getPublishedContent, getPublishedPosts } from "./public-content.server";
 import { publicContentPath } from "./routes";
 
 const row = {
@@ -21,9 +21,45 @@ const row = {
 beforeEach(() => {
   vi.resetAllMocks();
   findUnique.mockResolvedValue(row);
+  findMany.mockResolvedValue([]);
 });
 
 describe("public published content boundary", () => {
+  it("lists only currently published posts with a bounded summary projection and stable order", async () => {
+    const now = new Date();
+    const published = { ...row, excerpt: "A short summary", publishedAt: new Date(now.getTime() - 1000) };
+    const future = { ...row, slug: "future", publishedAt: new Date(now.getTime() + 60_000) };
+    const draft = { ...row, slug: "draft", status: "DRAFT" };
+    findMany.mockImplementation(async (args: {
+      where: { type: string; status: string; publishedAt: { not: null; lte: Date } };
+      orderBy: { publishedAt: string }[];
+      take: number;
+      select: Record<string, unknown>;
+    }) => {
+      expect(args.where).toEqual({ type: "POST", status: "PUBLISHED", publishedAt: { not: null, lte: expect.any(Date) } });
+      expect(args.orderBy).toEqual([{ publishedAt: "desc" }, { slug: "asc" }]);
+      expect(args.take).toBe(5);
+      expect(args.select).not.toHaveProperty("content");
+      expect(args.select).not.toHaveProperty("cover");
+      const eligible = [published, future, draft].filter((item) => item.status === args.where.status
+        && item.publishedAt !== null && item.publishedAt <= args.where.publishedAt.lte);
+      return eligible.map(({ slug, title, excerpt, publishedAt, author, taxonomies }) => ({ slug, title, excerpt, publishedAt, author, taxonomies }));
+    });
+
+    expect(await getPublishedPosts()).toEqual([{
+      slug: "published", title: "Published", summary: "A short summary",
+      publishedAt: published.publishedAt.toISOString(), author: { name: "Author" },
+      taxonomies: [{ type: "TAG", name: "News", slug: "news" }],
+    }]);
+  });
+
+  it("caps listing reads and restores the default for non-finite limits", async () => {
+    await getPublishedPosts(500);
+    expect(findMany.mock.lastCall?.[0].take).toBe(50);
+    await getPublishedPosts(Number.NaN);
+    expect(findMany.mock.lastCall?.[0].take).toBe(5);
+  });
+
   it.each(["PAGE", "POST"] as const)("queries only published %s content using explicit projections", async (type) => {
     const result = await getPublishedContent(type, "published");
     expect(findUnique).toHaveBeenCalledWith({

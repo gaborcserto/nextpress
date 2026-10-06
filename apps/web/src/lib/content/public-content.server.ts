@@ -16,7 +16,20 @@ const publicContentSelect = {
   cover: { select: { url: true, alt: true, mime: true, width: true, height: true } },
 } satisfies Prisma.PageSelect;
 
+const publicPostSummarySelect = {
+  slug: true,
+  title: true,
+  excerpt: true,
+  publishedAt: true,
+  author: { select: { name: true } },
+  taxonomies: { select: { taxonomy: { select: { type: true, slug: true, name: true } } } },
+} satisfies Prisma.PageSelect;
+
 type PublicContentRow = Prisma.PageGetPayload<{ select: typeof publicContentSelect }>;
+type PublicPostSummaryRow = Prisma.PageGetPayload<{ select: typeof publicPostSummarySelect }>;
+
+const MAX_PUBLIC_POSTS_PER_READ = 50;
+const DEFAULT_PUBLIC_POSTS_PER_READ = 5;
 
 export type PublicContent = {
   slug: string;
@@ -27,6 +40,15 @@ export type PublicContent = {
   author: { name: string } | null;
   taxonomies: { type: "TAG" | "CATEGORY"; slug: string; name: string }[];
   cover: { url: string; alt: string; width: number | null; height: number | null } | null;
+};
+
+export type PublicPostSummary = {
+  slug: string;
+  title: string;
+  summary: string;
+  publishedAt: string;
+  author: { name: string } | null;
+  taxonomies: { type: "TAG" | "CATEGORY"; slug: string; name: string }[];
 };
 
 function projectPublicContent(row: PublicContentRow): PublicContent {
@@ -49,6 +71,19 @@ function projectPublicContent(row: PublicContentRow): PublicContent {
   };
 }
 
+function projectPublicPostSummary(row: PublicPostSummaryRow): PublicPostSummary {
+  return {
+    slug: row.slug,
+    title: row.title,
+    summary: richContentText(parsePublicRichContent(row.excerpt)),
+    publishedAt: row.publishedAt!.toISOString(),
+    author: row.author?.name ? { name: row.author.name } : null,
+    taxonomies: row.taxonomies.map(({ taxonomy }) => ({
+      type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name,
+    })),
+  };
+}
+
 /** No session, admin endpoint, ID fallback, or cross-request cache participates in public reads. */
 export async function getPublishedContent(type: "PAGE" | "POST", slug: string): Promise<PublicContent | null> {
   if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
@@ -60,4 +95,22 @@ export async function getPublishedContent(type: "PAGE" | "POST", slug: string): 
     select: publicContentSelect,
   });
   return row ? projectPublicContent(row) : null;
+}
+
+/** Published post summaries only; the body and media relations never enter listing queries. */
+export async function getPublishedPosts(limit = DEFAULT_PUBLIC_POSTS_PER_READ): Promise<PublicPostSummary[]> {
+  const take = Number.isFinite(limit)
+    ? Math.min(MAX_PUBLIC_POSTS_PER_READ, Math.max(1, Math.floor(limit)))
+    : DEFAULT_PUBLIC_POSTS_PER_READ;
+  const rows = await prisma.page.findMany({
+    where: {
+      type: "POST",
+      status: "PUBLISHED",
+      publishedAt: { not: null, lte: new Date() },
+    },
+    orderBy: [{ publishedAt: "desc" }, { slug: "asc" }],
+    take,
+    select: publicPostSummarySelect,
+  });
+  return rows.map(projectPublicPostSummary);
 }
