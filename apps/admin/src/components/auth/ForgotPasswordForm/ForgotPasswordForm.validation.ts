@@ -1,5 +1,6 @@
+import { emailSchema } from "@nextpress/shared/auth-policy";
 import { z } from "zod";
 
 export const forgotPasswordSchema = z.object({
-  email: z.email("Invalid email"),
+  email: emailSchema,
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, type FormEvent } from "react";
@@ -71,7 +72,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
         return;
       }
 
-      showToast("Account created. You can sign in now.", "success");
+      showToast("Registration received. Try signing in or contact an administrator.", "success");
       router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
@@ -85,7 +86,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
   return (
     <AuthShell
       title="Create account"
-      description="Sign up to access the admin."
+      description="Create an account. Email ownership verification is currently unavailable."
       icon={<FaUserAlt size={20} />}
       asForm
       onSubmitAction={onSubmitAction}
@@ -161,7 +162,8 @@ export function SignUpForm({ providers }: SignUpFormProps) {
           color="neutral"
           autoComplete="new-password"
           required
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
+          maxLength={MAX_PASSWORD_LENGTH}
           error={fieldErrors.password}
         />
 

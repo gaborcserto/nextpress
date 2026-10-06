@@ -9,6 +9,7 @@ import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { requestPasswordReset } from "@/lib/auth/auth-client";
 import { EmailField } from "@/ui/components";
+import { Alert } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 
 export function ForgotPasswordForm() {
@@ -16,6 +17,7 @@ export function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [fieldError, setFieldError] = useState<string | undefined>();
+  const [formError, setFormError] = useState<string | null>(null);
   const submissionLock = useRef(false);
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
@@ -30,15 +32,20 @@ export function ForgotPasswordForm() {
 
     submissionLock.current = true;
     setLoading(true);
+    setFormError(null);
     try {
-      await requestPasswordReset({
-        email: email.trim().toLowerCase(),
+      const { error } = await requestPasswordReset({
+        email: parsed.data.email,
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
+      if (error) {
+        setFormError("Password recovery is unavailable. Contact an administrator.");
+        return;
+      }
       setSent(true);
     } catch {
-      setSent(true);
+      setFormError("Password recovery is unavailable. Contact an administrator.");
     } finally {
       submissionLock.current = false;
       setLoading(false);
@@ -48,11 +55,12 @@ export function ForgotPasswordForm() {
   return (
     <AuthShell
       title="Forgot password"
-      description="We’ll email you a reset link."
+      description="Password recovery requires email delivery, which is currently unavailable."
       icon={<FaUserAlt size={20} />}
       asForm
       onSubmitAction={onSubmitAction}
     >
+      <Alert status="error" message={formError} />
       <div className="space-y-4">
         <fieldset disabled={loading || sent} className="contents">
         <EmailField
@@ -78,7 +86,7 @@ export function ForgotPasswordForm() {
 
         {sent && (
           <div className="alert alert-info" role="status">
-            <span>Check your inbox (and spam) for the reset link.</span>
+            <span>If this account is eligible, check your inbox for a reset link.</span>
           </div>
         )}
 

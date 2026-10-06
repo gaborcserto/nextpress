@@ -1,5 +1,7 @@
+// The same public hashing utility used by Better Auth's default crypto contract.
+import { hashPassword } from "@better-auth/utils/password";
+import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
 import {PrismaPg} from "@prisma/adapter-pg";
-import bcrypt from "bcryptjs";
 
 import {PageLayout, PageType, PrismaClient, PublishStatus} from "../generated/prisma/client";
 
@@ -68,15 +70,15 @@ async function ensureSiteSettings() {
   }
 }
 async function main() {
-  const email = (process.env.ADMIN_EMAIL || "admin@example.com").toLowerCase();
-  const pass = process.env.ADMIN_PASSWORD || "admin123";
+  const email = emailSchema.parse(process.env.ADMIN_EMAIL || "admin@example.com");
+  const pass = passwordSchema.parse(process.env.ADMIN_PASSWORD);
 
   const roles = await ensureRoles();
   const adminRole = roles.ADMIN;
 
   await ensureSiteSettings();
 
-  const hash = await bcrypt.hash(pass, Number(process.env.BCRYPT_COST ?? 12));
+  const hash = await hashPassword(pass);
 
   // Ensure admin user exists
   const admin = await prisma.user.upsert({
@@ -99,7 +101,6 @@ async function main() {
     where: {
       userId: admin.id,
       provider: "credential",
-      providerAccountId: email,
     },
     select: { id: true, password: true },
   });
@@ -108,16 +109,16 @@ async function main() {
     await prisma.account.create({
       data: {
         userId: admin.id,
-        type: "credentials",
         provider: "credential",
-        providerAccountId: email,
+        providerAccountId: admin.id,
         password: hash,
       },
     });
-  } else if (!credential.password) {
+  } else {
     await prisma.account.update({
       where: { id: credential.id },
-      data: { password: hash },
+      // Correct the legacy email-keyed account without replacing an existing hash.
+      data: { providerAccountId: admin.id, ...(!credential.password ? { password: hash } : {}) },
     });
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
 import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
 import { useUsersScreen } from "./UsersScreen.hooks";
@@ -144,14 +145,15 @@ export default function UsersScreen() {
                     <Field
                       label="Password (optional)"
                       htmlFor="create-user-password"
-                      hint="Leave empty to rely on social login or reset flow."
+                      hint="Without a password this account cannot sign in. Password recovery is unavailable."
                       span={12}
                     >
                       <Input
                         id="create-user-password"
                         type="password"
                         fullWidth
-                        maxLength={128}
+                        minLength={MIN_PASSWORD_LENGTH}
+                        maxLength={MAX_PASSWORD_LENGTH}
                         value={createForm.password}
                         onChange={(event) =>
                           setCreateForm((current) => ({

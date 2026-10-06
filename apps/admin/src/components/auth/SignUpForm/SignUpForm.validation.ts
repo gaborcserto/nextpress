@@ -1,3 +1,4 @@
+import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
 import { z } from "zod";
 
 export const signUpSchema = z.object({
@@ -7,8 +8,8 @@ export const signUpSchema = z.object({
     .max(64, { message: "Name is too long" })
     .optional()
     .or(z.literal("")),
-  email: z.email({ message: "Invalid email" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  email: emailSchema,
+  password: passwordSchema,
 });
 
 export type SignUpFormValues = z.infer<typeof signUpSchema>;

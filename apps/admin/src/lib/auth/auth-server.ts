@@ -1,19 +1,22 @@
 import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
-import bcrypt from "bcryptjs";
+import { emailSchema, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { cache } from "react";
 
+import { accountPolicy } from "./account-policy.server";
 import { OAUTH_PROVIDERS } from "./oauth-providers";
 import {
   buildSocialProviders,
   operationalProviderNames,
   type OAuthProviderRow,
 } from "./oauth-providers.server";
+import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
 import { unauthorized } from "@/lib/api";
 
@@ -39,11 +42,14 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
 
     emailAndPassword: {
       enabled: true,
+      autoSignIn: false,
+      minPasswordLength: MIN_PASSWORD_LENGTH,
+      maxPasswordLength: MAX_PASSWORD_LENGTH,
+      // Addresses remain unverified until a real delivery service is integrated.
       requireEmailVerification: false,
       password: {
-        hash: async (password: string) => bcrypt.hash(password, 10),
-        verify: async ({ hash, password }: { hash: string; password: string }) =>
-          bcrypt.compare(password, hash),
+        hash: hashPassword,
+        verify: verifyCredentialPassword,
       },
     },
 
@@ -64,6 +70,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
     },
 
     account: {
+      accountLinking: { disableImplicitLinking: true, trustedProviders: [], allowDifferentEmails: false },
       modelName: "Account",
       fields: {
         providerId: "provider",
@@ -82,25 +89,28 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
     user: {
       modelName: "User",
       additionalFields: {
-        roleId: { type: "string", required: false, input: false },
+        roleId: { type: "string", required: false, input: false, returned: false },
       },
     },
 
     databaseHooks: {
       user: {
         create: {
-          before: async () => {
+          before: async (user) => {
+            const email = emailSchema.safeParse(user.email);
+            if (!email.success) throw new APIError("BAD_REQUEST", { code: "INVALID_EMAIL", message: "Invalid email" });
             const role = await prisma.role.findUniqueOrThrow({
               where: { name: "SUBSCRIBER" },
               select: { id: true },
             });
-            return { data: { roleId: role.id } };
+            return { data: { email: email.data, roleId: role.id } };
           },
         },
       },
     },
 
     trustedOrigins: TRUSTED_ORIGINS,
+    hooks: { before: accountPolicy },
     basePath: "/api/auth",
     plugins: [nextCookies()],
   });

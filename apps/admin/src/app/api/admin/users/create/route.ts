@@ -1,10 +1,11 @@
 export const runtime = "nodejs";
 
 import { prisma } from "@nextpress/db/src/client";
-import bcrypt from "bcryptjs";
+import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
+import { randomUUID } from "node:crypto";
 
 import { ok, bad, conflict, oops } from "@/lib/api";
-import { withAuth } from "@/lib/auth/auth-server";
+import { getAuth, withAuth } from "@/lib/auth/auth-server";
 import { isRole, type RoleName } from "@/lib/auth/roles";
 import { getDefaultUserRole } from "@/lib/settings/site-settings";
 
@@ -38,13 +39,15 @@ export const POST = withAuth(["ADMIN"], async (req) => {
   }
   if (input.role !== undefined && !isRole(input.role)) return bad("Invalid role");
 
-  const email = input.email.trim().toLowerCase();
-  if (!email || email.length > 320) return bad("Invalid email");
+  const parsedEmail = emailSchema.safeParse(input.email);
+  if (!parsedEmail.success) return bad("Invalid email");
+  const email = parsedEmail.data;
   if (typeof input.name === "string" && input.name.length > 200) {
     return bad("Name must not exceed 200 characters");
   }
-  if (typeof input.password === "string" && input.password.length > 128) {
-    return bad("Password must not exceed 128 characters");
+  if (input.password !== undefined) {
+    const parsedPassword = passwordSchema.safeParse(input.password);
+    if (!parsedPassword.success) return bad(parsedPassword.error.issues[0]?.message ?? "Invalid password");
   }
 
   const body: Body = {
@@ -61,17 +64,27 @@ export const POST = withAuth(["ADMIN"], async (req) => {
     });
     if (existing) return conflict("Email already exists");
 
+    const id = randomUUID();
+    let password: string | undefined;
+    if (body.password !== undefined) {
+      const auth = await getAuth();
+      const context = await auth.$context;
+      password = await context.password.hash(body.password);
+    }
+    // Atomic provisioning using Better Auth's mapped account contract:
+    // providerId=credential, accountId=user.id, and the configured hash function.
     const user = await prisma.user.create({
       data: {
+        id,
         email: body.email,
         name: body.name ?? null,
         role: { connect: { name: body.role } },
-        accounts: body.password
+        accounts: password
           ? {
               create: {
-                provider: "credentials",
-                providerAccountId: body.email,
-                password: await bcrypt.hash(body.password, 10),
+                provider: "credential",
+                providerAccountId: id,
+                password,
               },
             }
           : undefined,

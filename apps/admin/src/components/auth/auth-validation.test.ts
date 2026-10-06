@@ -7,24 +7,24 @@ import { signUpSchema } from "./SignUpForm/SignUpForm.validation";
 import { fieldErrorsFromIssues } from "./utils/fieldErrors";
 
 describe("authentication form validation", () => {
-  it("requires a valid email and a six-character sign-in password", () => {
+  it("validates email while allowing existing short passwords at sign-in", () => {
     expect(signInSchema.safeParse({ email: "user@example.com", password: "secret" }).success).toBe(true);
     expect(signInSchema.safeParse({ email: "invalid", password: "secret" }).success).toBe(false);
-    expect(signInSchema.safeParse({ email: "user@example.com", password: "short" }).success).toBe(false);
+    expect(signInSchema.safeParse({ email: "user@example.com", password: "short" }).success).toBe(true);
   });
 
   it("allows an omitted or empty display name during sign-up", () => {
     expect(
       signUpSchema.safeParse({
         email: "user@example.com",
-        password: "password",
+        password: "a long passphrase",
       }).success
     ).toBe(true);
     expect(
       signUpSchema.safeParse({
         name: "A",
         email: "user@example.com",
-        password: "password",
+        password: "a long passphrase",
       }).success
     ).toBe(false);
   });
@@ -38,14 +38,14 @@ describe("authentication form validation", () => {
     expect(
       resetPasswordSchema.safeParse({
         token: "token",
-        password: "password",
-        confirm: "password",
+        password: "a long passphrase",
+        confirm: "a long passphrase",
       }).success
     ).toBe(true);
     expect(
       resetPasswordSchema.safeParse({
         token: "",
-        password: "password",
+        password: "a long passphrase",
         confirm: "different",
       }).success
     ).toBe(false);
@@ -61,8 +61,8 @@ describe("authentication form validation", () => {
     if (result.success) throw new Error("Expected invalid password values");
 
     expect(fieldErrorsFromIssues(result.error.issues)).toMatchObject({
-      password: "Password must be at least 8 characters",
-      confirm: "Password must be at least 8 characters",
+      password: "Password must be at least 15 characters",
+      confirm: "Password must be at least 15 characters",
     });
   });
 });

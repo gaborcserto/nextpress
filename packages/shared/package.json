@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./auth-policy": "./src/utils/auth-policy.ts",
     "./utils/*": "./src/utils/*"
   },
   "scripts": {
@@ -16,5 +17,8 @@
   },
   "devDependencies": {
     "@nextpress/eslint-config": "*"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

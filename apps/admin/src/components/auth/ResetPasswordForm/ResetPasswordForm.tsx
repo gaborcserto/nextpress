@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
@@ -75,7 +76,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   return (
     <AuthShell
       title="Reset password"
-      description="Choose a new password."
+      description="Password recovery is currently unavailable. Contact an administrator."
       icon={<FaUserAlt size={20} />}
       asForm
       onSubmitAction={onSubmitAction}
@@ -103,7 +104,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
           color="neutral"
           autoComplete="new-password"
           required
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
+          maxLength={MAX_PASSWORD_LENGTH}
           error={fieldErrors.password}
         />
 
@@ -122,7 +124,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
           color="neutral"
           autoComplete="new-password"
           required
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
+          maxLength={MAX_PASSWORD_LENGTH}
           error={fieldErrors.confirm}
         />
 

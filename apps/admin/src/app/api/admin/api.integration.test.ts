@@ -30,7 +30,7 @@ vi.mock("@/lib/settings/site-settings", () => ({
 }));
 
 vi.mock("@/lib/auth/auth-server", () => ({
-  getAuth: vi.fn(async () => ({ handler: authHandler })),
+  getAuth: vi.fn(async () => ({ handler: authHandler, $context: Promise.resolve({ password: { hash: bcryptHash } }) })),
   withAuth: (allowed: string[], handler: Function) =>
     async (request: Request, context: { params?: Record<string, string> } = {}) => {
       if (!authState.role || !allowed.includes(authState.role)) {
@@ -295,7 +295,7 @@ describe("admin API route integration", () => {
       const response = await createUser(request("POST", {
         email: " New@Example.com ",
         name: " New User ",
-        password: "password",
+        password: "a long passphrase",
       }), { params: {} });
 
       expect(response.status).toBe(201);
@@ -306,7 +306,9 @@ describe("admin API route integration", () => {
         role: { name: "SUBSCRIBER" },
         roleName: "SUBSCRIBER",
       });
-      expect(bcryptHash).toHaveBeenCalledWith("password", 10);
+      expect(bcryptHash).toHaveBeenCalledWith("a long passphrase");
+      const data = prisma.user.create.mock.calls[0]?.[0].data;
+      expect(data.accounts.create).toEqual({ provider: "credential", providerAccountId: data.id, password: "hashed-password" });
     });
 
     it("rejects malformed user creation input", async () => {
@@ -316,6 +318,19 @@ describe("admin API route integration", () => {
 
       expect(response.status).toBe(400);
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { email: "not-an-email" },
+      { email: "user@example.com", password: "short" },
+      { email: "user@example.com", password: "" },
+      { email: "user@example.com", password: "a".repeat(129) },
+      { email: "user@example.com", password: "😀".repeat(8) },
+    ])("rejects invalid credential provisioning before persistence: %j", async (body) => {
+      const response = await createUser(request("POST", body), { params: {} });
+      expect(response.status).toBe(400);
+      expect(prisma.user.create).not.toHaveBeenCalled();
+      expect(bcryptHash).not.toHaveBeenCalled();
     });
 
     it("returns a conflict for an existing email", async () => {

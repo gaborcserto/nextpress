@@ -270,7 +270,7 @@ describe("public registration roles", () => {
     const before = options?.databaseHooks?.user?.create?.before;
     if (!before) throw new Error("Missing registration authorization hook");
     const result = await before({ id: "new", name: "New", email: "new@example.com", emailVerified: false, createdAt: new Date(), updatedAt: new Date(), role: elevated, roleId: "elevated-id" }, null);
-    expect(result).toEqual({ data: { roleId: "subscriber-role" } });
+    expect(result).toEqual({ data: { email: "new@example.com", roleId: "subscriber-role" } });
     expect(options?.user?.additionalFields?.roleId).toMatchObject({ input: false });
     expect(prisma.role.findUniqueOrThrow).toHaveBeenCalledWith({ where: { name: "SUBSCRIBER" }, select: { id: true } });
     expect(prisma.siteSettings.findUnique).not.toHaveBeenCalled();
