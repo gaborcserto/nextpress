@@ -1,7 +1,9 @@
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { activeSkin, resolveColorMode } from "@/lib/skin";
 import type { Metadata } from "next";
 import "./globals.css";
+import "./skins/default.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +26,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      data-skin={activeSkin.id}
+      data-color-mode={resolveColorMode(activeSkin)}
+    >
       <body>
         {children}
       </body>

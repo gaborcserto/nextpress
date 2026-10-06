@@ -1,0 +1,85 @@
+:root[data-skin="default"] {
+  color-scheme: light;
+
+  --color-page: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f5;
+  --color-text: #171717;
+  --color-text-muted: #5c5c5c;
+  --color-border: #dedede;
+  --color-border-strong: #a3a3a3;
+  --color-link: #164e9a;
+  --color-link-hover: #10396f;
+  --color-action: #171717;
+  --color-action-hover: #383838;
+  --color-text-on-action: #ffffff;
+  --color-focus-ring: #1d5fd0;
+  --color-error: #b42318;
+  --color-success: #18794e;
+  --color-warning: #8a4b08;
+  --color-info: #175cd3;
+
+  --font-body: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-heading: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
+  --radius-control: 0.25rem;
+  --radius-surface: 0.5rem;
+  --radius-pill: 999px;
+  --shadow-raised: 0 1px 3px rgb(0 0 0 / 12%);
+  --color-selection: #cfe1ff;
+  --color-text-on-selection: #171717;
+  --filter-monochrome-image: none;
+}
+
+:root[data-skin="default"][data-color-mode="dark"] {
+  color-scheme: dark;
+  --color-page: #171717;
+  --color-surface: #202020;
+  --color-surface-muted: #2b2b2b;
+  --color-text: #ededed;
+  --color-text-muted: #b5b5b5;
+  --color-border: #454545;
+  --color-border-strong: #858585;
+  --color-link: #9ec5ff;
+  --color-link-hover: #cfe1ff;
+  --color-action: #ededed;
+  --color-action-hover: #d4d4d4;
+  --color-text-on-action: #171717;
+  --color-focus-ring: #8ab4ff;
+  --color-error: #ffb4ab;
+  --color-success: #83d4a6;
+  --color-warning: #f4c779;
+  --color-info: #9ec5ff;
+  --color-selection: #284b7a;
+  --color-text-on-selection: #ffffff;
+  --shadow-raised: 0 1px 3px rgb(0 0 0 / 40%);
+  --filter-monochrome-image: invert(1);
+}
+
+/* Only an explicitly selected system mode follows the OS preference. */
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="default"][data-color-mode="system"] {
+    color-scheme: dark;
+    --color-page: #171717;
+    --color-surface: #202020;
+    --color-surface-muted: #2b2b2b;
+    --color-text: #ededed;
+    --color-text-muted: #b5b5b5;
+    --color-border: #454545;
+    --color-border-strong: #858585;
+    --color-link: #9ec5ff;
+    --color-link-hover: #cfe1ff;
+    --color-action: #ededed;
+    --color-action-hover: #d4d4d4;
+    --color-text-on-action: #171717;
+    --color-focus-ring: #8ab4ff;
+    --color-error: #ffb4ab;
+    --color-success: #83d4a6;
+    --color-warning: #f4c779;
+    --color-info: #9ec5ff;
+    --color-selection: #284b7a;
+    --color-text-on-selection: #ffffff;
+    --shadow-raised: 0 1px 3px rgb(0 0 0 / 40%);
+    --filter-monochrome-image: invert(1);
+  }
+}
