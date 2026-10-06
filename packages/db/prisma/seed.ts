@@ -1,12 +1,13 @@
 // The same public hashing utility used by Better Auth's default crypto contract.
 import { hashPassword } from "@better-auth/utils/password";
-import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
 import {PrismaPg} from "@prisma/adapter-pg";
 
 import {PageLayout, PageType, PrismaClient, PublishStatus} from "../generated/prisma/client";
+import { getDatabaseConnectionString } from "../src/database-config";
+import { getAdminSeedCredentials } from "../src/seed-policy";
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: getDatabaseConnectionString(process.env),
 });
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
@@ -70,8 +71,7 @@ async function ensureSiteSettings() {
   }
 }
 async function main() {
-  const email = emailSchema.parse(process.env.ADMIN_EMAIL || "admin@example.com");
-  const pass = passwordSchema.parse(process.env.ADMIN_PASSWORD);
+  const { email, password: pass } = getAdminSeedCredentials(process.env);
 
   const roles = await ensureRoles();
   const adminRole = roles.ADMIN;
@@ -144,8 +144,8 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error("Seeding failed:", e);
+  .catch(() => {
+    console.error("Seeding failed");
     process.exit(1);
   })
   .finally(async () => {

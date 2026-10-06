@@ -64,7 +64,7 @@ export async function GET(_req: Request, { params }: GetContext) {
     if (err instanceof PageNotFoundError) {
       return notfound();
     }
-    console.error("GET /api/post/[id] error:", err);
+    console.error("GET /api/post/[id] failed");
     return oops();
   }
 }
@@ -98,7 +98,7 @@ export const PUT = withAuth(
         return conflict(err.message);
       }
 
-      console.error("PUT /api/post/[id] error:", err);
+      console.error("PUT /api/post/[id] failed");
       return oops();
     }
   }
@@ -119,7 +119,7 @@ export const DELETE = withAuth(
       if (err instanceof ContentForbiddenError) return forbid();
       if (err instanceof ContentNotFoundError) return notfound();
 
-      console.error("DELETE /api/post/[id] error:", err);
+      console.error("DELETE /api/post/[id] failed");
       return oops();
     }
   }

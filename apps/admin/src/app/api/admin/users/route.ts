@@ -27,8 +27,8 @@ export const GET = withAuth(["ADMIN"], async () => {
         roleName: u.role?.name ?? null,
       }))
     );
-  } catch (e) {
-    console.error("GET /api/admin/users error:", e);
+  } catch {
+    console.error("GET /api/admin/users failed");
     return oops();
   }
 });

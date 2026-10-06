@@ -16,7 +16,7 @@ import {
   operationalProviderNames,
   type OAuthProviderRow,
 } from "./oauth-providers.server";
-import { getAuthBaseURL, getTrustedOrigins } from "./origins.server";
+import { getAuthBaseURL, getAuthSecret, getTrustedOrigins } from "./origins.server";
 import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
 import { verifyLogout } from "./session-policy.server";
@@ -27,6 +27,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     baseURL: getAuthBaseURL(),
+    secret: getAuthSecret(),
     advanced: {
       disableCSRFCheck: false,
       disableOriginCheck: false,

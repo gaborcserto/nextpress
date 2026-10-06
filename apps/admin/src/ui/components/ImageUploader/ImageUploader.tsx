@@ -37,8 +37,8 @@ export default function ImageUploader({
     setUploading(true);
     try {
       onChangeAction(await uploaderAction(file));
-    } catch (caught) {
-      console.error(caught);
+    } catch {
+      console.error("Image upload failed");
       setError("Upload failed. Please try again.");
     } finally {
       setUploading(false);

@@ -15,7 +15,7 @@ export const DELETE = withAuth(
       await deleteTagService(params.id);
       return ok({ message: "Deleted successfully" });
     } catch (err) {
-      console.error("DELETE /api/admin/tags/[id] error:", err);
+      console.error("DELETE /api/admin/tags/[id] failed");
 
       if (err instanceof ValidationError) return bad(err.message);
       if (err instanceof NotFoundError) return notfound(err.message);

@@ -10,8 +10,8 @@ export const GET = withAuth(
     try {
       const items = await listTagsWithUsageService();
       return ok(items);
-    } catch (err) {
-      console.error("GET /api/admin/tags error:", err);
+    } catch {
+      console.error("GET /api/admin/tags failed");
       return oops();
     }
   }

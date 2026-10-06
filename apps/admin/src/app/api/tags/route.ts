@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     const tags = await searchTagsService(query);
     return ok(tags);
   } catch (err) {
-    console.error("GET /api/tags error:", err);
+    console.error("GET /api/tags failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message); // 400 by default
@@ -59,7 +59,7 @@ export const POST = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
     const tag = await createTagService(name);
     return ok(tag, 201);
   } catch (err) {
-    console.error("POST /api/tags error:", err);
+    console.error("POST /api/tags failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message); // 400
@@ -81,7 +81,7 @@ export const DELETE = withAuth(["ADMIN", "EDITOR"], async (req) => {
     await deleteTagService(id);
     return ok({ message: "Deleted successfully" });
   } catch (err) {
-    console.error("DELETE /api/tags error:", err);
+    console.error("DELETE /api/tags failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message); // 400

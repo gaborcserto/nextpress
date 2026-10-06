@@ -93,8 +93,8 @@ export const POST = withAuth(["ADMIN"], async (req) => {
     });
 
     return ok({ ...user, roleName: user.role?.name ?? null }, 201);
-  } catch (e) {
-    console.error("POST /api/admin/users/create error:", e);
+  } catch {
+    console.error("POST /api/admin/users/create failed");
     return oops();
   }
 });

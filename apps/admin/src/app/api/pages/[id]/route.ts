@@ -98,7 +98,7 @@ export const PUT = withAuth(
         return conflict(err.message);
       }
 
-      console.error("PUT /api/pages/[id] error:", err);
+      console.error("PUT /api/pages/[id] failed");
       return oops();
     }
   }
@@ -119,7 +119,7 @@ export const DELETE = withAuth(
       if (err instanceof ContentForbiddenError) return forbid();
       if (err instanceof ContentNotFoundError) return notfound();
 
-      console.error("DELETE /api/pages/[id] error:", err);
+      console.error("DELETE /api/pages/[id] failed");
       return oops();
     }
   }

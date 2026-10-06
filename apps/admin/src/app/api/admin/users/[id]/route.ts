@@ -12,7 +12,7 @@ export const DELETE = withAuth(["ADMIN"], async (_req, ctx) => {
     return ok({ ok: true });
   } catch (e) {
     if (typeof e === "object" && e !== null && "code" in e && e.code === "P2025") return notfound("User not found");
-    console.error("DELETE /api/admin/users/:id error:", e);
+    console.error("DELETE /api/admin/users/:id failed");
     return oops();
   }
 });

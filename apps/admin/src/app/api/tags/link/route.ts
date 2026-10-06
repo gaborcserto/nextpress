@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     if (err instanceof ContentForbiddenError) return forbid();
     if (err instanceof ContentNotFoundError) return notfound();
     if (err instanceof TaxonomyScopeError) return bad(err.message);
-    console.error("GET /api/tags/link error:", err);
+    console.error("GET /api/tags/link failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message);
@@ -75,7 +75,7 @@ export const PUT = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req, _ctx, { s
     if (err instanceof ContentForbiddenError) return forbid();
     if (err instanceof ContentNotFoundError) return notfound();
     if (err instanceof TaxonomyScopeError) return bad(err.message);
-    console.error("PUT /api/tags/link error:", err);
+    console.error("PUT /api/tags/link failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message);

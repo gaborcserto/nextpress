@@ -34,7 +34,24 @@ credential/OAuth sign-in, OAuth state/PKCE validation, and cookie removal on log
 Cookies are host-only, HttpOnly, SameSite=Lax and Path=/; HTTPS uses Secure and the
 library's `__Secure-` prefix. Local HTTP development uses unprefixed cookies.
 Production requires configured HTTPS application URLs; local fallback URLs are
-not production origins. Keep all three configured auth/admin URLs consistent.
+not production origins. Set `BETTER_AUTH_URL` to the admin application's HTTPS
+origin and `BETTER_AUTH_SECRET` to a unique random value with at least 32
+characters. Set `DATABASE_URL` to the production PostgreSQL connection URL.
+Keep any configured public auth/admin URLs on the same trusted origins. OAuth is
+optional; each provider remains unavailable until it has both a client ID and
+secret from either the server environment or admin settings.
+
+The application can enforce secure cookies, origin checks, and its response
+headers. Deployment must terminate valid TLS, redirect HTTP to HTTPS, preserve
+the application security headers without weakening or replacing CSP, and deliver
+HSTS over HTTPS. If a reverse proxy is used, configure its trusted-proxy behavior
+for the chosen runtime; the application does not use Host or forwarded headers
+to establish trusted origins.
+
+The database seed requires explicit `ADMIN_EMAIL` and `ADMIN_PASSWORD` values.
+Production seed runs additionally require `ALLOW_PRODUCTION_ADMIN_SEED=true`;
+use that only for an intentional administrator provisioning operation and keep
+the credential out of logs and source control.
 
 Sessions expire seven days after creation without rolling renewal. This keeps
 the existing lifetime while bounding stolen-session reuse; active users must

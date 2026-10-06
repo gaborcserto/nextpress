@@ -42,7 +42,7 @@ export const POST = withAuth(
         return conflict(err.message);
       }
 
-      console.error("POST /api/pages error:", err);
+      console.error("POST /api/pages failed");
       return oops();
     }
   }

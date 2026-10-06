@@ -31,7 +31,7 @@ export const PATCH = withAuth(["ADMIN"], async (_req, ctx) => {
     return ok({ id: updated.id, roleName: updated.role?.name ?? null });
   } catch (e) {
     if (typeof e === "object" && e !== null && "code" in e && e.code === "P2025") return notfound("User not found");
-    console.error("PATCH /api/admin/users/:id/role error:", e);
+    console.error("PATCH /api/admin/users/:id/role failed");
     return oops();
   }
 });
