@@ -45,7 +45,11 @@ vi.mock("better-auth/adapters/prisma", () => ({ prismaAdapter: vi.fn() }));
 vi.mock("better-auth/next-js", () => ({ nextCookies: vi.fn() }));
 
 type Content = ReturnType<typeof content>;
-type Filter = { id?: string; slug?: string; type?: string; status?: string; authorId?: string; OR?: Filter[] };
+type Filter = {
+  id?: string; slug?: string; type?: string; status?: string; authorId?: string;
+  publishedAt?: null | { lte: Date };
+  OR?: Filter[];
+};
 let records: Content[];
 let role: RoleName | null;
 
@@ -59,8 +63,11 @@ function content(id: string, type: "PAGE" | "POST", status: "DRAFT" | "PUBLISHED
 }
 
 function matches(item: Content, where: Filter): boolean {
-  const { OR, ...fields } = where;
+  const { OR, publishedAt, ...fields } = where;
   return Object.entries(fields).every(([key, value]) => item[key as keyof Content] === value)
+    && (publishedAt === undefined || (publishedAt === null
+      ? item.publishedAt === null
+      : item.publishedAt !== null && item.publishedAt <= publishedAt.lte))
     && (!OR || OR.some((condition) => matches(item, condition)));
 }
 
@@ -149,8 +156,12 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
     const response = await list(request());
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ items: [{ id: `${prefix}-live` }], total: 1 });
-    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { type, status: "PUBLISHED" } }));
-    expect(prisma.page.count).toHaveBeenCalledWith({ where: { type, status: "PUBLISHED" } });
+    const where = {
+      type, status: "PUBLISHED",
+      OR: [{ publishedAt: null }, { publishedAt: { lte: expect.any(Date) } }],
+    };
+    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+    expect(prisma.page.count).toHaveBeenCalledWith({ where });
   });
 
   it.each(["id", "slug"])("hides drafts from anonymous lookup by %s", async (lookup) => {
@@ -159,6 +170,44 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
     expect(response.status).toBe(404);
     expect(prisma.pageOnTaxonomy.findMany).not.toHaveBeenCalled();
     for (const [args] of prisma.page.findUnique.mock.calls) expect(args.where.status).toBe("PUBLISHED");
+  });
+
+  it.each([null, "SUBSCRIBER", "AUTHOR"] as const)("hides others' scheduled content from %s across read routes", async (viewer) => {
+    role = viewer;
+    records.push({
+      ...content(`${prefix}-scheduled`, type, "PUBLISHED", "other-author"),
+      publishedAt: new Date("2999-01-01T00:00:00Z"),
+    });
+
+    const listing = await (await list(request())).json();
+    expect(listing.items).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: `${prefix}-scheduled` }),
+    ]));
+    expect(listing.total).toBe(viewer === "AUTHOR" ? 2 : 1);
+    for (const ref of [`${prefix}-scheduled`, `${prefix}-scheduled-slug`]) {
+      expect((await read(request(), context(ref))).status).toBe(404);
+    }
+    expect((await readLinks(request("GET", undefined, `?entityId=${prefix}-scheduled`))).status).toBe(404);
+    if (type === "PAGE") {
+      const parents = await (await listPages(request("GET", undefined, "?select=parent"))).json();
+      expect(parents).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: `${prefix}-scheduled` }),
+      ]));
+    }
+  });
+
+  it.each(["AUTHOR", "EDITOR", "ADMIN"] as const)("preserves scheduled content access for %s with editing rights", async (viewer) => {
+    role = viewer;
+    records.push({
+      ...content(`${prefix}-scheduled`, type, "PUBLISHED", viewer === "AUTHOR" ? "author-1" : "other-author"),
+      publishedAt: new Date("2999-01-01T00:00:00Z"),
+    });
+
+    expect((await read(request(), context(`${prefix}-scheduled`))).status).toBe(200);
+    const listing = await (await list(request())).json();
+    expect(listing.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: `${prefix}-scheduled` }),
+    ]));
   });
 
   it.each(["id", "slug"])("keeps published lookup by %s working", async (lookup) => {
@@ -261,7 +310,12 @@ describe("parent and taxonomy access boundaries", () => {
   it("does not enumerate drafts or posts in the public parent selector", async () => {
     const response = await listPages(request("GET", undefined, "?select=parent"));
     expect(await response.json()).toEqual([expect.objectContaining({ id: "page-live" })]);
-    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { type: "PAGE", status: "PUBLISHED" } }));
+    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        type: "PAGE", status: "PUBLISHED",
+        OR: [{ publishedAt: null }, { publishedAt: { lte: expect.any(Date) } }],
+      },
+    }));
   });
 
   it("hides taxonomy associations of drafts from public readers", async () => {

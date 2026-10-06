@@ -17,10 +17,14 @@ export function isEditor(actor?: ContentActor | null): boolean {
 
 export function contentReadWhere(actor?: ContentActor | null): Pick<Prisma.PageWhereInput, "OR" | "status"> {
   if (isEditor(actor)) return {};
+  const published: Pick<Prisma.PageWhereInput, "OR" | "status"> = {
+    status: "PUBLISHED",
+    OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+  };
   if (actor?.role === "AUTHOR") {
-    return { OR: [{ status: "PUBLISHED" }, { authorId: actor.id }] };
+    return { OR: [published, { authorId: actor.id }] };
   }
-  return { status: "PUBLISHED" };
+  return published;
 }
 
 export function contentWriteWhere(actor: ContentActor) {
