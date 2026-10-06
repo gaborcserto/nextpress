@@ -79,9 +79,15 @@ describe("public published content boundary", () => {
     expect(await getPublishedContent("PAGE", "published")).toMatchObject({ publishedAt: null, author: null, cover: null });
   });
 
-  it("propagates corruption and database failures without treating them as missing content", async () => {
-    findUnique.mockResolvedValue({ ...row, content: '{"version":2}' });
-    await expect(getPublishedContent("PAGE", "published")).rejects.toThrow();
+  it("keeps published records readable when body or summary content is corrupt", async () => {
+    findUnique.mockResolvedValue({ ...row, content: '{"version":2}', excerpt: "[" });
+    expect(await getPublishedContent("PAGE", "published")).toMatchObject({
+      slug: "published", summary: "",
+      content: { version: 1, blocks: [{ type: "paragraph", children: [{ text: "" }] }] },
+    });
+  });
+
+  it("propagates database failures without treating them as missing content", async () => {
     findUnique.mockRejectedValue(new Error("Database unavailable"));
     await expect(getPublishedContent("PAGE", "published")).rejects.toThrow("Database unavailable");
   });

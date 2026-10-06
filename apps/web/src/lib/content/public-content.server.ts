@@ -1,7 +1,9 @@
 import "server-only";
 
 import { prisma, type Prisma } from "@nextpress/db";
-import { ContentSlugSchema, readRichContent, richContentText, type RichDocument } from "@nextpress/shared/content";
+import { ContentSlugSchema, richContentText, type RichDocument } from "@nextpress/shared/content";
+
+import { parsePublicRichContent } from "./rich-content";
 
 const publicContentSelect = {
   slug: true,
@@ -32,8 +34,8 @@ function projectPublicContent(row: PublicContentRow): PublicContent {
   return {
     slug: row.slug,
     title: row.title,
-    summary: richContentText(readRichContent(row.excerpt)),
-    content: readRichContent(row.content),
+    summary: richContentText(parsePublicRichContent(row.excerpt)),
+    content: parsePublicRichContent(row.content),
     publishedAt: row.publishedAt?.toISOString() ?? null,
     author: row.author?.name ? { name: row.author.name } : null,
     taxonomies: row.taxonomies.map(({ taxonomy }) => ({
