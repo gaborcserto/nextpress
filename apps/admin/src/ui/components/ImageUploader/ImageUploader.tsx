@@ -3,6 +3,7 @@
 import { type DragEvent, useRef, useState } from "react";
 
 import type { ImageUploaderProps } from "./ImageUploader.types";
+import { safeImageUrl } from "@/lib/security/image-url";
 import { Alert, Button } from "@/ui/primitives";
 
 const cx = (...values: Array<string | false | undefined>) =>
@@ -21,6 +22,7 @@ export default function ImageUploader({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const uploadAvailable = Boolean(uploaderAction);
+  const imageURL = value ? safeImageUrl(value.url) : null;
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length || !uploaderAction) return;
@@ -97,12 +99,14 @@ export default function ImageUploader({
         {value ? (
           <div className="flex flex-col items-center gap-2 w-full">
             <div className="w-full max-h-48 overflow-hidden rounded-lg border border-base-300 bg-base-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={value.url}
-                alt={value.alt ?? ""}
-                className="w-full h-auto object-cover"
-              />
+              {imageURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageURL}
+                  alt={value.alt ?? ""}
+                  className="w-full h-auto object-cover"
+                />
+              ) : null}
             </div>
             <div className="flex gap-2">
               <Button

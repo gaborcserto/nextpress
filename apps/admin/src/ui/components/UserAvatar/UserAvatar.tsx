@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { UserAvatarProps } from "./UserAvatar.types";
 import { normalizeAvatarUrl } from "./UserAvatar.utils";
+import { safeImageUrl } from "@/lib/security/image-url";
 
 export function UserAvatar({
   name,
@@ -29,7 +30,8 @@ export function UserAvatar({
     ? `btn btn-ghost btn-circle avatar ${className}`
     : `avatar ${className}`;
 
-  const src = image ? normalizeAvatarUrl(image, px) : null;
+  const safeImage = image ? safeImageUrl(image) : null;
+  const src = safeImage ? normalizeAvatarUrl(safeImage, px) : null;
 
   return (
     <div className={wrapper}>

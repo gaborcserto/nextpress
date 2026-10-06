@@ -13,4 +13,14 @@ describe("ImageUploader", () => {
     expect(screen.getByLabelText("Upload image")).toBeDisabled();
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("does not render a persisted protocol-relative image as an external request", () => {
+    render(<ImageUploader value={{ id: "media-1", url: "//evil.example/image", alt: "Unsafe preview" }} onChangeAction={vi.fn()} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("renders legitimate persisted HTTPS media", () => {
+    render(<ImageUploader value={{ id: "media-1", url: "https://media.example/photo.png", alt: "Preview" }} onChangeAction={vi.fn()} />);
+    expect(screen.getByRole("img", { name: "Preview" })).toHaveAttribute("src", "https://media.example/photo.png");
+  });
 });

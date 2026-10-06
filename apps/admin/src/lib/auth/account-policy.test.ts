@@ -67,6 +67,29 @@ async function registeredAuth() {
 }
 
 describe("session lifecycle with the installed Better Auth", () => {
+  it("preserves credential callbacks and library-managed OAuth destination validation", async () => {
+    const auth = await registeredAuth();
+    const credentials = await sessionRequest(auth, "/sign-in/email", {
+      email: "user@example.com", password, callbackURL: "/admin/profile?source=login",
+    });
+    expect(credentials.status).toBe(200);
+    expect((await credentials.json()).url).toBe("/admin/profile?source=login");
+
+    prisma.oAuthProvider.findMany.mockResolvedValue([{ provider: "google", enabled: true, clientId: "test-client", clientSecret: "test-secret" }]);
+    const socialAuth = await getAuth();
+    for (const callbackURL of ["/admin/profile", `${origin}/admin`]) {
+      const response = await sessionRequest(socialAuth, "/sign-in/social", { provider: "google", callbackURL });
+      expect(response.status).toBe(200);
+      const providerURL = new URL((await response.json()).url);
+      expect(providerURL.origin).toBe("https://accounts.google.com");
+      expect(providerURL.searchParams.get("redirect_uri")).toBe(`${origin}/api/auth/callback/google`);
+      expect(providerURL.searchParams.get("state")).toBeTruthy();
+    }
+    for (const callbackURL of ["//evil.example", "https://evil.example/admin", "javascript:alert(1)"]) {
+      expect((await sessionRequest(socialAuth, "/sign-in/social", { provider: "google", callbackURL })).status).toBe(403);
+    }
+  });
+
   it("sets the effective development cookie attributes and a seven-day lifetime", async () => {
     const auth = await registeredAuth();
     const { response } = await signIn(auth);
