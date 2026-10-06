@@ -1,8 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const origin = "http://localhost:49101";
 const password = "phase 13.10.1 integration passphrase";
 const testDatabaseUrl = process.env.NEXTPRESS_SECURITY_TEST_DATABASE_URL;
+const runId = randomUUID();
+const signupEmail = `integration-${runId}@example.invalid`;
+const roleEmails = ["admin", "editor", "author"].map((role) => `${role}-${runId}@example.invalid`);
+const pageSlug = `integration-owned-${runId}`;
+const invalidPageSlug = `integration-invalid-owner-${runId}`;
+const tagSlug = `integration-tag-${runId}`;
 let prisma!: typeof import("@nextpress/db/src/client").prisma;
 let getAuth!: typeof import("./auth-server").getAuth;
 let getUserRole!: typeof import("./auth-server").getUserRole;
@@ -37,49 +44,43 @@ describe.skipIf(!testDatabaseUrl)("local PostgreSQL security integration", () =>
   beforeAll(async () => {
     const configuredTestDatabaseUrl = testDatabaseUrl;
     if (!configuredTestDatabaseUrl) throw new Error("Missing isolated integration database URL");
-    const actualDatabase = new URL(process.env.DATABASE_URL ?? "").pathname.slice(1);
-    const requestedDatabase = new URL(configuredTestDatabaseUrl).pathname.slice(1);
-    if (!requestedDatabase.startsWith("nextpress_security_verify_") || actualDatabase !== requestedDatabase) {
-      throw new Error("Set DATABASE_URL to the explicitly named nextpress_security_verify_* database");
+    const actualUrl = new URL(process.env.DATABASE_URL ?? "");
+    const requestedUrl = new URL(configuredTestDatabaseUrl);
+    const databaseName = requestedUrl.pathname.slice(1);
+    if (actualUrl.toString() !== requestedUrl.toString() ||
+      !["localhost", "127.0.0.1"].includes(requestedUrl.hostname) ||
+      !(databaseName === "cms" || databaseName.startsWith("nextpress_security_verify_"))) {
+      throw new Error("Set both database URLs to the same local cms or nextpress_security_verify_* database");
     }
     prisma = (await import("@nextpress/db/src/client")).prisma;
     ({ getAuth, getUserRole } = await import("./auth-server"));
     vi.stubEnv("BETTER_AUTH_URL", origin);
     vi.stubEnv("BETTER_AUTH_SECRET", "phase-13-10-1-local-integration-secret");
-    await prisma.page.deleteMany({ where: { slug: { in: ["integration-owned-page", "integration-invalid-owner"] } } });
-    await prisma.taxonomy.deleteMany({ where: { slug: "integration-tag" } });
-    await prisma.user.deleteMany({
-      where: { email: { in: [
-        "integration-user@example.invalid",
-        "admin-integration@example.invalid",
-        "editor-integration@example.invalid",
-        "author-integration@example.invalid",
-      ] } },
-    });
-    for (const name of ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] as const) {
-      await prisma.role.upsert({ where: { name }, create: { name }, update: {} });
-    }
-    await prisma.siteSettings.upsert({
-      where: { id: "default" },
-      create: { id: "default", siteName: "Integration", siteUrl: origin },
-      update: {},
-    });
+    const roles = await prisma.role.findMany({ where: { name: { in: ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] } }, select: { name: true } });
+    if (roles.length !== 4) throw new Error("Seed the standard roles before running the PostgreSQL security integration test");
   });
 
   afterAll(async () => {
     vi.unstubAllEnvs();
-    if (prisma) await prisma.$disconnect();
+    if (!prisma) return;
+    try {
+      await prisma.page.deleteMany({ where: { slug: { in: [pageSlug, invalidPageSlug] } } });
+      await prisma.taxonomy.deleteMany({ where: { slug: tagSlug } });
+      await prisma.user.deleteMany({ where: { email: { in: [signupEmail, ...roleEmails] } } });
+    } finally {
+      await prisma.$disconnect();
+    }
   });
 
   it("persists credentials, roles, sessions, password-change revocation, and logout", async () => {
     const auth = await getAuth();
     const signup = await auth.handler(authRequest("/sign-up/email", {
-      name: "Integration User", email: "integration-user@example.invalid", password,
+      name: "Integration User", email: signupEmail, password,
     }));
     expect(signup.status).toBe(200);
 
     const user = await prisma.user.findUnique({
-      where: { email: "integration-user@example.invalid" },
+      where: { email: signupEmail },
       include: { role: true, accounts: true },
     });
     if (!user) throw new Error("Expected signup to persist its user");
@@ -87,7 +88,7 @@ describe.skipIf(!testDatabaseUrl)("local PostgreSQL security integration", () =>
     expect(await getUserRole(user.id)).toBe("SUBSCRIBER");
 
     const signIn = await auth.handler(authRequest("/sign-in/email", {
-      email: "integration-user@example.invalid", password,
+      email: signupEmail, password,
     }));
     expect(signIn.status).toBe(200);
     const oldCookie = sessionCookie(signIn);
@@ -112,13 +113,11 @@ describe.skipIf(!testDatabaseUrl)("local PostgreSQL security integration", () =>
 
   it("reads persisted elevated roles and enforces relational uniqueness and transaction rollback", async () => {
     const roles = ["ADMIN", "EDITOR", "AUTHOR"] as const;
-    const users = await Promise.all(roles.map((name) => prisma.user.upsert({
-      where: { email: `${name.toLowerCase()}-integration@example.invalid` },
-      create: {
-        email: `${name.toLowerCase()}-integration@example.invalid`,
+    const users = await Promise.all(roles.map((name) => prisma.user.create({
+      data: {
+        email: `${name.toLowerCase()}-${runId}@example.invalid`,
         role: { connect: { name } },
       },
-      update: { role: { connect: { name } } },
       select: { id: true, role: { select: { name: true } } },
     })));
     for (const [index, user] of users.entries()) {
@@ -130,11 +129,11 @@ describe.skipIf(!testDatabaseUrl)("local PostgreSQL security integration", () =>
     if (!author) throw new Error("Expected an AUTHOR role user");
     const page = await prisma.page.create({
       data: {
-        type: "PAGE", status: "DRAFT", slug: "integration-owned-page", title: "Owned", content: "",
+        type: "PAGE", status: "DRAFT", slug: pageSlug, title: "Owned", content: "",
         authorId: author.id,
       },
     });
-    const tag = await prisma.taxonomy.create({ data: { type: "TAG", slug: "integration-tag", name: "Integration" } });
+    const tag = await prisma.taxonomy.create({ data: { type: "TAG", slug: tagSlug, name: "Integration" } });
     await prisma.$transaction(async (tx) => {
       await tx.pageOnTaxonomy.create({ data: { pageId: page.id, taxonomyId: tag.id } });
     });
@@ -148,7 +147,7 @@ describe.skipIf(!testDatabaseUrl)("local PostgreSQL security integration", () =>
     ]);
     await expect(prisma.page.create({
       data: {
-        type: "PAGE", status: "DRAFT", slug: "integration-invalid-owner", title: "Invalid", content: "",
+        type: "PAGE", status: "DRAFT", slug: invalidPageSlug, title: "Invalid", content: "",
         authorId: "missing-user",
       },
     })).rejects.toMatchObject({ code: "P2003" });
