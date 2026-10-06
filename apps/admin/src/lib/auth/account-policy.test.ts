@@ -75,15 +75,20 @@ async function registeredAuth() {
   return auth;
 }
 
+async function registeredAuthWithFastPasswords() {
+  const auth = await getAuth();
+  const passwordWork = (await auth.$context).password;
+  vi.spyOn(passwordWork, "hash").mockResolvedValue("test-hash");
+  const verify = vi.spyOn(passwordWork, "verify").mockImplementation(async ({ hash, password: candidate }) => {
+    return hash === "test-hash" && candidate === password;
+  });
+  expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(200);
+  return { auth, verify };
+}
+
 describe("authentication abuse boundaries with the installed Better Auth", () => {
   it("throttles normalized failed credentials without revealing account existence, then expires", async () => {
-    const auth = await getAuth();
-    const passwordWork = (await auth.$context).password;
-    vi.spyOn(passwordWork, "hash").mockResolvedValue("test-hash");
-    const verify = vi.spyOn(passwordWork, "verify").mockImplementation(async ({ hash, password: candidate }) => {
-      return hash === "test-hash" && candidate === password;
-    });
-    expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(200);
+    const { auth, verify } = await registeredAuthWithFastPasswords();
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
     const start = Date.now();
     let failure: unknown;
@@ -111,7 +116,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   });
 
   it("resets account attempts after success while retaining the process work budget", async () => {
-    const auth = await registeredAuth();
+    const { auth } = await registeredAuthWithFastPasswords();
     for (let i = 0; i < 4; i++) await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" });
     expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password })).status).toBe(200);
     for (let i = 0; i < 5; i++) expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" })).status).toBe(401);
@@ -122,8 +127,24 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
 
   it("reserves parallel guesses before password verification starts", async () => {
     const auth = await registeredAuth();
-    const verify = vi.spyOn((await auth.$context).password, "verify");
-    const responses = await Promise.all(Array.from({ length: 12 }, () => sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" })));
+    let release = () => {};
+    const passwordGate = new Promise<void>((resolve) => { release = resolve; });
+    let signalReserved = () => {};
+    const attemptsReserved = new Promise<void>((resolve) => { signalReserved = resolve; });
+    // Admit the five account attempts before starting real password work, so
+    // completion speed cannot affect the four-slot concurrency assertion.
+    const verify = vi.spyOn((await auth.$context).password, "verify").mockImplementation(async (input) => {
+      if (verify.mock.calls.length === 5) signalReserved();
+      await passwordGate;
+      return verifyCredentialPassword(input);
+    });
+    const requests = Array.from({ length: 12 }, () => sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" }));
+    try {
+      await attemptsReserved;
+    } finally {
+      release();
+    }
+    const responses = await Promise.all(requests);
     expect(responses.filter((response) => response.status === 401)).toHaveLength(4);
     expect(responses.filter((response) => response.status === 429)).toHaveLength(8);
     expect(verify).toHaveBeenCalledTimes(5);
@@ -186,7 +207,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   });
 
   it("shares credential budgets with password change and server password verification", async () => {
-    const auth = await registeredAuth();
+    const { auth } = await registeredAuthWithFastPasswords();
     const { cookie } = await signIn(auth);
     for (let i = 0; i < 5; i++) {
       const response = await sessionRequest(auth, "/change-password", { currentPassword: "wrong", newPassword: "another long passphrase" }, cookie);
