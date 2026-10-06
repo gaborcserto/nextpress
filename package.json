@@ -24,6 +24,8 @@
     "prisma:generate": "turbo run prisma:generate",
     "prisma:migrate": "turbo run prisma:migrate",
     "db:up": "docker compose up -d",
+    "db:seed": "npm --workspace @nextpress/db run seed",
+    "admin:bootstrap": "npm --workspace admin run bootstrap:admin",
     "bootstrap": "npm run db:up && npm run dev",
     "prepare": "husky"
   },

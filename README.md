@@ -38,7 +38,13 @@ Generate Prisma Client before using database-backed flows:
 npm run db:up
 npm run prisma:generate
 npm run prisma:migrate
+npm run admin:bootstrap
+npm run db:seed
 ```
+
+`db:seed` creates editable development posts, pages, and tags using `packages/db/.env`. It requires `DATABASE_URL` and `ALLOW_DEVELOPMENT_CONTENT_SEED=true`, is restricted to the local `cms` database, and always rejects `NODE_ENV=production`. Reruns update seed-owned records using stable IDs and slugs; they never reset the database or replace unrelated records. Authors are optional, so no administrator credentials are needed.
+
+To provision the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/admin/.env`, then run `npm run admin:bootstrap`. This separate command loads only the admin environment and ensures roles, site settings, and the administrator's credential account. Existing password hashes and settings are preserved. Each workspace keeps its own `DATABASE_URL`: the database package for Prisma and content seeding, and each application for its runtime. Point them at the same local database for development.
 
 Start both applications with:
 
@@ -63,6 +69,8 @@ npm run coverage        # Run tests with V8 coverage
 npm run prisma:generate # Generate Prisma Client
 npm run prisma:migrate  # Run the database migration workflow
 npm run db:up           # Start PostgreSQL with Docker Compose
+npm run db:seed         # Add or update local development content
+npm run admin:bootstrap # Provision the explicitly configured administrator
 npm run bootstrap       # Start PostgreSQL, then both development servers
 ```
 

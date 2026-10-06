@@ -1,152 +1,70 @@
-// The same public hashing utility used by Better Auth's default crypto contract.
-import { hashPassword } from "@better-auth/utils/password";
-import {PrismaPg} from "@prisma/adapter-pg";
+import "dotenv/config";
 
-import {PageLayout, PageType, PrismaClient, PublishStatus} from "../generated/prisma/client";
-import { getDatabaseConnectionString } from "../src/database-config";
-import { getAdminSeedCredentials } from "../src/seed-policy";
+import { developmentPages, developmentTaxonomies, serializeDevelopmentContent } from "./development-content";
+import { PageLayout, PageType, PublishStatus } from "../generated/prisma/client";
+import { prisma } from "../src/client";
+import { assertDevelopmentSeedAllowed } from "../src/development-seed-policy";
 
-const adapter = new PrismaPg({
-  connectionString: getDatabaseConnectionString(process.env),
-});
+assertDevelopmentSeedAllowed(process.env);
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma || new PrismaClient({
-    adapter,
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
-async function ensureRoles() {
-  const roles = ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] as const;
-
-  const out = {} as Record<(typeof roles)[number], { id: string; name: string }>;
-
-  for (const name of roles) {
-    out[name] = await prisma.role.upsert({
-      where: {name},
-      create: {name},
-      update: {},
-      select: {id: true, name: true},
+async function ensureDevelopmentContent() {
+  for (const taxonomy of developmentTaxonomies) {
+    const idOwner = await prisma.taxonomy.findUnique({ where: { id: taxonomy.id }, select: { slug: true } });
+    const slugOwner = await prisma.taxonomy.findUnique({ where: { slug: taxonomy.slug }, select: { id: true } });
+    if (idOwner && idOwner.slug !== taxonomy.slug) {
+      throw new Error(`Development seed taxonomy ID is already owned: ${taxonomy.id}`);
+    }
+    if (slugOwner && slugOwner.id !== taxonomy.id) {
+      throw new Error(`Development seed taxonomy slug is already owned: ${taxonomy.slug}`);
+    }
+    await prisma.taxonomy.upsert({
+      where: { id: taxonomy.id },
+      create: taxonomy,
+      update: { type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name },
     });
   }
 
-  return out;
-}
-
-async function ensureSiteSettings() {
-  const providers = [
-    "google",
-    "github",
-    "apple",
-    "facebook",
-    "discord",
-    "twitter",
-  ];
-
-  const settings = await prisma.siteSettings.upsert({
-    where: {id: "default"},
-    create: {
-      id: "default",
-      siteName: "NextPress",
-      siteDescription: "NextPress admin",
-      siteUrl: process.env.NEXT_PUBLIC_SITE_URL || null,
-      defaultUserRole: "SUBSCRIBER",
-    },
-    update: {},
-    select: {id: true},
-  });
-
-  for (const provider of providers) {
-    await prisma.oAuthProvider.upsert({
-      where: {provider},
-      update: {},
-      create: {
-        provider,
-        settingsId: settings.id,
-      },
-    });
-  }
-}
-async function main() {
-  const { email, password: pass } = getAdminSeedCredentials(process.env);
-
-  const roles = await ensureRoles();
-  const adminRole = roles.ADMIN;
-
-  await ensureSiteSettings();
-
-  const hash = await hashPassword(pass);
-
-  // Ensure admin user exists
-  const admin = await prisma.user.upsert({
-    where: { email },
-    create: {
-      email,
-      name: "Admin",
-      role: { connect: { id: adminRole.id } },
-      emailVerified: true,
-    },
-    update: {
-      role: { connect: { id: adminRole.id } },
-      emailVerified: true,
-    },
-    select: { id: true, email: true },
-  });
-
-  // Ensure credential account exists for admin
-  const credential = await prisma.account.findFirst({
-    where: {
-      userId: admin.id,
-      provider: "credential",
-    },
-    select: { id: true, password: true },
-  });
-
-  if (!credential) {
-    await prisma.account.create({
-      data: {
-        userId: admin.id,
-        provider: "credential",
-        providerAccountId: admin.id,
-        password: hash,
-      },
-    });
-  } else {
-    await prisma.account.update({
-      where: { id: credential.id },
-      // Correct the legacy email-keyed account without replacing an existing hash.
-      data: { providerAccountId: admin.id, ...(!credential.password ? { password: hash } : {}) },
-    });
-  }
-
-  // Seed a simple test page
-  await prisma.page.upsert({
-    where: { slug: "test" },
-    create: {
-      type: PageType.PAGE,
+  for (const page of developmentPages) {
+    const idOwner = await prisma.page.findUnique({ where: { id: page.id }, select: { slug: true } });
+    const slugOwner = await prisma.page.findUnique({ where: { slug: page.slug }, select: { id: true } });
+    if (idOwner && idOwner.slug !== page.slug) {
+      throw new Error(`Development seed content ID is already owned: ${page.id}`);
+    }
+    if (slugOwner && slugOwner.id !== page.id) {
+      throw new Error(`Development seed content slug is already owned: ${page.slug}`);
+    }
+    const serialized = serializeDevelopmentContent(page);
+    const values = {
+      type: page.type === "POST" ? PageType.POST : PageType.PAGE,
       layout: PageLayout.STANDARD,
-      status: PublishStatus.DRAFT,
-      slug: "test",
-      title: "Test",
-      excerpt: "",
-      content: "Test text",
-      authorId: admin.id,
+      status: page.status === "PUBLISHED" ? PublishStatus.PUBLISHED : PublishStatus.DRAFT,
+      slug: page.slug,
+      title: page.title,
+      excerpt: serialized.excerpt,
+      content: serialized.content,
+      publishedAt: page.publishedAt,
       inHeaderMenu: false,
       inFooterMenu: false,
-    },
-    update: {},
-  });
+    };
+    const taxonomies = {
+      create: page.taxonomies.map((slug) => ({ taxonomy: { connect: { slug } } })),
+    };
 
-  console.log("Seed OK");
+    await prisma.page.upsert({
+      where: { id: page.id },
+      create: { id: page.id, ...values, taxonomies },
+      update: { ...values, taxonomies: { deleteMany: {}, ...taxonomies } },
+    });
+  }
 }
 
-main()
+ensureDevelopmentContent()
+  .then(() => {
+    console.log(`Seed OK: ${developmentPages.length} development pages/posts and ${developmentTaxonomies.length} tags`);
+  })
   .catch(() => {
-    console.error("Seeding failed");
-    process.exit(1);
+    console.error("Development content seeding failed");
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

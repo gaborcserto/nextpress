@@ -1,8 +1,8 @@
 import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
 
-export function getAdminSeedCredentials(environment: NodeJS.ProcessEnv) {
+export function getAdminBootstrapCredentials(environment: NodeJS.ProcessEnv) {
   if (environment.NODE_ENV === "production" && environment.ALLOW_PRODUCTION_ADMIN_SEED !== "true") {
-    throw new Error("Production admin seeding requires ALLOW_PRODUCTION_ADMIN_SEED=true");
+    throw new Error("Production admin provisioning requires ALLOW_PRODUCTION_ADMIN_SEED=true");
   }
 
   return {

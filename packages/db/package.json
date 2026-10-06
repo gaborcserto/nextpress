@@ -29,7 +29,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/utils": "0.4.2",
     "@nextpress/shared": "^1.0.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",

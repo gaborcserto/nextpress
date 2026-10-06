@@ -48,10 +48,16 @@ HSTS over HTTPS. If a reverse proxy is used, configure its trusted-proxy behavio
 for the chosen runtime; the application does not use Host or forwarded headers
 to establish trusted origins.
 
-The database seed requires explicit `ADMIN_EMAIL` and `ADMIN_PASSWORD` values.
-Production seed runs additionally require `ALLOW_PRODUCTION_ADMIN_SEED=true`;
-use that only for an intentional administrator provisioning operation and keep
-the credential out of logs and source control.
+Run `npm run admin:bootstrap` from the repository root to provision the initial
+administrator and initialize roles and site settings. This command loads
+`apps/admin/.env` and requires `DATABASE_URL`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
+Production provisioning additionally requires `ALLOW_PRODUCTION_ADMIN_SEED=true`,
+as an explicit administrator-only operation. Existing credentials are preserved.
+Keep the administrator credential out of logs and source control.
+
+Local content fixtures are a separate `npm run db:seed` operation using
+`packages/db/.env`; they do not require administrator credentials and always
+reject production execution.
 
 Sessions expire seven days after creation without rolling renewal. This keeps
 the existing lifetime while bounding stolen-session reuse; active users must
