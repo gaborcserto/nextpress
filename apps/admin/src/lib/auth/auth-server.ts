@@ -16,33 +16,28 @@ import {
   operationalProviderNames,
   type OAuthProviderRow,
 } from "./oauth-providers.server";
+import { getAuthBaseURL, getTrustedOrigins } from "./origins.server";
 import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
+import { verifyLogout } from "./session-policy.server";
 import { unauthorized } from "@/lib/api";
-
-const BASE_URL =
-  process.env.BETTER_AUTH_URL ||
-  process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
-  process.env.NEXT_PUBLIC_ADMIN_URL ||
-  "http://localhost:49101";
-
-const TRUSTED_ORIGINS = [
-  process.env.NEXT_PUBLIC_ADMIN_URL,
-  process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-  process.env.BETTER_AUTH_URL,
-  "http://localhost:3000",
-  "http://localhost:5174",
-  "http://localhost:49101",
-].filter(Boolean) as string[];
+import { requireTrustedMutation } from "@/lib/api/mutation.server";
 
 function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
     database: prismaAdapter(prisma, { provider: "postgresql" }),
-    baseURL: BASE_URL,
+    baseURL: getAuthBaseURL(),
+    advanced: {
+      disableCSRFCheck: false,
+      disableOriginCheck: false,
+      useSecureCookies: process.env.NODE_ENV === "production" || getAuthBaseURL().startsWith("https://"),
+      defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
+    },
 
     emailAndPassword: {
       enabled: true,
       autoSignIn: false,
+      revokeSessionsOnPasswordReset: true,
       minPasswordLength: MIN_PASSWORD_LENGTH,
       maxPasswordLength: MAX_PASSWORD_LENGTH,
       // Addresses remain unverified until a real delivery service is integrated.
@@ -56,6 +51,11 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
     socialProviders: buildSocialProviders(providerRows),
 
     session: {
+      // Keep the existing seven-day window, but do not extend a stolen session
+      // indefinitely through activity. Existing stored expiries remain valid.
+      expiresIn: 60 * 60 * 24 * 7,
+      disableSessionRefresh: true,
+      cookieCache: { enabled: false },
       modelName: "Session",
       fields: {
         id: "id",
@@ -109,8 +109,8 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
       },
     },
 
-    trustedOrigins: TRUSTED_ORIGINS,
-    hooks: { before: accountPolicy },
+    trustedOrigins: getTrustedOrigins(),
+    hooks: { before: accountPolicy, after: verifyLogout },
     basePath: "/api/auth",
     plugins: [nextCookies()],
   });
@@ -254,6 +254,8 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
   handler: (req: Request, ctx: HandlerCtx<P>, auth: Authed) => Promise<Response> | Response
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
+    const rejection = requireTrustedMutation(req);
+    if (rejection) return rejection;
     const params = await ctx.params;
 
     const session = await getSessionWithRole();

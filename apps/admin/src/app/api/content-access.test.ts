@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PUT as updateSettings } from "./admin/settings/route";
 import { DELETE as deleteAdminTag } from "./admin/tags/[id]/route";
+import { PATCH as updateUserRole } from "./admin/users/[id]/role/route";
+import { DELETE as deleteUser } from "./admin/users/[id]/route";
+import { POST as createUser } from "./admin/users/create/route";
 import { GET as readPage, PUT as updatePage, DELETE as deletePage } from "./pages/[id]/route";
 import { GET as listPages, POST as createPage } from "./pages/route";
 import { GET as readPost, PUT as updatePost, DELETE as deletePost } from "./post/[id]/route";
 import { GET as listPosts, POST as createPost } from "./post/route";
 import { GET as readLinks, PUT as replaceTags } from "./tags/link/route";
-import { DELETE as deleteTag } from "./tags/route";
+import { POST as createTag, DELETE as deleteTag } from "./tags/route";
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
 import type { RoleName } from "@/lib/auth/roles";
 import type { BetterAuthOptions } from "better-auth";
@@ -58,7 +62,7 @@ function matches(item: Content, where: Filter): boolean {
 function request(method = "GET", body?: unknown, query = "") {
   return new Request(`http://localhost:49101/api/test${query}`, {
     method, body: body === undefined ? undefined : JSON.stringify(body),
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    headers: { origin: "http://localhost:49101", ...(body === undefined ? {} : { "content-type": "application/json" }) },
   });
 }
 function context(id: string) { return { params: Promise.resolve({ id }) }; }
@@ -96,6 +100,34 @@ const routes = [
   { type: "PAGE", prefix: "page", list: listPages, read: readPage, create: createPage, update: updatePage, delete: deletePage },
   { type: "POST", prefix: "post", list: listPosts, read: readPost, create: createPost, update: updatePost, delete: deletePost },
 ] as const;
+
+describe.each([
+  ["POST", createPage], ["PUT", updatePage], ["DELETE", deletePage],
+  ["POST", createPost], ["PUT", updatePost], ["DELETE", deletePost],
+  ["POST", createTag], ["DELETE", deleteTag], ["PUT", replaceTags],
+  ["DELETE", deleteAdminTag], ["PUT", updateSettings], ["POST", createUser],
+  ["DELETE", deleteUser], ["PATCH", updateUserRole],
+] as const)("custom mutation %s (%#)", (method, mutate) => {
+  it.each([undefined, "null", "https://evil.example", "http://localhost:49101/path"])("rejects Origin %s before session lookup or persistence", async (origin) => {
+    role = "ADMIN";
+    const headers = new Headers({ "content-type": "application/json" });
+    if (origin !== undefined) headers.set("origin", origin);
+    expect((await mutate(new Request("http://localhost:49101/api/test", {
+      method, headers, body: "{}",
+    }), context("test"))).status).toBe(403);
+    expect(session).not.toHaveBeenCalled();
+    expect(prisma.page.update).not.toHaveBeenCalled();
+    expect(prisma.page.delete).not.toHaveBeenCalled();
+  });
+
+  it("rejects text/plain JSON before session lookup or persistence", async () => {
+    role = "ADMIN";
+    expect((await mutate(new Request("http://localhost:49101/api/test", {
+      method, headers: { origin: "http://localhost:49101", "content-type": "text/plain" }, body: "{}",
+    }), context("test"))).status).toBe(415);
+    expect(session).not.toHaveBeenCalled();
+  });
+});
 
 describe.each(routes)("$type content authorization", ({ type, prefix, list, read, create, update, delete: remove }) => {
   it.each([null, "SUBSCRIBER"] as const)("lists only published content for %s", async (viewer) => {

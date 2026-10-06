@@ -27,6 +27,9 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
   }
 
   const normalized = { ...input };
+  // The caller cannot opt out: Better Auth revokes all old sessions and issues
+  // a fresh current session when this supported flag is true.
+  if (ctx.path === "/change-password") normalized.revokeOtherSessions = true;
   for (const field of ["email", "newEmail"] as const) {
     if (!(field in input)) continue;
     const result = emailSchema.safeParse(input[field]);
