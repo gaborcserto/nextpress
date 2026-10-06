@@ -78,6 +78,7 @@ model Account {
   provider          String
   providerAccountId String
   refresh_token     String?
+  refresh_token_expires_at DateTime?
   access_token      String?
   expires_at        DateTime?
   token_type        String?

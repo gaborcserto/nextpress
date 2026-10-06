@@ -91,6 +91,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
         providerId: "provider",
         accountId: "providerAccountId",
         refreshToken: "refresh_token",
+        refreshTokenExpiresAt: "refresh_token_expires_at",
         accessToken: "access_token",
         accessTokenExpiresAt: "expires_at",
         tokenType: "token_type",
