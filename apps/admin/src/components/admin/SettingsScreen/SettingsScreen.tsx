@@ -163,7 +163,7 @@ export default function SettingsScreen() {
                   </FormGrid12>
                 </Section>
 
-                <Section title="Defaults" desc="Defaults for newly created users.">
+                <Section title="Defaults" desc="Defaults for users created by an administrator. Public signup always receives SUBSCRIBER.">
                   <FormGrid12>
                     <Field label="Default user role" htmlFor="default-user-role" span={12}>
                       <Select

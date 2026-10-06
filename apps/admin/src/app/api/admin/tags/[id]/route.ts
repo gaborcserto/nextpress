@@ -9,7 +9,7 @@ import {
 } from "@/lib/services/tag.server";
 
 export const DELETE = withAuth(
-  ["ADMIN", "EDITOR", "AUTHOR"],
+  ["ADMIN", "EDITOR"],
   async (_req, { params }) => {
     try {
       await deleteTagService(params.id);

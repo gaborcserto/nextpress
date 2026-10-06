@@ -1,5 +1,6 @@
 import { prisma } from "@nextpress/db/src/client";
 
+import { contentReadWhere, contentWriteWhere, type ContentActor } from "@/lib/auth/content-access";
 import { slugify } from "@/lib/utils";
 import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
 
@@ -11,7 +12,7 @@ type PageTypeLiteral = "PAGE" | "POST";
  */
 export async function getPageById(
   idOrSlug?: string | null,
-  opts?: { type?: PageTypeLiteral }
+  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null }
 ) {
   const ref = (idOrSlug ?? "").trim();
   if (!ref) return null;
@@ -21,14 +22,14 @@ export async function getPageById(
 
   // 1) Try by ID
   const byId = await prisma.page.findUnique({
-    where: { id: ref },
+    where: { ...contentReadWhere(opts?.actor), id: ref, type: typeFilter },
   });
 
   if (byId && byId.type === typeFilter) return byId;
 
   // 2) Fallback: try by slug
   const bySlug = await prisma.page.findUnique({
-    where: { slug: slugify(ref) },
+    where: { ...contentReadWhere(opts?.actor), slug: slugify(ref), type: typeFilter },
   });
 
   if (bySlug && bySlug.type === typeFilter) return bySlug;
@@ -43,11 +44,11 @@ export async function getPageById(
 export async function listPages(
   skip: number,
   take: number,
-  opts?: { type?: PageTypeLiteral }
+  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null }
 ) {
   const typeFilter = opts?.type ?? "PAGE";
 
-  const where = { type: typeFilter };
+  const where = { type: typeFilter, ...contentReadWhere(opts?.actor) };
 
   const [items, total] = await Promise.all([
     prisma.page.findMany({
@@ -119,7 +120,7 @@ export async function createPage(
  * Update PAGE (or POST) record.
  * If slug is provided, normalize and check for uniqueness.
  */
-export async function updatePage(id: string, data: PageUpdateInput) {
+export async function updatePage(id: string, data: PageUpdateInput, type: PageTypeLiteral, actor: ContentActor) {
   const next: PageUpdateInput = { ...data };
 
   if (typeof data.slug === "string") {
@@ -128,7 +129,7 @@ export async function updatePage(id: string, data: PageUpdateInput) {
   }
 
   return prisma.page.update({
-    where: { id },
+    where: { id, type, ...contentWriteWhere(actor) },
     data: next,
   });
 }
@@ -137,6 +138,6 @@ export async function updatePage(id: string, data: PageUpdateInput) {
  * Permanently delete a PAGE or POST record.
  * Cascade rules are handled by Prisma relations.
  */
-export async function deletePage(id: string) {
-  await prisma.page.delete({ where: { id } });
+export async function deletePage(id: string, type: PageTypeLiteral, actor: ContentActor) {
+  await prisma.page.delete({ where: { id, type, ...contentWriteWhere(actor) } });
 }

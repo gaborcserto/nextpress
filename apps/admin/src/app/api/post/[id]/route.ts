@@ -1,9 +1,9 @@
-export const runtime = "nodejs";
-
-import { ok, bad, notfound, conflict, oops } from "@/lib/api";
-import { withAuth } from "@/lib/auth/auth-server";
+import { ok, bad, notfound, conflict, oops, forbid } from "@/lib/api";
+import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
+import { ContentForbiddenError, ContentNotFoundError } from "@/lib/auth/content-access";
 import type { PostFormValues } from "@/lib/content/contracts";
 import { normalizeSlateValue } from "@/lib/content/editor";
+import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
 import {
   PageValidationError,
   PageConflictError,
@@ -14,6 +14,8 @@ import {
   updatePostService,
   deletePostService,
 } from "@/lib/services/post.server";
+
+export const runtime = "nodejs";
 
 type RouteParams = { id: string };
 
@@ -53,7 +55,7 @@ function mapPostToFormValues(
 export async function GET(_req: Request, { params }: GetContext) {
   try {
     const { id } =  await params;
-    const { item, tags } = await getPostWithTagsService(id);
+    const { item, tags } = await getPostWithTagsService(id, (await getSessionWithRole())?.user);
 
     const formItem = mapPostToFormValues(item, tags);
 
@@ -72,7 +74,7 @@ export async function GET(_req: Request, { params }: GetContext) {
  */
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
-  async (req, ctx) => {
+  async (req, ctx, { session }) => {
     const { id } = ctx.params;
     let body: unknown;
 
@@ -83,9 +85,12 @@ export const PUT = withAuth(
     }
 
     try {
-      const updated = await updatePostService(id, body);
+      const updated = await updatePostService(id, body, session.user);
       return ok(updated);
     } catch (err) {
+      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof TaxonomyScopeError) return bad(err.message);
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
       }
@@ -104,16 +109,15 @@ export const PUT = withAuth(
  */
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
-  async (_req, ctx) => {
+  async (_req, ctx, { session }) => {
     const { id } = ctx.params;
 
     try {
-      await deletePostService(id);
+      await deletePostService(id, session.user);
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof PageNotFoundError) {
-        return notfound();
-      }
+      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentNotFoundError) return notfound();
 
       console.error("DELETE /api/post/[id] error:", err);
       return oops();

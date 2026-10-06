@@ -1,5 +1,7 @@
+import { prisma } from "@nextpress/db/src/client";
 import { tryCatch, unwrapResult } from "@nextpress/shared";
 
+import { contentReadWhere, requireContentWrite, ContentNotFoundError, type ContentActor } from "@/lib/auth/content-access";
 import type {
   TagDto ,
   TagWithUsageDto
@@ -12,11 +14,10 @@ import {
   deleteTagRecord,
   getTagsForPage,
   setTagsForPage,
-  normalizeTagIds,
   listTagsWithUsage
 } from "@/lib/repos";
 import { slugify } from "@/lib/utils";
-import { TagCreateSchema } from "@/lib/validation";
+import { TagCreateSchema, TagIdsSchema } from "@/lib/validation";
 
 export class ValidationError extends Error {}
 export class NotFoundError extends Error {}
@@ -109,14 +110,16 @@ export async function deleteTagService(rawId: string): Promise<void> {
   const id = rawId.trim();
   if (!id) throw new ValidationError("ID is required");
 
-  const [deleted] = await tryCatch(deleteTagRecord(id));
+  const deleted = await deleteTagRecord(id);
   if (!deleted) throw new NotFoundError("Tag not found");
 }
 
 /**
  * Get tags for a specific page.
  */
-export async function getTagsForPageService(pageId: string): Promise<TagDto[]> {
+export async function getTagsForPageService(pageId: string, actor?: ContentActor | null): Promise<TagDto[]> {
+  const page = await prisma.page.findFirst({ where: { id: pageId, ...contentReadWhere(actor) }, select: { id: true } });
+  if (!page) throw new ContentNotFoundError();
   return unwrapResult(
     await tryCatch(getTagsForPage(pageId)),
     () => new Error("Failed to load tags for page")
@@ -125,18 +128,17 @@ export async function getTagsForPageService(pageId: string): Promise<TagDto[]> {
 
 /**
  * Replace all tags assigned to a page.
- * Accepts raw tag IDs and normalizes them before persisting.
+ * Validates tag IDs and content ownership before persisting.
  */
 export async function setTagsForPageService(
   pageId: string,
-  rawTagIds: unknown
+  rawTagIds: unknown,
+  actor: ContentActor,
 ): Promise<void> {
-  const ids = normalizeTagIds(rawTagIds);
-
-  unwrapResult(
-    await tryCatch(setTagsForPage(pageId, ids)),
-    () => new Error("Failed to update tags for page")
-  );
+  await requireContentWrite(pageId, actor);
+  const parsed = TagIdsSchema.safeParse(rawTagIds);
+  if (!parsed.success) throw new ValidationError("Invalid tag IDs");
+  await setTagsForPage(pageId, parsed.data);
 }
 
 /**

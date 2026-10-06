@@ -16,7 +16,6 @@ import {
 } from "./oauth-providers.server";
 import { isRole, type RoleName } from "./roles";
 import { unauthorized } from "@/lib/api";
-import { getDefaultUserRole } from "@/lib/settings/site-settings";
 
 const BASE_URL =
   process.env.BETTER_AUTH_URL ||
@@ -82,6 +81,23 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
 
     user: {
       modelName: "User",
+      additionalFields: {
+        roleId: { type: "string", required: false, input: false },
+      },
+    },
+
+    databaseHooks: {
+      user: {
+        create: {
+          before: async () => {
+            const role = await prisma.role.findUniqueOrThrow({
+              where: { name: "SUBSCRIBER" },
+              select: { id: true },
+            });
+            return { data: { roleId: role.id } };
+          },
+        },
+      },
     },
 
     trustedOrigins: TRUSTED_ORIGINS,
@@ -132,7 +148,7 @@ async function readRoleName(userId: string): Promise<RoleName | null> {
 
 /**
  * Ensures the user has a role set in the DB.
- * If roleId is null, assigns the configured default role and returns it.
+ * Roleless users receive SUBSCRIBER, independently of administrative defaults.
  *
  * Note: assumes Role rows are seeded (ADMIN/EDITOR/AUTHOR/SUBSCRIBER).
  */
@@ -146,15 +162,16 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
 
   if (user.roleId) return readRoleName(userId);
 
-  const defaultRole = await getDefaultUserRole();
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { role: { connect: { name: defaultRole } } },
-    select: { role: { select: { name: true } } },
+  const role = await prisma.role.findUniqueOrThrow({
+    where: { name: "SUBSCRIBER" },
+    select: { id: true },
   });
-
-  const name = updated.role?.name ?? null;
-  return isRole(name) ? name : null;
+  // Do not overwrite a concurrent explicit administrative role assignment.
+  await prisma.user.updateMany({
+    where: { id: userId, roleId: null },
+    data: { roleId: role.id },
+  });
+  return readRoleName(userId);
 }
 
 /**
@@ -180,7 +197,6 @@ export type SessionWithRole =
   user: NonNullable<BaseUser> & { role: RoleName | null };
 })
   | null;
-
 
 /**
  * Cached per request.

@@ -1,5 +1,23 @@
 import { prisma } from "@nextpress/db/src/client";
 
+import type { Prisma } from "@nextpress/db/generated/prisma/client";
+
+export class TaxonomyScopeError extends Error {
+  constructor() {
+    super("Invalid tag IDs");
+  }
+}
+
+export async function validateTagIds(tagIds: string[], db: Pick<Prisma.TransactionClient, "taxonomy"> = prisma) {
+  const ids = [...new Set(tagIds)];
+  if (!ids.length) return;
+  const tags = await db.taxonomy.findMany({
+    where: { id: { in: ids }, type: "TAG" },
+    select: { id: true },
+  });
+  if (tags.length !== ids.length) throw new TaxonomyScopeError();
+}
+
 export type TagDto = {
   id: string;
   name: string;
@@ -100,18 +118,15 @@ export async function createTagRecord(name: string, slug: string): Promise<TagDt
 export async function deleteTagRecord(id: string): Promise<TagDto | null> {
   try {
     const deleted = await prisma.taxonomy.delete({
-      where: { id },
+      where: { id, type: "TAG" },
     });
 
-    if (deleted.type !== "TAG") {
-      // Theoretically should not happen if IDs are scoped correctly.
+    return mapTaxonomyToTagDto(deleted);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") {
       return null;
     }
-
-    return mapTaxonomyToTagDto(deleted);
-  } catch {
-    // If the record is not found or delete fails, return null.
-    return null;
+    throw error;
   }
 }
 
@@ -136,17 +151,17 @@ export async function setTagsForPage(
   pageId: string,
   tagIds: string[]
 ): Promise<void> {
-  await prisma.$transaction([
-    prisma.pageOnTaxonomy.deleteMany({ where: { pageId } }),
-    ...(tagIds.length
-      ? [
-        prisma.pageOnTaxonomy.createMany({
-          data: tagIds.map((taxonomyId) => ({ pageId, taxonomyId })),
-          skipDuplicates: true,
-        }),
-      ]
-      : []),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await validateTagIds(tagIds, tx);
+    await tx.page.findUniqueOrThrow({ where: { id: pageId }, select: { id: true } });
+    await tx.pageOnTaxonomy.deleteMany({ where: { pageId, taxonomy: { type: "TAG" } } });
+    if (tagIds.length) {
+      await tx.pageOnTaxonomy.createMany({
+        data: tagIds.map((taxonomyId) => ({ pageId, taxonomyId })),
+        skipDuplicates: true,
+      });
+    }
+  });
 }
 
 /**

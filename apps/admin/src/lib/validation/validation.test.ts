@@ -42,8 +42,8 @@ describe("content validation", () => {
   it("accepts partial updates while still validating provided values", () => {
     expect(PageUpdateSchema.parse({ status: "PUBLISHED" })).toEqual({
       status: "PUBLISHED",
-      tagIds: [],
     });
+    expect(PageUpdateSchema.parse({ tagIds: [] })).toEqual({ tagIds: [] });
     expect(PageUpdateSchema.safeParse({ slug: "   " }).success).toBe(false);
   });
 

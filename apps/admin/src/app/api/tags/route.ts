@@ -71,7 +71,7 @@ export const POST = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
 /**
  * DELETE /api/tags?id=123
  */
-export const DELETE = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
+export const DELETE = withAuth(["ADMIN", "EDITOR"], async (req) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id") ?? "";
 

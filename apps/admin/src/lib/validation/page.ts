@@ -25,7 +25,7 @@ export const PageUpdateSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().optional(),
 
-  tagIds: TagIdsSchema.optional(),
+  tagIds: TagIdsSchema.removeDefault().optional(),
 });
 
 export type PageUpdateInput = Omit<

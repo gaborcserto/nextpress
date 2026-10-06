@@ -1,19 +1,20 @@
-export const runtime = "nodejs";
-
-import { ok, bad, notfound, conflict, oops } from "@/lib/api";
-import { withAuth } from "@/lib/auth/auth-server";
+import { ok, bad, notfound, conflict, oops, forbid } from "@/lib/api";
+import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
+import { ContentForbiddenError, ContentNotFoundError } from "@/lib/auth/content-access";
 import type { PageFormValues } from "@/lib/content/contracts";
 import { normalizeSlateValue } from "@/lib/content/editor";
 import { getPageById, getTagsForPage } from "@/lib/repos";
+import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
 import {
   PageValidationError,
   PageConflictError,
-  PageNotFoundError,
 } from "@/lib/services/content.shared";
 import {
   deletePageService,
   updatePageService,
 } from "@/lib/services/page.server";
+
+export const runtime = "nodejs";
 
 type RouteParams = { id: string };
 
@@ -58,10 +59,11 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  const page = await getPageById(id);
+  const actor = (await getSessionWithRole())?.user;
+  const page = await getPageById(id, { actor });
   if (!page) return notfound();
 
-  const tags = await getTagsForPage(id);
+  const tags = await getTagsForPage(page.id);
   const item = mapPageToFormValues(page, tags);
 
   return ok({ item });
@@ -72,7 +74,7 @@ export async function GET(
  */
 export const PUT = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
-  async (req, ctx, _auth) => {
+  async (req, ctx, { session }) => {
     const { id } = ctx.params;
 
     let body: unknown;
@@ -83,9 +85,12 @@ export const PUT = withAuth(
     }
 
     try {
-      const updated = await updatePageService(id, body);
+      const updated = await updatePageService(id, body, session.user);
       return ok(updated);
     } catch (err) {
+      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof TaxonomyScopeError) return bad(err.message);
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
       }
@@ -104,16 +109,15 @@ export const PUT = withAuth(
  */
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR"],
-  async (_req, ctx, _auth) => {
+  async (_req, ctx, { session }) => {
     const { id } = ctx.params;
 
     try {
-      await deletePageService(id);
+      await deletePageService(id, session.user);
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof PageNotFoundError) {
-        return notfound();
-      }
+      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentNotFoundError) return notfound();
 
       console.error("DELETE /api/pages/[id] error:", err);
       return oops();
