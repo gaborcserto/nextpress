@@ -19,6 +19,7 @@ export default function RedirectField({
 
   return (
     <Input
+      label="Redirect URL"
       type="url"
       fullWidth
       placeholder="https://target-url.com"

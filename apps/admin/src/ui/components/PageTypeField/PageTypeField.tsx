@@ -18,9 +18,10 @@ const PAGE_TYPE_OPTIONS = [
 /**
  * Simple select field for choosing the page type.
  */
-export default function PageTypeField({ value, onChange }: PageTypeFieldProps) {
+export default function PageTypeField({ id, value, onChange }: PageTypeFieldProps) {
   return (
     <Select
+      id={id}
       fullWidth
       value={value}
       options={PAGE_TYPE_OPTIONS}

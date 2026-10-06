@@ -220,6 +220,8 @@ export default function UsersScreen() {
                                   }}
                                 >
                                   <Select
+                                    label={`Role for ${u.email ?? u.name ?? "user"}`}
+                                    disabled={savingRoleId === u.id}
                                     value={editingRole}
                                     options={ROLE_OPTIONS}
                                     onChangeAction={(value) =>

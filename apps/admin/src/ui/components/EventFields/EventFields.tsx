@@ -20,8 +20,9 @@ export default function EventFields({ values, onChangeAction }: EventFieldsProps
 
   return (
     <FormGrid12>
-      <Field label="Start date/time" span={4}>
+      <Field label="Start date/time" htmlFor="event-start" span={4}>
         <Input
+          id="event-start"
           type="datetime-local"
           fullWidth
           value={values.eventStart ?? ""}
@@ -29,8 +30,9 @@ export default function EventFields({ values, onChangeAction }: EventFieldsProps
         />
       </Field>
 
-      <Field label="End date/time" span={4}>
+      <Field label="End date/time" htmlFor="event-end" span={4}>
         <Input
+          id="event-end"
           type="datetime-local"
           fullWidth
           value={values.eventEnd ?? ""}
@@ -38,8 +40,9 @@ export default function EventFields({ values, onChangeAction }: EventFieldsProps
         />
       </Field>
 
-      <Field label="Location" span={4}>
+      <Field label="Location" htmlFor="event-location" span={4}>
         <Input
+          id="event-location"
           fullWidth
           placeholder="Location / venue"
           value={values.eventLocation ?? ""}
@@ -48,8 +51,9 @@ export default function EventFields({ values, onChangeAction }: EventFieldsProps
         />
       </Field>
 
-      <Field label="Registration URL" span={12}>
+      <Field label="Registration URL" htmlFor="event-registration-url" span={12}>
         <Input
+          id="event-registration-url"
           type="url"
           fullWidth
           placeholder="https://example.com/register"

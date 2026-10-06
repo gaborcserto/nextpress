@@ -28,9 +28,8 @@ export default function HierarchyField({ parentId, onChangeAction }: HierarchyFi
       label="Parent page"
       fullWidth
       value={parentId ?? ""}
-      placeholder="(no parent)"
-      options={options.map((p) => ({ value: p.id, label: p.title }))}
-      onChangeAction={(val) => onChangeAction(typeof val === "string" ? val : null)}
+      options={[{ value: "", label: "(no parent)" }, ...options.map((p) => ({ value: p.id, label: p.title }))]}
+      onChangeAction={(val) => onChangeAction(val ? String(val) : null)}
     />
   );
 }

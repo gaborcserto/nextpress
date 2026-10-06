@@ -9,7 +9,7 @@ export function AuthShell({
   onSubmitAction,
 }: AuthShellProps) {
   const cardClass =
-    "relative w-full max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden";
+    "relative w-full min-h-max max-w-md rounded-3xl border border-base-300 bg-base-100 shadow-xl overflow-hidden";
 
   const inner = (
     <div className="p-6 sm:p-8">
@@ -34,7 +34,7 @@ export function AuthShell({
   );
 
   return (
-    <div className="min-h-dvh grid place-items-center px-4 bg-linear-to-br from-base-200 to-base-300">
+    <div className="h-dvh overflow-y-auto grid items-center-safe justify-items-center px-4 py-6 bg-linear-to-br from-base-200 to-base-300">
       {asForm ? (
         <form
           onSubmit={onSubmitAction}

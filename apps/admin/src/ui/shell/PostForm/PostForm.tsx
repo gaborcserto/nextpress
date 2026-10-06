@@ -137,8 +137,9 @@ export default function PostForm({
                 />
               </Field>
 
-              <Field label="Status" span={4}>
+              <Field label="Status" htmlFor="post-status" span={4}>
                 <Select
+                  id="post-status"
                   fullWidth
                   value={form.status}
                   options={POST_STATUS_OPTIONS}
@@ -161,8 +162,9 @@ export default function PostForm({
                 />
               </Field>
 
-              <Field label="Publish date" hint="Leave empty to publish immediately when status is PUBLISHED." span={4}>
+              <Field label="Publish date" htmlFor="post-published-at" hint="Leave empty to publish immediately when status is PUBLISHED." span={4}>
                 <Input
+                  id="post-published-at"
                   type="datetime-local"
                   fullWidth
                   value={form.publishedAt ?? ""}
@@ -174,6 +176,7 @@ export default function PostForm({
 
           <Section title="Intro" desc="Short lead text and optional cover image.">
             <PostIntroFields
+              disabled={submitting}
               excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
               onExcerptChangeAction={(value) => setField("excerpt", value)}
               cover={form.cover}
@@ -186,7 +189,7 @@ export default function PostForm({
           </Section>
 
           <Section title="Content" desc="Write your content.">
-            <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
+            <SlateEditor readOnly={submitting} value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
           <StickyWrapper>

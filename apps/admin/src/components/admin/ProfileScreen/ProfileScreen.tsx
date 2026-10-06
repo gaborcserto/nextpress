@@ -38,7 +38,7 @@ export default function ProfileScreen() {
             className="ring-0"
           />
 
-          <dl className="grid gap-3 text-sm">
+          <dl className="grid min-w-0 gap-3 text-sm wrap-anywhere">
             <div>
               <dt className="text-base-content/60">Display name</dt>
               <dd className="font-medium">{name}</dd>

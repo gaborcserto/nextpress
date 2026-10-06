@@ -177,8 +177,8 @@ export default function PageForm({
                 />
               </Field>
 
-              <Field label="Page Type" span={4}>
-                <PageTypeField value={form.type} onChange={(v) => setField("type", v)} />
+              <Field label="Page Type" htmlFor="page-type" span={4}>
+                <PageTypeField id="page-type" value={form.type} onChange={(v) => setField("type", v)} />
               </Field>
             </FormGrid12>
           </Section>
@@ -206,7 +206,7 @@ export default function PageForm({
           )}
 
           <Section title="Content" desc="Write your content.">
-            <SlateEditor value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
+            <SlateEditor readOnly={submitting} value={form.content ?? EMPTY_SLATE_VALUE} onChangeAction={(val) => setField("content", val)} />
           </Section>
 
           <StickyWrapper>

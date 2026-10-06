@@ -55,8 +55,8 @@ function SlateToolbarButton({
       aria-pressed={active}
       onMouseDown={(e) => {
         e.preventDefault();
-        onClick();
       }}
+      onClick={onClick}
       className={[
         "btn btn-sm",
         active ? "btn-primary" : "btn-ghost",

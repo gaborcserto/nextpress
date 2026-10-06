@@ -14,9 +14,11 @@ export function useTagMultiSelectSearch(
 ) {
   const [options, setOptions] = useState<TagValue[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
+    setError(null);
 
     // Avoid hitting the API for very short queries.
     if (trimmed.length < minChars) {
@@ -33,7 +35,10 @@ export function useTagMultiSelectSearch(
         const result = await loadOptions(trimmed);
         if (!cancelled) setOptions(result);
       } catch {
-        if (!cancelled) setOptions([]);
+        if (!cancelled) {
+          setOptions([]);
+          setError("Unable to search tags. Please try again.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -45,5 +50,5 @@ export function useTagMultiSelectSearch(
     };
   }, [query, loadOptions, minChars]);
 
-  return { options, loading, setOptions };
+  return { options, loading, error, setOptions };
 }

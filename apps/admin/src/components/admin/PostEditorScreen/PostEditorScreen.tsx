@@ -2,12 +2,14 @@
 
 import { usePostEditor } from "./PostEditorScreen.hooks";
 import type { PostEditorScreenProps } from "./PostEditorScreen.types";
+import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
   loadEntityTagsAction,
   loadTagOptionsAction,
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
+import { Alert } from "@/ui/primitives";
 import { AdminPageLayout, PostForm } from "@/ui/shell";
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
@@ -16,6 +18,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     item,
     isLoading,
     notFound,
+    error,
     saving,
     handleSubmit,
   } = usePostEditor(postId);
@@ -25,6 +28,14 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
     ? "Update the content and metadata of this post."
     : "Publish a new post on your site.";
   const submitLabel = isEdit ? "Save changes" : "Create";
+
+  if (error && !(error instanceof ApiRequestError && error.status === 404)) {
+    return (
+      <AdminPageLayout title={title} description={subtitle}>
+        <Alert status="error" message="Unable to load post. Please try again." />
+      </AdminPageLayout>
+    );
+  }
 
   if (isEdit && isLoading) {
     return (

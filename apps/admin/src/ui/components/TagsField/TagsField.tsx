@@ -30,8 +30,10 @@ export default function TagsField({
 
   const tags = isControlled ? (value ?? []) : internalTags;
 
-  const [loadingInitial, setLoadingInitial] = useState<boolean>(Boolean(entityId));
+  const [loadingInitial, setLoadingInitial] = useState<boolean>(Boolean(entityId && loadEntityTagsAction));
   const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   // Managed mode: load initial tags from DB if entityId is provided.
   useEffect(() => {
@@ -53,6 +55,8 @@ export default function TagsField({
           setInternalTags(loaded);
           onChangeRef.current?.(loaded);
         }
+      } catch {
+        if (!cancelled) setError("Unable to load tags. Please try again.");
       } finally {
         if (!cancelled) setLoadingInitial(false);
       }
@@ -64,6 +68,8 @@ export default function TagsField({
   }, [entityId, isControlled, loadEntityTagsAction]);
 
   const setTags = async (next: TagValue[]) => {
+    if (savingRef.current) return;
+    setError(null);
     // Update local state (or delegate to controlled parent)
     if (!isControlled) setInternalTags(next);
 
@@ -73,10 +79,16 @@ export default function TagsField({
     // Persist changes if managed mode is enabled
     const id = entityId?.trim();
     if (id && persist && updateEntityTagsAction) {
+      savingRef.current = true;
       setSaving(true);
       try {
         await updateEntityTagsAction(id, next.map((t) => t.id));
+      } catch {
+        if (!isControlled) setInternalTags(tags);
+        onChangeAction?.(tags);
+        setError("Unable to save tags. Please try again.");
       } finally {
+        savingRef.current = false;
         setSaving(false);
       }
     }
@@ -84,6 +96,7 @@ export default function TagsField({
 
   return (
     <div className="w-full space-y-1">
+      <fieldset disabled={loadingInitial || saving}>
       <TagMultiSelect
         label={label}
         value={tags}
@@ -92,6 +105,8 @@ export default function TagsField({
         createTagAction={createTagAction}
         placeholder={placeholder}
       />
+      </fieldset>
+      {error && <p role="alert" className="text-sm text-error">{error}</p>}
 
       {loadingInitial && (
         <div className="text-xs text-base-content/60">Loading tags…</div>

@@ -32,8 +32,7 @@ export default function TaxonomyScreen() {
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugEdited, setSlugEdited] = useState(false);
+  const slug = slugify(name);
 
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
@@ -71,10 +70,6 @@ export default function TaxonomyScreen() {
     void reload();
   }, []);
 
-  useEffect(() => {
-    if (!slugEdited) setSlug(slugify(name));
-  }, [name, slugEdited]);
-
   const canCreate = name.trim().length > 0 && slug.trim().length > 0 && !creating;
 
   const onCreate = async () => {
@@ -92,8 +87,6 @@ export default function TaxonomyScreen() {
       ]);
 
       setName("");
-      setSlug("");
-      setSlugEdited(false);
 
       void reload();
       showToast("Tag created.", "success");
@@ -153,23 +146,19 @@ export default function TaxonomyScreen() {
                   />
                 </Field>
 
-                <Field label="Slug" htmlFor="tag-slug" hint="Auto-generates from name until you edit it." span={12}>
+                <Field label="Slug" htmlFor="tag-slug" hint="Generated from the tag name." span={12}>
                   <Input
                     id="tag-slug"
                     fullWidth
                     value={slug}
-                    onChange={(e) => {
-                      setSlugEdited(true);
-                      setSlug(slugify(e.target.value));
-                    }}
-                    required
+                    readOnly
                   />
                 </Field>
               </FormGrid12>
 
               <Box bare className="mt-3 flex justify-end">
                 <div className="flex items-center gap-2">
-                  {error ? <div className="text-sm text-error">{error}</div> : null}
+                  {error ? <div role="alert" className="text-sm text-error">{error}</div> : null}
 
                 <IconButton
                   type="submit"

@@ -62,7 +62,7 @@ export async function loadTagOptionsAction(
   query: string
 ): Promise<TagValue[]> {
   const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`);
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("Failed to load tag options");
 
   const raw: unknown = await res.json();
   const unwrapped = unwrapOkData(raw);
@@ -144,7 +144,7 @@ export async function loadEntityTagsAction(
   const res = await fetch(
     `/api/tags/link?entityId=${encodeURIComponent(entityId)}`
   );
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("Failed to load assigned tags");
 
   const raw: unknown = await res.json();
   const unwrapped = unwrapOkData(raw);
@@ -161,11 +161,12 @@ export async function updateEntityTagsAction(
   entityId: string,
   tagIds: string[]
 ): Promise<void> {
-  await fetch(`/api/tags/link?entityId=${encodeURIComponent(entityId)}`, {
+  const res = await fetch(`/api/tags/link?entityId=${encodeURIComponent(entityId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tagIds }),
   });
+  if (!res.ok) throw new Error("Failed to save tags");
 }
 
 /* ---------- Admin tag listing ---------- */
@@ -203,7 +204,7 @@ function isTagWithUsageArray(
  */
 export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
   const res = await fetch("/api/admin/tags", { cache: "no-store" });
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error("Failed to load tags");
 
   const raw: unknown = await res.json();
   const unwrapped = unwrapOkData(raw);

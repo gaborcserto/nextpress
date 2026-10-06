@@ -50,7 +50,8 @@ export function TagMultiSelectDropdown({
   return (
     <div
       id={listboxId}
-      role="listbox"
+      role="group"
+      aria-label="Available tags"
       className="absolute left-0 top-full mt-1 w-full rounded-xl border border-base-300 bg-base-100 shadow z-50 max-h-64 overflow-auto"
     >
       {loading && (
@@ -63,14 +64,13 @@ export function TagMultiSelectDropdown({
         <button
           key={option.id ?? option.slug}
           type="button"
-          role="option"
-          aria-selected={false}
+          disabled={loading}
           className="block w-full text-left px-3 py-2 text-sm hover:bg-base-200"
           onMouseDown={(e) => {
             // Prevent focus/blur quirks from swallowing the click.
             e.preventDefault();
-            onSelectOptionAction(option);
           }}
+          onClick={() => onSelectOptionAction(option)}
         >
           {underlineMatch(option.name, query)}
         </button>
@@ -82,8 +82,8 @@ export function TagMultiSelectDropdown({
           className="block w-full text-left px-3 py-2 text-sm text-primary hover:bg-base-200"
           onMouseDown={(e) => {
             e.preventDefault();
-            void onCreateOptionAction();
           }}
+          onClick={() => void onCreateOptionAction()}
         >
           {createLabel ?? "Create"}
         </button>

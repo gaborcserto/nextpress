@@ -103,7 +103,7 @@ export default function Sidebar({
         )}
       </nav>
 
-      <div className="px-2 pb-2">
+      {onToggleCollapsedAction && <div className="px-2 pb-2">
         <div className="divider my-2" />
         <div
           className="tooltip tooltip-right w-full flex justify-start h-10"
@@ -117,7 +117,7 @@ export default function Sidebar({
             onClick={onToggleCollapsedAction}
           />
         </div>
-      </div>
+      </div>}
     </aside>
   );
 }

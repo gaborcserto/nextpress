@@ -36,12 +36,15 @@ export function TagMultiSelect({
 
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const creatingRef = useRef(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const inputId = useId();
   const listboxId = useId();
 
-  const { options, loading, setOptions } = useTagMultiSelectSearch(
+  const { options, loading, error: searchError, setOptions } = useTagMultiSelectSearch(
     query,
     loadOptionsAction,
     2
@@ -92,14 +95,14 @@ export function TagMultiSelect({
   const handleKeyDown = async (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && trimmedQuery) {
       event.preventDefault();
+      if (loading || searchError || creatingRef.current) return;
 
       if (selectableOptions.length > 0) {
         addTag(selectableOptions[0]);
         return;
       }
 
-      const newTag = await createTagAction(trimmedQuery);
-      addTag(newTag);
+      await handleCreateClick();
       return;
     }
 
@@ -120,13 +123,28 @@ export function TagMultiSelect({
     );
 
   const handleCreateClick = async (): Promise<void> => {
-    if (!trimmedQuery) return;
-    const newTag = await createTagAction(trimmedQuery);
-    addTag(newTag);
+    if (!trimmedQuery || loading || searchError || creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating(true);
+    setError(null);
+    try {
+      const newTag = await createTagAction(trimmedQuery);
+      addTag(newTag);
+    } catch {
+      setError("Unable to create tag. Please try again.");
+    } finally {
+      creatingRef.current = false;
+      setCreating(false);
+    }
   };
 
   return (
-    <div className="form-control w-full">
+    <div
+      className="form-control w-full"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
       {label && (
         <label className="label" htmlFor={inputId}>
           <span className="label-text">{label}</span>
@@ -135,15 +153,9 @@ export function TagMultiSelect({
 
       <div className="relative">
         <div
-          role="combobox"
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-owns={listboxId}
-          aria-controls={listboxId}
-          aria-label={label ?? "Tag selector"}
           className={cx(
             "input input-bordered w-full flex items-center gap-2",
-            "min-h-12 px-2 py-1"
+            "min-h-12 px-2 py-1 focus-within:outline-2 focus-within:outline-primary"
           )}
           onClick={() => {
             inputRef.current?.focus();
@@ -154,8 +166,9 @@ export function TagMultiSelect({
             ref={inputRef}
             id={inputId}
             value={query}
-            aria-autocomplete="list"
-            aria-controls={listboxId}
+            aria-label={label ? undefined : "Tag selector"}
+            disabled={creating}
+            onFocus={() => setOpen(true)}
             onChange={(nextValue) => {
               setQuery(nextValue);
               setOpen(true);
@@ -172,16 +185,18 @@ export function TagMultiSelect({
 
         <TagMultiSelectDropdown
           open={open}
-          loading={loading}
+          loading={loading || creating}
           options={selectableOptions}
           listboxId={listboxId}
           query={trimmedQuery}
-          showCreate={showCreate}
+          showCreate={showCreate && !loading && !creating && !searchError}
           createLabel={trimmedQuery ? `Create “${trimmedQuery}”` : undefined}
           onSelectOptionAction={addTag}
           onCreateOptionAction={handleCreateClick}
         />
       </div>
+
+      {(error || searchError) && <p role="alert" className="text-sm text-error">{error || searchError}</p>}
 
       {selectedTags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">

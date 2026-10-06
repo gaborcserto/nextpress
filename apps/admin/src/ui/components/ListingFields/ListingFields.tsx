@@ -37,8 +37,9 @@ export default function ListingFields({
 
   return (
     <FormGrid12>
-      <Field label="Content type to list" span={6}>
+      <Field label="Content type to list" htmlFor="listing-kind" span={6}>
         <Select
+          id="listing-kind"
           fullWidth
           value={listingKind ?? ""}
           placeholder="– select –"
@@ -47,8 +48,9 @@ export default function ListingFields({
         />
       </Field>
 
-      <Field label="Filter by taxonomy (optional)" span={6}>
+      <Field label="Filter by taxonomy (optional)" htmlFor="listing-taxonomy" span={6}>
         <Input
+          id="listing-taxonomy"
           fullWidth
           placeholder="taxonomyId"
           value={listingTaxonomyId ?? ""}

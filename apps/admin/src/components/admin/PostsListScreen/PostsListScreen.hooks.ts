@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import useSWR from "swr";
 
 import type { PostListResponse } from "./PostsListScreen.types";
@@ -11,12 +11,12 @@ import { showToast } from "@/ui/utils";
  * Load paginated list of posts from /api/post.
  */
 export function usePostsList() {
-  const { data, isLoading, mutate } = useSWR<PostListResponse>(
+  const { data, error, isLoading, mutate } = useSWR<PostListResponse>(
     "/api/post",
     jsonFetcher,
   );
 
-  return { items: data?.items ?? [], isLoading, mutate };
+  return { items: data?.items ?? [], error, isLoading, mutate };
 }
 
 /**
@@ -24,10 +24,12 @@ export function usePostsList() {
  */
 export function useDeletePost(onDeleted?: () => void) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletingRef = useRef(false);
 
   const deletePost = useCallback(
     async (id: string) => {
-      if (!confirm("Delete this post?")) return;
+      if (deletingRef.current) return;
+      deletingRef.current = true;
       setDeletingId(id);
 
       try {
@@ -40,8 +42,11 @@ export function useDeletePost(onDeleted?: () => void) {
         }
 
         showToast("Deleted.", "success");
-        onDeleted?.();
+        await onDeleted?.();
+      } catch {
+        showToast("Unable to delete post. Please try again.", "error");
       } finally {
+        deletingRef.current = false;
         setDeletingId(null);
       }
     },

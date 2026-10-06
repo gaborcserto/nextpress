@@ -4,7 +4,7 @@ import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
 import { ContentList, type ContentListItem } from "@/ui/components";
 
 export default function PostsListScreen() {
-  const { items, isLoading, mutate } = usePostsList();
+  const { items, error, isLoading, mutate } = usePostsList();
   const { deletingId, deletePost } = useDeletePost(async () => mutate());
 
   const mapped: ContentListItem[] = items.map((p) => ({
@@ -26,6 +26,7 @@ export default function PostsListScreen() {
       editHrefAction={(id) => `/admin/posts/${id}`}
       items={mapped}
       isLoading={isLoading}
+      error={error ? "Unable to load posts. Please try again." : undefined}
       deletingId={deletingId}
       onDeleteAction={deletePost}
     />

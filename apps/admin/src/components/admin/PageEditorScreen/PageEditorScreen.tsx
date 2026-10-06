@@ -2,12 +2,14 @@
 
 import { usePageEditor } from "./PageEditorScreen.hooks";
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
+import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
   loadEntityTagsAction,
   loadTagOptionsAction,
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
+import { Alert } from "@/ui/primitives";
 import { AdminPageLayout, PageForm } from "@/ui/shell";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
@@ -16,6 +18,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
     item,
     isLoading,
     notFound,
+    error,
     saving,
     handleSubmit,
   } = usePageEditor(id);
@@ -25,6 +28,14 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
     ? "Update your page details."
     : "Add a new page to your site.";
   const submitLabel = isEdit ? "Save" : "Create";
+
+  if (error && !(error instanceof ApiRequestError && error.status === 404)) {
+    return (
+      <AdminPageLayout title={title} description={subtitle}>
+        <Alert status="error" message="Unable to load page. Please try again." />
+      </AdminPageLayout>
+    );
+  }
 
   if (isEdit && isLoading) {
     return (

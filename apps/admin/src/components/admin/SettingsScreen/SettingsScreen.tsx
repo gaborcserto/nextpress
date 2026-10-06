@@ -77,7 +77,7 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" role="status">
         <span className="loading loading-spinner" />
         <span>Loading…</span>
       </div>
@@ -227,6 +227,7 @@ export default function SettingsScreen() {
                         <td className="font-medium">{provider.provider}</td>
                         <td className="whitespace-nowrap">
                           <Toggle
+                            aria-label={`Enable ${provider.provider}`}
                             checked={provider.enabled}
                             onChangeAction={(enabled) =>
                               setForm((current) =>
@@ -238,6 +239,7 @@ export default function SettingsScreen() {
                         </td>
                         <td>
                           <Input
+                            aria-label={`${provider.provider} client ID`}
                             fullWidth
                             maxLength={2000}
                             value={provider.clientId}
@@ -256,6 +258,7 @@ export default function SettingsScreen() {
                           <input
                             className="input w-full"
                             type="password"
+                            aria-label={`${provider.provider} new secret`}
                             maxLength={10000}
                             name={`clientSecret:${provider.provider}`}
                             autoComplete="new-password"

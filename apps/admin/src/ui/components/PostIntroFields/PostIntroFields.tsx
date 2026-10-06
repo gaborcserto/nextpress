@@ -5,6 +5,7 @@ import { ImageUploader, SlateEditor, EMPTY_SLATE_VALUE } from "@/ui/components";
 import { Field, FormGrid12, Input } from "@/ui/primitives";
 
 export function PostIntroFields({
+  disabled,
   excerpt,
   onExcerptChangeAction,
   cover,
@@ -20,6 +21,8 @@ export function PostIntroFields({
         span={7}
       >
         <SlateEditor
+          readOnly={disabled}
+          label="Excerpt (lead)"
           value={excerpt ?? EMPTY_SLATE_VALUE}
           onChangeAction={onExcerptChangeAction}
         />
@@ -31,6 +34,7 @@ export function PostIntroFields({
         span={5}
       >
         <ImageUploader
+          disabled={disabled}
           value={cover}
           onChangeAction={onCoverChangeAction}
           uploaderAction={uploaderAction}
@@ -38,11 +42,12 @@ export function PostIntroFields({
 
         {cover && (
           <div className="mt-2">
-            <label className="label">
+            <label className="label" htmlFor="post-cover-alt">
               <span className="label-text">Alt text</span>
             </label>
 
             <Input
+              id="post-cover-alt"
               fullWidth
               placeholder="Describe the image for accessibility and SEO"
               value={cover.alt ?? ""}

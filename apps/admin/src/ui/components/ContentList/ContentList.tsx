@@ -4,7 +4,7 @@ import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import type { ContentListProps } from "@/ui/components";
 import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
-import { IconButton, LinkIconButton, ConfirmDialog, useConfirmDialog } from "@/ui/primitives";
+import { Alert, IconButton, LinkIconButton, ConfirmDialog, useConfirmDialog } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 type ConfirmPayload = { id: string; title: string };
@@ -22,6 +22,7 @@ export default function ContentList({
   editHrefAction,
   items,
   isLoading = false,
+  error,
   deletingId,
   onDeleteAction,
   showAuthor = false,
@@ -59,7 +60,9 @@ export default function ContentList({
       }
     >
 
-      {isLoading ? (
+      {error ? (
+        <Alert status="error" message={error} />
+      ) : isLoading ? (
         <DataListLoading label={heading.toLowerCase()} />
       ) : (
         <DataListSurface>
@@ -125,6 +128,7 @@ export default function ContentList({
                           color="error"
                           variant="solid"
                           loading={deletingId === item.id}
+                          disabled={Boolean(deletingId)}
                           aria-label={`Delete ${item.title}`}
                           onClick={() => askDelete(item.id, item.title)}
                         >

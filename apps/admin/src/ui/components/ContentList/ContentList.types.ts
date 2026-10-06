@@ -24,6 +24,7 @@ export type ContentListProps = {
 
   /** Loading flag while data is being fetched */
   isLoading?: boolean;
+  error?: string;
   /** Id of the item currently being deleted (for loading spinner) */
   deletingId?: string | null;
   /** Optional delete handler. If omitted, the delete button is hidden. */

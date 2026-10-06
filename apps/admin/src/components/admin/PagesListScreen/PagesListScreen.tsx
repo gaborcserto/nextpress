@@ -4,7 +4,7 @@ import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 import { ContentList, type ContentListItem } from "@/ui/components";
 
 export default function PagesListScreen() {
-  const { items, isLoading, mutate } = usePagesList();
+  const { items, error, isLoading, mutate } = usePagesList();
   const { deletingId, deletePage } = useDeletePage(async () => mutate());
 
   const mapped: ContentListItem[] = items.map((p) => ({
@@ -26,6 +26,7 @@ export default function PagesListScreen() {
       editHrefAction={(id) => `/admin/pages/${id}`}
       items={mapped}
       isLoading={isLoading}
+      error={error ? "Unable to load pages. Please try again." : undefined}
       deletingId={deletingId}
       onDeleteAction={deletePage}
     />
