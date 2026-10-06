@@ -78,7 +78,7 @@ The database package also exposes `validate`, `format`, and `seed` scripts; run 
 
 ## Testing
 
-Tests are organized beside the implementation in the applications and packages and run with Vitest. The current baseline is 74 passing tests: admin unit, component, validation, and API route integration coverage, plus focused tests in the web, database, and shared packages. There is no end-to-end test suite in the repository.
+Tests are organized beside the implementation in the applications and packages and run with Vitest. The suites cover admin unit, component, validation, and API route behavior, along with focused tests in the web, database, and shared packages. CI runs the affected workspace suites with coverage; there is no end-to-end test suite in the repository.
 
 Run the suites with `npm test` or collect V8 coverage with `npm run coverage`.
 

@@ -1,8 +1,8 @@
 export function webSecurityHeaders(production: boolean) {
   const policy = [
     "default-src 'self'",
-    // This public app uses static generation. Next.js emits inline hydration
-    // scripts whose hashes vary with build output. Keep this exception separate
+    // This public app renders dynamically at request time. Next.js emits inline
+    // hydration scripts, so the policy allows them. Keep this exception separate
     // from admin's nonce policy; it does not prevent inline script injection.
     `script-src 'self' 'unsafe-inline'${production ? "" : " 'unsafe-eval'"}`,
     "script-src-attr 'none'",
