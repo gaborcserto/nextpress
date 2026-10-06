@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { requireTrustedMutation } from "./mutation.server";
+import { MAX_MUTATION_BODY_BYTES, readBoundedMutationRequest, requireTrustedMutation } from "./mutation.server";
 import { getAuthBaseURL, getTrustedOrigins } from "@/lib/auth/origins.server";
 
 beforeEach(() => {
@@ -21,6 +21,20 @@ function request(method = "POST", origin: string | null = "http://localhost:4910
 }
 
 describe("custom mutation origin and media-type boundary", () => {
+  it("preserves small bodies and rejects oversized streamed mutation bodies", async () => {
+    const small = await readBoundedMutationRequest(request());
+    expect(await small.request?.text()).toBe("{}");
+
+    const largeReq = new Request("http://localhost:49101/api/test", {
+      method: "POST",
+      headers: { origin: "http://localhost:49101", "content-type": "application/json" },
+      body: "x".repeat(MAX_MUTATION_BODY_BYTES + 1),
+    });
+    const large = await readBoundedMutationRequest(largeReq);
+    expect(large.response?.status).toBe(413);
+    expect(large.request).toBeUndefined();
+  });
+
   it.each(["application/json", "Application/JSON", "application/json; charset=utf-8", 'application/json; charset="utf-8"'])("accepts trusted JSON requests with %s", (type) => {
     expect(requireTrustedMutation(request("POST", undefined, type))).toBeNull();
   });

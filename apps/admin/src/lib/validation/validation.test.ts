@@ -5,6 +5,7 @@ import {
   PageUpdateSchema,
   TagCreateSchema,
   TagIdsSchema,
+  parsePagination,
 } from "./index";
 
 describe("content validation", () => {
@@ -56,5 +57,22 @@ describe("content validation", () => {
   it("trims tag names and rejects blank names", () => {
     expect(TagCreateSchema.parse({ name: "  News " })).toEqual({ name: "News" });
     expect(TagCreateSchema.safeParse({ name: "   " }).success).toBe(false);
+  });
+
+  it("bounds persisted content and tag collections and rejects duplicate references", () => {
+    const validPage = { type: "PAGE", status: "DRAFT", slug: "ok", title: "Okay" };
+    expect(PageSchema.safeParse({ ...validPage, title: "x".repeat(301) }).success).toBe(false);
+    expect(PageSchema.safeParse({ ...validPage, content: "x".repeat(1_000_001) }).success).toBe(false);
+    expect(TagIdsSchema.safeParse(Array.from({ length: 101 }, (_, index) => `tag-${index}`)).success).toBe(false);
+    expect(TagIdsSchema.safeParse(["same", "same"]).success).toBe(false);
+    expect(PageSchema.safeParse({ ...validPage, title: "x".repeat(300), tagIds: Array.from({ length: 100 }, (_, index) => `tag-${index}`) }).success).toBe(true);
+  });
+
+  it("accepts only safe bounded positive pagination integers", () => {
+    expect(parsePagination(new URLSearchParams())).toEqual({ page: 1, limit: 50 });
+    expect(parsePagination(new URLSearchParams("page=2&limit=100"))).toEqual({ page: 2, limit: 100 });
+    for (const query of ["page=0", "page=-1", "page=1x", "page=Infinity", "page=10001", "limit=0", "limit=101", "limit=NaN"]) {
+      expect(parsePagination(new URLSearchParams(query))).toBeNull();
+    }
   });
 });

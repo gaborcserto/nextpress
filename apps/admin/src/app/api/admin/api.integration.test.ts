@@ -364,13 +364,13 @@ describe("admin API route integration", () => {
       }));
     });
 
-    it("maps delete failures, including a missing user, to the existing 500 contract", async () => {
-      prisma.user.delete.mockRejectedValue(new Error("record not found"));
+    it("returns 404 when deleting a missing user", async () => {
+      prisma.user.delete.mockRejectedValue({ code: "P2025" });
 
       const response = await deleteUser(request("DELETE"), { params: { id: "missing" } });
 
-      expect(response.status).toBe(500);
-      expect(await json(response)).toEqual({ error: "Unexpected error" });
+      expect(response.status).toBe(404);
+      expect(await json(response)).toEqual({ error: "User not found" });
     });
   });
 });

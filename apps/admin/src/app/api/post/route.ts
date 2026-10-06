@@ -10,6 +10,7 @@ import {
   createPostService,
   listPostsService,
 } from "@/lib/services/post.server";
+import { parsePagination } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -53,9 +54,9 @@ export async function GET(req: Request) {
   const actor = (await getSessionWithRole())?.user;
   const url = new URL(req.url);
 
-  const page = parseInt(url.searchParams.get("page") || "1", 10);
-  const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+  const pagination = parsePagination(url.searchParams);
+  if (!pagination) return bad("Invalid pagination");
 
-  const result = await listPostsService(page, limit, actor);
+  const result = await listPostsService(pagination.page, pagination.limit, actor);
   return ok(result);
 }

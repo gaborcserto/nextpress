@@ -21,7 +21,7 @@ import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
 import { verifyLogout } from "./session-policy.server";
 import { unauthorized } from "@/lib/api";
-import { requireTrustedMutation } from "@/lib/api/mutation.server";
+import { readBoundedMutationRequest, requireTrustedMutation } from "@/lib/api/mutation.server";
 
 function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
@@ -264,6 +264,8 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
     const role = session.user.role;
     if (!hasAnyRole(role, allowed)) return unauthorized();
 
-    return handler(req, { params }, { session, roleName: role });
+    const bounded = await readBoundedMutationRequest(req);
+    if (bounded.response) return bounded.response;
+    return handler(bounded.request ?? req, { params }, { session, roleName: role });
   };
 }

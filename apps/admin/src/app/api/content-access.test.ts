@@ -228,6 +228,22 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
 });
 
 describe("parent and taxonomy access boundaries", () => {
+  it.each(["?page=0", "?page=-1", "?page=1x", "?page=Infinity", "?limit=101", "?page=2&page=3"]) ("rejects invalid pagination %s before querying", async (query) => {
+    expect((await listPages(request("GET", undefined, query))).status).toBe(400);
+    expect(prisma.page.findMany).not.toHaveBeenCalled();
+  });
+
+  it("bounds pagination and accepts the maximum page size", async () => {
+    expect((await listPages(request("GET", undefined, "?page=2&limit=100"))).status).toBe(200);
+    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 100, take: 100 }));
+  });
+
+  it("rejects unknown selectors and bounds parent selector results", async () => {
+    expect((await listPages(request("GET", undefined, "?select=all"))).status).toBe(400);
+    expect(prisma.page.findMany).not.toHaveBeenCalled();
+    await listPages(request("GET", undefined, "?select=parent"));
+    expect(prisma.page.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 500 }));
+  });
   it("does not enumerate drafts or posts in the public parent selector", async () => {
     const response = await listPages(request("GET", undefined, "?select=parent"));
     expect(await response.json()).toEqual([expect.objectContaining({ id: "page-live" })]);
@@ -253,7 +269,7 @@ describe("parent and taxonomy access boundaries", () => {
     expect(prisma.pageOnTaxonomy.createMany).toHaveBeenCalledWith({ data: [{ pageId: "page-draft", taxonomyId: "tag-1" }], skipDuplicates: true });
   });
 
-  it.each([{ ids: ["category-1"] }, { ids: ["missing"] }, { ids: ["tag-1", "category-1"] }, { ids: [5] }, { ids: "tag-1" }])("rejects invalid links before destructive writes: %j", async ({ ids }) => {
+  it.each([{ ids: ["category-1"] }, { ids: ["missing"] }, { ids: ["tag-1", "category-1"] }, { ids: [5] }, { ids: "tag-1" }, { ids: ["tag-1", "tag-1"] }, { ids: ["x".repeat(65)] }, { ids: Array.from({ length: 101 }, (_, index) => `tag-${index}`) }])("rejects invalid links before destructive writes: %j", async ({ ids }) => {
     role = "ADMIN";
     expect((await replaceTags(request("PUT", { tagIds: ids }, "?entityId=page-draft"), context(""))).status).toBe(400);
     expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();

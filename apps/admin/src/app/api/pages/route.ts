@@ -12,6 +12,7 @@ import {
   createPageService,
   listPagesService,
 } from "@/lib/services/page.server";
+import { parsePagination } from "@/lib/validation";
 
 export const runtime = "nodejs";
 
@@ -54,20 +55,24 @@ export async function GET(req: Request) {
   const actor = (await getSessionWithRole())?.user;
   const url = new URL(req.url);
   const selectMode = url.searchParams.get("select");
+  if (url.searchParams.getAll("select").length > 1) return bad("Invalid selector");
 
   if (selectMode === "parent") {
     const pages = await prisma.page.findMany({
       where: { type: "PAGE", ...contentReadWhere(actor) },
       orderBy: { title: "asc" },
+      take: 500,
       select: { id: true, title: true, parentId: true },
     });
 
     return ok(pages);
   }
 
-  const page = parseInt(url.searchParams.get("page") || "1", 10);
-  const limit = parseInt(url.searchParams.get("limit") || "50", 10);
+  if (selectMode !== null) return bad("Invalid selector");
 
-  const result = await listPagesService(page, limit, actor);
+  const pagination = parsePagination(url.searchParams);
+  if (!pagination) return bad("Invalid pagination");
+
+  const result = await listPagesService(pagination.page, pagination.limit, actor);
   return ok(result);
 }

@@ -18,8 +18,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const entityId = url.searchParams.get("entityId") ?? "";
 
-  if (!entityId.trim()) {
-    return bad("Missing entityId");
+  if (!entityId.trim() || entityId.trim().length > 64) {
+    return bad("Invalid entityId");
   }
 
   try {
@@ -48,8 +48,8 @@ export const PUT = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req, _ctx, { s
   const url = new URL(req.url);
   const entityId = url.searchParams.get("entityId") ?? "";
 
-  if (!entityId.trim()) {
-    return bad("Missing entityId");
+  if (!entityId.trim() || entityId.trim().length > 64) {
+    return bad("Invalid entityId");
   }
 
   let body: unknown;

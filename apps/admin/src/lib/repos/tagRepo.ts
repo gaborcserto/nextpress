@@ -178,6 +178,7 @@ export async function listTagsWithUsage(): Promise<TagWithUsageDto[]> {
   const items = await prisma.taxonomy.findMany({
     where: { type: "TAG" },
     orderBy: { name: "asc" },
+    take: 500,
     select: {
       id: true,
       name: true,
