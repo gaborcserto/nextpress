@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "main": "index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./src/client": "./src/client.ts",
+    "./generated/prisma/client": "./generated/prisma/client.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

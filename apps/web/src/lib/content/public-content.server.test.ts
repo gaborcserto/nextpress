@@ -2,7 +2,7 @@ import { serializeRichContent } from "@nextpress/shared/content";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { findUnique } = vi.hoisted(() => ({ findUnique: vi.fn() }));
-vi.mock("@nextpress/db/src/client", () => ({ prisma: { page: { findUnique } } }));
+vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique } } }));
 
 import { getPublishedContent } from "./public-content.server";
 import { publicContentPath } from "./routes";

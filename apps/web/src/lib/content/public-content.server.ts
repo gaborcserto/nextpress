@@ -1,9 +1,7 @@
 import "server-only";
 
-import { prisma } from "@nextpress/db/src/client";
+import { prisma, type Prisma } from "@nextpress/db";
 import { ContentSlugSchema, readRichContent, richContentText, type RichDocument } from "@nextpress/shared/content";
-
-import type { Prisma } from "@nextpress/db/generated/prisma/client";
 
 const publicContentSelect = {
   slug: true,

@@ -20,7 +20,6 @@ jobs:
     outputs:
       should_validate: ${{ steps.filter.outputs.should_validate }}
       turbo_filters: ${{ steps.filter.outputs.turbo_filters }}
-      generate_prisma: ${{ steps.filter.outputs.generate_prisma }}
 
     steps:
       - name: Check out repository history
@@ -38,7 +37,6 @@ jobs:
         run: |
           full_validation=false
           has_workspace_change=false
-          generate_prisma=false
 
           if [[ -z "$BASE_SHA" ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             full_validation=true
@@ -57,7 +55,6 @@ jobs:
                   ;;
                 apps/admin/*|packages/db/*|packages/shared/*|packages/eslint-config/*)
                   has_workspace_change=true
-                  generate_prisma=true
                   ;;
                 apps/*|packages/*) full_validation=true ;;
                 .github/*|.husky/*|package.json|package-lock.json|turbo.json|tsconfig.base.json|eslint.config.mjs|lint-staged.config.mjs)
@@ -80,7 +77,6 @@ jobs:
 
           if [[ "$full_validation" == true ]]; then
             turbo_filters=""
-            generate_prisma=true
           elif [[ "$should_validate" == true ]]; then
             turbo_filters="--filter=...[$BASE_SHA]"
           else
@@ -92,7 +88,6 @@ jobs:
           fi
 
           printf 'should_validate=%s\n' "$should_validate" >> "$GITHUB_OUTPUT"
-          printf 'generate_prisma=%s\n' "$generate_prisma" >> "$GITHUB_OUTPUT"
           printf 'turbo_filters=%s\n' "$turbo_filters" >> "$GITHUB_OUTPUT"
 
   validate:
@@ -123,10 +118,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate Prisma Client
-        if: needs.changes.outputs.generate_prisma == 'true'
-        run: npm run prisma:generate
 
       - name: Validate affected workspaces
         env:
