@@ -118,8 +118,10 @@ export default function PageForm({
             />
           </Section>
 
-          <Section title="Hierarchy" desc="Optional parent page selection.">
-            <HierarchyField parentId={form.parentId} onChangeAction={(value) => setField("parentId", value)} />
+          <Section title="Hierarchy" desc="Parent selection is not available yet. Existing relationships are preserved.">
+            <fieldset disabled>
+              <HierarchyField parentId={form.parentId} onChangeAction={(value) => setField("parentId", value)} />
+            </fieldset>
           </Section>
 
           <Section title="Menu placement" desc="Where should this page appear?">
@@ -132,7 +134,7 @@ export default function PageForm({
         </>
       }>
 
-          <Section title="Basic info" desc="Set title, status, slug and page type.">
+          <Section title="Basic info" desc="Set title, status, slug and layout.">
             <FormGrid12>
               <Field label="Title" htmlFor="page-title" span={8}>
                 <Input
@@ -177,31 +179,37 @@ export default function PageForm({
                 />
               </Field>
 
-              <Field label="Page Type" htmlFor="page-type" span={4}>
+              <Field label="Layout" htmlFor="page-type" hint="Template behavior is not available yet." span={4}>
                 <PageTypeField id="page-type" value={form.type} onChange={(v) => setField("type", v)} />
               </Field>
             </FormGrid12>
           </Section>
 
           {form.type === "LISTING" && (
-            <Section title="Listing configuration" desc="Choose what type of content should be listed.">
-              <ListingFields
-                listingKind={form.listingKind}
-                listingTaxonomyId={form.listingTaxonomyId}
-                onChangeAction={handleListingChange}
-              />
+            <Section title="Listing configuration" desc="Listing configuration is not available yet.">
+              <fieldset disabled>
+                <ListingFields
+                  listingKind={form.listingKind}
+                  listingTaxonomyId={form.listingTaxonomyId}
+                  onChangeAction={handleListingChange}
+                />
+              </fieldset>
             </Section>
           )}
 
           {form.type === "EVENT_PAGE" && (
-            <Section title="Event details" desc="Start, end, location, registration.">
-              <EventFields values={form} onChangeAction={(key, value) => setField(key, value)} />
+            <Section title="Event details" desc="Event details cannot be edited yet.">
+              <fieldset disabled>
+                <EventFields values={form} onChangeAction={(key, value) => setField(key, value)} />
+              </fieldset>
             </Section>
           )}
 
           {form.type === "REDIRECT" && (
-            <Section title="Redirect" desc="Visitors will be redirected.">
-              <RedirectField value={form.redirectTo} onChangeAction={(value) => setField("redirectTo", value)} />
+            <Section title="Redirect" desc="Redirect targets cannot be edited yet.">
+              <fieldset disabled>
+                <RedirectField value={form.redirectTo} onChangeAction={(value) => setField("redirectTo", value)} />
+              </fieldset>
             </Section>
           )}
 

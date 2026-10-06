@@ -2,8 +2,17 @@
 
 import { apiFetch } from "@/lib/api";
 import type { PageFormValues } from "@/lib/content/contracts";
+import { slateToString } from "@/lib/content/editor";
 
-export type PageDto = Omit<PageFormValues, "tags"> & {
+export type PageDto = {
+  type: "PAGE";
+  layout: PageFormValues["type"];
+  status: PageFormValues["status"];
+  slug: string;
+  title: string;
+  content: string;
+  inHeaderMenu: boolean;
+  inFooterMenu: boolean;
   tagIds: string[];
 };
 
@@ -11,10 +20,15 @@ export function pageValuesToDto(values: PageFormValues): PageDto {
   const tagIds =
     values.tags?.map((tag) => tag.id).filter((id): id is string => !!id) ?? [];
 
-  const { tags: _tags, ...rest } = values;
-
   return {
-    ...rest,
+    type: "PAGE",
+    layout: values.type,
+    status: values.status,
+    slug: values.slug,
+    title: values.title,
+    content: slateToString(values.content),
+    inHeaderMenu: values.inHeaderMenu,
+    inFooterMenu: values.inFooterMenu,
     tagIds,
   };
 }

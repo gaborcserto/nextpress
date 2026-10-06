@@ -41,10 +41,9 @@ function mapPostToFormValues(
       name: t.name,
       slug: t.slug,
     })),
-    // TODO: map cover once it's stored on the Page
-    cover: null,
+    cover: page.cover ? { id: page.cover.id, url: page.cover.url, alt: page.cover.alt } : null,
     publishedAt: page.publishedAt
-      ? page.publishedAt.toISOString().slice(0, 16)
+      ? page.publishedAt.toISOString()
       : null,
   };
 }

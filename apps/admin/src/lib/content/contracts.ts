@@ -1,3 +1,4 @@
+import type { ContentLayout } from "@nextpress/shared/content";
 import type { Descendant } from "slate";
 
 export type TagValue = {
@@ -22,17 +23,7 @@ export type MediaValue = {
 
 export type UploadFn = (file: File) => Promise<MediaValue>;
 
-export type PageType =
-  | "STANDARD"
-  | "HOMEPAGE"
-  | "LISTING"
-  | "GALLERY"
-  | "CONTACT"
-  | "LANDING"
-  | "REDIRECT"
-  | "DOWNLOAD"
-  | "CATEGORY_PAGE"
-  | "EVENT_PAGE";
+export type PageType = ContentLayout;
 
 export type PageStatus = "DRAFT" | "PUBLISHED";
 export type ListingKind = "POSTS" | "PRODUCTS" | "EVENTS";

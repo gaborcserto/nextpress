@@ -30,11 +30,11 @@ export function PostIntroFields({
 
       <Field
         label="Cover image"
-        hint="Optional featured image for this post."
+        hint="Cover image editing is not available yet."
         span={5}
       >
         <ImageUploader
-          disabled={disabled}
+          disabled
           value={cover}
           onChangeAction={onCoverChangeAction}
           uploaderAction={uploaderAction}
@@ -48,6 +48,7 @@ export function PostIntroFields({
 
             <Input
               id="post-cover-alt"
+              disabled
               fullWidth
               placeholder="Describe the image for accessibility and SEO"
               value={cover.alt ?? ""}

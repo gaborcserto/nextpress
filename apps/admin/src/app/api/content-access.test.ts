@@ -13,7 +13,10 @@ import { GET as readLinks, PUT as replaceTags } from "./tags/link/route";
 import { POST as createTag, DELETE as deleteTag } from "./tags/route";
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
 import type { RoleName } from "@/lib/auth/roles";
+import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { actionLimits } from "@/lib/security/rate-limit.server";
+import { pageValuesToDto } from "@/lib/services/page.client";
+import { postValuesToDto } from "@/lib/services/post.client";
 import type { BetterAuthOptions } from "better-auth";
 
 
@@ -49,7 +52,7 @@ let role: RoleName | null;
 function content(id: string, type: "PAGE" | "POST", status: "DRAFT" | "PUBLISHED", authorId = "author-1") {
   return {
     id, type, status, authorId, slug: `${id}-slug`, title: id, content: "", excerpt: "",
-    updatedAt: new Date(), publishedAt: null, parentId: null, inHeaderMenu: false, inFooterMenu: false,
+    layout: "STANDARD" as const, cover: null, updatedAt: new Date(), publishedAt: null as Date | null, parentId: null, inHeaderMenu: false, inFooterMenu: false,
     listingKind: null, listingTaxonomyId: null, eventStart: null, eventEnd: null, eventLocation: null,
     registrationUrl: null, redirectTo: null,
   };
@@ -84,14 +87,22 @@ beforeEach(() => {
   prisma.page.findFirst.mockImplementation(async ({ where }: { where: Filter }) => records.find((item) => matches(item, where)) ?? null);
   prisma.page.findMany.mockImplementation(async ({ where }: { where: Filter }) => records.filter((item) => matches(item, where)));
   prisma.page.count.mockImplementation(async ({ where }: { where: Filter }) => records.filter((item) => matches(item, where)).length);
-  prisma.page.findUniqueOrThrow.mockResolvedValue({ id: "page-draft" });
+  prisma.page.findUniqueOrThrow.mockImplementation(async ({ where }: { where: Filter }) => {
+    const item = records.find((item) => matches(item, where));
+    if (!item) throw new Error("Record not found");
+    return item;
+  });
   prisma.page.update.mockImplementation(async ({ where, data }: { where: Filter; data: Partial<Content> }) => {
     const item = records.find((item) => matches(item, where));
     if (!item) throw new Error("Record not found");
     Object.assign(item, data);
     return item;
   });
-  prisma.page.create.mockImplementation(async ({ data }: { data: Content }) => ({ ...data, id: "created" }));
+  prisma.page.create.mockImplementation(async ({ data }: { data: Content }) => {
+    const item = { ...content("created", data.type, data.status), ...data };
+    records.push(item);
+    return item;
+  });
   prisma.taxonomy.findMany.mockImplementation(async ({ where }: { where: { id: { in: string[] }; type: string } }) =>
     where.type === "TAG" && where.id.in.includes("tag-1") ? [{ id: "tag-1" }] : []);
   prisma.pageOnTaxonomy.findMany.mockResolvedValue([]);
@@ -185,7 +196,7 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
     for (const status of ["PUBLISHED", "DRAFT"]) {
       expect((await update(request("PUT", { title: "Own edit", status }), context(`${prefix}-draft`))).status).toBe(200);
     }
-    expect(prisma.page.update).toHaveBeenCalledWith({ where: { id: `${prefix}-draft`, type, authorId: "author-1" }, data: { title: "Own edit", status: "DRAFT" } });
+    expect(prisma.page.update).toHaveBeenCalledWith({ where: { id: `${prefix}-draft`, type, authorId: "author-1" }, data: { title: "Own edit", status: "DRAFT", publishedAt: undefined } });
     expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();
     expect((await remove(request("DELETE"), context(`${prefix}-draft`))).status).toBe(401);
   });
@@ -375,5 +386,49 @@ describe("public registration roles", () => {
     expect((await getSessionWithRole())?.user.role).toBe("SUBSCRIBER");
     expect(prisma.user.updateMany).toHaveBeenCalledWith({ where: { id: "author-1", roleId: null }, data: { roleId: "subscriber-role" } });
     expect(prisma.siteSettings.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+
+describe.each(routes)("$type editor round trip", ({ type, create, update, read }) => {
+  it("preserves create and edit content through the real DTO, validator, service, repository and read route", async () => {
+    role = "AUTHOR";
+    const blocks = [{ type: "heading" as const, level: 2 as const, children: [{ text: "Formatted", bold: true }] }];
+    const common = { status: "PUBLISHED" as const, slug: "round-trip", title: "Round trip", content: blocks, tags: [] };
+    const dto = type === "PAGE"
+      ? pageValuesToDto({ ...common, type: "CONTACT", parentId: null, inHeaderMenu: true, inFooterMenu: false })
+      : postValuesToDto({ ...common, excerpt: EMPTY_SLATE_VALUE, cover: null, publishedAt: "2024-02-01T12:00:00.000Z" });
+    expect((await create(request("POST", dto), context(""))).status).toBe(201);
+    const created = await (await read(request(), context("created"))).json();
+    expect(created.item.content).toEqual(blocks);
+    if (type === "PAGE") expect(created.item).toMatchObject({ type: "CONTACT", inHeaderMenu: true });
+    else expect(created.item.publishedAt).toBe("2024-02-01T12:00:00.000Z");
+    const edited = [{ type: "paragraph" as const, children: [{ text: "Edited", italic: true }] }];
+    const nextDto = type === "PAGE"
+      ? pageValuesToDto({ ...created.item, content: edited })
+      : postValuesToDto({ ...created.item, content: edited, excerpt: blocks });
+    expect((await update(request("PUT", nextDto), context("created"))).status).toBe(200);
+    const result = await (await read(request(), context("created"))).json();
+    expect(result.item.content).toEqual(edited);
+    if (type === "POST") expect(result.item.excerpt).toEqual(blocks);
+  });
+
+  it("returns a stable failure for corrupt stored documents without changing them", async () => {
+    role = "AUTHOR";
+    const record = records.find((item) => item.id === (type === "PAGE" ? "page-draft" : "post-draft"));
+    if (!record) throw new Error("Expected fixture content");
+    record.content = '{"version":99,"secret":"private-data"}';
+    const response = await read(request(), context(record.id));
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await response.json())).not.toContain("private-data");
+    expect(prisma.page.update).not.toHaveBeenCalled();
+  });
+
+  it.each(["<script>alert(1)</script>", "[]", '{"version":2,"blocks":[]}'])("rejects invalid rich content before persistence", async (content) => {
+    role = "AUTHOR";
+    expect((await create(request("POST", { type, status: "DRAFT", slug: "invalid", title: "Invalid", content }), context(""))).status).toBe(400);
+    expect(prisma.page.create).not.toHaveBeenCalled();
+    expect((await update(request("PUT", { content }), context(type === "PAGE" ? "page-draft" : "post-draft"))).status).toBe(400);
+    expect(prisma.page.update).not.toHaveBeenCalled();
   });
 });

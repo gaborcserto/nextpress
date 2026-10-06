@@ -4,6 +4,7 @@ import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
+  publicationDateToLocal,
   slateToString,
 } from "./editor";
 
@@ -23,24 +24,22 @@ describe("editor content helpers", () => {
     expect(getEntityId(null)).toBeUndefined();
   });
 
-  it("normalizes strings and malformed Slate values", () => {
-    expect(normalizeSlateValue(null)).toEqual([
-      { type: "paragraph", children: [{ text: "" }] },
-    ]);
-    expect(normalizeSlateValue("  Hello  ")).toEqual([
-      { type: "paragraph", children: [{ text: "Hello" }] },
-    ]);
-    expect(normalizeSlateValue([{ type: "paragraph", children: [] }])).toEqual([
-      { type: "paragraph", children: [{ text: "" }] },
-    ]);
-    expect(normalizeSlateValue([{ text: "loose text" }])).toEqual([
-      { type: "paragraph", children: [{ text: "loose text" }] },
-    ]);
+  it("reads legacy strings as literal text and rejects malformed Slate", () => {
+    expect(normalizeSlateValue(null)).toEqual([{ type: "paragraph", children: [{ text: "" }] }]);
+    expect(normalizeSlateValue("  Hello  ")).toEqual([{ type: "paragraph", children: [{ text: "  Hello  " }] }]);
+    expect(() => normalizeSlateValue([{ type: "paragraph", children: [] }])).toThrow();
   });
 
-  it("serializes normalized Slate values", () => {
-    expect(slateToString("Hello")).toBe(
-      JSON.stringify([{ type: "paragraph", children: [{ text: "Hello" }] }]),
-    );
+  it("serializes and reopens formatted content without JSON appearing as text", () => {
+    const blocks = [{ type: "paragraph" as const, children: [{ text: "Hello", bold: true }] }];
+    expect(normalizeSlateValue(slateToString(blocks))).toEqual(blocks);
+    expect(JSON.parse(slateToString(blocks))).toEqual({ version: 1, blocks });
+  });
+  it("preserves the publication instant through the local date input including seconds", () => {
+    const instant = "2024-06-01T12:34:56.789Z";
+    const local = publicationDateToLocal(instant);
+    expect(local).not.toBeNull();
+    expect(new Date(local ?? "").toISOString()).toBe(instant);
+    expect(publicationDateToLocal(null)).toBeNull();
   });
 });

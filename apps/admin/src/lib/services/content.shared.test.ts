@@ -1,3 +1,4 @@
+import { EMPTY_RICH_CONTENT } from "@nextpress/shared/content";
 import { describe, expect, it, vi } from "vitest";
 
 const { setTagsForPage } = vi.hoisted(() => ({ setTagsForPage: vi.fn() }));
@@ -30,7 +31,7 @@ describe("content service validation", () => {
         title: "Article",
         tagIds: undefined,
       })
-    ).toMatchObject({ excerpt: "", content: "", tagIds: [] });
+    ).toMatchObject({ excerpt: EMPTY_RICH_CONTENT, content: EMPTY_RICH_CONTENT, tagIds: [] });
   });
 
   it("exposes structured validation issues for invalid input", () => {
@@ -40,9 +41,9 @@ describe("content service validation", () => {
       throw new Error("expected validation to fail");
     } catch (error) {
       expect(error).toBeInstanceOf(PageValidationError);
-      expect((error as PageValidationError).issues).toEqual([
+      expect((error as PageValidationError).issues).toEqual(expect.arrayContaining([
         { path: "slug", message: "Too small: expected string to have >=1 characters" },
-      ]);
+      ]));
     }
   });
 });

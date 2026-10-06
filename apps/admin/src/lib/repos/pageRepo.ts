@@ -23,6 +23,7 @@ export async function getPageById(
   // 1) Try by ID
   const byId = await prisma.page.findUnique({
     where: { ...contentReadWhere(opts?.actor), id: ref, type: typeFilter },
+    include: { cover: { select: { id: true, url: true, alt: true } } },
   });
 
   if (byId && byId.type === typeFilter) return byId;
@@ -30,6 +31,7 @@ export async function getPageById(
   // 2) Fallback: try by slug
   const bySlug = await prisma.page.findUnique({
     where: { ...contentReadWhere(opts?.actor), slug: slugify(ref), type: typeFilter },
+    include: { cover: { select: { id: true, url: true, alt: true } } },
   });
 
   if (bySlug && bySlug.type === typeFilter) return bySlug;
@@ -111,6 +113,10 @@ export async function createPage(
       title: input.title,
       excerpt: input.excerpt ?? null,
       content: input.content ?? "",
+      layout: input.layout,
+      inHeaderMenu: input.inHeaderMenu,
+      inFooterMenu: input.inFooterMenu,
+      publishedAt: input.publishedAt ? new Date(input.publishedAt) : input.status === "PUBLISHED" ? new Date() : null,
       authorId: input.authorId ?? null,
     },
   });
@@ -128,9 +134,22 @@ export async function updatePage(id: string, data: PageUpdateInput, type: PageTy
     await ensureUniqueSlug({ slug: next.slug, excludeId: id });
   }
 
+  let publishedAt: Date | null | undefined;
+  if (next.publishedAt) {
+    publishedAt = new Date(next.publishedAt);
+  } else if (next.publishedAt === null || next.status === "PUBLISHED") {
+    const current = await prisma.page.findUniqueOrThrow({
+      where: { id, type, ...contentWriteWhere(actor) },
+      select: { status: true, publishedAt: true },
+    });
+    publishedAt = (next.status ?? current.status) === "PUBLISHED"
+      ? current.publishedAt ?? new Date()
+      : null;
+  }
+
   return prisma.page.update({
     where: { id, type, ...contentWriteWhere(actor) },
-    data: next,
+    data: { ...next, publishedAt },
   });
 }
 

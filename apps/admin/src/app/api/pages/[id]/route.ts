@@ -23,8 +23,8 @@ function mapPageToFormValues(
   tags: Awaited<ReturnType<typeof getTagsForPage>>
 ): PageFormValues {
   return {
-    type: page.type as PageFormValues["type"],
-    status: page.status as PageFormValues["status"],
+    type: page.layout,
+    status: page.status,
     slug: page.slug,
     title: page.title,
     content: normalizeSlateValue(page.content),
@@ -57,16 +57,21 @@ export async function GET(
   _req: Request,
   { params }: GetContext
 ) {
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const actor = (await getSessionWithRole())?.user;
-  const page = await getPageById(id, { actor });
-  if (!page) return notfound();
+    const actor = (await getSessionWithRole())?.user;
+    const page = await getPageById(id, { actor });
+    if (!page) return notfound();
 
-  const tags = await getTagsForPage(page.id);
-  const item = mapPageToFormValues(page, tags);
+    const tags = await getTagsForPage(page.id);
+    const item = mapPageToFormValues(page, tags);
 
-  return ok({ item });
+    return ok({ item });
+  } catch {
+    console.error("GET /api/pages/[id] failed");
+    return oops();
+  }
 }
 
 /**

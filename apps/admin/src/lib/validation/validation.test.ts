@@ -1,3 +1,4 @@
+import { EMPTY_RICH_CONTENT } from "@nextpress/shared/content";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -23,8 +24,8 @@ describe("content validation", () => {
       status: "DRAFT",
       slug: "welcome",
       title: "Welcome",
-      excerpt: "",
-      content: "",
+      excerpt: EMPTY_RICH_CONTENT,
+      content: EMPTY_RICH_CONTENT,
       tagIds: [],
     });
   });

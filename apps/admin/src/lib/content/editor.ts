@@ -1,3 +1,5 @@
+import { readRichContent, RichBlocksSchema, serializeRichContent } from "@nextpress/shared/content";
+
 import { slugify } from "@/lib/utils";
 import type { Descendant } from "slate";
 
@@ -29,56 +31,18 @@ export function getEntityId(value: unknown): string | undefined {
 
 export type SlateLike = Descendant[] | string | null | undefined;
 
-type SlateText = { text: string };
-type SlateElementLike = { type?: string; children: unknown[]; [key: string]: unknown };
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isSlateText(value: unknown): value is SlateText {
-  return isObject(value) && typeof value.text === "string";
-}
-
-function isSlateElementLike(value: unknown): value is SlateElementLike {
-  return isObject(value) && Array.isArray(value.children);
-}
-
-function sanitizeDescendant(node: unknown): Descendant {
-  if (isSlateText(node)) return node as Descendant;
-
-  if (isSlateElementLike(node)) {
-    const children = (node.children.length ? node.children : [{ text: "" }]).map(
-      sanitizeDescendant,
-    );
-    return { ...node, children } as Descendant;
-  }
-
-  return { text: "" } as Descendant;
-}
-
-function sanitizeValue(value: unknown): Descendant[] {
-  if (!Array.isArray(value) || value.length === 0) return EMPTY_SLATE_VALUE;
-
-  return value.map(sanitizeDescendant).map((node) =>
-    isSlateText(node)
-      ? ({ type: "paragraph", children: [node] } as Descendant)
-      : node,
-  );
-}
-
 export function normalizeSlateValue(input: SlateLike): Descendant[] {
-  if (Array.isArray(input)) return sanitizeValue(input);
-
-  if (typeof input === "string") {
-    const text = input.trim();
-    if (!text) return EMPTY_SLATE_VALUE;
-    return sanitizeValue([{ type: "paragraph", children: [{ text }] }]);
-  }
-
-  return EMPTY_SLATE_VALUE;
+  if (Array.isArray(input)) return input.length ? RichBlocksSchema.parse(input) : readRichContent(null).blocks;
+  return readRichContent(input ?? null).blocks;
 }
 
 export function slateToString(value: SlateLike): string {
-  return JSON.stringify(normalizeSlateValue(value));
+  return serializeRichContent(normalizeSlateValue(value));
+}
+
+export function publicationDateToLocal(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${String(date.getMilliseconds()).padStart(3, "0")}`;
 }

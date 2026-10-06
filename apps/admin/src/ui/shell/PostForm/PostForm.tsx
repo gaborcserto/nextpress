@@ -8,6 +8,7 @@ import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
+  publicationDateToLocal,
 } from "@/lib/content/editor";
 import { slugify } from "@/lib/utils";
 import {
@@ -166,9 +167,10 @@ export default function PostForm({
                 <Input
                   id="post-published-at"
                   type="datetime-local"
+                  step="0.001"
                   fullWidth
-                  value={form.publishedAt ?? ""}
-                  onChange={(e) => setField("publishedAt", e.target.value || null)}
+                  value={publicationDateToLocal(form.publishedAt) ?? ""}
+                  onChange={(e) => setField("publishedAt", e.target.value ? new Date(e.target.value).toISOString() : null)}
                 />
               </Field>
             </FormGrid12>

@@ -13,10 +13,9 @@ export type PostDto = {
   status: PostFormValues["status"];
   slug: string;
   title: string;
-  excerpt: string | null;
+  excerpt: string;
   content: string;
   tagIds: string[];
-  cover: PostFormValues["cover"];
   publishedAt: PostFormValues["publishedAt"];
 };
 
@@ -25,7 +24,7 @@ export type PostDto = {
  * suitable for API submission.
  *
  * - Extracts tag IDs
- * - Serializes Slate values to plain text
+ * - Serializes validated rich-content documents
  */
 export function postValuesToDto(values: PostFormValues): PostDto {
   const tagIds =
@@ -36,11 +35,10 @@ export function postValuesToDto(values: PostFormValues): PostDto {
     status: values.status,
     slug: values.slug,
     title: values.title,
-    excerpt: values.excerpt ? slateToString(values.excerpt) : null,
+    excerpt: slateToString(values.excerpt),
     content: slateToString(values.content),
     tagIds,
-    cover: values.cover,
-    publishedAt: values.publishedAt,
+    publishedAt: values.publishedAt ?? null,
   };
 }
 

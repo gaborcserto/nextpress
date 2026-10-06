@@ -1,7 +1,8 @@
 "use client";
 
+import { RichBlocksSchema } from "@nextpress/shared/content";
 import { useCallback, useId, useMemo, useState } from "react";
-import { createEditor, Editor, Element, Node, Transforms, type Descendant } from "slate";
+import { createEditor, Editor, Transforms, type Descendant } from "slate";
 import { withHistory } from "slate-history";
 import {
   Slate,
@@ -111,11 +112,12 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
               onChange={(e) => {
                 setCodeDraft(e.target.value);
                 try {
-                  const parsed: unknown = JSON.parse(e.target.value);
-                  if (!Node.isNodeList(parsed) || !parsed.length || !parsed.every((node) => Element.isElement(node))) {
-                    setCodeError("Enter a non-empty array of Slate elements.");
+                  const result = RichBlocksSchema.safeParse(JSON.parse(e.target.value));
+                  if (!result.success) {
+                    setCodeError("Enter a supported non-empty array of rich-content elements.");
                     return;
                   }
+                  const parsed = result.data;
                   Transforms.deselect(editor);
                   Editor.withoutNormalizing(editor, () => {
                     for (let index = editor.children.length - 1; index >= 0; index--) {

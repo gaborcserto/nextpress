@@ -1,3 +1,4 @@
+import { ContentLayoutSchema, ContentSlugSchema, EMPTY_RICH_CONTENT, SerializedRichContentSchema } from "@nextpress/shared/content";
 import { z } from "zod";
 
 import { TagIdsSchema } from "./tag"
@@ -25,10 +26,14 @@ export function parsePagination(searchParams: URLSearchParams) {
 export const PageSchema = z.object({
   type: z.enum(["PAGE", "POST"]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
-  slug: z.string().trim().min(1).max(200),
+  slug: ContentSlugSchema,
   title: z.string().trim().min(1).max(300),
-  excerpt: z.string().max(10_000).default(""),
-  content: z.string().max(1_000_000).default(""),
+  excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)).default(EMPTY_RICH_CONTENT),
+  content: SerializedRichContentSchema.default(EMPTY_RICH_CONTENT),
+  layout: ContentLayoutSchema.optional(),
+  inHeaderMenu: z.boolean().optional(),
+  inFooterMenu: z.boolean().optional(),
+  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 
   tagIds: TagIdsSchema,
 });
@@ -39,10 +44,14 @@ export type PageCreateInput = Omit<z.infer<typeof PageSchema>, "tagIds">;
 export const PageUpdateSchema = z.object({
   type: z.enum(["PAGE", "POST"]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
-  slug: z.string().trim().min(1).max(200).optional(),
+  slug: ContentSlugSchema.optional(),
   title: z.string().trim().min(1).max(300).optional(),
-  excerpt: z.string().max(10_000).optional(),
-  content: z.string().max(1_000_000).optional(),
+  excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)).optional(),
+  content: SerializedRichContentSchema.optional(),
+  layout: ContentLayoutSchema.optional(),
+  inHeaderMenu: z.boolean().optional(),
+  inFooterMenu: z.boolean().optional(),
+  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 
   tagIds: TagIdsSchema.removeDefault().optional(),
 });
