@@ -7,7 +7,7 @@ import { getPublishedPosts } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 
 export default async function Home() {
-  const [settings, posts] = await Promise.all([getPublicSiteSettings(), getPublishedPosts(5)]);
+  const [settings, latest] = await Promise.all([getPublicSiteSettings(), getPublishedPosts({ limit: 5 })]);
 
   return (
     <Container className={styles.home}>
@@ -20,7 +20,7 @@ export default async function Home() {
           <h2 id="latest-title">Latest posts</h2>
           <Link href="/posts">All posts</Link>
         </div>
-        <PostList posts={posts} />
+        <PostList posts={latest.posts} />
       </section>
     </Container>
   );

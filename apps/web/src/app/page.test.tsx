@@ -14,11 +14,11 @@ import Home from "./page";
 describe("Home", () => {
   it("renders the configured publication and latest published post summaries", async () => {
     getPublicSiteSettings.mockResolvedValue({ siteName: "Field Notes", siteDescription: "Stories from the field." });
-    getPublishedPosts.mockResolvedValue([{
+    getPublishedPosts.mockResolvedValue({ posts: [{
       slug: "first-story", title: "A first story", summary: "A useful introduction.",
       publishedAt: "2025-02-03T00:00:00.000Z", author: { name: "A. Writer" },
       taxonomies: [{ type: "CATEGORY", slug: "essays", name: "Essays" }],
-    }]);
+    }], hasMore: false });
 
     render(await Home());
 
@@ -35,7 +35,7 @@ describe("Home", () => {
 
   it("renders a useful empty state when there are no published posts", async () => {
     getPublicSiteSettings.mockResolvedValue({ siteName: "Field Notes", siteDescription: "Stories from the field." });
-    getPublishedPosts.mockResolvedValue([]);
+    getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
 
     render(await Home());
 

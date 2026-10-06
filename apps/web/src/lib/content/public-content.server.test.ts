@@ -25,39 +25,48 @@ beforeEach(() => {
 });
 
 describe("public published content boundary", () => {
-  it("lists only currently published posts with a bounded summary projection and stable order", async () => {
+  it("lists published summaries in stable order and reports whether another bounded batch exists", async () => {
     const now = new Date();
     const published = { ...row, excerpt: "A short summary", publishedAt: new Date(now.getTime() - 1000) };
+    const publishedNext = { ...row, slug: "second", publishedAt: new Date(now.getTime() - 2000) };
     const future = { ...row, slug: "future", publishedAt: new Date(now.getTime() + 60_000) };
     const draft = { ...row, slug: "draft", status: "DRAFT" };
     findMany.mockImplementation(async (args: {
       where: { type: string; status: string; publishedAt: { not: null; lte: Date } };
-      orderBy: { publishedAt: string }[];
+      orderBy: ({ publishedAt: string } | { slug: string })[];
+      skip: number;
       take: number;
       select: Record<string, unknown>;
     }) => {
       expect(args.where).toEqual({ type: "POST", status: "PUBLISHED", publishedAt: { not: null, lte: expect.any(Date) } });
       expect(args.orderBy).toEqual([{ publishedAt: "desc" }, { slug: "asc" }]);
-      expect(args.take).toBe(5);
+      expect(args.skip).toBe(0);
+      expect(args.take).toBe(2);
       expect(args.select).not.toHaveProperty("content");
       expect(args.select).not.toHaveProperty("cover");
-      const eligible = [published, future, draft].filter((item) => item.status === args.where.status
-        && item.publishedAt !== null && item.publishedAt <= args.where.publishedAt.lte);
-      return eligible.map(({ slug, title, excerpt, publishedAt, author, taxonomies }) => ({ slug, title, excerpt, publishedAt, author, taxonomies }));
+      return [published, publishedNext, future, draft]
+        .filter((item) => item.status === args.where.status
+          && item.publishedAt !== null && item.publishedAt <= args.where.publishedAt.lte)
+        .sort((left, right) => right.publishedAt!.getTime() - left.publishedAt!.getTime() || left.slug.localeCompare(right.slug))
+        .slice(args.skip, args.skip + args.take)
+        .map(({ slug, title, excerpt, publishedAt, author, taxonomies }) => ({ slug, title, excerpt, publishedAt, author, taxonomies }));
     });
 
-    expect(await getPublishedPosts()).toEqual([{
-      slug: "published", title: "Published", summary: "A short summary",
-      publishedAt: published.publishedAt.toISOString(), author: { name: "Author" },
-      taxonomies: [{ type: "TAG", name: "News", slug: "news" }],
-    }]);
+    expect(await getPublishedPosts({ limit: 1 })).toEqual({
+      posts: [{
+        slug: "published", title: "Published", summary: "A short summary",
+        publishedAt: published.publishedAt.toISOString(), author: { name: "Author" },
+        taxonomies: [{ type: "TAG", name: "News", slug: "news" }],
+      }],
+      hasMore: true,
+    });
   });
 
-  it("caps listing reads and restores the default for non-finite limits", async () => {
-    await getPublishedPosts(500);
-    expect(findMany.mock.lastCall?.[0].take).toBe(50);
-    await getPublishedPosts(Number.NaN);
-    expect(findMany.mock.lastCall?.[0].take).toBe(5);
+  it("caps batch size and offset and restores defaults for non-finite values", async () => {
+    await getPublishedPosts({ limit: 500, offset: 1_000_000 });
+    expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 51, skip: 100_000 });
+    await getPublishedPosts({ limit: Number.NaN, offset: Number.NaN });
+    expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 6, skip: 0 });
   });
 
   it.each(["PAGE", "POST"] as const)("queries only published %s content using explicit projections", async (type) => {

@@ -30,6 +30,7 @@ type PublicPostSummaryRow = Prisma.PageGetPayload<{ select: typeof publicPostSum
 
 const MAX_PUBLIC_POSTS_PER_READ = 50;
 const DEFAULT_PUBLIC_POSTS_PER_READ = 5;
+const MAX_PUBLIC_POST_OFFSET = 100_000;
 
 export type PublicContent = {
   slug: string;
@@ -49,6 +50,11 @@ export type PublicPostSummary = {
   publishedAt: string;
   author: { name: string } | null;
   taxonomies: { type: "TAG" | "CATEGORY"; slug: string; name: string }[];
+};
+
+export type PublicPostBatch = {
+  posts: PublicPostSummary[];
+  hasMore: boolean;
 };
 
 function projectPublicContent(row: PublicContentRow): PublicContent {
@@ -97,11 +103,17 @@ export async function getPublishedContent(type: "PAGE" | "POST", slug: string): 
   return row ? projectPublicContent(row) : null;
 }
 
-/** Published post summaries only; the body and media relations never enter listing queries. */
-export async function getPublishedPosts(limit = DEFAULT_PUBLIC_POSTS_PER_READ): Promise<PublicPostSummary[]> {
-  const take = Number.isFinite(limit)
+/** Published summaries only; limit + 1 indicates whether another bounded batch exists. */
+export async function getPublishedPosts({
+  limit = DEFAULT_PUBLIC_POSTS_PER_READ,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}): Promise<PublicPostBatch> {
+  const boundedLimit = Number.isFinite(limit)
     ? Math.min(MAX_PUBLIC_POSTS_PER_READ, Math.max(1, Math.floor(limit)))
     : DEFAULT_PUBLIC_POSTS_PER_READ;
+  const skip = Number.isFinite(offset)
+    ? Math.min(MAX_PUBLIC_POST_OFFSET, Math.max(0, Math.floor(offset)))
+    : 0;
   const rows = await prisma.page.findMany({
     where: {
       type: "POST",
@@ -109,8 +121,13 @@ export async function getPublishedPosts(limit = DEFAULT_PUBLIC_POSTS_PER_READ): 
       publishedAt: { not: null, lte: new Date() },
     },
     orderBy: [{ publishedAt: "desc" }, { slug: "asc" }],
-    take,
+    skip,
+    take: boundedLimit + 1,
     select: publicPostSummarySelect,
   });
-  return rows.map(projectPublicPostSummary);
+  const hasMore = rows.length > boundedLimit;
+  return {
+    posts: rows.slice(0, boundedLimit).map(projectPublicPostSummary),
+    hasMore,
+  };
 }
