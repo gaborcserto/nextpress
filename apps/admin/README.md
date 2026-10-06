@@ -27,6 +27,18 @@ npm --workspace admin test
 
 The public web application is a separate workspace and is not rendered by this application.
 
+## API reference and health
+
+In development, open [API documentation](http://127.0.0.1:49101/api-docs) or
+[OpenAPI JSON](http://127.0.0.1:49101/api/openapi). Both return 404 outside
+development; the reference does not execute requests. `GET /api/health` is a
+public, uncached application liveness check returning `{ "status": "ok" }`
+without a database check.
+
+See [API contract workflow](../../docs/api.md) for contract ownership and
+maintenance. Run
+`npm run openapi:validate` from the root to validate the schema and route coverage.
+
 ## Sessions and browser mutations
 
 Better Auth owns signed session cookies, database session persistence and lookup,

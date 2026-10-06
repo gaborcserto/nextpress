@@ -84,6 +84,12 @@ Run the suites with `npm test` or collect V8 coverage with `npm run coverage`.
 
 ## Authentication and admin foundation
 
+The [HTTP API guide](docs/api.md) explains the OpenAPI contract and its maintenance workflow.
+Development-only [API docs](http://127.0.0.1:49101/api-docs)
+and [OpenAPI JSON](http://127.0.0.1:49101/api/openapi) share a schema-derived contract;
+run `npm run openapi:validate` to check it. Public `GET /api/health` confirms
+application liveness without checking PostgreSQL.
+
 The admin application provides email/password authentication, optional configured social providers, session handling through Better Auth, and role-aware server-side authorization. The supported roles are ADMIN, EDITOR, AUTHOR, and SUBSCRIBER. Admin screens currently cover dashboard, pages, posts, taxonomy, users, settings, and profile/session information. Profile editing and account management are not implemented.
 
 ## Repository automation
