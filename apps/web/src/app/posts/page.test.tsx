@@ -83,6 +83,7 @@ describe("Posts archive", () => {
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByText("There are no published posts yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Post archive pages" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Previous page" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Next page" })).not.toBeInTheDocument();
   });
@@ -94,5 +95,10 @@ describe("Posts archive", () => {
     getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
     await expect(PostsPage({ searchParams: Promise.resolve({ page: "9" }) })).rejects.toThrow("redirect:/posts");
     expect(redirect).toHaveBeenCalledWith("/posts");
+  });
+
+  it.each(["0", "-1", "999999999999999999999"]) ("normalizes unsafe page value %s to the first page", async (page) => {
+    await PostsPage({ searchParams: Promise.resolve({ page }) });
+    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 0 });
   });
 });

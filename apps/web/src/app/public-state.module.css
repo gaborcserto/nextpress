@@ -1,0 +1,22 @@
+.state {
+  max-inline-size: var(--prose-width);
+  margin-inline: auto;
+  padding-block: var(--section-spacing);
+}
+
+.state h1 {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+}
+
+.state p {
+  margin-block: var(--space-4) 0;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-6);
+  margin-block-start: var(--space-6);
+}

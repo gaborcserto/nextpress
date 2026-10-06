@@ -44,4 +44,9 @@ describe("public layout settings integration", () => {
       description: "Independent reporting.",
     });
   });
+
+  it("propagates settings failures to the root error boundary", async () => {
+    getPublicSiteSettings.mockRejectedValue(new Error("private settings failure"));
+    await expect(RootLayout({ children: <p>Page content</p> })).rejects.toThrow("private settings failure");
+  });
 });

@@ -35,7 +35,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         <h2 className={styles.listHeading} id="archive-list-title">Recent posts</h2>
         <PostList posts={posts} />
       </section>
-      {settings.postListingMode === "LOAD_MORE" ? (
+      {posts.length === 0 ? null : settings.postListingMode === "LOAD_MORE" ? (
         <LoadMorePostList posts={posts} page={page} hasMore={hasMore} postsPerPage={settings.postsPerPage} />
       ) : (
         <nav className={postListStyles.archiveNavigation} aria-label="Post archive pages">

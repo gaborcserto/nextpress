@@ -48,5 +48,11 @@ describe("LoadMorePostList", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not load more posts. Please try again.");
     expect(screen.getByRole("button", { name: "Load more posts" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "First post" })).toHaveAttribute("href", "/posts/first");
+
+    getNextPostBatch.mockResolvedValueOnce({ posts: [secondPost], hasMore: false });
+    fireEvent.click(screen.getByRole("button", { name: "Load more posts" }));
+    expect(await screen.findByRole("link", { name: "Second post" })).toHaveAttribute("href", "/posts/second");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
