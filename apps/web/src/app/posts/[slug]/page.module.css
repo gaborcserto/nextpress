@@ -1,0 +1,25 @@
+.page {
+  padding-block: var(--section-spacing);
+}
+
+.article {
+  max-inline-size: var(--prose-width);
+  margin: var(--space-8) auto 0;
+}
+
+.header {
+  margin-block-end: var(--space-8);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(var(--font-size-2xl), 6vw, 3rem);
+  line-height: var(--line-height-tight);
+}
+
+.summary {
+  margin-block: var(--space-6) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-relaxed);
+}

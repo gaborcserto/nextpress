@@ -1,10 +1,10 @@
 import { serializeRichContent } from "@nextpress/shared/content";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findUnique, findMany } = vi.hoisted(() => ({ findUnique: vi.fn(), findMany: vi.fn() }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique, findMany } } }));
+const { findUnique, findFirst, findMany } = vi.hoisted(() => ({ findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() }));
+vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique, findFirst, findMany } } }));
 
-import { getPublishedContent, getPublishedPosts } from "./public-content.server";
+import { getPublishedContent, getPublishedPost, getPublishedPosts } from "./public-content.server";
 import { publicContentPath } from "./routes";
 
 const row = {
@@ -21,10 +21,32 @@ const row = {
 beforeEach(() => {
   vi.resetAllMocks();
   findUnique.mockResolvedValue(row);
+  findFirst.mockResolvedValue(row);
   findMany.mockResolvedValue([]);
 });
 
 describe("public published content boundary", () => {
+  it("reads only explicitly published posts whose publication time has arrived", async () => {
+    expect(await getPublishedPost("published")).toMatchObject({ slug: "published" });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { slug: "published", type: "POST", status: "PUBLISHED", publishedAt: { not: null, lte: expect.any(Date) } },
+      select: expect.objectContaining({ content: true, cover: expect.any(Object) }),
+    });
+    findFirst.mockImplementation(async ({ where }: { where: { slug: string; type: string; status: string; publishedAt: { not: null; lte: Date } } }) => {
+      const records: { slug: string; type: string; status: string; publishedAt: Date | null }[] = [
+        { slug: "draft", type: "POST", status: "DRAFT", publishedAt: row.publishedAt },
+        { slug: "future", type: "POST", status: "PUBLISHED", publishedAt: new Date("2999-01-01") },
+        { slug: "null-date", type: "POST", status: "PUBLISHED", publishedAt: null },
+        { slug: "wrong-type", type: "PAGE", status: "PUBLISHED", publishedAt: row.publishedAt },
+      ];
+      return records.find((item) => item.slug === where.slug && item.type === where.type && item.status === where.status
+        && item.publishedAt !== null && item.publishedAt <= where.publishedAt.lte) ?? null;
+    });
+    for (const slug of ["missing", "draft", "future", "null-date", "wrong-type"]) {
+      expect(await getPublishedPost(slug)).toBeNull();
+    }
+  });
+
   it("lists published summaries in stable order and reports whether another bounded batch exists", async () => {
     const now = new Date();
     const published = { ...row, excerpt: "A short summary", publishedAt: new Date(now.getTime() - 1000) };

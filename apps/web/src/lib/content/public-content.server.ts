@@ -40,6 +40,8 @@ export type PublicContent = {
   cover: { url: string; alt: string; width: number | null; height: number | null } | null;
 };
 
+export type PublicPublishedPost = Omit<PublicContent, "publishedAt"> & { publishedAt: string };
+
 export type PublicPostSummary = {
   slug: string;
   title: string;
@@ -98,6 +100,17 @@ export async function getPublishedContent(type: "PAGE" | "POST", slug: string): 
     select: publicContentSelect,
   });
   return row ? projectPublicContent(row) : null;
+}
+
+/** A public post must have an explicit publication time at or before this request. */
+export async function getPublishedPost(slug: string): Promise<PublicPublishedPost | null> {
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
+  const row = await prisma.page.findFirst({
+    where: { slug, type: "POST", status: "PUBLISHED", publishedAt: { not: null, lte: new Date() } },
+    select: publicContentSelect,
+  });
+  if (!row?.publishedAt) return null;
+  return { ...projectPublicContent(row), publishedAt: row.publishedAt.toISOString() };
 }
 
 /** Published summaries only; limit + 1 indicates whether another bounded batch exists. */
