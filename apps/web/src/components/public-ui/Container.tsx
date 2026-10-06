@@ -1,4 +1,4 @@
-import styles from "./public-ui.module.css";
+import styles from "./public-ui.module.scss";
 import type { HTMLAttributes, ReactNode } from "react";
 
 type ContainerProps = {

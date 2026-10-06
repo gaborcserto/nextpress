@@ -1,4 +1,4 @@
-import styles from "./public-ui.module.css";
+import styles from "./public-ui.module.scss";
 import type { ReactNode } from "react";
 
 export function Stack({ children, className }: { children: ReactNode; className?: string }) {

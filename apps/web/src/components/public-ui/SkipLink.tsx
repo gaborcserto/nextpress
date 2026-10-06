@@ -1,4 +1,4 @@
-import styles from "./public-ui.module.css";
+import styles from "./public-ui.module.scss";
 
 export function SkipLink({ href = "#main-content", children = "Skip to main content" }: {
   href?: `#${string}`;

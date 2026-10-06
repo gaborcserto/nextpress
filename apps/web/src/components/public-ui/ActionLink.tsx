@@ -1,4 +1,4 @@
-import styles from "./public-ui.module.css";
+import styles from "./public-ui.module.scss";
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 
 type ActionLinkProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className"> & {
