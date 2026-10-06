@@ -9,6 +9,8 @@ type DevelopmentPage = {
   blocks: RichBlock[];
   status: "DRAFT" | "PUBLISHED";
   publishedAt: Date | null;
+  inHeaderMenu?: boolean;
+  inFooterMenu?: boolean;
   taxonomies: string[];
 };
 
@@ -110,13 +112,13 @@ export const developmentPages: DevelopmentPage[] = [
     id: "dev-seed-page-about", type: "PAGE", slug: "about-nextpress",
     title: "About NextPress", excerpt: "A simple about page for future public page layouts.",
     blocks: [paragraph("NextPress is a content management project built around an editable admin and a clear boundary for public content."), heading(2, "A practical foundation"), paragraph("Pages use the same structured rich-content document as posts, so editors can work with a familiar set of blocks.")],
-    status: "PUBLISHED", publishedAt: new Date("2025-03-01T10:00:00.000Z"), taxonomies: [],
+    status: "PUBLISHED", publishedAt: new Date("2025-03-01T10:00:00.000Z"), inHeaderMenu: true, taxonomies: [],
   },
   {
     id: "dev-seed-page-contact", type: "PAGE", slug: "contact",
     title: "Contact", excerpt: "A compact page fixture with a concise heading and body.",
     blocks: [paragraph("This local example gives a future contact page a starting point. Add a real contact workflow only when the application supports one.")],
-    status: "PUBLISHED", publishedAt: new Date("2025-03-02T10:00:00.000Z"), taxonomies: [],
+    status: "PUBLISHED", publishedAt: new Date("2025-03-02T10:00:00.000Z"), inFooterMenu: true, taxonomies: [],
   },
   {
     id: "dev-seed-page-style-guide", type: "PAGE", slug: "typography-and-structured-content",

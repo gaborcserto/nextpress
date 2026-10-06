@@ -39,4 +39,24 @@ describe("PublicShell", () => {
       })
     ).toHaveAttribute("href", "/");
   });
+
+  it("keeps structural links and renders CMS header and footer links in their separate landmarks", () => {
+    render(
+      <PublicShell
+        siteName="Example Publication"
+        headerPages={[{ slug: "about", title: "About" }, { slug: "contact", title: "Contact" }]}
+        footerPages={[{ slug: "contact", title: "Contact" }]}
+      >
+        <p>Page content</p>
+      </PublicShell>
+    );
+
+    const primary = within(screen.getByRole("navigation", { name: "Primary" }));
+    expect(primary.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    expect(primary.getByRole("link", { name: "Posts" })).toHaveAttribute("href", "/posts");
+    expect(primary.getByRole("link", { name: "About" })).toHaveAttribute("href", "/pages/about");
+    expect(primary.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/pages/contact");
+    expect(within(screen.getByRole("navigation", { name: "Footer" })).getByRole("link", { name: "Contact" }))
+      .toHaveAttribute("href", "/pages/contact");
+  });
 });

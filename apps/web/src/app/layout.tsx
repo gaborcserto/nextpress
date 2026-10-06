@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { PublicShell } from "@/components/public-shell/PublicShell";
+import { getPublicPageNavigation } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { activeSkin, resolveColorMode } from "@/lib/skin";
 import type { Metadata } from "next";
@@ -29,7 +30,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getPublicSiteSettings();
+  const [settings, navigation] = await Promise.all([getPublicSiteSettings(), getPublicPageNavigation()]);
 
   return (
     <html
@@ -39,7 +40,9 @@ export default async function RootLayout({
       data-color-mode={resolveColorMode(activeSkin)}
     >
       <body>
-        <PublicShell siteName={settings.siteName}>{children}</PublicShell>
+        <PublicShell siteName={settings.siteName} headerPages={navigation.header} footerPages={navigation.footer}>
+          {children}
+        </PublicShell>
       </body>
     </html>
   );

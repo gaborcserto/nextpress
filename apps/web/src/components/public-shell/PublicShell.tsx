@@ -5,8 +5,19 @@ import { Container } from "@/components/public-ui/Container";
 import { SkipLink } from "@/components/public-ui/SkipLink";
 import type { ReactNode } from "react";
 
+type NavigationPage = { slug: string; title: string };
 
-export function PublicShell({ children, siteName }: { children: ReactNode; siteName: string }) {
+export function PublicShell({
+  children,
+  siteName,
+  headerPages = [],
+  footerPages = [],
+}: {
+  children: ReactNode;
+  siteName: string;
+  headerPages?: NavigationPage[];
+  footerPages?: NavigationPage[];
+}) {
   return (
     <>
       <SkipLink />
@@ -20,6 +31,12 @@ export function PublicShell({ children, siteName }: { children: ReactNode; siteN
               <li>
                 <Link href="/">Home</Link>
               </li>
+              <li>
+                <Link href="/posts">Posts</Link>
+              </li>
+              {headerPages.map(({ slug, title }) => (
+                <li key={slug}><Link href={`/pages/${slug}`}>{title}</Link></li>
+              ))}
             </ul>
           </nav>
         </Container>
@@ -30,6 +47,15 @@ export function PublicShell({ children, siteName }: { children: ReactNode; siteN
       <footer className={styles.footer}>
         <Container>
           <p>{siteName}</p>
+          {footerPages.length > 0 ? (
+            <nav aria-label="Footer">
+              <ul className={styles.navigation}>
+                {footerPages.map(({ slug, title }) => (
+                  <li key={slug}><Link href={`/pages/${slug}`}>{title}</Link></li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
         </Container>
       </footer>
     </>

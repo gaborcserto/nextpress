@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { findUnique, findFirst, findMany } = vi.hoisted(() => ({ findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() }));
 vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique, findFirst, findMany } } }));
 
-import { getPublishedContent, getPublishedPost, getPublishedPosts } from "./public-content.server";
+import { getPublicPageNavigation, getPublishedContent, getPublishedPage, getPublishedPost, getPublishedPosts } from "./public-content.server";
 import { publicContentPath } from "./routes";
 
 const row = {
@@ -26,6 +26,56 @@ beforeEach(() => {
 });
 
 describe("public published content boundary", () => {
+  it("reads only explicitly published pages whose publication time has arrived", async () => {
+    expect(await getPublishedPage("published")).toMatchObject({ slug: "published", publishedAt: row.publishedAt.toISOString() });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { slug: "published", type: "PAGE", status: "PUBLISHED", publishedAt: { not: null, lte: expect.any(Date) } },
+      select: expect.objectContaining({ content: true }),
+    });
+    const records: { slug: string; type: string; status: string; publishedAt: Date | null }[] = [
+      { slug: "draft", type: "PAGE", status: "DRAFT", publishedAt: row.publishedAt },
+      { slug: "future", type: "PAGE", status: "PUBLISHED", publishedAt: new Date("2999-01-01") },
+      { slug: "null-date", type: "PAGE", status: "PUBLISHED", publishedAt: null },
+      { slug: "wrong-type", type: "POST", status: "PUBLISHED", publishedAt: row.publishedAt },
+    ];
+    findFirst.mockImplementation(async ({ where }: { where: { slug: string; type: string; status: string; publishedAt: { not: null; lte: Date } } }) =>
+      records.find((item) => item.slug === where.slug && item.type === where.type && item.status === where.status
+        && item.publishedAt !== null && item.publishedAt <= where.publishedAt.lte) ?? null);
+    for (const slug of ["missing", "draft", "future", "null-date", "wrong-type"]) {
+      expect(await getPublishedPage(slug)).toBeNull();
+    }
+  });
+
+  it("returns selected header and footer pages in deterministic title order", async () => {
+    findMany.mockImplementation(async (args: {
+      where: { type: string; status: string; publishedAt: { not: null; lte: Date }; OR: { inHeaderMenu?: boolean; inFooterMenu?: boolean }[] };
+      orderBy: { title?: string; slug?: string }[];
+      select: Record<string, unknown>;
+    }) => {
+      expect(args.where).toEqual({
+        type: "PAGE", status: "PUBLISHED", publishedAt: { not: null, lte: expect.any(Date) },
+        OR: [{ inHeaderMenu: true }, { inFooterMenu: true }],
+      });
+      expect(args.orderBy).toEqual([{ title: "asc" }, { slug: "asc" }]);
+      expect(args.select).toEqual({ slug: true, title: true, inHeaderMenu: true, inFooterMenu: true });
+      const eligible = [
+        { slug: "z-contact", title: "Contact", inHeaderMenu: false, inFooterMenu: true, status: "PUBLISHED", publishedAt: new Date("2025-01-01") },
+        { slug: "about", title: "About", inHeaderMenu: true, inFooterMenu: true, status: "PUBLISHED", publishedAt: new Date("2025-01-01") },
+        { slug: "draft", title: "Draft", inHeaderMenu: true, inFooterMenu: true, status: "DRAFT", publishedAt: new Date("2025-01-01") },
+        { slug: "future", title: "Future", inHeaderMenu: true, inFooterMenu: false, status: "PUBLISHED", publishedAt: new Date("2999-01-01") },
+        { slug: "unlisted", title: "Unlisted", inHeaderMenu: false, inFooterMenu: false, status: "PUBLISHED", publishedAt: new Date("2025-01-01") },
+      ];
+      return eligible.filter((item) => item.status === args.where.status && item.publishedAt <= args.where.publishedAt.lte
+        && args.where.OR.some((flag) => (flag.inHeaderMenu && item.inHeaderMenu) || (flag.inFooterMenu && item.inFooterMenu)))
+        .sort((left, right) => left.title.localeCompare(right.title) || left.slug.localeCompare(right.slug))
+        .map(({ slug, title, inHeaderMenu, inFooterMenu }) => ({ slug, title, inHeaderMenu, inFooterMenu }));
+    });
+    expect(await getPublicPageNavigation()).toEqual({
+      header: [{ slug: "about", title: "About" }],
+      footer: [{ slug: "about", title: "About" }, { slug: "z-contact", title: "Contact" }],
+    });
+  });
+
   it("reads only explicitly published posts whose publication time has arrived", async () => {
     expect(await getPublishedPost("published")).toMatchObject({ slug: "published" });
     expect(findFirst).toHaveBeenCalledWith({

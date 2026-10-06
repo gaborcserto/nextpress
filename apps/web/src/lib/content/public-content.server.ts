@@ -29,6 +29,15 @@ const publicPostSummarySelect = {
 type PublicContentRow = Prisma.PageGetPayload<{ select: typeof publicContentSelect }>;
 type PublicPostSummaryRow = Prisma.PageGetPayload<{ select: typeof publicPostSummarySelect }>;
 
+const publicPageNavigationSelect = {
+  slug: true,
+  title: true,
+  inHeaderMenu: true,
+  inFooterMenu: true,
+} satisfies Prisma.PageSelect;
+
+type PublicPageNavigationRow = Prisma.PageGetPayload<{ select: typeof publicPageNavigationSelect }>;
+
 export type PublicContent = {
   slug: string;
   title: string;
@@ -41,6 +50,12 @@ export type PublicContent = {
 };
 
 export type PublicPublishedPost = Omit<PublicContent, "publishedAt"> & { publishedAt: string };
+export type PublicPublishedPage = Omit<PublicContent, "publishedAt"> & { publishedAt: string };
+
+export type PublicPageNavigation = {
+  header: { slug: string; title: string }[];
+  footer: { slug: string; title: string }[];
+};
 
 export type PublicPostSummary = {
   slug: string;
@@ -111,6 +126,37 @@ export async function getPublishedPost(slug: string): Promise<PublicPublishedPos
   });
   if (!row?.publishedAt) return null;
   return { ...projectPublicContent(row), publishedAt: row.publishedAt.toISOString() };
+}
+
+/** Static pages use the same strict publication boundary as public posts. */
+export async function getPublishedPage(slug: string): Promise<PublicPublishedPage | null> {
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
+  const row = await prisma.page.findFirst({
+    where: { slug, type: "PAGE", status: "PUBLISHED", publishedAt: { not: null, lte: new Date() } },
+    select: publicContentSelect,
+  });
+  if (!row?.publishedAt) return null;
+  return { ...projectPublicContent(row), publishedAt: row.publishedAt.toISOString() };
+}
+
+/** Navigation is selected only from pages currently available to the public. */
+export async function getPublicPageNavigation(): Promise<PublicPageNavigation> {
+  const rows = await prisma.page.findMany({
+    where: {
+      type: "PAGE",
+      status: "PUBLISHED",
+      publishedAt: { not: null, lte: new Date() },
+      OR: [{ inHeaderMenu: true }, { inFooterMenu: true }],
+    },
+    // The model has no menu position; title and slug give stable alphabetical ordering.
+    orderBy: [{ title: "asc" }, { slug: "asc" }],
+    select: publicPageNavigationSelect,
+  });
+  const project = ({ slug, title }: PublicPageNavigationRow) => ({ slug, title });
+  return {
+    header: rows.filter(({ inHeaderMenu }) => inHeaderMenu).map(project),
+    footer: rows.filter(({ inFooterMenu }) => inFooterMenu).map(project),
+  };
 }
 
 /** Published summaries only; limit + 1 indicates whether another bounded batch exists. */

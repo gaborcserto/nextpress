@@ -43,8 +43,8 @@ async function ensureDevelopmentContent() {
       excerpt: serialized.excerpt,
       content: serialized.content,
       publishedAt: page.publishedAt,
-      inHeaderMenu: false,
-      inFooterMenu: false,
+      inHeaderMenu: page.inHeaderMenu ?? false,
+      inFooterMenu: page.inFooterMenu ?? false,
     };
     const taxonomies = {
       create: page.taxonomies.map((slug) => ({ taxonomy: { connect: { slug } } })),

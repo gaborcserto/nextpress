@@ -28,6 +28,11 @@
   list-style: none;
 }
 
+.navigation li {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
 .main {
   min-height: 50vh;
 }
