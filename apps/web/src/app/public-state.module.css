@@ -17,6 +17,13 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-4) var(--space-6);
   margin-block-start: var(--space-6);
+}
+
+.actions a {
+  min-block-size: 2.75rem;
+  display: inline-flex;
+  align-items: center;
 }
