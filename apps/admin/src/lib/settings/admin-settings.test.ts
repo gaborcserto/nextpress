@@ -14,8 +14,15 @@ describe("admin settings contracts", () => {
       siteUrl: "",
       ogImageUrl: "",
       defaultUserRole: "SUBSCRIBER",
+      postListingMode: "PAGINATION",
+      postsPerPage: 10,
       oauthProviders: [],
     });
+  });
+
+  it("uses safe defaults when stored listing settings are missing or invalid", () => {
+    expect(normalizeSettingsForm({ postListingMode: "UNKNOWN", postsPerPage: 500 }, "SUBSCRIBER"))
+      .toMatchObject({ postListingMode: "PAGINATION", postsPerPage: 10 });
   });
 
   it("adds only explicitly entered provider secrets to the payload", () => {
@@ -25,6 +32,8 @@ describe("admin settings contracts", () => {
       siteUrl: "https://example.com",
       ogImageUrl: "",
       defaultUserRole: "AUTHOR",
+      postListingMode: "LOAD_MORE",
+      postsPerPage: 20,
       oauthProviders: [
         {
           provider: "github",
@@ -43,6 +52,8 @@ describe("admin settings contracts", () => {
       siteUrl: "https://example.com",
       ogImageUrl: "",
       defaultUserRole: "AUTHOR",
+      postListingMode: "LOAD_MORE",
+      postsPerPage: 20,
       oauthProviders: [
         { provider: "github", enabled: true, clientId: "client-id" },
       ],
@@ -52,5 +63,12 @@ describe("admin settings contracts", () => {
       buildSettingsPayload(form, { github: { clientSecret: "new-secret" } })
         .oauthProviders[0],
     ).toMatchObject({ clientSecret: "new-secret" });
+  });
+
+  it("does not build a settings payload with an out-of-range batch size", () => {
+    const form = normalizeSettingsForm({
+      siteName: "NextPress", postListingMode: "PAGINATION", postsPerPage: 10, oauthProviders: [],
+    }, "SUBSCRIBER");
+    expect(() => buildSettingsPayload({ ...form, postsPerPage: 51 }, {})).toThrow();
   });
 });

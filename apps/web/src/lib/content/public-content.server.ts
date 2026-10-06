@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma, type Prisma } from "@nextpress/db";
+import { DEFAULT_POSTS_PER_PAGE, MAX_POSTS_OFFSET, MAX_POSTS_PER_PAGE } from "@nextpress/shared";
 import { ContentSlugSchema, richContentText, type RichDocument } from "@nextpress/shared/content";
 
 import { parsePublicRichContent } from "./rich-content";
@@ -27,10 +28,6 @@ const publicPostSummarySelect = {
 
 type PublicContentRow = Prisma.PageGetPayload<{ select: typeof publicContentSelect }>;
 type PublicPostSummaryRow = Prisma.PageGetPayload<{ select: typeof publicPostSummarySelect }>;
-
-const MAX_PUBLIC_POSTS_PER_READ = 50;
-const DEFAULT_PUBLIC_POSTS_PER_READ = 5;
-const MAX_PUBLIC_POST_OFFSET = 100_000;
 
 export type PublicContent = {
   slug: string;
@@ -105,14 +102,14 @@ export async function getPublishedContent(type: "PAGE" | "POST", slug: string): 
 
 /** Published summaries only; limit + 1 indicates whether another bounded batch exists. */
 export async function getPublishedPosts({
-  limit = DEFAULT_PUBLIC_POSTS_PER_READ,
+  limit = DEFAULT_POSTS_PER_PAGE,
   offset = 0,
 }: { limit?: number; offset?: number } = {}): Promise<PublicPostBatch> {
   const boundedLimit = Number.isFinite(limit)
-    ? Math.min(MAX_PUBLIC_POSTS_PER_READ, Math.max(1, Math.floor(limit)))
-    : DEFAULT_PUBLIC_POSTS_PER_READ;
+    ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
+    : DEFAULT_POSTS_PER_PAGE;
   const skip = Number.isFinite(offset)
-    ? Math.min(MAX_PUBLIC_POST_OFFSET, Math.max(0, Math.floor(offset)))
+    ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
     : 0;
   const rows = await prisma.page.findMany({
     where: {

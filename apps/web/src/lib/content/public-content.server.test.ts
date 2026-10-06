@@ -66,7 +66,7 @@ describe("public published content boundary", () => {
     await getPublishedPosts({ limit: 500, offset: 1_000_000 });
     expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 51, skip: 100_000 });
     await getPublishedPosts({ limit: Number.NaN, offset: Number.NaN });
-    expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 6, skip: 0 });
+    expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 11, skip: 0 });
   });
 
   it.each(["PAGE", "POST"] as const)("queries only published %s content using explicit projections", async (type) => {

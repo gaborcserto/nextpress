@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { prisma } from "@nextpress/db/src/client";
+import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
 
 import { bad, ok, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
@@ -47,6 +48,8 @@ function isSettingsPayload(value: unknown): value is SettingsApiPayload {
     typeof value.siteUrl !== "string" ||
     typeof value.ogImageUrl !== "string" ||
     !isRole(value.defaultUserRole) ||
+    !PostListingModeSchema.safeParse(value.postListingMode).success ||
+    typeof value.postsPerPage !== "number" ||
     !Array.isArray(value.oauthProviders) ||
     !value.oauthProviders.every(isProviderInput)
   ) {
@@ -83,6 +86,8 @@ async function ensureSettings() {
       siteUrl: true,
       ogImageUrl: true,
       defaultUserRole: true,
+      postListingMode: true,
+      postsPerPage: true,
     },
   });
 
@@ -125,6 +130,12 @@ export const GET = withAuth(["ADMIN"], async () => {
       defaultUserRole: isRole(settings.defaultUserRole)
         ? settings.defaultUserRole
         : FALLBACK_USER_ROLE,
+      postListingMode: PostListingModeSchema.safeParse(settings.postListingMode).success
+        ? settings.postListingMode
+        : "PAGINATION",
+      postsPerPage: PostsPerPageSchema.safeParse(settings.postsPerPage).success
+        ? settings.postsPerPage
+        : 10,
       oauthProviders: OAUTH_PROVIDERS.map((provider) => {
         const row = byName.get(provider)!;
         return {
@@ -155,6 +166,9 @@ export const PUT = withAuth(["ADMIN"], async (req) => {
   }
   if (body.siteDescription.length > 1000) {
     return bad("Site description must not exceed 1000 characters");
+  }
+  if (!PostsPerPageSchema.safeParse(body.postsPerPage).success) {
+    return bad("Posts per page must be an integer between 1 and 50");
   }
   if (body.siteUrl.length > 2000 || body.ogImageUrl.length > 2000) {
     return bad("Site URL and OG image URL must not exceed 2000 characters");
@@ -209,6 +223,8 @@ export const PUT = withAuth(["ADMIN"], async (req) => {
           siteUrl: body.siteUrl.trim() || null,
           ogImageUrl: body.ogImageUrl.trim() || null,
           defaultUserRole: body.defaultUserRole,
+          postListingMode: body.postListingMode,
+          postsPerPage: body.postsPerPage,
         },
         update: {
           siteName: body.siteName.trim(),
@@ -216,6 +232,8 @@ export const PUT = withAuth(["ADMIN"], async (req) => {
           siteUrl: body.siteUrl.trim() || null,
           ogImageUrl: body.ogImageUrl.trim() || null,
           defaultUserRole: body.defaultUserRole,
+          postListingMode: body.postListingMode,
+          postsPerPage: body.postsPerPage,
         },
         select: { id: true },
       });

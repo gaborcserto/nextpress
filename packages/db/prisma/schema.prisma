@@ -45,6 +45,11 @@ enum ListingKind {
   EVENTS
 }
 
+enum PostListingMode {
+  PAGINATION
+  LOAD_MORE
+}
+
 // ---------- Auth tables ----------
 model Role {
   id    String @id @default(cuid())
@@ -125,6 +130,8 @@ model SiteSettings {
   siteDescription String? // meta description
   siteUrl         String? // canonical base url
   ogImageUrl      String? // default og:image
+  postListingMode PostListingMode @default(PAGINATION)
+  postsPerPage    Int             @default(10)
 
   defaultUserRole String @default("SUBSCRIBER") // must match Role.name
 

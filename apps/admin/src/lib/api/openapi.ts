@@ -45,6 +45,8 @@ const providerInput = object({
 const settingsProperties = {
   siteName: { ...string, maxLength: 200 }, siteDescription: { ...string, maxLength: 1000 },
   siteUrl: { ...string, maxLength: 2000 }, ogImageUrl: { ...string, maxLength: 2000 }, defaultUserRole: role,
+  postListingMode: { ...string, enum: ["PAGINATION", "LOAD_MORE"], description: "Public post archive navigation mode." },
+  postsPerPage: { type: "integer" as const, minimum: 1, maximum: 50, description: "Number of posts in each page or Load more batch." },
 };
 
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
@@ -194,7 +196,7 @@ paths["/api/admin/users/{id}/role"] = {
 };
 paths["/api/admin/settings"] = {
   get: operation("readSettings", "Settings", "Read administration settings", ref("Settings"), [401, 500], "ADMIN only. Initializes missing settings/provider rows. Credential presence flags are returned; secrets are never returned.", "protected"),
-  put: operation("updateSettings", "Settings", "Update administration settings", ref("Success"), [400, ...mutationCodes, 500], "ADMIN only. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json.", "protected", "SettingsUpdate"),
+  put: operation("updateSettings", "Settings", "Update administration settings", ref("Success"), [400, ...mutationCodes, 500], "ADMIN only. Listing mode is PAGINATION or LOAD_MORE and postsPerPage is an integer from 1 to 50. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json.", "protected", "SettingsUpdate"),
 };
 
 export const openApiDocument: OpenAPIV3.Document = {

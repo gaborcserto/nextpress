@@ -53,6 +53,16 @@ describe("OpenAPI contract", () => {
     }));
   });
 
+  it("documents the allowlisted listing mode and bounded post batch size", () => {
+    const properties = openApiDocument.components?.schemas?.SettingsUpdate;
+    expect(properties).toMatchObject({
+      properties: {
+        postListingMode: { enum: ["PAGINATION", "LOAD_MORE"] },
+        postsPerPage: { type: "integer", minimum: 1, maximum: 50 },
+      },
+    });
+  });
+
   it("derives serialized content inputs while documenting the different editor projection", () => {
     const schemas = openApiDocument.components?.schemas;
     expect(schemas?.PageCreate).toMatchObject({

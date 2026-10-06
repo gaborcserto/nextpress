@@ -14,6 +14,8 @@ describe("public site settings boundary", () => {
     findUnique.mockResolvedValue({
       siteName: " Example Publication ",
       siteDescription: " Independent reporting. ",
+      postListingMode: "LOAD_MORE",
+      postsPerPage: 25,
       id: "default",
       defaultUserRole: "ADMIN",
       siteUrl: "https://example.test",
@@ -27,33 +29,53 @@ describe("public site settings boundary", () => {
     expect(await getPublicSiteSettings()).toEqual({
       siteName: "Example Publication",
       siteDescription: "Independent reporting.",
+      postListingMode: "LOAD_MORE",
+      postsPerPage: 25,
     });
     expect(findUnique).toHaveBeenCalledWith({
       where: { id: "default" },
-      select: { siteName: true, siteDescription: true },
+      select: { siteName: true, siteDescription: true, postListingMode: true, postsPerPage: true },
     });
   });
 
   it.each([
     null,
-    { siteName: "NextPress", siteDescription: null },
-    { siteName: "", siteDescription: "" },
-    { siteName: "  ", siteDescription: "  " },
+    { siteName: "NextPress", siteDescription: null, postListingMode: "PAGINATION", postsPerPage: 10 },
+    { siteName: "", siteDescription: "", postListingMode: "PAGINATION", postsPerPage: 10 },
+    { siteName: "  ", siteDescription: "  ", postListingMode: "PAGINATION", postsPerPage: 10 },
   ])("uses existing identity defaults for missing or blank configuration: %j", async (settings) => {
     findUnique.mockResolvedValue(settings);
 
     expect(await getPublicSiteSettings()).toEqual({
       siteName: "NextPress",
       siteDescription: "A publication powered by NextPress.",
+      postListingMode: "PAGINATION",
+      postsPerPage: 10,
     });
   });
 
   it("preserves a configured name when the optional description is absent", async () => {
-    findUnique.mockResolvedValue({ siteName: "Example Publication", siteDescription: null });
+    findUnique.mockResolvedValue({
+      siteName: "Example Publication", siteDescription: null,
+      postListingMode: "UNSUPPORTED", postsPerPage: 500,
+    });
 
     expect(await getPublicSiteSettings()).toEqual({
       siteName: "Example Publication",
       siteDescription: "A publication powered by NextPress.",
+      postListingMode: "PAGINATION",
+      postsPerPage: 10,
+    });
+  });
+
+  it("defaults only the new listing fields for a settings row predating the migration", async () => {
+    findUnique.mockResolvedValue({ siteName: "Legacy publication", siteDescription: null });
+
+    expect(await getPublicSiteSettings()).toEqual({
+      siteName: "Legacy publication",
+      siteDescription: "A publication powered by NextPress.",
+      postListingMode: "PAGINATION",
+      postsPerPage: 10,
     });
   });
 

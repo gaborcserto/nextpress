@@ -1,5 +1,6 @@
 "use client";
 
+import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
 import { useRef, type FormEvent } from "react";
 import { FaSave } from "react-icons/fa";
 
@@ -26,6 +27,10 @@ import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
 const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: role }));
+const POST_LISTING_MODE_OPTIONS = [
+  { value: "PAGINATION", label: "Pagination" },
+  { value: "LOAD_MORE", label: "Load more" },
+] as const;
 
 function updateProviderAtIndex(
   previous: SettingsFormValues,
@@ -61,6 +66,9 @@ export default function SettingsScreen() {
   const credentialForm = useRef<HTMLFormElement>(null);
   const { form, setForm, loading, saving, error, save } =
     useSettingsScreen("SUBSCRIBER");
+  const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage).success
+    ? undefined
+    : "Enter a whole number from 1 to 50.";
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -177,6 +185,43 @@ export default function SettingsScreen() {
                             defaultUserRole: value as RoleName,
                           }))
                         }
+                      />
+                    </Field>
+                  </FormGrid12>
+                </Section>
+
+                <Section title="Post listing" desc="Choose how public post lists are navigated.">
+                  <FormGrid12>
+                    <Field label="Listing mode" htmlFor="post-listing-mode" span={12}>
+                      <Select
+                        id="post-listing-mode"
+                        fullWidth
+                        value={form.postListingMode}
+                        options={POST_LISTING_MODE_OPTIONS}
+                        onChangeAction={(value) => {
+                          const parsed = PostListingModeSchema.safeParse(value);
+                          if (parsed.success) {
+                            setForm((current) => ({ ...current, postListingMode: parsed.data }));
+                          }
+                        }}
+                      />
+                    </Field>
+                    <Field label="Posts per page / batch" htmlFor="posts-per-page" span={12}>
+                      <Input
+                        id="posts-per-page"
+                        type="number"
+                        fullWidth
+                        required
+                        min={1}
+                        max={50}
+                        step={1}
+                        hint="Applies to both pagination pages and Load more batches."
+                        error={postsPerPageError}
+                        value={form.postsPerPage}
+                        onChange={(event) => setForm((current) => ({
+                          ...current,
+                          postsPerPage: event.target.value === "" ? "" : event.target.valueAsNumber,
+                        }))}
                       />
                     </Field>
                   </FormGrid12>

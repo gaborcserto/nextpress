@@ -18,4 +18,31 @@ describe("SettingsScreen", () => {
     expect(screen.getByRole("textbox", { name: "github client ID" })).toBeDisabled();
     expect(screen.getByLabelText("github new secret")).toBeDisabled();
   });
+
+  it("exposes bounded public listing mode and batch controls", () => {
+    useSettingsScreen.mockReturnValue({
+      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
+      setForm: vi.fn(), loading: false, saving: false, error: null, save: vi.fn(),
+    });
+
+    render(<SettingsScreen />);
+
+    expect(screen.getByRole("combobox", { name: "Listing mode" })).toHaveValue("PAGINATION");
+    expect(screen.getByRole("option", { name: "Load more" })).toHaveValue("LOAD_MORE");
+    expect(screen.getByRole("spinbutton", { name: "Posts per page / batch" })).toHaveAttribute("min", "1");
+    expect(screen.getByRole("spinbutton", { name: "Posts per page / batch" })).toHaveAttribute("max", "50");
+  });
+
+  it("shows inline feedback for an invalid batch size", () => {
+    const form = normalizeSettingsForm(undefined, "SUBSCRIBER");
+    form.postsPerPage = 51;
+    useSettingsScreen.mockReturnValue({
+      form, setForm: vi.fn(), loading: false, saving: false, error: null, save: vi.fn(),
+    });
+
+    render(<SettingsScreen />);
+
+    expect(screen.getByRole("spinbutton", { name: "Posts per page / batch" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a whole number from 1 to 50.");
+  });
 });

@@ -74,6 +74,8 @@ function settingsPayload() {
     siteUrl: "https://example.com",
     ogImageUrl: "",
     defaultUserRole: "SUBSCRIBER",
+    postListingMode: "PAGINATION",
+    postsPerPage: 10,
     oauthProviders: providers.map((provider) => ({
       provider,
       enabled: false,
@@ -95,6 +97,8 @@ beforeEach(() => {
     siteUrl: "https://example.com",
     ogImageUrl: null,
     defaultUserRole: "SUBSCRIBER",
+    postListingMode: "PAGINATION",
+    postsPerPage: 10,
   });
   prisma.oAuthProvider.upsert.mockResolvedValue({ id: "provider-1" });
   prisma.oAuthProvider.findMany.mockResolvedValue(
@@ -209,7 +213,10 @@ describe("admin API route integration", () => {
       const body = await json(response);
 
       expect(response.status).toBe(200);
-      expect(body).toMatchObject({ siteName: "NextPress", defaultUserRole: "SUBSCRIBER" });
+      expect(body).toMatchObject({
+        siteName: "NextPress", defaultUserRole: "SUBSCRIBER",
+        postListingMode: "PAGINATION", postsPerPage: 10,
+      });
       expect(body.oauthProviders).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -234,6 +241,8 @@ describe("admin API route integration", () => {
 
       const response = await putSettings(request("PUT", {
         ...settingsPayload(),
+        postListingMode: "LOAD_MORE",
+        postsPerPage: 25,
         oauthProviders: settingsPayload().oauthProviders.map((provider) =>
           provider.provider === "google"
             ? { ...provider, enabled: true, clientId: "new-client" }
@@ -245,7 +254,9 @@ describe("admin API route integration", () => {
       expect(await json(response)).toEqual({ ok: true });
       expect(prisma.siteSettings.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          update: expect.objectContaining({ siteName: "NextPress" }),
+          update: expect.objectContaining({
+            siteName: "NextPress", postListingMode: "LOAD_MORE", postsPerPage: 25,
+          }),
         }),
       );
       expect(prisma.oAuthProvider.upsert).toHaveBeenCalledWith(
@@ -265,6 +276,10 @@ describe("admin API route integration", () => {
       ["invalid JSON", new Request("http://localhost/api/admin/settings", { method: "PUT", body: "{" })],
       ["invalid provider set", request("PUT", { ...settingsPayload(), oauthProviders: [] })],
       ["invalid URL", request("PUT", { ...settingsPayload(), siteUrl: "ftp://example.com" })],
+      ["invalid listing mode", request("PUT", { ...settingsPayload(), postListingMode: "INFINITE_SCROLL" })],
+      ["too few posts per page", request("PUT", { ...settingsPayload(), postsPerPage: 0 })],
+      ["too many posts per page", request("PUT", { ...settingsPayload(), postsPerPage: 51 })],
+      ["fractional posts per page", request("PUT", { ...settingsPayload(), postsPerPage: 1.5 })],
     ])("rejects %s with a 400 response", async (_name, req) => {
       const response = await putSettings(req, { params: {} });
 
