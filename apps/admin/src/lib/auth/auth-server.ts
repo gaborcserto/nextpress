@@ -9,6 +9,7 @@ import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { cache } from "react";
 
+import { limitAccountCreation } from "./abuse-policy.server";
 import { accountPolicy } from "./account-policy.server";
 import { OAUTH_PROVIDERS } from "./oauth-providers";
 import {
@@ -22,13 +23,26 @@ import { isRole, type RoleName } from "./roles";
 import { verifyLogout } from "./session-policy.server";
 import { unauthorized } from "@/lib/api";
 import { readBoundedMutationRequest, requireTrustedMutation } from "@/lib/api/mutation.server";
+import { authBudgets, limitMutation, type MutationLimit } from "@/lib/security/rate-limit.server";
 
 function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     baseURL: getAuthBaseURL(),
     secret: getAuthSecret(),
+    // No authoritative source IP is available. Targeted hooks also cover auth.api.
+    rateLimit: { enabled: false },
+    logger: {
+      // Provider errors may contain remote responses. Never forward their text
+      // or arguments, and do not amplify credential failures into unlimited logs.
+      log: (level) => {
+        if ((level === "warn" || level === "error") && authBudgets.consume("auth-log", 1, 60_000) === null) {
+          console.warn("Authentication operation failed");
+        }
+      },
+    },
     advanced: {
+      ipAddress: { disableIpTracking: true },
       disableCSRFCheck: false,
       disableOriginCheck: false,
       useSecureCookies: process.env.NODE_ENV === "production" || getAuthBaseURL().startsWith("https://"),
@@ -98,6 +112,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
       user: {
         create: {
           before: async (user) => {
+            limitAccountCreation();
             const email = emailSchema.safeParse(user.email);
             if (!email.success) throw new APIError("BAD_REQUEST", { code: "INVALID_EMAIL", message: "Invalid email" });
             const role = await prisma.role.findUniqueOrThrow({
@@ -252,7 +267,8 @@ type Authed = {
 
 export function withAuth<P extends Record<string, string> = Record<string, string>>(
   allowed: RoleName[],
-  handler: (req: Request, ctx: HandlerCtx<P>, auth: Authed) => Promise<Response> | Response
+  handler: (req: Request, ctx: HandlerCtx<P>, auth: Authed) => Promise<Response> | Response,
+  mutationLimit?: MutationLimit,
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
     const rejection = requireTrustedMutation(req);
@@ -264,6 +280,11 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
 
     const role = session.user.role;
     if (!hasAnyRole(role, allowed)) return unauthorized();
+
+    if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+      const throttled = limitMutation(session.user.id, mutationLimit);
+      if (throttled) return throttled;
+    }
 
     const bounded = await readBoundedMutationRequest(req);
     if (bounded.response) return bounded.response;

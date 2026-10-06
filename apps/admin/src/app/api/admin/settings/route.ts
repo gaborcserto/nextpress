@@ -247,4 +247,4 @@ export const PUT = withAuth(["ADMIN"], async (req) => {
     console.error("PUT /api/admin/settings failed");
     return oops();
   }
-});
+}, "settings");

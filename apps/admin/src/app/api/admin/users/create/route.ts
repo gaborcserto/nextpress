@@ -2,11 +2,13 @@ export const runtime = "nodejs";
 
 import { prisma } from "@nextpress/db/src/client";
 import { emailSchema, passwordSchema } from "@nextpress/shared/auth-policy";
+import { APIError } from "better-auth/api";
 import { randomUUID } from "node:crypto";
 
 import { ok, bad, conflict, oops } from "@/lib/api";
 import { getAuth, withAuth } from "@/lib/auth/auth-server";
 import { isRole, type RoleName } from "@/lib/auth/roles";
+import { tooManyRequests } from "@/lib/security/rate-limit.server";
 import { getDefaultUserRole } from "@/lib/settings/site-settings";
 
 type Body = {
@@ -93,8 +95,9 @@ export const POST = withAuth(["ADMIN"], async (req) => {
     });
 
     return ok({ ...user, roleName: user.role?.name ?? null }, 201);
-  } catch {
+  } catch (error) {
+    if (error instanceof APIError && error.statusCode === 429) return tooManyRequests(1);
     console.error("POST /api/admin/users/create failed");
     return oops();
   }
-});
+}, "users");

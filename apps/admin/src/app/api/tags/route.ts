@@ -67,7 +67,7 @@ export const POST = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
 
     return oops();
   }
-});
+}, "taxonomy");
 
 /**
  * DELETE /api/tags?id=123
@@ -93,4 +93,4 @@ export const DELETE = withAuth(["ADMIN", "EDITOR"], async (req) => {
 
     return oops();
   }
-});
+}, "taxonomy");

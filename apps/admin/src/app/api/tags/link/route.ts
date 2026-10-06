@@ -83,4 +83,4 @@ export const PUT = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req, _ctx, { s
 
     return oops();
   }
-});
+}, "taxonomy");

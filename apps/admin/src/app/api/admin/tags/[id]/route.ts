@@ -22,5 +22,6 @@ export const DELETE = withAuth(
 
       return oops();
     }
-  }
+  },
+  "taxonomy"
 );

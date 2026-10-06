@@ -101,7 +101,8 @@ export const PUT = withAuth(
       console.error("PUT /api/post/[id] failed");
       return oops();
     }
-  }
+  },
+  "content"
 );
 
 /**
@@ -122,5 +123,6 @@ export const DELETE = withAuth(
       console.error("DELETE /api/post/[id] failed");
       return oops();
     }
-  }
+  },
+  "content"
 );

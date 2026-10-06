@@ -45,7 +45,8 @@ export const POST = withAuth(
       console.error("POST /api/pages failed");
       return oops();
     }
-  }
+  },
+  "create-content"
 );
 
 /**

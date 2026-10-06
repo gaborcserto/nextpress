@@ -7,7 +7,7 @@ import { getTrustedOrigins } from "@/lib/auth/origins.server";
 
 export const MAX_MUTATION_BODY_BYTES = 5_000_000;
 
-export async function readBoundedMutationRequest(req: Request): Promise<{ request?: Request; response?: Response }> {
+export async function readBoundedMutationRequest(req: Request, maxBytes = MAX_MUTATION_BODY_BYTES): Promise<{ request?: Request; response?: Response }> {
   if (!req.body) return { request: req };
 
   const reader = req.body.getReader();
@@ -17,7 +17,7 @@ export async function readBoundedMutationRequest(req: Request): Promise<{ reques
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_MUTATION_BODY_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel();
       return { response: NextResponse.json({ error: "Request body is too large" }, { status: 413 }) };
     }

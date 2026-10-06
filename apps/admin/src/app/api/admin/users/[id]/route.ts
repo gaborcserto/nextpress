@@ -15,4 +15,4 @@ export const DELETE = withAuth(["ADMIN"], async (_req, ctx) => {
     console.error("DELETE /api/admin/users/:id failed");
     return oops();
   }
-});
+}, "users");

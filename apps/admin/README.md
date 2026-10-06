@@ -82,3 +82,90 @@ other types return 415. Trusted bodyless DELETE requests need no Content-Type.
 GET/HEAD/OPTIONS are unchanged. Better Auth routes use its own origin and media
 checks; OAuth callback formats remain library-managed. Browser fetch supplies
 Origin automatically; non-browser callers of custom mutations must supply it.
+
+## Application abuse controls
+
+The Node.js admin runtime uses bounded in-memory counters at the authentication
+hooks and selected authorized mutation handlers. Counters outlive each newly
+constructed Better Auth instance, but are local to a loaded server module.
+Processes, server bundles, workers and serverless isolates can have independent
+counters. Restarting or deploying clears them. These controls are best-effort
+local protection, not distributed throttling or DDoS protection.
+
+Credential sign-in allows five attempts per normalized email per fixed minute.
+Current-password changes and server password verification share this bucket.
+Attempts are reserved synchronously before validation and password work, including
+failures for nonexistent accounts; successful sign-in clears only that account's
+bucket. Rejected requests never prolong a cooldown. There is no permanent lockout.
+The shared credential-work budget is 60 attempts per minute across all accounts.
+Hashing and verification additionally share four concurrent slots, with immediate
+429 rejection rather than an unbounded queue. Legacy bcrypt remains supported.
+
+Credential registration allows three attempts per normalized email and ten total
+attempts per ten minutes. Duplicate and invalid registration attempts count too.
+Better Auth's user-creation hook allows 30 new accounts per hour, including OAuth
+accounts, and always assigns SUBSCRIBER. OAuth initiation, linking and callbacks
+share 60 attempts per minute. The HTTP credential/OAuth boundary additionally
+allows 120 requests per minute before body parsing or provider configuration
+queries, so malformed JSON also spends a budget. Auth bodies are capped at 16 KiB;
+signup/profile names and image URLs are capped at 200 and 2048 characters.
+
+Authorized mutations use authenticated database user IDs, independently of role:
+
+| Operation group | Fixed-window allowance per user |
+| --- | --- |
+| Page/post creation, combined | 30 per ten minutes |
+| Page/post update, publish and delete, combined | 120 per minute |
+| Tag creation, deletion and relationship changes, combined | 120 per minute |
+| User provisioning, role changes and deletion, combined | 30 per ten minutes |
+| Settings updates | 20 per minute |
+| Better Auth profile/email/link/token mutations | 30 per minute |
+| Better Auth session/account listing | 30 per minute |
+
+ADMIN has the same limits. Origin and role checks run first; accepted requests
+spend the mutation budget before body buffering or database writes. Rejected or
+invalid mutations do not refund it. Reads, logout and session revocation are
+available independently of mutation budgets; session/account listing has its own
+budget because Better Auth returns the complete account-owned set. Existing read bounds remain: 100
+content results per page, page numbers at most 10,000, 20 tag-search results,
+200-character tag queries, and 500 rows for user/tag/parent selectors. Counts and
+substring searches still cost more as the database grows; result bounds do not
+make queries constant-cost. Tag creation makes at most ten slug-collision lookups.
+There is no media upload endpoint or configured remote image-optimization source.
+
+Rate-limit responses use 429, standard Retry-After seconds and Cache-Control:
+no-store, without keys, counters or account-existence details. The password-work
+concurrency gate returns a one-second retry suggestion. Only a generic throttle
+event is logged, at most once per minute per loaded module. Better Auth warnings
+and errors are also reduced to one generic event per minute, discarding raw
+provider errors and arguments. No identities, bodies, credentials, tokens or
+OAuth codes are logged by these controls.
+
+Account and action tables each retain at most 4096 SHA-256 identity digests; the
+process-budget table retains at most 16 fixed keys. Each consume operation removes
+expired entries. If full, new keys are rejected until the earliest expiry instead
+of evicting live cooldowns. No timer, external store, schema or migration is needed.
+Idle tables stay bounded until the next request reclaims stale state. Tests clear
+the tables explicitly and use controlled clocks without sleeping.
+
+No trusted proxy topology is configured. Better Auth IP tracking and its default
+source-IP limiter are explicitly disabled; X-Forwarded-For, X-Real-IP, Forwarded,
+Host and arbitrary proxy headers are not abuse identities. Account normalization
+uses the existing email schema, with trimming and case folding; provider-specific
+alias rewriting is intentionally absent. An attacker can consume another user's
+temporary account allowance or the shared process budget. This temporary denial
+of service trade-off cannot be eliminated by inventing a source identity.
+
+Deployment must establish the ingress trust boundary before introducing source-IP
+limits: strip client-supplied forwarding headers, ensure all ingress passes through
+the trusted boundary, and configure the actual runtime/proxy chain. Global and
+per-source request/connection limits, body/time limits, bot protection and DDoS
+mitigation belong there. Multiple instances also need coordinated account limits
+at the edge or an atomic distributed store; rotating instances otherwise bypasses
+local counters. No provider or external store is selected by this repository.
+
+Recovery and verification remain uniformly unavailable (503) before account lookup
+or token creation. Before enabling delivery, add per-account and trustworthy-source
+send budgets, a shared delivery budget, and tests for token expiry, single use and
+replay using the installed Better Auth implementation. Existing disabled delivery
+must not be treated as protection for a future enabled workflow.

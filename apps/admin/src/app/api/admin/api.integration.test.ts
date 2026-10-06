@@ -1,3 +1,4 @@
+import { APIError } from "better-auth/api";
 import { describe, expect, beforeEach, it, vi } from "vitest";
 
 const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } = vi.hoisted(() => ({
@@ -182,6 +183,15 @@ describe("admin API route integration", () => {
       expect(response.status).toBe(500);
       expect(await json(response)).toEqual({ error: "Unexpected error" });
     });
+  });
+
+  it("returns retryable 429 when admin provisioning encounters saturated password work", async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    bcryptHash.mockRejectedValueOnce(new APIError("TOO_MANY_REQUESTS", { message: "Too many requests" }));
+    const response = await createUser(request("POST", { name: "New", email: "new@example.com", role: "SUBSCRIBER", password: "a long passphrase" }), { params: {} });
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
   describe("settings", () => {

@@ -16,6 +16,9 @@ vi.mock("next/headers", () => ({ headers: requestHeaders }));
 import { getAuth, withAuth, type AppAuth } from "./auth-server";
 import { verifyCredentialPassword } from "./password.server";
 import { POST as createUser } from "@/app/api/admin/users/create/route";
+import { POST as authRoute } from "@/app/api/auth/[...all]/route";
+import { accountAttempts, actionLimits, authBudgets } from "@/lib/security/rate-limit.server";
+import type { BetterAuthOptions } from "better-auth";
 
 const password = "a long passphrase";
 const origin = "http://localhost:49101";
@@ -28,6 +31,9 @@ async function call(path: string, body: unknown) {
 }
 
 beforeEach(() => {
+  accountAttempts.clear();
+  actionLimits.clear();
+  authBudgets.clear();
   vi.stubEnv("BETTER_AUTH_URL", origin);
   vi.stubEnv("NEXT_PUBLIC_BETTER_AUTH_URL", "");
   vi.stubEnv("NEXT_PUBLIC_ADMIN_URL", "");
@@ -38,7 +44,10 @@ beforeEach(() => {
   prisma.role.findUniqueOrThrow.mockResolvedValue({ id: "subscriber-role" });
   requestHeaders.mockResolvedValue(new Headers());
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 
 async function sessionRequest(auth: AppAuth, path: string, body: unknown = {}, cookie?: string, requestOrigin = origin) {
   return auth.handler(new Request(`${requestOrigin}/api/auth${path}`, {
@@ -65,6 +74,202 @@ async function registeredAuth() {
   expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(200);
   return auth;
 }
+
+describe("authentication abuse boundaries with the installed Better Auth", () => {
+  it("throttles normalized failed credentials without revealing account existence, then expires", async () => {
+    const auth = await registeredAuth();
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    const start = Date.now();
+    const verify = vi.spyOn((await auth.$context).password, "verify");
+    let failure: unknown;
+    for (let i = 0; i < 5; i++) {
+      const known = await sessionRequest(auth, "/sign-in/email", { email: i % 2 ? " USER@Example.com " : "user@example.com", password: "wrong password" });
+      const missing = await sessionRequest(auth, "/sign-in/email", { email: i % 2 ? " MISSING@Example.com " : "missing@example.com", password: "wrong password" });
+      expect(known.status).toBe(401);
+      failure = await known.json();
+      expect(await missing.json()).toEqual(failure);
+    }
+    expect(verify).toHaveBeenCalledTimes(5);
+    const throttled = await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password });
+    const missing = await sessionRequest(auth, "/sign-in/email", { email: "missing@example.com", password });
+    expect(throttled.status).toBe(429);
+    expect(missing.status).toBe(429);
+    expect(throttled.headers.get("retry-after")).toBe("60");
+    expect(await throttled.json()).toEqual(await missing.json());
+    expect(verify).toHaveBeenCalledTimes(5);
+    now.mockReturnValue(start + 59_001);
+    const stillBlocked = await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password });
+    expect(stillBlocked.status).toBe(429);
+    expect(stillBlocked.headers.get("retry-after")).toBe("1");
+    now.mockReturnValue(start + 60_000);
+    expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password })).status).toBe(200);
+  });
+
+  it("resets account attempts after success while retaining the process work budget", async () => {
+    const auth = await registeredAuth();
+    for (let i = 0; i < 4; i++) await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" });
+    expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password })).status).toBe(200);
+    for (let i = 0; i < 5; i++) expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" })).status).toBe(401);
+    expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password })).status).toBe(429);
+    for (let i = 0; i < 60; i++) authBudgets.consume("credential-work", 60, 60_000);
+    expect((await sessionRequest(auth, "/sign-in/email", { email: "different@example.com", password })).status).toBe(429);
+  });
+
+  it("reserves parallel guesses before password verification starts", async () => {
+    const auth = await registeredAuth();
+    const verify = vi.spyOn((await auth.$context).password, "verify");
+    const responses = await Promise.all(Array.from({ length: 12 }, () => sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password: "wrong" })));
+    expect(responses.filter((response) => response.status === 401)).toHaveLength(4);
+    expect(responses.filter((response) => response.status === 429)).toHaveLength(8);
+    expect(verify).toHaveBeenCalledTimes(5);
+  });
+
+  it("covers direct server API guesses and rejects malformed bodies before hashing", async () => {
+    const auth = await getAuth();
+    const hash = vi.spyOn((await auth.$context).password, "hash");
+    for (let i = 0; i < 5; i++) {
+      await expect(auth.api.signInEmail({ body: { email: "bad-email", password } })).rejects.toMatchObject({ statusCode: 400 });
+    }
+    await expect(auth.api.signInEmail({ body: { email: "other-invalid", password } })).rejects.toMatchObject({ statusCode: 429 });
+    expect(hash).not.toHaveBeenCalled();
+  });
+
+  it("bounds credential stuffing across distinct emails without trusting proxy headers", async () => {
+    const auth = await getAuth();
+    vi.spyOn((await auth.$context).password, "hash").mockResolvedValue("test-hash");
+    for (let i = 0; i < 60; i++) {
+      const response = await auth.handler(new Request(`${origin}/api/auth/sign-in/email`, {
+        method: "POST", headers: { origin, "content-type": "application/json", "x-forwarded-for": `192.0.2.${i}`, "x-real-ip": `192.0.2.${i}`, forwarded: `for=192.0.2.${i}` },
+        body: JSON.stringify({ email: `missing${i}@example.com`, password }),
+      }));
+      expect(response.status).toBe(401);
+    }
+    const blocked = await sessionRequest(auth, "/sign-in/email", { email: "another@example.com", password });
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
+    expect(auth.options.advanced?.ipAddress?.disableIpTracking).toBe(true);
+    expect(auth.options.rateLimit?.enabled).toBe(false);
+  });
+
+  it("throttles repeated signup uniformly, preserving SUBSCRIBER and expiry", async () => {
+    const auth = await getAuth();
+    const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    const start = Date.now();
+    for (let i = 0; i < 3; i++) {
+      expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: " USER@example.com ", password })).status).toBe(200);
+    }
+    const blocked = await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password });
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBe("600");
+    expect(db.User).toHaveLength(1);
+    expect(db.User[0]).toMatchObject({ roleId: "subscriber-role" });
+    for (let i = 0; i < 3; i++) expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "missing@example.com", password: "short" })).status).toBe(400);
+    const invalidBlocked = await sessionRequest(auth, "/sign-up/email", { name: "User", email: "missing@example.com", password });
+    expect(invalidBlocked.status).toBe(429);
+    expect(await invalidBlocked.json()).toEqual(await blocked.json());
+    now.mockReturnValue(start + 600_000);
+    expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(200);
+  });
+
+  it("bounds signup amplification across different identities before hashing", async () => {
+    const auth = await getAuth();
+    const hash = vi.spyOn((await auth.$context).password, "hash");
+    for (let i = 0; i < 10; i++) expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: `new${i}@example.com`, password: "short" })).status).toBe(400);
+    expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "new@example.com", password })).status).toBe(429);
+    expect(hash).not.toHaveBeenCalled();
+    expect(db.User).toHaveLength(0);
+  });
+
+  it("shares credential budgets with password change and server password verification", async () => {
+    const auth = await registeredAuth();
+    const { cookie } = await signIn(auth);
+    for (let i = 0; i < 5; i++) {
+      const response = await sessionRequest(auth, "/change-password", { currentPassword: "wrong", newPassword: "another long passphrase" }, cookie);
+      expect(response.status).toBe(400);
+    }
+    expect((await sessionRequest(auth, "/change-password", { currentPassword: password, newPassword: "another long passphrase" }, cookie)).status).toBe(429);
+    await expect(auth.api.verifyPassword({ headers: new Headers({ cookie }), body: { password } })).rejects.toMatchObject({ statusCode: 429 });
+    expect((await sessionRequest(auth, "/sign-in/email", { email: "user@example.com", password })).status).toBe(429);
+  });
+
+  it("caps OAuth state initiation and new-account creation", async () => {
+    prisma.oAuthProvider.findMany.mockResolvedValue([{ provider: "google", enabled: true, clientId: "test-client", clientSecret: "test-secret" }]);
+    const auth = await getAuth();
+    for (let i = 0; i < 60; i++) authBudgets.consume("oauth-work", 60, 60_000);
+    expect((await sessionRequest(auth, "/sign-in/social", { provider: "google", callbackURL: "/admin" })).status).toBe(429);
+    expect(db.verification).toHaveLength(0);
+    for (let i = 0; i < 30; i++) authBudgets.consume("account-creation", 30, 3_600_000);
+    expect((await sessionRequest(auth, "/sign-up/email", { name: "User", email: "user@example.com", password })).status).toBe(429);
+    expect(db.User).toHaveLength(0);
+  });
+
+  it("keeps recovery disabled without tokens regardless of exhausted budgets", async () => {
+    const auth = await getAuth();
+    for (let i = 0; i < 120; i++) authBudgets.consume("auth-ingress", 120, 60_000);
+    for (const email of ["user@example.com", "missing@example.com"]) {
+      expect((await sessionRequest(auth, "/request-password-reset", { email })).status).toBe(503);
+    }
+    expect(db.verification).toHaveLength(0);
+  });
+
+  it("bounds raw malformed HTTP requests before provider/database work", async () => {
+    for (let i = 0; i < 120; i++) await authRoute(new Request(`${origin}/api/auth/sign-in/email`, {
+      method: "POST", headers: { origin, "content-type": "application/json" }, body: "{",
+    }));
+    prisma.oAuthProvider.findMany.mockClear();
+    const response = await authRoute(new Request(`${origin}/api/auth/sign-in/email`, {
+      method: "POST", headers: { origin, "content-type": "application/json" }, body: "{",
+    }));
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBeTruthy();
+    expect(prisma.oAuthProvider.findMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized auth bodies before parsing or querying providers", async () => {
+    const response = await authRoute(new Request(`${origin}/api/auth/sign-up/email`, {
+      method: "POST", headers: { origin, "content-type": "application/json" }, body: "x".repeat(16_385),
+    }));
+    expect(response.status).toBe(413);
+    expect(prisma.oAuthProvider.findMany).not.toHaveBeenCalled();
+  });
+
+  it("bounds persisted registration profile fields", async () => {
+    for (const fields of [{ name: "x".repeat(201) }, { image: "x".repeat(2049) }]) {
+      expect((await call("/sign-up/email", { name: "User", email: "user@example.com", password, ...fields })).status).toBe(400);
+    }
+    expect(db.User).toHaveLength(0);
+  });
+
+  it("logs authentication failures with bounded generic events and discards sensitive arguments", async () => {
+    const auth = await getAuth();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const options: BetterAuthOptions = auth.options;
+    const log = options.logger?.log;
+    if (!log) throw new Error("Missing safe authentication logger");
+    for (let i = 0; i < 100; i++) log("error", "OAuth code=secret", { password: "secret", token: "secret" });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith("Authentication operation failed");
+  });
+
+  it("limits complete session/account listings while preserving revocation", async () => {
+    const auth = await registeredAuth();
+    const { cookie } = await signIn(auth);
+    const headers = new Headers({ cookie });
+    for (let i = 0; i < 30; i++) await expect(auth.api.listSessions({ headers })).resolves.toHaveLength(1);
+    await expect(auth.api.listSessions({ headers })).rejects.toMatchObject({ statusCode: 429 });
+    await expect(auth.api.listUserAccounts({ headers })).rejects.toMatchObject({ statusCode: 429 });
+    expect((await sessionRequest(auth, "/sign-out", {}, cookie)).status).toBe(200);
+    expect(db.Session).toHaveLength(0);
+  });
+
+  it("bounds authenticated profile mutations by verified user identity", async () => {
+    const auth = await registeredAuth();
+    const { cookie } = await signIn(auth);
+    for (let i = 0; i < 30; i++) expect((await sessionRequest(auth, "/update-user", { name: "Updated" }, cookie)).status).toBe(200);
+    expect((await sessionRequest(auth, "/update-user", { name: "Updated again" }, cookie)).status).toBe(429);
+    expect(db.User[0]?.name).toBe("Updated");
+  });
+});
 
 describe("session lifecycle with the installed Better Auth", () => {
   it("preserves credential callbacks and library-managed OAuth destination validation", async () => {

@@ -3,6 +3,8 @@ import "server-only";
 import { emailSchema, passwordSchema, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 
+import { authAbusePolicy } from "./abuse-policy.server";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -18,12 +20,23 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
     });
   }
 
+  await authAbusePolicy(ctx);
+
   const body: unknown = ctx.body;
   if (!isRecord(body)) return;
   const input = body;
 
   if (ctx.path === "/sign-up/email" && ("role" in input || "roleId" in input)) {
     throw new APIError("BAD_REQUEST", { code: "INVALID_INPUT", message: "Role assignment is not allowed" });
+  }
+
+  if (ctx.path === "/sign-up/email" || ctx.path === "/update-user") {
+    if (typeof input.name === "string" && input.name.length > 200) {
+      throw new APIError("BAD_REQUEST", { code: "INVALID_INPUT", message: "Name is too long" });
+    }
+    if (typeof input.image === "string" && input.image.length > 2048) {
+      throw new APIError("BAD_REQUEST", { code: "INVALID_INPUT", message: "Image URL is too long" });
+    }
   }
 
   const normalized = { ...input };

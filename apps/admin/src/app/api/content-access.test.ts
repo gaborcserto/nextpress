@@ -13,7 +13,9 @@ import { GET as readLinks, PUT as replaceTags } from "./tags/link/route";
 import { POST as createTag, DELETE as deleteTag } from "./tags/route";
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
 import type { RoleName } from "@/lib/auth/roles";
+import { actionLimits } from "@/lib/security/rate-limit.server";
 import type { BetterAuthOptions } from "better-auth";
+
 
 const { prisma, session, configureAuth } = vi.hoisted(() => ({
   prisma: {
@@ -68,6 +70,7 @@ function request(method = "GET", body?: unknown, query = "") {
 function context(id: string) { return { params: Promise.resolve({ id }) }; }
 
 beforeEach(() => {
+  actionLimits.clear();
   vi.resetAllMocks();
   role = null;
   records = [content("page-draft", "PAGE", "DRAFT"), content("page-live", "PAGE", "PUBLISHED"),
@@ -307,6 +310,40 @@ describe("parent and taxonomy access boundaries", () => {
     expect((await deleteTag(request("DELETE", undefined, "?id=tag-1"), context(""))).status).toBe(401);
     expect((await deleteAdminTag(request("DELETE"), context("tag-1"))).status).toBe(401);
     expect(prisma.taxonomy.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("authorized mutation abuse limits", () => {
+  it.each(["ADMIN", "EDITOR", "AUTHOR"] as const)("bounds %s content creation across page and post routes before persistence", async (viewer) => {
+    role = viewer;
+    for (let i = 0; i < 30; i++) {
+      const route = i % 2 ? createPage : createPost;
+      expect((await route(request("POST", {}), context(""))).status).toBe(400);
+    }
+    const blocked = await createPage(request("POST", {}), context(""));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
+    expect(prisma.page.create).not.toHaveBeenCalled();
+    expect((await listPages(request())).status).toBe(200);
+  });
+
+  it("combines both tag deletion routes into one user budget", async () => {
+    role = "ADMIN";
+    prisma.taxonomy.delete.mockResolvedValue({ id: "tag", type: "TAG", name: "Tag", slug: "tag" });
+    for (let i = 0; i < 120; i++) {
+      const response = i % 2 ? await deleteTag(request("DELETE", undefined, "?id=tag"), context("")) : await deleteAdminTag(request("DELETE"), context("tag"));
+      expect(response.status).toBe(200);
+    }
+    expect((await deleteAdminTag(request("DELETE"), context("tag"))).status).toBe(429);
+    expect(prisma.taxonomy.delete).toHaveBeenCalledTimes(120);
+  });
+
+  it("shares user-management limits across provisioning, role changes and deletion", async () => {
+    role = "ADMIN";
+    for (let i = 0; i < 30; i++) expect((await createUser(request("POST", {}), context(""))).status).toBe(400);
+    expect((await updateUserRole(request("PATCH", { role: "AUTHOR" }), context("user"))).status).toBe(429);
+    expect((await deleteUser(request("DELETE"), context("user"))).status).toBe(429);
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
   });
 });
 

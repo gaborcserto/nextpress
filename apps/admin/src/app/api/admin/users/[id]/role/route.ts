@@ -34,4 +34,4 @@ export const PATCH = withAuth(["ADMIN"], async (_req, ctx) => {
     console.error("PATCH /api/admin/users/:id/role failed");
     return oops();
   }
-});
+}, "users");

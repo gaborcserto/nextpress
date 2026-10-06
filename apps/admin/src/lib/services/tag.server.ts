@@ -82,7 +82,7 @@ export async function createTagService(rawName: string): Promise<TagDto> {
   const name = parsed.data.name;
 
   // 2) Return existing if one matches case-insensitively
-  const [existing] = await tryCatch(findTagByNameInsensitive(name));
+  const existing = await findTagByNameInsensitive(name);
   if (existing) return existing;
 
   // 3) Generate unique slug
@@ -90,11 +90,12 @@ export async function createTagService(rawName: string): Promise<TagDto> {
   let slug = slugBase;
   let counter = 1;
 
-  while (true) {
-    const [found] = await tryCatch(findTagBySlug(slug));
+  while (counter <= 10) {
+    const found = await findTagBySlug(slug);
     if (!found) break;
     slug = `${slugBase}-${++counter}`;
   }
+  if (counter > 10) throw new ValidationError("Unable to create tag with this name");
 
   // 4) Create and return tag
   return unwrapResult(
