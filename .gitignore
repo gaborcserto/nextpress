@@ -103,8 +103,3 @@ packages/**/dist/
 # ───────────────────────────────
 
 packages/**/generated/prisma/
-packages/**/prisma/migrations/*
-!packages/db/prisma/migrations/20260929120000_add_site_settings/
-!packages/db/prisma/migrations/20260929120000_add_site_settings/migration.sql
-!packages/db/prisma/migrations/20261006120000_add_refresh_token_expiry/
-!packages/db/prisma/migrations/20261006120000_add_refresh_token_expiry/migration.sql

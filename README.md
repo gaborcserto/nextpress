@@ -42,7 +42,7 @@ npm run admin:bootstrap
 npm run db:seed
 ```
 
-`db:seed` creates editable development posts, pages, and tags using `packages/db/.env`. It requires `DATABASE_URL` and `ALLOW_DEVELOPMENT_CONTENT_SEED=true`, is restricted to the local `cms` database, and always rejects `NODE_ENV=production`. Reruns update seed-owned records using stable IDs and slugs; they never reset the database or replace unrelated records. Authors are optional, so no administrator credentials are needed.
+`db:seed` creates editable development posts, pages, and tags using `packages/db/.env`. It requires `DATABASE_URL` and `ALLOW_DEVELOPMENT_CONTENT_SEED=true`, is restricted to local PostgreSQL databases named `cms` or `nextpress_dev_verify_` followed by lowercase letters, digits, or underscores, and always rejects `NODE_ENV=production`. Reruns update seed-owned records using stable IDs and slugs; they never reset the database or replace unrelated records. Authors are optional, so no administrator credentials are needed.
 
 To provision the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/admin/.env`, then run `npm run admin:bootstrap`. This separate command loads only the admin environment and ensures roles, site settings, and the administrator's credential account. Existing password hashes and settings are preserved. Each workspace keeps its own `DATABASE_URL`: the database package for Prisma and content seeding, and each application for its runtime. Point them at the same local database for development.
 
