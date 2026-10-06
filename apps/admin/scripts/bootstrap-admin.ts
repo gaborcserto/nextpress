@@ -1,8 +1,6 @@
 import { prisma } from "@nextpress/db";
 import { hashPassword } from "better-auth/crypto";
 
-import { getAdminBootstrapCredentials } from "../src/lib/auth/admin-bootstrap-policy";
-
 async function ensureRoles() {
   const roles = ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] as const;
 
@@ -54,6 +52,7 @@ async function ensureSiteSettings() {
 }
 
 async function main() {
+  const { getAdminBootstrapCredentials } = await import("./admin-bootstrap-policy");
   const { email, password: pass } = getAdminBootstrapCredentials(process.env);
 
   const adminRole = await ensureRoles();

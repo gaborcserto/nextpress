@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { adminContentSecurityPolicy, adminSecurityHeaders } from "./headers";
 import nextConfig from "../../../next.config";
@@ -9,6 +9,23 @@ describe("admin HTTP security policy", () => {
     expect(await nextConfig.headers?.()).toEqual([
       { source: "/:path*", headers: adminSecurityHeaders(false) },
     ]);
+  });
+
+  it("loads normal Next configuration without administrator bootstrap credentials", async () => {
+    vi.stubEnv("ADMIN_EMAIL", "");
+    vi.stubEnv("ADMIN_PASSWORD", "");
+    vi.resetModules();
+
+    try {
+      const { default: config } = await import("../../../next.config");
+
+      expect(await config.headers?.()).toEqual([
+        { source: "/:path*", headers: adminSecurityHeaders(false) },
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 
   it("sets conservative browser protections and production-only host-scoped HSTS", () => {
