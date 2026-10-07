@@ -74,7 +74,37 @@ describe("Posts archive", () => {
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByRole("button", { name: "Load more posts" })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "A first story" })).toHaveLength(1);
     expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 2, offset: 0 });
+  });
+
+  it("renders the initial post once with pagination controls", async () => {
+    getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: true });
+
+    render(await PostsPage({ searchParams: Promise.resolve({}) }));
+
+    expect(screen.getAllByRole("link", { name: "A first story" })).toHaveLength(1);
+    expect(screen.getByRole("navigation", { name: "Post archive pages" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("href", "/posts?page=2");
+  });
+
+  it("replaces Load more state when server navigation changes the archive page", async () => {
+    getPublicSiteSettings.mockResolvedValue({ postListingMode: "LOAD_MORE", postsPerPage: 2 });
+    const pageOne = { ...post, slug: "page-one", title: "Page one story" };
+    const pageTwo = { ...post, slug: "page-two", title: "Page two story" };
+    getPublishedPosts.mockResolvedValueOnce({ posts: [pageTwo], hasMore: false });
+
+    const { rerender } = render(await PostsPage({ searchParams: Promise.resolve({ page: "2" }) }));
+    expect(screen.getByRole("link", { name: "Page two story" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load more posts" })).not.toBeInTheDocument();
+
+    getPublishedPosts.mockResolvedValueOnce({ posts: [pageOne], hasMore: true });
+    rerender(await PostsPage({ searchParams: Promise.resolve({}) }));
+
+    expect(screen.getByRole("link", { name: "Page one story" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Page two story" })).not.toBeInTheDocument();
+    expect(screen.getByText("1")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Load more posts" })).toBeInTheDocument();
   });
 
   it("shows the intentional empty state for an empty archive", async () => {

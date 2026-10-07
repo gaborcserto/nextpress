@@ -104,19 +104,6 @@ function projectPublicPostSummary(row: PublicPostSummaryRow): PublicPostSummary 
   };
 }
 
-/** No session, admin endpoint, ID fallback, or cross-request cache participates in public reads. */
-export async function getPublishedContent(type: "PAGE" | "POST", slug: string): Promise<PublicContent | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
-  const row = await prisma.page.findUnique({
-    where: {
-      slug, type, status: "PUBLISHED",
-      OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
-    },
-    select: publicContentSelect,
-  });
-  return row ? projectPublicContent(row) : null;
-}
-
 /** A public post must have an explicit publication time at or before this request. */
 export async function getPublishedPost(slug: string): Promise<PublicPublishedPost | null> {
   if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;

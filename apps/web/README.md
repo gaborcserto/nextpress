@@ -1,6 +1,8 @@
 # Public web application
 
-The web workspace is the public-facing Next.js application. Its current implementation is the default Next.js starter home page; CMS content is not yet rendered here.
+The web workspace is the server-rendered public Next.js application. It reads published CMS content through server-only Prisma access and explicit public projections; it does not call admin APIs or expose database access to the browser.
+
+The public routes include a CMS-driven Home with latest posts, a bounded `/posts` archive with configurable Pagination or progressive Load More, published `/posts/[slug]` details, and standard published `/pages/[slug]` pages. Published CMS pages can appear independently in the header and footer navigation. Empty, not-found, and recoverable error states provide navigation back into the site.
 
 Run it from the repository root with:
 
@@ -26,11 +28,12 @@ through `src/lib/settings/public-site-settings.server.ts`, following the existin
 server-only public content access pattern. Web does not call admin APIs or import
 admin code, and no public settings endpoint is needed.
 
-`PublicSiteSettings` exposes only `siteName` and `siteDescription`. Both the Prisma
-selection and returned object allow-list these fields. Roles, identifiers,
-timestamps, OAuth providers and credentials stay outside the public contract;
-`siteUrl` and `ogImageUrl` are also excluded until a public feature needs them.
-Adding a persistence field does not add it to the public projection.
+`PublicSiteSettings` exposes only the site identity (`siteName` and
+`siteDescription`), archive listing mode (`postListingMode`), and page/batch size
+(`postsPerPage`). Both the Prisma selection and returned object allow-list these
+fields. Roles, identifiers, timestamps, OAuth providers and credentials stay
+outside the public contract; adding a persistence field does not add it to the
+public projection.
 
 The root layout passes the name to the existing header/footer and uses the name
 and description for its existing metadata. Rendering is request-time so admin

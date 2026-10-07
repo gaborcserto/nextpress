@@ -33,11 +33,17 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
       </header>
       <section aria-labelledby="archive-list-title">
         <h2 className={styles.listHeading} id="archive-list-title">Recent posts</h2>
-        <PostList posts={posts} />
+        {settings.postListingMode === "LOAD_MORE" && posts.length > 0
+          ? <LoadMorePostList
+              key={`${page}:${posts.map(({ slug }) => slug).join(",")}`}
+              posts={posts}
+              page={page}
+              hasMore={hasMore}
+              postsPerPage={settings.postsPerPage}
+            />
+          : <PostList posts={posts} />}
       </section>
-      {posts.length === 0 ? null : settings.postListingMode === "LOAD_MORE" ? (
-        <LoadMorePostList posts={posts} page={page} hasMore={hasMore} postsPerPage={settings.postsPerPage} />
-      ) : (
+      {posts.length === 0 || settings.postListingMode === "LOAD_MORE" ? null : (
         <nav className={postListStyles.archiveNavigation} aria-label="Post archive pages">
           {page > 1 ? <Link href={page === 2 ? "/posts" : `/posts?page=${page - 1}`}>Previous page</Link> : <span aria-hidden="true" />}
           <p>Page <span aria-current="page">{page}</span></p>

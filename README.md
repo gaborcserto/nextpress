@@ -1,11 +1,11 @@
 # NextPress
 
-NextPress is an npm workspace monorepo for a Next.js content-management project. The current implementation is centered on the authenticated admin application and its PostgreSQL-backed content and settings foundation. The public web application is still the default Next.js starter page; it does not yet render the CMS content.
+NextPress is an npm workspace monorepo for a Next.js content-management project. It includes an authenticated admin application and a server-rendered public frontend backed by PostgreSQL. The public site renders CMS-driven Home and post archives, post detail and standard static pages, and page navigation configured in the CMS.
 
 ## Repository structure
 
 - `apps/admin` - authenticated administration application, admin UI, Better Auth integration, and API route handlers for content, taxonomy, users, and settings.
-- `apps/web` - public-facing Next.js application. It currently contains the starter home page.
+- `apps/web` - public-facing Next.js application with CMS-driven routes, archive pagination or progressive Load More, published page navigation, and public error and empty states.
 - `packages/db` - Prisma schema, migrations, generated client integration, seed logic, and database helpers for PostgreSQL.
 - `packages/shared` - shared TypeScript exports and utilities.
 - `packages/eslint-config` - shared ESLint flat configuration used by the workspaces.

@@ -1,10 +1,10 @@
 import { serializeRichContent } from "@nextpress/shared/content";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findUnique, findFirst, findMany } = vi.hoisted(() => ({ findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findUnique, findFirst, findMany } } }));
+const { findFirst, findMany } = vi.hoisted(() => ({ findFirst: vi.fn(), findMany: vi.fn() }));
+vi.mock("@nextpress/db", () => ({ prisma: { page: { findFirst, findMany } } }));
 
-import { getPublicPageNavigation, getPublishedContent, getPublishedPage, getPublishedPost, getPublishedPosts } from "./public-content.server";
+import { getPublicPageNavigation, getPublishedPage, getPublishedPost, getPublishedPosts } from "./public-content.server";
 import { publicContentPath } from "./routes";
 
 const row = {
@@ -20,7 +20,6 @@ const row = {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  findUnique.mockResolvedValue(row);
   findFirst.mockResolvedValue(row);
   findMany.mockResolvedValue([]);
 });
@@ -141,72 +140,27 @@ describe("public published content boundary", () => {
     expect(findMany.mock.lastCall?.[0]).toMatchObject({ take: 11, skip: 0 });
   });
 
-  it.each(["PAGE", "POST"] as const)("queries only published %s content using explicit projections", async (type) => {
-    const result = await getPublishedContent(type, "published");
-    expect(findUnique).toHaveBeenCalledWith({
-      where: { slug: "published", type, status: "PUBLISHED", OR: [{ publishedAt: null }, { publishedAt: { lte: expect.any(Date) } }] },
-      select: {
-        slug: true, title: true, excerpt: true, content: true, publishedAt: true,
-        author: { select: { name: true } },
-        taxonomies: { select: { taxonomy: { select: { type: true, slug: true, name: true } } } },
-        cover: { select: { url: true, alt: true, mime: true, width: true, height: true } },
-      },
-    });
-    expect(result).toEqual({
-      slug: "published", title: "Published", summary: "Legacy summary",
-      content: { version: 1, blocks: [{ type: "paragraph", children: [{ text: "Body", bold: true }] }] },
-      publishedAt: "2024-01-01T00:00:00.000Z", author: { name: "Author" },
-      taxonomies: [{ type: "TAG", name: "News", slug: "news" }],
-      cover: { url: "/uploads/cover.png", alt: "Cover", width: 800, height: 600 },
-    });
-  });
-
-  it("filters draft, future and wrong-type records and accepts historical null dates", async () => {
-    const records = [
-      { ...row, type: "POST", slug: "draft", status: "DRAFT" },
-      { ...row, type: "POST", slug: "future", publishedAt: new Date("2999-01-01") },
-      { ...row, type: "PAGE", slug: "wrong-type" },
-      { ...row, type: "POST", slug: "historical", publishedAt: null },
-    ];
-    findUnique.mockImplementation(async ({ where }: { where: {
-      slug: string; type: string; status: string;
-      OR: ({ publishedAt: null } | { publishedAt: { lte: Date } })[];
-    } }) => records.find((item) => item.slug === where.slug && item.type === where.type
-      && item.status === where.status && where.OR.some(({ publishedAt }) =>
-        publishedAt === null ? item.publishedAt === null
-          : item.publishedAt !== null && item.publishedAt <= publishedAt.lte)) ?? null);
-    for (const slug of ["missing", "draft", "future", "wrong-type"]) {
-      expect(await getPublishedContent("POST", slug)).toBeNull();
-    }
-    expect(await getPublishedContent("POST", "historical")).toMatchObject({ slug: "historical", publishedAt: null });
-  });
-
   it.each(["UPPER", "bad/slug", "%2f", " padded "])("does not query invalid slug %s", async (slug) => {
-    expect(await getPublishedContent("PAGE", slug)).toBeNull();
-    expect(findUnique).not.toHaveBeenCalled();
+    expect(await getPublishedPage(slug)).toBeNull();
+    expect(findFirst).not.toHaveBeenCalled();
   });
 
   it.each(["javascript:alert(1)", "//external.test/image", "https://external.test/image", "/\\external.test/image"])("omits unsupported cover URL %s", async (url) => {
-    findUnique.mockResolvedValue({ ...row, cover: { ...row.cover, url } });
-    expect((await getPublishedContent("POST", "published"))?.cover).toBeNull();
-  });
-
-  it("preserves nullable legacy publication dates and authors", async () => {
-    findUnique.mockResolvedValue({ ...row, publishedAt: null, author: null, cover: null });
-    expect(await getPublishedContent("PAGE", "published")).toMatchObject({ publishedAt: null, author: null, cover: null });
+    findFirst.mockResolvedValue({ ...row, cover: { ...row.cover, url } });
+    expect((await getPublishedPost("published"))?.cover).toBeNull();
   });
 
   it("keeps published records readable when body or summary content is corrupt", async () => {
-    findUnique.mockResolvedValue({ ...row, content: '{"version":2}', excerpt: "[" });
-    expect(await getPublishedContent("PAGE", "published")).toMatchObject({
+    findFirst.mockResolvedValue({ ...row, content: '{"version":2}', excerpt: "[" });
+    expect(await getPublishedPage("published")).toMatchObject({
       slug: "published", summary: "",
       content: { version: 1, blocks: [{ type: "paragraph", children: [{ text: "" }] }] },
     });
   });
 
   it("propagates database failures without treating them as missing content", async () => {
-    findUnique.mockRejectedValue(new Error("Database unavailable"));
-    await expect(getPublishedContent("PAGE", "published")).rejects.toThrow("Database unavailable");
+    findFirst.mockRejectedValue(new Error("Database unavailable"));
+    await expect(getPublishedPage("published")).rejects.toThrow("Database unavailable");
   });
 });
 
