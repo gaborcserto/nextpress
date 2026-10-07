@@ -1,3 +1,5 @@
+import { resolveSkin, type Skin, type SkinId } from "@nextpress/shared";
+
 export type ColorMode = "light" | "dark";
 export type ColorModePreference = ColorMode | "system";
 
@@ -17,8 +19,7 @@ export type SkinColorMode =
     };
 
 /** Trusted application configuration; each identity has a compiled skin stylesheet. */
-export type PublicSkin = {
-  readonly id: string;
+export type PublicSkin = Skin & {
   readonly colorMode: SkinColorMode;
 };
 
@@ -31,8 +32,14 @@ export const defaultSkin = {
   },
 } as const satisfies PublicSkin;
 
-// Site configuration can select another compiled skin here in a later phase.
-export const activeSkin = defaultSkin;
+const publicSkins: Readonly<Record<SkinId, PublicSkin>> = { default: defaultSkin };
+
+// Public selection is independent of the admin selection and color-mode preference.
+export const publicSkinId: SkinId = "default";
+
+export function resolvePublicSkin(identity: unknown): PublicSkin {
+  return publicSkins[resolveSkin(identity).id];
+}
 
 /** Keep system unresolved for CSS; ignore preferences that the skin cannot support. */
 export function resolveColorMode(

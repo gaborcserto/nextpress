@@ -1,10 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import PublicError from "./error";
 import GlobalError from "./global-error";
 
 describe("Public error recovery", () => {
+  it("renders the same default skin attributes when the root layout fails", () => {
+    const markup = renderToStaticMarkup(<GlobalError error={new Error("root failure")} reset={vi.fn()} />);
+    const html = new DOMParser().parseFromString(markup, "text/html").documentElement;
+    expect(html.getAttribute("data-skin")).toBe("default");
+    expect(html.getAttribute("data-color-mode")).toBe("light");
+    expect(html.hasAttribute("data-theme")).toBe(false);
+  });
+
   it("keeps unexpected route failures generic and provides retry and navigation", () => {
     const reset = vi.fn();
     render(<PublicError error={new Error("secret database details")} reset={reset} />);

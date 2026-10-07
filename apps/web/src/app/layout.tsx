@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { PublicShell } from "@/components/public-shell/PublicShell";
 import { getPublicPageNavigation } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
-import { activeSkin, resolveColorMode } from "@/lib/skin";
+import { publicSkinId, resolvePublicSkin, resolveColorMode } from "@/lib/skin";
 import type { Metadata } from "next";
 import "./globals.css";
 import "./skins/default.css";
@@ -31,13 +31,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const [settings, navigation] = await Promise.all([getPublicSiteSettings(), getPublicPageNavigation()]);
+  const skin = resolvePublicSkin(publicSkinId);
 
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
-      data-skin={activeSkin.id}
-      data-color-mode={resolveColorMode(activeSkin)}
+      data-skin={skin.id}
+      data-color-mode={resolveColorMode(skin)}
     >
       <body>
         <PublicShell siteName={settings.siteName} headerPages={navigation.header} footerPages={navigation.footer}>

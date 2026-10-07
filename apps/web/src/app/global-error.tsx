@@ -4,13 +4,14 @@ import Link from "next/link";
 
 import styles from "./public-state.module.css";
 import { ActionButton } from "@/components/public-ui/ActionButton";
-import { activeSkin, resolveColorMode } from "@/lib/skin";
+import { publicSkinId, resolvePublicSkin, resolveColorMode } from "@/lib/skin";
 import "./globals.css";
 import "./skins/default.css";
 
 export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const skin = resolvePublicSkin(publicSkinId);
   return (
-    <html lang="en" data-skin={activeSkin.id} data-color-mode={resolveColorMode(activeSkin)}>
+    <html lang="en" data-skin={skin.id} data-color-mode={resolveColorMode(skin)}>
       <body>
         <main className={styles.state}>
           <h1>This page could not be loaded</h1>
