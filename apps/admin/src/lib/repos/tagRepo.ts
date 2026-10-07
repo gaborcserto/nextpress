@@ -166,7 +166,7 @@ export async function setTagsForPage(
 
 /**
  * Tag DTO extended with usage count.
- * `usedCount` represents how many pages/posts reference this tag.
+ * `usedCount` represents how many posts reference this tag.
  */
 export type TagWithUsageDto = TagDto & { usedCount: number };
 
@@ -183,7 +183,7 @@ export async function listTagsWithUsage(): Promise<TagWithUsageDto[]> {
       id: true,
       name: true,
       slug: true,
-      _count: { select: { pages: true } },
+      _count: { select: { pages: { where: { page: { type: "POST" } } } } },
     },
   });
 

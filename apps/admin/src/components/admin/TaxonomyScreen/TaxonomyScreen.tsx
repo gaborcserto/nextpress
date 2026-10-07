@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 
 import type { TagUsageRow } from "./TaxonomyScreen.types";
+import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
   deleteTagAdminAction,
@@ -30,6 +31,7 @@ type ConfirmPayload = { id: string; name: string; usedCount: number };
 export default function TaxonomyScreen() {
   const [items, setItems] = useState<TagUsageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
   const slug = slugify(name);
@@ -48,7 +50,7 @@ export default function TaxonomyScreen() {
 
   const reload = async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const data = await loadTagsAdminAction();
       setItems(
@@ -60,7 +62,9 @@ export default function TaxonomyScreen() {
         }))
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load tags.");
+      setLoadError(e instanceof ApiRequestError && (e.status === 401 || e.status === 403)
+        ? "Unable to access tags. Sign in with an authorized admin account and try again."
+        : "Unable to load tags. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -180,9 +184,11 @@ export default function TaxonomyScreen() {
         </>
       }>
 
-            <Section title="Tags" desc="Used = number of pages/posts linked to the tag.">
+            <Section title="Tags" desc="Used = number of posts linked to the tag.">
               {loading ? (
                 <DataListLoading label="tags" />
+              ) : loadError ? (
+                <div role="alert" className="text-sm text-error">{loadError}</div>
               ) : (
                 <DataListSurface>
                   <table className="table min-w-[520px] table-zebra w-full">
@@ -255,7 +261,7 @@ export default function TaxonomyScreen() {
               <p className="mt-2">
                 This tag is used by{" "}
                 <span className="font-semibold tabular-nums">{confirm.payload.usedCount}</span>{" "}
-                page(s)/post(s). Deleting it will remove the tag from all of them.
+                post(s). Deleting it will remove the tag from all linked pages and posts.
               </p>
             </>
           ) : null}

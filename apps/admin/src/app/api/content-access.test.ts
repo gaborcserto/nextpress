@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PUT as updateSettings } from "./admin/settings/route";
 import { DELETE as deleteAdminTag } from "./admin/tags/[id]/route";
+import { GET as listAdminTags } from "./admin/tags/route";
 import { PATCH as updateUserRole } from "./admin/users/[id]/role/route";
 import { DELETE as deleteUser } from "./admin/users/[id]/route";
 import { POST as createUser } from "./admin/users/create/route";
@@ -287,6 +288,45 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
     expect(prisma.page.update).not.toHaveBeenCalled();
     expect(prisma.page.create).not.toHaveBeenCalled();
     expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("admin taxonomy loading", () => {
+  it.each(["ADMIN", "EDITOR", "AUTHOR"] as const)("loads tags and post usage counts for %s", async (allowedRole) => {
+    role = allowedRole;
+    prisma.taxonomy.findMany.mockResolvedValue([
+      { id: "unused", name: "Unused", slug: "unused", _count: { pages: 0 } },
+      { id: "one", name: "One", slug: "one", _count: { pages: 1 } },
+      { id: "many", name: "Many", slug: "many", _count: { pages: 3 } },
+    ]);
+    const response = await listAdminTags(request(), { params: {} });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([
+      { id: "unused", name: "Unused", slug: "unused", usedCount: 0 },
+      { id: "one", name: "One", slug: "one", usedCount: 1 },
+      { id: "many", name: "Many", slug: "many", usedCount: 3 },
+    ]);
+    expect(prisma.taxonomy.findMany).toHaveBeenCalledWith({
+      where: { type: "TAG" }, orderBy: { name: "asc" }, take: 500,
+      select: { id: true, name: true, slug: true,
+        _count: { select: { pages: { where: { page: { type: "POST" } } } } } },
+    });
+  });
+
+  it.each([null, "SUBSCRIBER"] as const)("rejects taxonomy reads for role %s before querying tags", async (rejectedRole) => {
+    role = rejectedRole;
+    const response = await listAdminTags(request(), { params: {} });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    expect(prisma.taxonomy.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns a stable server error when loading fails", async () => {
+    role = "ADMIN";
+    prisma.taxonomy.findMany.mockRejectedValue(new Error("private database details"));
+    const response = await listAdminTags(request(), { params: {} });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "Unexpected error" });
   });
 });
 

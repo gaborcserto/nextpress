@@ -5,16 +5,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { db, prisma, requestHeaders } = vi.hoisted(() => ({
   db: { User: [] as Record<string, unknown>[], Account: [] as Record<string, unknown>[], Session: [] as Record<string, unknown>[], verification: [] as Record<string, unknown>[] },
-  prisma: { oAuthProvider: { findMany: vi.fn() }, role: { findUniqueOrThrow: vi.fn() }, user: { findUnique: vi.fn(), create: vi.fn() } },
+  prisma: {
+    oAuthProvider: { findMany: vi.fn(), upsert: vi.fn() },
+    role: { findUniqueOrThrow: vi.fn(), upsert: vi.fn() },
+    user: { findUnique: vi.fn(), create: vi.fn(), upsert: vi.fn() },
+    account: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    siteSettings: { upsert: vi.fn() },
+  },
   requestHeaders: vi.fn(),
 }));
 vi.mock("@nextpress/db/src/client", () => ({ prisma }));
+vi.mock("@nextpress/db", () => ({ prisma }));
 vi.mock("better-auth/adapters/prisma", () => ({ prismaAdapter: () => memoryAdapter(db) }));
 vi.mock("better-auth/next-js", () => ({ nextCookies: () => ({ id: "test-cookies" }) }));
 vi.mock("next/headers", () => ({ headers: requestHeaders }));
 
 import { getAuth, withAuth, type AppAuth } from "./auth-server";
 import { verifyCredentialPassword } from "./password.server";
+import { bootstrapAdmin } from "../../../scripts/admin-bootstrap";
 import { POST as createUser } from "@/app/api/admin/users/create/route";
 import { POST as authRoute } from "@/app/api/auth/[...all]/route";
 import { accountAttempts, actionLimits, authBudgets } from "@/lib/security/rate-limit.server";
@@ -600,6 +608,40 @@ describe("configured authentication policy with real Better Auth", () => {
     expect(oauth.status).toBe(401);
     expect(await oauth.json()).toEqual(await missing.json());
     expect((await getAuth()).options.account?.accountLinking).toMatchObject({ disableImplicitLinking: true, trustedProviders: [], allowDifferentEmails: false });
+  });
+
+  it.each(["fresh", "legacy"])("authenticates the %s bootstrap account through Better Auth after repeated bootstrap", async (kind) => {
+    const email = "admin@example.com";
+    const configuredPassword = kind === "legacy" ? "admin123" : "a known local admin passphrase";
+    let originalHash: string | undefined;
+    if (kind === "legacy") {
+      originalHash = await bcrypt.hash(configuredPassword, 4);
+      db.User.push({ id: "bootstrap-admin", name: "Admin", email, emailVerified: true });
+      db.Account.push({ id: "bootstrap-account", userId: "bootstrap-admin", provider: "credential", providerAccountId: email, password: originalHash });
+      expect((await call("/sign-in/email", { email, password: configuredPassword })).status).toBe(401);
+    }
+    prisma.user.findUnique.mockImplementation(async () => db.User.find(user => user.email === email) ?? null);
+    prisma.account.findFirst.mockImplementation(async () => db.Account.find(account => account.userId === "bootstrap-admin" && account.provider === "credential") ?? null);
+    prisma.siteSettings.upsert.mockResolvedValue({ id: "default" });
+    prisma.role.findUniqueOrThrow.mockResolvedValue({ id: "admin-role" });
+    prisma.user.upsert.mockImplementation(async () => {
+      if (!db.User.length) db.User.push({ id: "bootstrap-admin", name: "Admin", email, emailVerified: true });
+      return { id: "bootstrap-admin", email };
+    });
+    prisma.account.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
+      db.Account.push({ id: "bootstrap-account", ...data });
+    });
+    prisma.account.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
+      Object.assign(db.Account[0], data);
+    });
+    const environment = { NODE_ENV: "development", ADMIN_EMAIL: email, ADMIN_PASSWORD: configuredPassword } satisfies NodeJS.ProcessEnv;
+    await bootstrapAdmin(environment);
+    const storedHash = db.Account[0]?.password;
+    await bootstrapAdmin(environment);
+    expect(db.Account[0]).toMatchObject({ providerAccountId: "bootstrap-admin", password: storedHash });
+    if (originalHash) expect(storedHash).toBe(originalHash);
+    expect((await call("/sign-in/email", { email, password: configuredPassword })).status).toBe(200);
+    expect((await call("/sign-in/email", { email, password: "incorrect password" })).status).toBe(401);
   });
 
   it("keeps bounded legacy bcrypt credentials usable without accepting truncated suffixes", async () => {

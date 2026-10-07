@@ -16,4 +16,13 @@ describe("admin bootstrap policy", () => {
     expect(() => getAdminBootstrapCredentials(credentials)).toThrow(/ALLOW_PRODUCTION_ADMIN_SEED/);
     expect(getAdminBootstrapCredentials({ ...credentials, ALLOW_PRODUCTION_ADMIN_SEED: "true" })).toEqual({ email: "owner@example.test", password });
   });
+
+  it("allows repairing an existing credential without changing its password", () => {
+    expect(getAdminBootstrapCredentials({ NODE_ENV: "development", ADMIN_EMAIL: "admin@example.com", ADMIN_PASSWORD: "admin123" }, true))
+      .toEqual({ email: "admin@example.com", password: null });
+    expect(() => getAdminBootstrapCredentials({ NODE_ENV: "development", ADMIN_EMAIL: "admin@example.com", ADMIN_PASSWORD: "admin123" }))
+      .toThrow(/at least 15/);
+    expect(() => getAdminBootstrapCredentials({ NODE_ENV: "production", ADMIN_EMAIL: "admin@example.com" }, true))
+      .toThrow(/ALLOW_PRODUCTION_ADMIN_SEED/);
+  });
 });

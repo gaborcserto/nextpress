@@ -44,7 +44,11 @@ npm run db:seed
 
 `db:seed` creates editable development posts, pages, and tags using `packages/db/.env`. It requires `DATABASE_URL` and `ALLOW_DEVELOPMENT_CONTENT_SEED=true`, is restricted to local PostgreSQL databases named `cms` or `nextpress_dev_verify_` followed by lowercase letters, digits, or underscores, and always rejects `NODE_ENV=production`. Reruns fill missing seed-owned records and tag associations using stable IDs and slugs, preserving existing content, tag names, and additional associations. Authors are optional, so no administrator credentials are needed.
 
-To provision the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/admin/.env`, then run `npm run admin:bootstrap`. This separate command loads only the admin environment and ensures roles, site settings, and the administrator's credential account. Existing password hashes and settings are preserved. Each workspace keeps its own `DATABASE_URL`: the database package for Prisma and content seeding, and each application for its runtime. Point them at the same local database for development.
+To provision the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/admin/.env`, then run `npm run admin:bootstrap`. For a fresh local setup, use `ADMIN_EMAIL=admin@example.com` and choose a password of at least 15 characters (for example, `nextpress local admin password`, for development only). Sign in using exactly those configured values. There is no default account or password; the old `admin123` password does not satisfy the policy for new credentials.
+
+This separate command loads only the admin environment and ensures roles, site settings, and the administrator's credential account. Reruns repair legacy email-keyed credential accounts to use the user ID required by Better Auth, preserving existing password hashes and settings. When a password already exists, `ADMIN_PASSWORD` is not applied and need not meet the new-password policy: continue using that account's existing password. The command reports when it preserves a password. It does not reset stale or locally changed passwords. `db:seed` creates content only and never creates or resets administrator credentials.
+
+Each workspace keeps its own `DATABASE_URL`: the database package for Prisma and content seeding, and each application for its runtime. Point them at the same local database for development.
 
 Start both applications with:
 

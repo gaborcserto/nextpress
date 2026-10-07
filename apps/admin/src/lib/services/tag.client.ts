@@ -1,3 +1,4 @@
+import { jsonFetcher } from "@/lib/api/client";
 import type { TagValue } from "@/lib/content/contracts";
 
 /* ---------- Type guards ---------- */
@@ -173,7 +174,7 @@ export async function updateEntityTagsAction(
 
 /**
  * Tag value extended with usage count.
- * `usedCount` represents how many pages/posts reference the tag.
+ * `usedCount` represents how many posts reference the tag.
  */
 export type TagWithUsageValue = TagValue & { usedCount: number };
 
@@ -186,7 +187,7 @@ function isTagWithUsageValue(
   if (!isTagValue(value)) return false;
 
   const obj = value as Record<string, unknown>;
-  return typeof obj.usedCount === "number";
+  return typeof obj.usedCount === "number" && Number.isInteger(obj.usedCount) && obj.usedCount >= 0;
 }
 
 /**
@@ -203,10 +204,7 @@ function isTagWithUsageArray(
  * including usage counts.
  */
 export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
-  const res = await fetch("/api/admin/tags", { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load tags");
-
-  const raw: unknown = await res.json();
+  const raw = await jsonFetcher<unknown>("/api/admin/tags", { cache: "no-store" });
   const unwrapped = unwrapOkData(raw);
 
   if (isTagWithUsageArray(unwrapped)) return unwrapped;
@@ -218,7 +216,7 @@ export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
 
   if (isTagWithUsageArray(obj.items)) return obj.items;
 
-  return [];
+  throw new Error("Invalid tag response");
 }
 
 /**
