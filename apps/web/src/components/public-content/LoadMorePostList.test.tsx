@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getNextPostBatch } = vi.hoisted(() => ({ getNextPostBatch: vi.fn() }));
 vi.mock("@/app/posts/actions", () => ({ getNextPostBatch }));
@@ -15,6 +15,8 @@ const secondPost = {
   slug: "second", title: "Second post", summary: "Second summary",
   publishedAt: "2026-01-02T00:00:00.000Z", author: null, taxonomies: [],
 };
+
+beforeEach(() => vi.clearAllMocks());
 
 describe("LoadMorePostList", () => {
   it("server-renders its initial content and a working page link fallback", () => {
@@ -38,6 +40,23 @@ describe("LoadMorePostList", () => {
     expect(screen.getByText("Loaded 1 more post. Page 2.")).toHaveAttribute("role", "status");
     expect(getNextPostBatch).toHaveBeenCalledWith(2);
     expect(window.location.search).toBe("?page=2");
+  });
+
+  it("exposes the pending request state while loading the next page", async () => {
+    let resolveBatch: (batch: { posts: typeof secondPost[]; hasMore: boolean }) => void = () => {};
+    getNextPostBatch.mockReturnValueOnce(new Promise((resolve) => { resolveBatch = resolve; }));
+    render(<LoadMorePostList posts={[firstPost]} page={1} hasMore postsPerPage={10} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Load more posts" }));
+
+    const loadingButton = screen.getByRole("button", { name: "Loading posts…" });
+    expect(loadingButton).toBeDisabled();
+    expect(loadingButton).toHaveAttribute("aria-busy", "true");
+    expect(getNextPostBatch).toHaveBeenCalledTimes(1);
+    expect(getNextPostBatch).toHaveBeenCalledWith(2);
+
+    await act(async () => resolveBatch({ posts: [secondPost], hasMore: false }));
+    expect(await screen.findByRole("link", { name: "Second post" })).toBeInTheDocument();
   });
 
   it("keeps the bounded control available and reports recoverable action errors", async () => {
