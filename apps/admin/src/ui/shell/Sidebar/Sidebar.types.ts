@@ -11,5 +11,6 @@ export type SidebarProps = {
   collapsed: boolean;
   role: RoleName | null;
   onItemClickAction?: () => void;
+  onCloseAction?: () => void;
   onToggleCollapsedAction?: () => void;
 };

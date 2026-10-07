@@ -42,7 +42,7 @@ export default function Topbar({
           "sticky top-3 z-20 mx-4 md:mx-6 mb-3 h-14 px-4",
           "flex items-center justify-between",
           "transition-[background-color,border-color,box-shadow] duration-300 ease-out",
-          "rounded-xl border",
+          "rounded-[var(--radius-surface)] border",
 
           // Base state (no scroll): fully transparent — blends with layout
           !scrolled && "bg-transparent border-transparent shadow-none",
@@ -51,18 +51,18 @@ export default function Topbar({
           scrolled && [
             "bg-base-100",
             "border-base-300",
-            "shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+            "shadow-[var(--shadow-topbar)]",
           ].join(" "),
         ].join(" ")}
 
 
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             ref={mobileNavTriggerRef}
             type="button"
             id="admin-navigation-trigger"
-            className="btn btn-ghost btn-square lg:hidden"
+            className="btn btn-ghost btn-square shrink-0 lg:hidden"
             aria-label="Open navigation"
             aria-expanded={mobileNavOpen}
             aria-controls="admin-mobile-navigation"

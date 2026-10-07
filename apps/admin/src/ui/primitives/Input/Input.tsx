@@ -16,7 +16,7 @@ function Input(props: InputProps) {
     variant = "solid",
     color,
     size = "md",
-    rounded = "md",
+    rounded,
     fullWidth,
     className,
     leftIcon,
@@ -52,17 +52,19 @@ function Input(props: InputProps) {
   const widthCls = fullWidth ? "w-full" : "";
 
   const roundedCls =
-    rounded === "none"
-      ? "rounded-none"
-      : rounded === "sm"
-        ? "rounded-sm"
-        : rounded === "md"
-          ? "rounded-md"
-          : rounded === "lg"
-            ? "rounded-lg"
-            : rounded === "xl"
-              ? "rounded-xl"
-              : "rounded-full";
+    rounded === undefined
+      ? "rounded-[var(--radius-control)]"
+      : rounded === "none"
+        ? "rounded-none"
+        : rounded === "sm"
+          ? "rounded-sm"
+          : rounded === "md"
+            ? "rounded-md"
+            : rounded === "lg"
+              ? "rounded-lg"
+              : rounded === "xl"
+                ? "rounded-xl"
+                : "rounded-full";
 
   const baseInputClasses = cx(
     "input",

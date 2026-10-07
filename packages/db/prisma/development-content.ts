@@ -94,13 +94,13 @@ export const developmentPages: DevelopmentPage[] = [
     id: "dev-seed-post-quick-note", type: "POST", slug: "a-quick-note-on-clear-content",
     title: "Quick note", excerpt: null,
     blocks: [paragraph("A short post with an empty optional excerpt and no media. It helps check compact cards and the fallback summary behavior.")],
-    status: "PUBLISHED", publishedAt: new Date("2025-03-16T15:00:00.000Z"), taxonomies: [],
+    status: "PUBLISHED", publishedAt: new Date("2025-03-16T15:00:00.000Z"), taxonomies: ["accessibility"],
   },
   {
     id: "dev-seed-post-draft", type: "POST", slug: "draft-reviewing-an-article",
     title: "DRAFT — Reviewing an article before publication", excerpt: "This draft should appear in admin and stay out of public reads.",
     blocks: [paragraph("A draft fixture for checking status labels, edit forms, and the published-only public boundary.")],
-    status: "DRAFT", publishedAt: null, taxonomies: [],
+    status: "DRAFT", publishedAt: null, taxonomies: ["typescript"],
   },
   {
     id: "dev-seed-post-scheduled", type: "POST", slug: "scheduled-content-boundary-check",

@@ -15,7 +15,7 @@ export default function Box({
   return (
       <div
           className={[
-            !bare && "bg-base-100 border border-base-300 rounded-xl shadow-sm p-6",
+            !bare && "bg-base-100 border border-base-300 rounded-[var(--radius-surface)] shadow-sm p-6",
             className,
           ]
           .filter(Boolean)

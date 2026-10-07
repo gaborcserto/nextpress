@@ -12,7 +12,7 @@ export default function Section({
   const wrap =
       variant === "plain"
           ? "rounded-none bg-transparent border-none shadow-none px-0"
-          : "bg-base-100 border border-base-300 rounded-xl shadow-sm";
+          : "bg-base-100 border border-base-300 rounded-[var(--radius-surface)] shadow-sm";
 
   return (
       <section className={[wrap, className].filter(Boolean).join(" ")}>

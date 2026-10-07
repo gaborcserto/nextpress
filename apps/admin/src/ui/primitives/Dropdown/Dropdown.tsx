@@ -175,7 +175,7 @@ export function DropdownMenu({
       aria-label={ariaLabel}
       tabIndex={0}
       className={cx(
-        "dropdown-content menu bg-base-100 rounded-xl shadow border border-base-300 w-56 p-2",
+        "dropdown-content menu bg-base-100 rounded-[var(--radius-surface)] shadow border border-base-300 w-56 p-2",
         className
       )}
       onKeyDown={handleKeyDown}
@@ -217,7 +217,7 @@ export function DropdownItem({
         role="menuitem"
         tabIndex={-1}
         className={cx(
-          "flex w-full items-center justify-between gap-2 px-3 py-2 rounded-md text-sm",
+          "flex w-full items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-control)] text-sm",
           "hover:bg-base-200",
           disabled && "opacity-50 pointer-events-none",
           colorCls,

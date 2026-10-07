@@ -86,8 +86,8 @@ export default function Breadcrumbs() {
 
   if (items.length === 0) {
     return (
-      <nav aria-label="Breadcrumb" className="breadcrumbs text-sm">
-        <ul>
+      <nav aria-label="Breadcrumb" tabIndex={0} className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary">
+        <ul className="w-max pr-1">
           <li>
             <Link href="/admin" className="link link-hover">
               Dashboard
@@ -99,12 +99,12 @@ export default function Breadcrumbs() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="breadcrumbs text-sm">
-      <ul>
+    <nav aria-label="Breadcrumb" tabIndex={0} className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary">
+      <ul className="w-max pr-1">
         {items.map(({ href, label, isLast }) => (
-          <li key={href} className="max-w-[20ch] sm:max-w-[28ch]">
+          <li key={href} className="max-w-[20ch] shrink-0 sm:max-w-[28ch]">
             {isLast ? (
-              <span className="truncate text-base-content/70">{label}</span>
+              <span aria-current="page" title={label} className="truncate text-base-content/70">{label}</span>
             ) : (
               <Link href={href} className="link link-hover truncate">
                 {label}

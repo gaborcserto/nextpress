@@ -4,6 +4,19 @@ import { describe, expect, it } from "vitest";
 import { developmentPages, developmentTaxonomies, serializeDevelopmentContent } from "../prisma/development-content";
 
 describe("development content fixtures", () => {
+  it("includes representative tags and valid post-tag associations", () => {
+    const tagSlugs = new Set(developmentTaxonomies.map(({ slug }) => slug));
+    expect(developmentTaxonomies.every(({ type }) => type === "TAG")).toBe(true);
+    for (const page of developmentPages) {
+      expect(new Set(page.taxonomies).size).toBe(page.taxonomies.length);
+      for (const slug of page.taxonomies) expect(tagSlugs.has(slug)).toBe(true);
+    }
+    for (const slug of tagSlugs) {
+      expect(developmentPages.some((page) => page.type === "POST" && page.taxonomies.includes(slug))).toBe(true);
+    }
+    expect(developmentPages.find(({ id }) => id === "dev-seed-post-quick-note")?.taxonomies).toContain("accessibility");
+  });
+
   it("uses stable unique IDs and slugs for every seed-owned record", () => {
     for (const records of [developmentPages, developmentTaxonomies]) {
       expect(new Set(records.map(({ id }) => id)).size).toBe(records.length);

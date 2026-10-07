@@ -9,6 +9,7 @@ import {
   FaThumbtack,
   FaUsers,
   FaCog,
+  FaTimes,
 } from "react-icons/fa";
 import {
   TbLayoutSidebarLeftCollapseFilled,
@@ -41,6 +42,7 @@ export default function Sidebar({
   collapsed,
   role,
   onItemClickAction,
+  onCloseAction,
   onToggleCollapsedAction,
 }: SidebarProps) {
   const pathname = usePathname();
@@ -69,11 +71,11 @@ export default function Sidebar({
 
   return (
     <aside className="h-full overflow-visible flex flex-col">
-      <div className="h-14 px-3 flex items-center">
+      <div className={`h-14 shrink-0 px-3 flex items-center gap-2 ${onCloseAction ? "sticky top-0 z-10 bg-base-100" : ""}`}>
         <MotionDiv
           layout
           initial={false}
-          className="w-full font-semibold whitespace-nowrap"
+          className="min-w-0 flex-1 font-semibold whitespace-nowrap"
           transition={{ type: "spring", stiffness: 260, damping: 22 }}
         >
           <MotionSpan
@@ -90,6 +92,16 @@ export default function Sidebar({
             {collapsed ? "NP" : "NextPress"}
           </MotionSpan>
         </MotionDiv>
+        {onCloseAction && (
+          <button
+            type="button"
+            aria-label="Close navigation"
+            className="btn btn-square size-11 shrink-0"
+            onClick={onCloseAction}
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <nav aria-label="Admin navigation" className="flex-1 px-2 py-2 flex flex-col gap-1">

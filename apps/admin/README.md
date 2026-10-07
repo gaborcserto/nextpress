@@ -27,6 +27,22 @@ npm --workspace admin test
 
 The public web application is a separate workspace and is not rendered by this application.
 
+## Admin skin styling
+
+Admin palettes remain local to `src/app/globals.css`. Its custom DaisyUI `light`
+and `dark` themes are the authoritative color definitions; built-in DaisyUI
+themes are disabled to avoid duplicate registrations. The compiled default skin
+also defines the surface radius, default control radius, and topbar shadow tokens
+used by admin primitives. Keep explicit component radius overrides for cases that
+intentionally differ from those defaults.
+
+`--radius-surface` preserves the 12px defaults for Box, Section, dropdown menus,
+sticky actions, and the topbar. `--radius-control` preserves the 6px defaults for
+Input and dropdown items; explicit Input `rounded` values still take precedence.
+DaisyUI controls continue to use its existing `--radius-field`, `--radius-box`,
+and `--radius-selector` tokens. `--shadow-topbar` preserves the scrolled topbar's
+existing shadow.
+
 ## API reference and health
 
 In development, open [API documentation](http://127.0.0.1:49101/api-docs) or

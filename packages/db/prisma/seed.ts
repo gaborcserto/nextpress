@@ -20,7 +20,7 @@ async function ensureDevelopmentContent() {
     await prisma.taxonomy.upsert({
       where: { id: taxonomy.id },
       create: taxonomy,
-      update: { type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name },
+      update: {},
     });
   }
 
@@ -53,8 +53,18 @@ async function ensureDevelopmentContent() {
     await prisma.page.upsert({
       where: { id: page.id },
       create: { id: page.id, ...values, taxonomies },
-      update: { ...values, taxonomies: { deleteMany: {}, ...taxonomies } },
+      update: {},
     });
+
+    // Fill missing associations without replacing locally edited content or tags.
+    for (const slug of page.taxonomies) {
+      const taxonomy = await prisma.taxonomy.findUniqueOrThrow({ where: { slug }, select: { id: true } });
+      await prisma.pageOnTaxonomy.upsert({
+        where: { pageId_taxonomyId: { pageId: page.id, taxonomyId: taxonomy.id } },
+        create: { pageId: page.id, taxonomyId: taxonomy.id },
+        update: {},
+      });
+    }
   }
 }
 

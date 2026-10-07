@@ -69,7 +69,6 @@ export default function AppShell({
     // The media query is an external lifecycle boundary; clear its dependent UI state here.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDrawerOpen(false);
-    desktopNavRef.current?.querySelector<HTMLElement>("a")?.focus();
   }, [drawerOpen, isDesktop]);
 
   // Keep the drawer in sync with browser back/forward navigation.
@@ -89,8 +88,13 @@ export default function AppShell({
       }
       return;
     }
-    if (!isDesktop && wasDrawerOpenRef.current && mobileTriggerRef.current && openedPathRef.current === pathname) {
-      mobileTriggerRef.current.focus();
+    if (wasDrawerOpenRef.current) {
+      if (isDesktop) {
+        // The background is no longer inert after the closed state commits.
+        desktopNavRef.current?.querySelector<HTMLElement>("a")?.focus();
+      } else if (mobileTriggerRef.current && openedPathRef.current === pathname) {
+        mobileTriggerRef.current.focus();
+      }
     }
     wasDrawerOpenRef.current = false;
   }, [drawerOpen, isDesktop, pathname]);
@@ -175,7 +179,8 @@ export default function AppShell({
           onChange={(e) => setDrawerOpen(e.target.checked)}
         />
         <div className="drawer-content" />
-        <div className="drawer-side z-30">
+        {/* Expose the open drawer immediately for focus; retain its opacity and slide transitions. */}
+        <div className={drawerOpen ? "drawer-side z-30 [transition-property:opacity]" : "drawer-side z-30"}>
           <label
             htmlFor="admin-drawer"
             aria-label="close sidebar"
@@ -211,6 +216,7 @@ export default function AppShell({
               role={role}
               collapsed={false}
               onItemClickAction={() => setDrawerOpen(false)}
+              onCloseAction={() => setDrawerOpen(false)}
             />
           </aside>
         </div>
