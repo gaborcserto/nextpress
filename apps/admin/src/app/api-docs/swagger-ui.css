@@ -1,9 +1,4 @@
-.api-docs {
-  overflow-x: clip;
-}
-
 .api-docs .swagger-ui {
-  max-width: 100%;
   color: var(--color-base-content);
 }
 
@@ -76,9 +71,9 @@
   border-color: var(--color-base-300);
 }
 
-/* Keep Swagger's method colors while using dark text for strong contrast. */
-.api-docs .swagger-ui .opblock .opblock-summary-method {
-  color: var(--color-neutral);
+/* Keep Swagger's method backgrounds and override its more-specific dark text color. */
+:root[data-theme] .api-docs .swagger-ui .opblock .opblock-summary .opblock-summary-method {
+  color: #fff;
 }
 
 .api-docs .swagger-ui .opblock .opblock-summary-description,
@@ -141,9 +136,26 @@
   border-color: var(--color-base-300);
 }
 
-.api-docs .swagger-ui .btn.try-out__btn,
-.api-docs .swagger-ui .btn.execute {
+.api-docs .swagger-ui .btn.try-out__btn {
   color: var(--color-neutral);
+}
+
+.api-docs .swagger-ui .opblock .execute-wrapper .btn.execute {
+  color: #fff;
+}
+
+.api-docs .swagger-ui .btn.try-out__btn.cancel,
+.api-docs .swagger-ui .btn.try-out__btn.reset,
+.api-docs .swagger-ui .btn.btn-clear {
+  color: var(--color-base-content);
+  border-color: var(--color-base-300);
+  background: var(--color-base-100);
+}
+
+.api-docs .swagger-ui .download-contents {
+  color: var(--color-base-content);
+  background: var(--color-base-100);
+  border-color: var(--color-base-300);
 }
 
 .api-docs .swagger-ui button:focus-visible,
@@ -155,14 +167,7 @@
   outline-offset: 2px;
 }
 
-.api-docs .swagger-ui .wrapper {
-  max-width: none;
-  padding: 0;
-}
-
 .api-docs .swagger-ui .scheme-container {
-  padding: 1rem 0;
-  box-shadow: none;
   color: var(--color-base-content);
   background: var(--color-base-100);
 }
@@ -174,21 +179,4 @@
 
 .api-docs .swagger-ui .authorization__btn {
   display: none;
-}
-
-.api-docs .swagger-ui .opblock-body pre,
-.api-docs .swagger-ui .model-box {
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-@media (max-width: 640px) {
-  .api-docs .swagger-ui .opblock .opblock-summary {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .api-docs .swagger-ui .opblock .opblock-summary-path {
-    overflow-wrap: anywhere;
-  }
 }
