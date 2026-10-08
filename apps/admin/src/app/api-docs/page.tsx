@@ -1,11 +1,18 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import SwaggerDocs from "./swagger-docs";
+import "./swagger-ui.css";
+
+import SwaggerUiLoader from "./swagger-ui-loader";
 
 export const dynamic = "force-dynamic";
 
-export default function ApiDocsPage() {
+export default async function ApiDocsPage() {
   if (process.env.NODE_ENV !== "development") notFound();
+
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("Content-Security-Policy")
+    ?.match(/'nonce-([^']+)'/)?.[1];
 
   return (
     <main className="api-docs min-h-screen min-w-0 px-3 py-6 sm:px-6">
@@ -19,7 +26,10 @@ export default function ApiDocsPage() {
         </p>
         <a className="link" href="/api/openapi">View OpenAPI JSON</a>
       </header>
-      <SwaggerDocs />
+      <section aria-label="Interactive API documentation" className="swagger-ui-surface mx-auto max-w-7xl">
+        <div id="swagger-ui" />
+      </section>
+      <SwaggerUiLoader nonce={nonce} />
     </main>
   );
 }

@@ -57,6 +57,10 @@ See [API contract workflow](../../docs/api.md) for contract ownership and
 maintenance. Run
 `npm run openapi:validate` from the root to validate the schema and route coverage.
 
+The docs page renders the exact-pinned local `swagger-ui-dist` bundle outside
+the Next.js React tree. Its development-only asset route allowlists the required
+JavaScript bundle and stylesheet.
+
 The public `/health` page is a human-readable dashboard that checks API availability
 through `/api/health`, measures browser-observed response time, and records the
 last successful check. It supports manual refresh and shows loading and error
