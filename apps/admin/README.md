@@ -57,6 +57,14 @@ See [API contract workflow](../../docs/api.md) for contract ownership and
 maintenance. Run
 `npm run openapi:validate` from the root to validate the schema and route coverage.
 
+The public `/health` page is a human-readable dashboard that checks API availability
+through `/api/health`, measures browser-observed response time, and records the
+last successful check. It supports manual refresh and shows loading and error
+states. Its cards use the admin's existing light and dark theme tokens. Runtime
+or deployment information may display `Unknown` when unavailable. `/api/health`
+remains the machine-readable, uncached liveness endpoint; it does not check
+database readiness or provide detailed infrastructure monitoring.
+
 ## Sessions and browser mutations
 
 Better Auth owns signed session cookies, database session persistence and lookup,
