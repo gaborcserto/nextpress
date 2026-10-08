@@ -430,11 +430,18 @@ describe("session lifecycle with the installed Better Auth", () => {
   it("invalidates the server token and expires the browser cookie on logout", async () => {
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);
+    prisma.user.findUnique.mockResolvedValue({ roleId: "admin-role", role: { name: "ADMIN" } });
+    requestHeaders.mockResolvedValue(new Headers({ cookie }));
+    const protectedRoute = withAuth(["ADMIN"], () => Response.json({ success: true }));
+    const protectedRequest = new Request(`${origin}/api/test`);
+    expect((await protectedRoute(protectedRequest, { params: {} })).status).toBe(200);
+
     const response = await sessionRequest(auth, "/sign-out", {}, cookie);
     expect(response.status).toBe(200);
     expect(response.headers.getSetCookie()).toContainEqual(expect.stringContaining("better-auth.session_token=; Max-Age=0"));
     expect(db.Session).toHaveLength(0);
     expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    expect((await protectedRoute(protectedRequest, { params: {} })).status).toBe(401);
   });
 
   it("reports a failed logout instead of claiming a reusable token was revoked", async () => {

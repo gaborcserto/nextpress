@@ -5,20 +5,20 @@ import Link from "next/link";
 import type { SignInFormFooterProps } from "./SignInFormFooter.types";
 
 export function SignInFormFooter({
-  rememberMe,
-  onRememberMeChangeAction,
+  rememberEmail,
+  onRememberEmailChangeAction,
 }: SignInFormFooterProps) {
   return (
     <>
-      <div className="flex items-center justify-between pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-1">
         <label className="label cursor-pointer gap-2 px-0">
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
-            checked={rememberMe}
-            onChange={(e) => onRememberMeChangeAction(e.target.checked)}
+            checked={rememberEmail}
+            onChange={(e) => onRememberEmailChangeAction(e.target.checked)}
           />
-          <span className="label-text">Remember me</span>
+          <span className="label-text">Remember email</span>
         </label>
 
         <Link href="/auth/forgot-password" className="link link-hover">

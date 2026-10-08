@@ -10,7 +10,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, push: vi.fn() }
 vi.mock("@/lib/auth/auth-client", () => ({ signOut }));
 vi.mock(import("@/ui/utils"), async (importOriginal) => ({ ...await importOriginal(), showToast }));
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  window.localStorage.clear();
+});
 
 function clickSignOut() {
   render(<UserMenu name="User" />);
@@ -24,6 +27,14 @@ describe("logout feedback", () => {
     clickSignOut();
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/auth/sign-in"));
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it("preserves the opted-in remembered email after successful logout", async () => {
+    window.localStorage.setItem("nextpress.admin.remembered-email", "ada@example.com");
+    signOut.mockResolvedValue({ error: null });
+    clickSignOut();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/auth/sign-in"));
+    expect(window.localStorage.getItem("nextpress.admin.remembered-email")).toBe("ada@example.com");
   });
 
   it("shows revocation failure instead of presenting a successful logout", async () => {

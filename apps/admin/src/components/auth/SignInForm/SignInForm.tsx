@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
 import { signInSchema, type SignInFormValues } from "./SignInForm.validation";
@@ -19,13 +19,15 @@ type SignInFormProps = {
   providers: Provider[];
 };
 
+const rememberedEmailKey = "nextpress.admin.remembered-email";
+
 export default function SignInForm({ providers }: SignInFormProps) {
   const [form, setForm] = useState<SignInFormValues>({
     email: "",
     password: "",
   });
 
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -39,6 +41,23 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   const callbackURL =
     safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) || "/";
+
+  useLayoutEffect(() => {
+    try {
+      const savedEmail = window.localStorage.getItem(rememberedEmailKey);
+      if (savedEmail === null) return;
+
+      const email = signInSchema.shape.email.safeParse(savedEmail);
+      if (email.success) {
+        setForm((current) => ({ ...current, email: email.data }));
+        setRememberEmail(true);
+      } else {
+        window.localStorage.removeItem(rememberedEmailKey);
+      }
+    } catch {
+      // Browser storage can be unavailable; sign-in remains usable without it.
+    }
+  }, []);
 
   useEffect(() => {
     const errorParam = params.get("error");
@@ -65,12 +84,21 @@ export default function SignInForm({ providers }: SignInFormProps) {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         callbackURL,
-        rememberMe,
       });
 
       if (error) {
         setErr(error.message || "Sign in failed");
         return;
+      }
+
+      try {
+        if (rememberEmail) {
+          window.localStorage.setItem(rememberedEmailKey, result.data.email.trim().toLowerCase());
+        } else {
+          window.localStorage.removeItem(rememberedEmailKey);
+        }
+      } catch {
+        // Remembering email is optional and must not affect authentication.
       }
 
       router.push(callbackURL);
@@ -129,7 +157,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
           fullWidth
           rounded="lg"
           color="neutral"
-          autoComplete="email"
+          autoComplete="username"
           error={fieldErrors.email}
           required
         />
@@ -158,8 +186,17 @@ export default function SignInForm({ providers }: SignInFormProps) {
         </AuthSubmitButton>
 
         <SignInFormFooter
-          rememberMe={rememberMe}
-          onRememberMeChangeAction={(checked) => setRememberMe(checked)}
+          rememberEmail={rememberEmail}
+          onRememberEmailChangeAction={(checked) => {
+            setRememberEmail(checked);
+            if (!checked) {
+              try {
+                window.localStorage.removeItem(rememberedEmailKey);
+              } catch {
+                // Continue sign-in if browser storage is unavailable.
+              }
+            }
+          }}
         />
         </fieldset>
       </div>
