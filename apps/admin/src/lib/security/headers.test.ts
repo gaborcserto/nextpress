@@ -52,6 +52,22 @@ describe("admin HTTP security policy", () => {
     expect(policy).not.toMatch(/unsafe-eval|script-src[^;]*unsafe-inline|\*|data:|blob:|http:|ws:/);
   });
 
+  it("allows data images only when explicitly enabled for API documentation", () => {
+    const standardPolicy = adminContentSecurityPolicy("test-nonce", true);
+    const docsPolicy = adminContentSecurityPolicy("test-nonce", true, undefined, true);
+
+    expect(standardPolicy).toContain("img-src 'self' https:");
+    expect(standardPolicy).not.toContain("data:");
+    expect(docsPolicy).toContain("img-src 'self' https: data:");
+    for (const directive of [
+      "script-src 'self' 'nonce-test-nonce' 'strict-dynamic'",
+      "connect-src 'self'", "frame-src 'none'", "frame-ancestors 'none'",
+    ]) {
+      expect(docsPolicy.split("; ")).toContain(directive);
+    }
+    expect(docsPolicy).not.toContain("img-src 'self' https: data: blob:");
+  });
+
   it("keeps development eval, styles, WebSockets, and HTTP usable", () => {
     const policy = adminContentSecurityPolicy("test-nonce", false);
     expect(policy).toContain("'unsafe-eval'");

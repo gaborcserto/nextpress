@@ -41,4 +41,20 @@ describe("Next.js CSP proxy", () => {
     const response = proxy(new NextRequest("http://localhost:49101/admin", { headers: { "next-router-prefetch": "1" } }));
     expect(response.headers.get("Content-Security-Policy")).toContain("'unsafe-eval'");
   });
+
+  it("allows data images only on the API documentation route", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_BETTER_AUTH_URL", "");
+    const docsPolicy = proxy(new NextRequest("https://admin.example/api-docs")).headers
+      .get("Content-Security-Policy");
+    const assetPolicy = proxy(new NextRequest("https://admin.example/api-docs/swagger-ui.css")).headers
+      .get("Content-Security-Policy");
+    const apiPolicy = proxy(new NextRequest("https://admin.example/api/pages")).headers
+      .get("Content-Security-Policy");
+
+    expect(docsPolicy).toContain("img-src 'self' https: data:");
+    expect(assetPolicy).toContain("img-src 'self' https: data:");
+    expect(apiPolicy).toContain("img-src 'self' https:");
+    expect(apiPolicy).not.toContain("data:");
+  });
 });

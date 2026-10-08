@@ -11,7 +11,12 @@ export function adminSecurityHeaders(production: boolean) {
   ];
 }
 
-export function adminContentSecurityPolicy(nonce: string, production: boolean, authURL?: string) {
+export function adminContentSecurityPolicy(
+  nonce: string,
+  production: boolean,
+  authURL?: string,
+  allowDataImages = false,
+) {
   let authOrigin = "";
   if (authURL) {
     const url = new URL(authURL);
@@ -32,7 +37,7 @@ export function adminContentSecurityPolicy(nonce: string, production: boolean, a
     // Slate, Framer Motion, and shell primitives require inline style attributes.
     "style-src-attr 'unsafe-inline'",
     // Persisted media and OAuth avatars support arbitrary HTTPS image hosts.
-    `img-src 'self' https:${production ? "" : " http:"}`,
+    `img-src 'self' https:${production ? "" : " http:"}${allowDataImages ? " data:" : ""}`,
     "font-src 'self'",
     `connect-src 'self'${authOrigin}${production ? "" : " ws: wss:"}`,
     "frame-src 'none'",
