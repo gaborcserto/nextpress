@@ -9,8 +9,10 @@ changes. Do not add a manually synchronized endpoint catalog to Markdown.
 Run `npm run dev:admin` to view the browser reference at
 `http://localhost:49101/api-docs` or the JSON contract at
 `http://localhost:49101/api/openapi`. Both are available only in development.
-The viewer is read-only. Documentation visibility does not enforce endpoint
-authentication or authorization.
+Execute uses the current browser session; write requests can modify real data
+and remain subject to the same server-side authentication, authorization, CSRF,
+and validation checks as other requests. Documentation visibility does not
+enforce endpoint authentication or authorization.
 
 After adding or changing an owned Route Handler, update its operation metadata
 and response projection in the OpenAPI module. Reuse the route's existing Zod

@@ -47,9 +47,11 @@ existing shadow.
 
 In development, open [API documentation](http://localhost:49101/api-docs) or
 [OpenAPI JSON](http://localhost:49101/api/openapi). Both return 404 outside
-development; the reference does not execute requests. `GET /api/health` is a
-public, uncached application liveness check returning `{ "status": "ok" }`
-without a database check.
+development. The interactive reference executes requests in the current browser
+session; write requests can modify real data and remain subject to the API's
+normal authentication, authorization, CSRF, and validation checks. `GET
+/api/health` is a public, uncached application liveness check returning
+`{ "status": "ok" }` without a database check.
 
 See [API contract workflow](../../docs/api.md) for contract ownership and
 maintenance. Run

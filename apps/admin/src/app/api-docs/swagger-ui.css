@@ -1,0 +1,44 @@
+.api-docs {
+  overflow-x: clip;
+}
+
+.api-docs .swagger-ui {
+  max-width: 100%;
+  color: var(--color-base-content);
+}
+
+.api-docs .swagger-ui .wrapper {
+  max-width: none;
+  padding: 0;
+}
+
+.api-docs .swagger-ui .scheme-container {
+  padding: 1rem 0;
+  box-shadow: none;
+}
+
+/* Browser session cookies are sent automatically to this same-origin API. */
+.api-docs .swagger-ui .auth-wrapper {
+  display: none;
+}
+
+.api-docs .swagger-ui .authorization__btn {
+  display: none;
+}
+
+.api-docs .swagger-ui .opblock-body pre,
+.api-docs .swagger-ui .model-box {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .api-docs .swagger-ui .opblock .opblock-summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .api-docs .swagger-ui .opblock .opblock-summary-path {
+    overflow-wrap: anywhere;
+  }
+}
