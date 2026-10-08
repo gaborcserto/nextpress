@@ -15,7 +15,7 @@ Run it from the repository root with:
 npm run dev:admin
 ```
 
-It listens on `http://127.0.0.1:49101`. Configure local values in `apps/admin/.env` using [`.env.example`](.env.example). The root [README](../../README.md) documents repository setup, shared commands, and testing.
+It listens on `http://localhost:49101`. Configure local values in `apps/admin/.env` using [`.env.example`](.env.example). The root [README](../../README.md) documents repository setup, shared commands, and testing.
 
 Useful workspace checks:
 
@@ -45,8 +45,8 @@ existing shadow.
 
 ## API reference and health
 
-In development, open [API documentation](http://127.0.0.1:49101/api-docs) or
-[OpenAPI JSON](http://127.0.0.1:49101/api/openapi). Both return 404 outside
+In development, open [API documentation](http://localhost:49101/api-docs) or
+[OpenAPI JSON](http://localhost:49101/api/openapi). Both return 404 outside
 development; the reference does not execute requests. `GET /api/health` is a
 public, uncached application liveness check returning `{ "status": "ok" }`
 without a database check.
@@ -107,7 +107,7 @@ checks an exact serialized `Origin` against configured application origins befor
 session lookup or role checks. Missing, null, malformed and untrusted origins
 are rejected with 403; there is no server-to-server exception or Referer fallback.
 Request URLs, Host, forwarded headers and CORS are not evidence of trust.
-Development additionally allows localhost and 127.0.0.1 on port 49101 only.
+Development trusts the canonical localhost origin on port 49101 only.
 Production includes no implicit development origins.
 
 POST/PUT/PATCH and any other mutation with a body or Content-Type require

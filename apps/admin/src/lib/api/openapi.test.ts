@@ -46,7 +46,7 @@ describe("OpenAPI contract", () => {
     expect(write?.responses).toHaveProperty("413");
     expect(write?.responses).toHaveProperty("415");
     expect(write?.responses).toHaveProperty("429");
-    expect(openApiDocument.paths["/api/admin/users"]?.get?.responses).not.toHaveProperty("403");
+    expect(openApiDocument.paths["/api/admin/users"]?.get?.responses).toHaveProperty("403");
     expect(openApiDocument.components?.securitySchemes).toEqual(expect.objectContaining({
       sessionCookie: expect.objectContaining({ in: "cookie", name: "better-auth.session_token" }),
       secureSessionCookie: expect.objectContaining({ in: "cookie", name: "__Secure-better-auth.session_token" }),

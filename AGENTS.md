@@ -78,8 +78,8 @@ Avoid generic boilerplate, wrapper layers, fragmented helpers, speculative abstr
 Run commands from the repository root unless a workspace is intentionally targeted. The package manager is npm `10.2.4`.
 
 - `npm run dev`: run workspace development servers through Turbo.
-- `npm run dev:web`: run `apps/web` at `127.0.0.1:49100`.
-- `npm run dev:admin`: run `apps/admin` at `127.0.0.1:49101`.
+- `npm run dev:web`: run `apps/web` at `http://localhost:49100`.
+- `npm run dev:admin`: run `apps/admin` at `http://localhost:49101`.
 - `npm run build`: build all workspaces through Turbo.
 - `npm run lint`: lint all configured workspaces through Turbo.
 - `npm run lint:fix`: apply the configured ESLint fixes.

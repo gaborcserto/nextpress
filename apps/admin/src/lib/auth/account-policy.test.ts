@@ -20,7 +20,7 @@ vi.mock("better-auth/adapters/prisma", () => ({ prismaAdapter: () => memoryAdapt
 vi.mock("better-auth/next-js", () => ({ nextCookies: () => ({ id: "test-cookies" }) }));
 vi.mock("next/headers", () => ({ headers: requestHeaders }));
 
-import { getAuth, withAuth, type AppAuth } from "./auth-server";
+import { getAuth, getSessionWithRole, withAuth, type AppAuth } from "./auth-server";
 import { verifyCredentialPassword } from "./password.server";
 import { bootstrapAdmin } from "../../../scripts/admin-bootstrap";
 import { POST as createUser } from "@/app/api/admin/users/create/route";
@@ -306,6 +306,42 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
 });
 
 describe("session lifecycle with the installed Better Auth", () => {
+  it("forwards the request cookie and preserves a session across admin navigation and appearance changes", async () => {
+    const auth = await registeredAuth();
+    const { cookie, token } = await signIn(auth);
+    prisma.user.findUnique.mockResolvedValue({ roleId: "admin-role", role: { name: "ADMIN" } });
+    const originalExpiry = db.Session[0].expires;
+    for (const path of ["/admin", "/admin/taxonomy", "/admin/posts", "/admin/taxonomy"]) {
+      requestHeaders.mockResolvedValue(new Headers({ cookie: `${cookie}; theme=dark`, referer: `${origin}${path}` }));
+      expect((await getSessionWithRole())?.user.role).toBe("ADMIN");
+    }
+    requestHeaders.mockResolvedValue(new Headers({ cookie }));
+    expect((await getSessionWithRole())?.user.role).toBe("ADMIN");
+    expect(db.Session).toHaveLength(1);
+    expect(db.Session[0]).toMatchObject({ sessionToken: token, expires: originalExpiry });
+  });
+
+  it("requires the session cookie on each protected request and distinguishes an insufficient role", async () => {
+    const auth = await registeredAuth();
+    const { cookie } = await signIn(auth);
+    prisma.user.findUnique.mockResolvedValue({ roleId: "subscriber-role", role: { name: "SUBSCRIBER" } });
+    const handler = vi.fn(() => Response.json({ success: true }));
+    const protectedRoute = withAuth(["ADMIN", "EDITOR", "AUTHOR"], handler);
+    const request = new Request(`${origin}/api/admin/tags`);
+    requestHeaders.mockResolvedValue(new Headers({ cookie }));
+    expect((await protectedRoute(request, { params: {} })).status).toBe(403);
+    for (const cookieHeader of ["theme=dark", "better-auth.session_token=invalid", ""]) {
+      requestHeaders.mockResolvedValue(new Headers({ cookie: cookieHeader }));
+      expect(await getSessionWithRole()).toBeNull();
+      expect((await protectedRoute(request, { params: {} })).status).toBe(401);
+    }
+    expect(handler).not.toHaveBeenCalled();
+    prisma.user.findUnique.mockResolvedValue({ roleId: "author-role", role: { name: "AUTHOR" } });
+    requestHeaders.mockResolvedValue(new Headers({ cookie }));
+    expect((await protectedRoute(request, { params: {} })).status).toBe(200);
+    expect(handler).toHaveBeenCalledOnce();
+  });
+
   it("preserves credential callbacks and library-managed OAuth destination validation", async () => {
     const auth = await registeredAuth();
     const credentials = await sessionRequest(auth, "/sign-in/email", {
@@ -496,7 +532,7 @@ describe("session lifecycle with the installed Better Auth", () => {
     const { cookie } = await signIn(auth);
     requestHeaders.mockResolvedValue(new Headers({ cookie }));
     prisma.user.findUnique.mockResolvedValue({ roleId: "role", role: { name: "AUTHOR" } });
-    expect((await protectedRoute(req(), { params: {} })).status).toBe(401);
+    expect((await protectedRoute(req(), { params: {} })).status).toBe(403);
     prisma.user.findUnique.mockResolvedValue({ roleId: "role", role: { name: "ADMIN" } });
     expect((await protectedRoute(req(), { params: {} })).status).toBe(200);
     expect(handler).toHaveBeenCalledTimes(1);

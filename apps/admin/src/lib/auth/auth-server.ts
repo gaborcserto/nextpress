@@ -21,7 +21,7 @@ import { getAuthBaseURL, getAuthSecret, getTrustedOrigins } from "./origins.serv
 import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
 import { verifyLogout } from "./session-policy.server";
-import { unauthorized } from "@/lib/api";
+import { forbid, unauthorized } from "@/lib/api";
 import { readBoundedMutationRequest, requireTrustedMutation } from "@/lib/api/mutation.server";
 import { authBudgets, limitMutation, type MutationLimit } from "@/lib/security/rate-limit.server";
 
@@ -280,7 +280,7 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
     if (!session?.user?.id) return unauthorized();
 
     const role = session.user.role;
-    if (!hasAnyRole(role, allowed)) return unauthorized();
+    if (!hasAnyRole(role, allowed)) return forbid();
 
     if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const throttled = limitMutation(session.user.id, mutationLimit);

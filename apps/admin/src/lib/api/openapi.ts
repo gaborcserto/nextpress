@@ -179,12 +179,12 @@ paths["/api/tags/link"] = {
   get: operation("readTagLinks", "Tags", "Read assigned tags", array(ref("Tag")), [400, 403, 404, 500], readScope, "optional"),
   put: operation("replaceTagLinks", "Tags", "Replace assigned tags", ref("Success"), [400, ...mutationCodes, 404, 500], writeScope, "protected", "TagLinks"),
 };
-paths["/api/admin/tags"] = { get: operation("listTagsWithUsage", "Tags", "List tags and usage counts", array(ref("TagWithUsage")), [401, 500], "ADMIN, EDITOR or AUTHOR; at most 500 tags.", "protected") };
+paths["/api/admin/tags"] = { get: operation("listTagsWithUsage", "Tags", "List tags and usage counts", array(ref("TagWithUsage")), [401, 403, 500], "ADMIN, EDITOR or AUTHOR; at most 500 tags.", "protected") };
 paths["/api/admin/tags/{id}"] = {
   parameters: [parameter("id", "path", string, "Nonempty trimmed tag ID; no route-level length limit.")],
   delete: operation("deleteAdminTag", "Tags", "Delete a tag from administration", ref("DeletedTag"), [400, ...mutationCodes, 404, 500], "ADMIN or EDITOR. Requires trusted Origin.", "protected"),
 };
-paths["/api/admin/users"] = { get: operation("listUsers", "Users", "List users", ref("Users"), [401, 500], "ADMIN only. At most 500, newest first. No credential/session data returned.", "protected") };
+paths["/api/admin/users"] = { get: operation("listUsers", "Users", "List users", ref("Users"), [401, 403, 500], "ADMIN only. At most 500, newest first. No credential/session data returned.", "protected") };
 paths["/api/admin/users/create"] = { post: operation("createUser", "Users", "Provision a user", ref("CreatedUser"), [400, ...mutationCodes, 409, 500], "ADMIN only. Omitted role uses the configured default user role. Password is optional. Requires trusted Origin and application/json.", "protected", "UserCreate", 201) };
 paths["/api/admin/users/{id}"] = {
   parameters: [parameter("id", "path", { ...string, minLength: 1, maxLength: 64 }, "User ID.")],
@@ -195,7 +195,7 @@ paths["/api/admin/users/{id}/role"] = {
   patch: operation("updateUserRole", "Users", "Assign a user role", ref("UpdatedRole"), [400, ...mutationCodes, 404, 500], "ADMIN only. Requires trusted Origin and application/json.", "protected", "RoleUpdate"),
 };
 paths["/api/admin/settings"] = {
-  get: operation("readSettings", "Settings", "Read administration settings", ref("Settings"), [401, 500], "ADMIN only. Initializes missing settings/provider rows. Credential presence flags are returned; secrets are never returned.", "protected"),
+  get: operation("readSettings", "Settings", "Read administration settings", ref("Settings"), [401, 403, 500], "ADMIN only. Initializes missing settings/provider rows. Credential presence flags are returned; secrets are never returned.", "protected"),
   put: operation("updateSettings", "Settings", "Update administration settings", ref("Success"), [400, ...mutationCodes, 500], "ADMIN only. Listing mode is PAGINATION or LOAD_MORE and postsPerPage is an integer from 1 to 50. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json.", "protected", "SettingsUpdate"),
 };
 

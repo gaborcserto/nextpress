@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env HOST=127.0.0.1 HOSTNAME=127.0.0.1 PORT=49100 next dev --turbopack --hostname 127.0.0.1 --port 49100",
+    "dev": "cross-env HOST=localhost HOSTNAME=localhost PORT=49100 next dev --turbopack --hostname localhost --port 49100",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint .",

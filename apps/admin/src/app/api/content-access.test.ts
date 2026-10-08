@@ -248,14 +248,15 @@ describe.each(routes)("$type content authorization", ({ type, prefix, list, read
     }
     expect(prisma.page.update).toHaveBeenCalledWith({ where: { id: `${prefix}-draft`, type, authorId: "author-1" }, data: { title: "Own edit", status: "DRAFT", publishedAt: undefined } });
     expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();
-    expect((await remove(request("DELETE"), context(`${prefix}-draft`))).status).toBe(401);
+    expect((await remove(request("DELETE"), context(`${prefix}-draft`))).status).toBe(403);
   });
 
   it.each([null, "SUBSCRIBER"] as const)("denies mutations to %s", async (viewer) => {
     role = viewer;
-    expect((await create(request("POST", {}), context(""))).status).toBe(401);
-    expect((await update(request("PUT", { title: "No" }), context(`${prefix}-live`))).status).toBe(401);
-    expect((await remove(request("DELETE"), context(`${prefix}-live`))).status).toBe(401);
+    const status = viewer ? 403 : 401;
+    expect((await create(request("POST", {}), context(""))).status).toBe(status);
+    expect((await update(request("PUT", { title: "No" }), context(`${prefix}-live`))).status).toBe(status);
+    expect((await remove(request("DELETE"), context(`${prefix}-live`))).status).toBe(status);
     expect(prisma.page.update).not.toHaveBeenCalled();
   });
 
@@ -316,8 +317,8 @@ describe("admin taxonomy loading", () => {
   it.each([null, "SUBSCRIBER"] as const)("rejects taxonomy reads for role %s before querying tags", async (rejectedRole) => {
     role = rejectedRole;
     const response = await listAdminTags(request(), { params: {} });
-    expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    expect(response.status).toBe(rejectedRole ? 403 : 401);
+    expect(await response.json()).toEqual({ error: rejectedRole ? "Forbidden" : "Unauthorized" });
     expect(prisma.taxonomy.findMany).not.toHaveBeenCalled();
   });
 
@@ -412,8 +413,8 @@ describe("parent and taxonomy access boundaries", () => {
 
   it("denies global tag deletion to authors", async () => {
     role = "AUTHOR";
-    expect((await deleteTag(request("DELETE", undefined, "?id=tag-1"), context(""))).status).toBe(401);
-    expect((await deleteAdminTag(request("DELETE"), context("tag-1"))).status).toBe(401);
+    expect((await deleteTag(request("DELETE", undefined, "?id=tag-1"), context(""))).status).toBe(403);
+    expect((await deleteAdminTag(request("DELETE"), context("tag-1"))).status).toBe(403);
     expect(prisma.taxonomy.delete).not.toHaveBeenCalled();
   });
 });

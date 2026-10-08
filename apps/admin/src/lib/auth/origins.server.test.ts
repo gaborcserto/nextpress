@@ -12,11 +12,11 @@ function clearURLs() {
 }
 
 describe("authentication environment configuration", () => {
-  it("keeps localhost defaults and trusted origins available in development", () => {
+  it("keeps localhost as the development auth origin", () => {
     vi.stubEnv("NODE_ENV", "development");
     clearURLs();
     expect(getAuthBaseURL()).toBe("http://localhost:49101");
-    expect(getTrustedOrigins()).toContain("http://127.0.0.1:49101");
+    expect(getTrustedOrigins()).toEqual(["http://localhost:49101"]);
     expect(getAuthSecret()).toBeUndefined();
   });
 

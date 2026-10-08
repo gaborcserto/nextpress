@@ -34,8 +34,12 @@ vi.mock("@/lib/auth/auth-server", () => ({
   getAuth: vi.fn(async () => ({ handler: authHandler, $context: Promise.resolve({ password: { hash: bcryptHash } }) })),
   withAuth: (allowed: string[], handler: Function) =>
     async (request: Request, context: { params?: Record<string, string> } = {}) => {
-      if (!authState.role || !allowed.includes(authState.role)) {
+      if (!authState.role) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      if (!allowed.includes(authState.role)) {
+        return Response.json({ error: "Forbidden" }, { status: 403 });
       }
 
       return handler(
@@ -144,7 +148,7 @@ describe("admin API route integration", () => {
 
       const response = await getUsers(request("GET"), { params: {} });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
       expect(prisma.user.findMany).not.toHaveBeenCalled();
     });
 

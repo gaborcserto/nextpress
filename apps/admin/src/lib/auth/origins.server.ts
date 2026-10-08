@@ -43,7 +43,7 @@ export function getTrustedOrigins(): string[] {
   }
   const origins = urls.map(applicationOrigin);
   if (process.env.NODE_ENV !== "production") {
-    origins.push("http://localhost:49101", "http://127.0.0.1:49101");
+    origins.push("http://localhost:49101");
   }
   return [...new Set(origins)];
 }

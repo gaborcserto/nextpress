@@ -10,7 +10,7 @@ Run it from the repository root with:
 npm run dev:web
 ```
 
-It listens on `http://127.0.0.1:49100`. Configure local values in `apps/web/.env` using [`.env.example`](.env.example). The root [README](../../README.md) documents repository setup, shared commands, and testing.
+It listens on `http://localhost:49100`. Configure local values in `apps/web/.env` using [`.env.example`](.env.example). The root [README](../../README.md) documents repository setup, shared commands, and testing.
 
 Useful workspace checks:
 

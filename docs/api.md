@@ -7,8 +7,8 @@ remain authoritative for behavior; update the contract when their behavior
 changes. Do not add a manually synchronized endpoint catalog to Markdown.
 
 Run `npm run dev:admin` to view the browser reference at
-`http://127.0.0.1:49101/api-docs` or the JSON contract at
-`http://127.0.0.1:49101/api/openapi`. Both are available only in development.
+`http://localhost:49101/api-docs` or the JSON contract at
+`http://localhost:49101/api/openapi`. Both are available only in development.
 The viewer is read-only. Documentation visibility does not enforce endpoint
 authentication or authorization.
 

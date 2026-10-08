@@ -72,9 +72,9 @@ describe("custom mutation origin and media-type boundary", () => {
     }))?.status).toBe(415);
   });
 
-  it("supports both documented development hosts without obsolete ports", () => {
-    expect(getTrustedOrigins()).toEqual(["http://localhost:49101", "http://127.0.0.1:49101"]);
-    expect(requireTrustedMutation(request("POST", "http://127.0.0.1:49101"))).toBeNull();
+  it("trusts the canonical localhost development origin", () => {
+    expect(getTrustedOrigins()).toEqual(["http://localhost:49101"]);
+    expect(requireTrustedMutation(request("POST", "http://127.0.0.1:49101"))?.status).toBe(403);
   });
 
   it("uses only configured HTTPS origins in production", () => {

@@ -56,7 +56,7 @@ Start both applications with:
 npm run dev
 ```
 
-The configured development URLs are [admin](http://127.0.0.1:49101) and [web](http://127.0.0.1:49100). They can also be started separately with `npm run dev:admin` and `npm run dev:web`.
+The configured development URLs are [admin](http://localhost:49101) and [web](http://localhost:49100). They can also be started separately with `npm run dev:admin` and `npm run dev:web`.
 
 ## Useful commands
 
@@ -89,8 +89,8 @@ Run the suites with `npm test` or collect V8 coverage with `npm run coverage`.
 ## Authentication and admin foundation
 
 The [HTTP API guide](docs/api.md) explains the OpenAPI contract and its maintenance workflow.
-Development-only [API docs](http://127.0.0.1:49101/api-docs)
-and [OpenAPI JSON](http://127.0.0.1:49101/api/openapi) share a schema-derived contract;
+Development-only [API docs](http://localhost:49101/api-docs)
+and [OpenAPI JSON](http://localhost:49101/api/openapi) share a schema-derived contract;
 run `npm run openapi:validate` to check it. Public `GET /api/health` confirms
 application liveness without checking PostgreSQL.
 
