@@ -49,67 +49,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Set up Node.js for selection
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.1
+        with:
+          node-version: 22
+
       - name: Select affected workspaces
         id: filter
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
-        shell: bash
-        run: |
-          full_validation=false
-          has_workspace_change=false
-
-          if [[ -z "$BASE_SHA" ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            full_validation=true
-          else
-            changed_files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
-            if [[ -z "$changed_files" ]]; then
-              full_validation=true
-            fi
-
-            while IFS= read -r file; do
-              [[ -z "$file" ]] && continue
-              case "$file" in
-                *.md) ;;
-                apps/web/*)
-                  has_workspace_change=true
-                  ;;
-                apps/admin/*|packages/db/*|packages/shared/*|packages/eslint-config/*)
-                  has_workspace_change=true
-                  ;;
-                apps/*|packages/*) full_validation=true ;;
-                .github/*|.husky/*|package.json|package-lock.json|turbo.json|tsconfig.base.json|eslint.config.mjs|lint-staged.config.mjs)
-                  full_validation=true
-                  ;;
-                *)
-                  # Unknown paths may affect any workspace, so validate all of them.
-                  full_validation=true
-                  ;;
-              esac
-            done <<< "$changed_files"
-          fi
-
-          if [[ "$full_validation" == false && "$has_workspace_change" == false && -n "$changed_files" ]]; then
-            # A diff containing only Markdown needs no application validation.
-            should_validate=false
-          else
-            should_validate=true
-          fi
-
-          if [[ "$full_validation" == true ]]; then
-            turbo_filters=""
-          elif [[ "$should_validate" == true ]]; then
-            turbo_filters="--filter=...[$BASE_SHA]"
-          else
-            turbo_filters=""
-          fi
-
-          if [[ "$full_validation" == true ]]; then
-            should_validate=true
-          fi
-
-          printf 'should_validate=%s\n' "$should_validate" >> "$GITHUB_OUTPUT"
-          printf 'turbo_filters=%s\n' "$turbo_filters" >> "$GITHUB_OUTPUT"
+        run: node scripts/check-changed.mjs --ci
 
   validate:
     name: Validate
@@ -139,6 +89,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Test changed-file selection
+        run: npm run check:changed:test
 
       - name: Validate affected workspaces
         env:
