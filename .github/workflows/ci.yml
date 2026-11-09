@@ -14,6 +14,27 @@ permissions:
   contents: read
 
 jobs:
+  dependency-audit:
+    name: Production dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+
   changes:
     name: Detect affected workspaces
     runs-on: ubuntu-latest
@@ -125,3 +146,27 @@ jobs:
         run: |
           read -r -a filters <<< "$TURBO_FILTERS"
           npx turbo run lint typecheck test:coverage build "${filters[@]}"
+
+  quality-gates:
+    name: Quality Gates
+    if: always()
+    needs:
+      - changes
+      - validate
+      - dependency-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all applicable checks to pass
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          VALIDATE_REQUIRED: ${{ needs.changes.outputs.should_validate }}
+          AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+        run: |
+          [[ "$CHANGES_RESULT" == "success" ]] || exit 1
+          [[ "$AUDIT_RESULT" == "success" ]] || exit 1
+          if [[ "$VALIDATE_REQUIRED" == "true" ]]; then
+            [[ "$VALIDATE_RESULT" == "success" ]] || exit 1
+          else
+            [[ "$VALIDATE_RESULT" == "skipped" ]] || exit 1
+          fi
