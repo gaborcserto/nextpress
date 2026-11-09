@@ -90,6 +90,7 @@ Thumbs.db
 *.zip
 .references/
 examples/
+.notes/
 
 # ───────────────────────────────
 # Monorepo outputs

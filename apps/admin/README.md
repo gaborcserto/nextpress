@@ -53,8 +53,8 @@ normal authentication, authorization, CSRF, and validation checks. `GET
 /api/health` is a public, uncached application liveness check returning
 `{ "status": "ok" }` without a database check.
 
-See [API contract workflow](../../docs/api.md) for contract ownership and
-maintenance. Run
+See the [API contract workflow](../../.agents/skills/nextpress-api-contracts/SKILL.md)
+for contract ownership and maintenance. Run
 `npm run openapi:validate` from the root to validate the schema and route coverage.
 
 The docs page renders the exact-pinned local `swagger-ui-dist` bundle outside
