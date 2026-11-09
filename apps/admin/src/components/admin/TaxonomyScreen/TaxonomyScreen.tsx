@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 
-import type { TagUsageRow } from "./TaxonomyScreen.types";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -11,7 +10,11 @@ import {
   loadTagsAdminAction,
 } from "@/lib/services/tag.client";
 import { slugify } from "@/lib/utils";
-import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
+import {
+  DataListEmptyRow,
+  DataListLoading,
+  DataListSurface,
+} from "@/ui/components/DataList";
 import {
   Box,
   Button,
@@ -25,6 +28,8 @@ import {
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
+
+import type { TagUsageRow } from "./TaxonomyScreen.types";
 
 type ConfirmPayload = { id: string; name: string; usedCount: number };
 
@@ -59,12 +64,14 @@ export default function TaxonomyScreen() {
           name: t.name,
           slug: t.slug,
           usedCount: t.usedCount,
-        }))
+        })),
       );
     } catch (e) {
-      setLoadError(e instanceof ApiRequestError && (e.status === 401 || e.status === 403)
-        ? "Unable to access tags. Sign in with an authorized admin account and try again."
-        : "Unable to load tags. Please try again.");
+      setLoadError(
+        e instanceof ApiRequestError && (e.status === 401 || e.status === 403)
+          ? "Unable to access tags. Sign in with an authorized admin account and try again."
+          : "Unable to load tags. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -74,7 +81,8 @@ export default function TaxonomyScreen() {
     void reload();
   }, []);
 
-  const canCreate = name.trim().length > 0 && slug.trim().length > 0 && !creating;
+  const canCreate =
+    name.trim().length > 0 && slug.trim().length > 0 && !creating;
 
   const onCreate = async () => {
     if (!canCreate || creatingRef.current) return;
@@ -86,7 +94,12 @@ export default function TaxonomyScreen() {
       const created = await createTagAction(name.trim());
 
       setItems((prev) => [
-        { id: created.id, name: created.name, slug: created.slug, usedCount: 0 },
+        {
+          id: created.id,
+          name: created.name,
+          slug: created.slug,
+          usedCount: 0,
+        },
         ...prev,
       ]);
 
@@ -128,9 +141,13 @@ export default function TaxonomyScreen() {
   };
 
   return (
-    <AdminPageLayout title="Taxonomy" description="Manage tags and track usage.">
-      <AdminPageColumns sidebar={
-        <>
+    <AdminPageLayout
+      title="Taxonomy"
+      description="Manage tags and track usage."
+    >
+      <AdminPageColumns
+        sidebar={
+          <>
             <Section title="Create tag" desc="Add a new tag.">
               <form
                 onSubmit={(event) => {
@@ -138,134 +155,146 @@ export default function TaxonomyScreen() {
                   void onCreate();
                 }}
               >
-              <fieldset disabled={creating}>
-              <FormGrid12>
-                <Field label="Name" htmlFor="tag-name" span={12}>
-                  <Input
-                    id="tag-name"
-                    fullWidth
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </Field>
+                <fieldset disabled={creating}>
+                  <FormGrid12>
+                    <Field label="Name" htmlFor="tag-name" span={12}>
+                      <Input
+                        id="tag-name"
+                        fullWidth
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </Field>
 
-                <Field label="Slug" htmlFor="tag-slug" hint="Generated from the tag name." span={12}>
-                  <Input
-                    id="tag-slug"
-                    fullWidth
-                    value={slug}
-                    readOnly
-                  />
-                </Field>
-              </FormGrid12>
+                    <Field
+                      label="Slug"
+                      htmlFor="tag-slug"
+                      hint="Generated from the tag name."
+                      span={12}
+                    >
+                      <Input id="tag-slug" fullWidth value={slug} readOnly />
+                    </Field>
+                  </FormGrid12>
 
-              <Box bare className="mt-3 flex justify-end">
-                <div className="flex items-center gap-2">
-                  {error ? <div role="alert" className="text-sm text-error">{error}</div> : null}
+                  <Box bare className="mt-3 flex justify-end">
+                    <div className="flex items-center gap-2">
+                      {error ? (
+                        <div role="alert" className="text-sm text-error">
+                          {error}
+                        </div>
+                      ) : null}
 
-                <IconButton
-                  type="submit"
-                  icon={FaPlus}
-                    color="primary"
-                    variant="solid"
-                    size="sm"
-                    loading={creating}
-                    disabled={!canCreate}
-                  aria-label="Create tag"
-                  >
-                    Create
-                  </IconButton>
-                </div>
-              </Box>
-              </fieldset>
+                      <IconButton
+                        type="submit"
+                        icon={FaPlus}
+                        color="primary"
+                        variant="solid"
+                        size="sm"
+                        loading={creating}
+                        disabled={!canCreate}
+                        aria-label="Create tag"
+                      >
+                        Create
+                      </IconButton>
+                    </div>
+                  </Box>
+                </fieldset>
               </form>
             </Section>
-        </>
-      }>
-
-            <Section title="Tags" desc="Used = number of posts linked to the tag.">
-              {loading ? (
-                <DataListLoading label="tags" />
-              ) : loadError ? (
-                <div role="alert" className="text-sm text-error">{loadError}</div>
-              ) : (
-                <DataListSurface>
-                  <table className="table min-w-[520px] table-zebra w-full">
-                    <thead className="bg-base-200">
-                    <tr>
-                      <th>Name</th>
-                      <th>Slug</th>
-                      <th className="text-right">Used</th>
-                      <th className="whitespace-nowrap text-right">Actions</th>
-                    </tr>
-                    </thead>
-
-                    <tbody>
-                    {sorted.length ? (
-                      sorted.map((t) => (
-                        <tr key={t.id}>
-                          <td className="font-medium">{t.name}</td>
-                          <td className="opacity-80">{t.slug}</td>
-                          <td className="text-right tabular-nums font-medium"><div className="badge badge-soft badge-primary">{t.usedCount}</div></td>
-                          <td className="whitespace-nowrap text-right">
-                            <IconButton
-                              icon={FaTrash}
-                              size="sm"
-                              color="error"
-                              variant="solid"
-                              loading={deletingId === t.id}
-                              disabled={Boolean(deletingId)}
-                              aria-label={`Delete tag ${t.name}`}
-                              onClick={() => onAskDelete(t)}
-                            >
-                              Delete
-                            </IconButton>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <DataListEmptyRow colSpan={4}>No tags found.</DataListEmptyRow>
-                    )}
-                    </tbody>
-                  </table>
-                </DataListSurface>
-              )}
-            </Section>
-
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                color="neutral"
-                onClick={() => void reload()}
-              >
-                Refresh
-              </Button>
+          </>
+        }
+      >
+        <Section title="Tags" desc="Used = number of posts linked to the tag.">
+          {loading ? (
+            <DataListLoading label="tags" />
+          ) : loadError ? (
+            <div role="alert" className="text-sm text-error">
+              {loadError}
             </div>
+          ) : (
+            <DataListSurface>
+              <table className="table min-w-[520px] table-zebra w-full">
+                <thead className="bg-base-200">
+                  <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th className="text-right">Used</th>
+                    <th className="whitespace-nowrap text-right">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sorted.length ? (
+                    sorted.map((t) => (
+                      <tr key={t.id}>
+                        <td className="font-medium">{t.name}</td>
+                        <td className="opacity-80">{t.slug}</td>
+                        <td className="text-right tabular-nums font-medium">
+                          <div className="badge badge-soft badge-primary">
+                            {t.usedCount}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap text-right">
+                          <IconButton
+                            icon={FaTrash}
+                            size="sm"
+                            color="error"
+                            variant="solid"
+                            loading={deletingId === t.id}
+                            disabled={Boolean(deletingId)}
+                            aria-label={`Delete tag ${t.name}`}
+                            onClick={() => onAskDelete(t)}
+                          >
+                            Delete
+                          </IconButton>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <DataListEmptyRow colSpan={4}>
+                      No tags found.
+                    </DataListEmptyRow>
+                  )}
+                </tbody>
+              </table>
+            </DataListSurface>
+          )}
+        </Section>
+
+        <div className="flex justify-end">
+          <Button variant="ghost" color="neutral" onClick={() => void reload()}>
+            Refresh
+          </Button>
+        </div>
       </AdminPageColumns>
 
-        <ConfirmDialog
-          open={confirm.open}
-          title="Delete tag?"
-          confirmLabel="Delete"
-          confirmColor="error"
-          loading={!!deletingId && deletingId === confirm.payload?.id}
-          onCancelAction={confirm.hide}
-          onConfirmAction={onConfirmDelete}
-        >
-          {confirm.payload ? (
-            <>
-              <p>
-                You are about to delete <span className="font-medium">{confirm.payload.name}</span>.
-              </p>
-              <p className="mt-2">
-                This tag is used by{" "}
-                <span className="font-semibold tabular-nums">{confirm.payload.usedCount}</span>{" "}
-                post(s). Deleting it will remove the tag from all linked pages and posts.
-              </p>
-            </>
-          ) : null}
-        </ConfirmDialog>
+      <ConfirmDialog
+        open={confirm.open}
+        title="Delete tag?"
+        confirmLabel="Delete"
+        confirmColor="error"
+        loading={!!deletingId && deletingId === confirm.payload?.id}
+        onCancelAction={confirm.hide}
+        onConfirmAction={onConfirmDelete}
+      >
+        {confirm.payload ? (
+          <>
+            <p>
+              You are about to delete{" "}
+              <span className="font-medium">{confirm.payload.name}</span>.
+            </p>
+            <p className="mt-2">
+              This tag is used by{" "}
+              <span className="font-semibold tabular-nums">
+                {confirm.payload.usedCount}
+              </span>{" "}
+              post(s). Deleting it will remove the tag from all linked pages and
+              posts.
+            </p>
+          </>
+        ) : null}
+      </ConfirmDialog>
     </AdminPageLayout>
   );
 }

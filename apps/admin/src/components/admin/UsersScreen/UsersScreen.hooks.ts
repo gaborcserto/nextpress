@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import type { RoleName } from "@/lib/auth/roles";
 import { showToast } from "@/ui/utils";
+
+import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 
 export function useUsersScreen() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -37,7 +38,9 @@ export function useUsersScreen() {
       });
       setUsers(data);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to load users.");
+      setError(
+        caught instanceof Error ? caught.message : "Failed to load users.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,9 @@ export function useUsersScreen() {
       await load();
       showToast("User created.", "success");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to create user.");
+      setError(
+        caught instanceof Error ? caught.message : "Failed to create user.",
+      );
     } finally {
       creatingRef.current = false;
       setCreating(false);
@@ -112,7 +117,7 @@ export function useUsersScreen() {
     setError(null);
 
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, roleName: editingRole } : u))
+      prev.map((u) => (u.id === userId ? { ...u, roleName: editingRole } : u)),
     );
 
     try {

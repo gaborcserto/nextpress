@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
-import { forgotPasswordSchema } from "./ForgotPasswordForm.validation";
-import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { requestPasswordReset } from "@/lib/auth/auth-client";
 import { EmailField } from "@/ui/components";
 import { Alert } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
+
+import { forgotPasswordSchema } from "./ForgotPasswordForm.validation";
+import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -40,12 +41,16 @@ export function ForgotPasswordForm() {
       });
 
       if (error) {
-        setFormError("Password recovery is unavailable. Contact an administrator.");
+        setFormError(
+          "Password recovery is unavailable. Contact an administrator.",
+        );
         return;
       }
       setSent(true);
     } catch {
-      setFormError("Password recovery is unavailable. Contact an administrator.");
+      setFormError(
+        "Password recovery is unavailable. Contact an administrator.",
+      );
     } finally {
       submissionLock.current = false;
       setLoading(false);
@@ -63,38 +68,44 @@ export function ForgotPasswordForm() {
       <Alert status="error" message={formError} />
       <div className="space-y-4">
         <fieldset disabled={loading || sent} className="contents">
-        <EmailField
-          id="forgot-email"
-          name="email"
-          label="Email"
-          value={email}
-          onChangeAction={(value) => {
-            setEmail(value);
-            setFieldError(undefined);
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="email"
-          required
-          error={fieldError}
-        />
+          <EmailField
+            id="forgot-email"
+            name="email"
+            label="Email"
+            value={email}
+            onChangeAction={(value) => {
+              setEmail(value);
+              setFieldError(undefined);
+            }}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="email"
+            required
+            error={fieldError}
+          />
 
-        <AuthSubmitButton type="submit" loading={loading} disabled={loading || sent}>
-          Send reset link
-        </AuthSubmitButton>
+          <AuthSubmitButton
+            type="submit"
+            loading={loading}
+            disabled={loading || sent}
+          >
+            Send reset link
+          </AuthSubmitButton>
 
-        {sent && (
-          <div className="alert alert-info" role="status">
-            <span>If this account is eligible, check your inbox for a reset link.</span>
-          </div>
-        )}
+          {sent && (
+            <div className="alert alert-info" role="status">
+              <span>
+                If this account is eligible, check your inbox for a reset link.
+              </span>
+            </div>
+          )}
 
-        <p className="text-sm text-center">
-          <Link className="link link-hover" href="/auth/sign-in">
-            Back to sign in
-          </Link>
-        </p>
+          <p className="text-sm text-center">
+            <Link className="link link-hover" href="/auth/sign-in">
+              Back to sign in
+            </Link>
+          </p>
         </fieldset>
       </div>
     </AuthShell>

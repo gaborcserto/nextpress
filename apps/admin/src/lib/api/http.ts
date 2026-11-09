@@ -1,27 +1,22 @@
 import { NextResponse } from "next/server";
 
-type ErrorBody<E extends object = {}> = { error: string } & E;
+type ErrorBody<E extends object = object> = { error: string } & E;
 
 /**
  * Successful JSON response helper.
  */
 export function ok<T>(data: T, status?: number): NextResponse<T> {
-  return NextResponse.json<T>(
-    data,
-    status ? { status } : undefined
-  );
+  return NextResponse.json<T>(data, status ? { status } : undefined);
 }
 
 /**
  * 400 Bad Request with optional extra fields.
  */
-export function bad<E extends object = {}>(
+export function bad<E extends object = object>(
   msg = "Bad Request",
-  extra?: E
+  extra?: E,
 ): NextResponse<ErrorBody<E>> {
-  const body = extra
-    ? { error: msg, ...extra }
-    : { error: msg };
+  const body = extra ? { error: msg, ...extra } : { error: msg };
 
   // TypeScript cannot prove that the branch without `extra` contains an
   // arbitrary caller-supplied E; the response contract is still enforced at
@@ -63,6 +58,6 @@ export function conflict(msg = "Conflict"): NextResponse<ErrorBody> {
 export function oops(): NextResponse<ErrorBody> {
   return NextResponse.json<ErrorBody>(
     { error: "Unexpected error" },
-    { status: 500 }
+    { status: 500 },
   );
 }

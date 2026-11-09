@@ -3,10 +3,14 @@ import type {
   TagLoadOptionsFn,
   TagValue,
 } from "@/lib/content/contracts";
+
 import type { KeyboardEvent, InputHTMLAttributes } from "react";
 
-
-export type { TagCreateFn, TagLoadOptionsFn, TagValue } from "@/lib/content/contracts";
+export type {
+  TagCreateFn,
+  TagLoadOptionsFn,
+  TagValue,
+} from "@/lib/content/contracts";
 
 export type TagMultiSelectProps = {
   label?: string;

@@ -1,4 +1,5 @@
 import type { RoleName } from "@/lib/auth/roles";
+
 import type { IconType } from "react-icons";
 
 export type NavConfig = {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 
-import styles from "./PublicShell.module.css";
 import { Container } from "@/components/public-ui/Container";
 import { SkipLink } from "@/components/public-ui/SkipLink";
+
+import styles from "./PublicShell.module.css";
 import type { ReactNode } from "react";
 
 type NavigationPage = { slug: string; title: string };
@@ -35,7 +36,9 @@ export function PublicShell({
                 <Link href="/posts">Posts</Link>
               </li>
               {headerPages.map(({ slug, title }) => (
-                <li key={slug}><Link href={`/pages/${slug}`}>{title}</Link></li>
+                <li key={slug}>
+                  <Link href={`/pages/${slug}`}>{title}</Link>
+                </li>
               ))}
             </ul>
           </nav>
@@ -51,7 +54,9 @@ export function PublicShell({
             <nav aria-label="Footer">
               <ul className={styles.navigation}>
                 {footerPages.map(({ slug, title }) => (
-                  <li key={slug}><Link href={`/pages/${slug}`}>{title}</Link></li>
+                  <li key={slug}>
+                    <Link href={`/pages/${slug}`}>{title}</Link>
+                  </li>
                 ))}
               </ul>
             </nav>

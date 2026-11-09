@@ -1,7 +1,5 @@
 "use client";
 
-import { usePageEditor } from "./PageEditorScreen.hooks";
-import type { PageEditorScreenProps } from "./PageEditorScreen.types";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -12,16 +10,12 @@ import {
 import { Alert } from "@/ui/primitives";
 import { AdminPageLayout, PageForm } from "@/ui/shell";
 
+import { usePageEditor } from "./PageEditorScreen.hooks";
+import type { PageEditorScreenProps } from "./PageEditorScreen.types";
+
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
-  const {
-    isEdit,
-    item,
-    isLoading,
-    notFound,
-    error,
-    saving,
-    handleSubmit,
-  } = usePageEditor(id);
+  const { isEdit, item, isLoading, notFound, error, saving, handleSubmit } =
+    usePageEditor(id);
 
   const title = isEdit ? "Edit Page" : "Create Page";
   const subtitle = isEdit
@@ -32,7 +26,10 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   if (error && !(error instanceof ApiRequestError && error.status === 404)) {
     return (
       <AdminPageLayout title={title} description={subtitle}>
-        <Alert status="error" message="Unable to load page. Please try again." />
+        <Alert
+          status="error"
+          message="Unable to load page. Please try again."
+        />
       </AdminPageLayout>
     );
   }
@@ -62,16 +59,16 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
 
   return (
     <PageForm
-        initial={item}
-        submitting={saving}
-        submitLabel={submitLabel}
-        onSubmitAction={handleSubmit}
-        loadTagOptionsAction={loadTagOptionsAction}
-        createTagAction={createTagAction}
-        loadEntityTagsAction={loadEntityTagsAction}
-        updateEntityTagsAction={updateEntityTagsAction}
-        sidebarTitle={title}
-        sidebarSubtitle={subtitle}
+      initial={item}
+      submitting={saving}
+      submitLabel={submitLabel}
+      onSubmitAction={handleSubmit}
+      loadTagOptionsAction={loadTagOptionsAction}
+      createTagAction={createTagAction}
+      loadEntityTagsAction={loadEntityTagsAction}
+      updateEntityTagsAction={updateEntityTagsAction}
+      sidebarTitle={title}
+      sidebarSubtitle={subtitle}
     />
   );
 }

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import React, { useCallback } from "react";
 import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 
-import type { UserMenuProps } from "./UserMenu.types";
 import { signOut } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components";
 import {
@@ -17,6 +16,7 @@ import {
 } from "@/ui/primitives/Dropdown/Dropdown";
 import { showToast } from "@/ui/utils";
 
+import type { UserMenuProps } from "./UserMenu.types";
 
 export default function UserMenu({ name, image, role }: UserMenuProps) {
   const router = useRouter();
@@ -36,41 +36,43 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
   }, [router]);
 
   return (
-      <Dropdown align="end">
+    <Dropdown align="end">
+      <DropdownTrigger
+        ariaLabel="Open user menu"
+        className="btn btn-ghost btn-circle"
+      >
+        <UserAvatar name={name} image={image} size="sm" />
+      </DropdownTrigger>
 
-        <DropdownTrigger ariaLabel="Open user menu" className="btn btn-ghost btn-circle">
-          <UserAvatar name={name} image={image} size="sm" />
-        </DropdownTrigger>
-
-        <DropdownMenu aria-label="User menu">
-          <DropdownLabel>
-            <div className="flex flex-col">
-              <span className="text-sm truncate">{name}</span>
-              <span className="text-xs text-base-content/60 truncate">
+      <DropdownMenu aria-label="User menu">
+        <DropdownLabel>
+          <div className="flex flex-col">
+            <span className="text-sm truncate">{name}</span>
+            <span className="text-xs text-base-content/60 truncate">
               {role ?? "User"}
             </span>
-            </div>
-          </DropdownLabel>
+          </div>
+        </DropdownLabel>
 
-          <DropdownDivider />
+        <DropdownDivider />
 
-          <DropdownItem
-            itemKey="profile"
-            startIcon={<FaUserCircle />}
-            onClick={() => router.push("/admin/profile")}
-          >
-            Profile
-          </DropdownItem>
+        <DropdownItem
+          itemKey="profile"
+          startIcon={<FaUserCircle />}
+          onClick={() => router.push("/admin/profile")}
+        >
+          Profile
+        </DropdownItem>
 
-          <DropdownItem
-            itemKey="logout"
-            color="danger"
-            startIcon={<FaSignOutAlt />}
-            onClick={handleSignOut}
-          >
-            Sign out
-          </DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
+        <DropdownItem
+          itemKey="logout"
+          color="danger"
+          startIcon={<FaSignOutAlt />}
+          onClick={handleSignOut}
+        >
+          Sign out
+        </DropdownItem>
+      </DropdownMenu>
+    </Dropdown>
   );
 }

@@ -6,8 +6,8 @@
     "dev": "cross-env HOST=localhost HOSTNAME=localhost PORT=49100 next dev --turbopack --hostname localhost --port 49100",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

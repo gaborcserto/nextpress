@@ -1,13 +1,28 @@
 import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
-import { emailSchema, MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
+import {
+  emailSchema,
+  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
+} from "@nextpress/shared/auth-policy";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { cache } from "react";
+
+import { forbid, unauthorized } from "@/lib/api";
+import {
+  readBoundedMutationRequest,
+  requireTrustedMutation,
+} from "@/lib/api/mutation.server";
+import {
+  authBudgets,
+  limitMutation,
+  type MutationLimit,
+} from "@/lib/security/rate-limit.server";
 
 import { limitAccountCreation } from "./abuse-policy.server";
 import { accountPolicy } from "./account-policy.server";
@@ -17,13 +32,14 @@ import {
   operationalProviderNames,
   type OAuthProviderRow,
 } from "./oauth-providers.server";
-import { getAuthBaseURL, getAuthSecret, getTrustedOrigins } from "./origins.server";
+import {
+  getAuthBaseURL,
+  getAuthSecret,
+  getTrustedOrigins,
+} from "./origins.server";
 import { hashPassword, verifyCredentialPassword } from "./password.server";
 import { isRole, type RoleName } from "./roles";
 import { verifyLogout } from "./session-policy.server";
-import { forbid, unauthorized } from "@/lib/api";
-import { readBoundedMutationRequest, requireTrustedMutation } from "@/lib/api/mutation.server";
-import { authBudgets, limitMutation, type MutationLimit } from "@/lib/security/rate-limit.server";
 
 function createAuth(providerRows: readonly OAuthProviderRow[]) {
   return betterAuth({
@@ -36,7 +52,10 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
       // Provider errors may contain remote responses. Never forward their text
       // or arguments, and do not amplify credential failures into unlimited logs.
       log: (level) => {
-        if ((level === "warn" || level === "error") && authBudgets.consume("auth-log", 1, 60_000) === null) {
+        if (
+          (level === "warn" || level === "error") &&
+          authBudgets.consume("auth-log", 1, 60_000) === null
+        ) {
           console.warn("Authentication operation failed");
         }
       },
@@ -45,7 +64,9 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
       ipAddress: { disableIpTracking: true },
       disableCSRFCheck: false,
       disableOriginCheck: false,
-      useSecureCookies: process.env.NODE_ENV === "production" || getAuthBaseURL().startsWith("https://"),
+      useSecureCookies:
+        process.env.NODE_ENV === "production" ||
+        getAuthBaseURL().startsWith("https://"),
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
     },
 
@@ -85,7 +106,11 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
     },
 
     account: {
-      accountLinking: { disableImplicitLinking: true, trustedProviders: [], allowDifferentEmails: false },
+      accountLinking: {
+        disableImplicitLinking: true,
+        trustedProviders: [],
+        allowDifferentEmails: false,
+      },
       modelName: "Account",
       fields: {
         providerId: "provider",
@@ -105,7 +130,12 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
     user: {
       modelName: "User",
       additionalFields: {
-        roleId: { type: "string", required: false, input: false, returned: false },
+        roleId: {
+          type: "string",
+          required: false,
+          input: false,
+          returned: false,
+        },
       },
     },
 
@@ -115,7 +145,11 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
           before: async (user) => {
             limitAccountCreation();
             const email = emailSchema.safeParse(user.email);
-            if (!email.success) throw new APIError("BAD_REQUEST", { code: "INVALID_EMAIL", message: "Invalid email" });
+            if (!email.success)
+              throw new APIError("BAD_REQUEST", {
+                code: "INVALID_EMAIL",
+                message: "Invalid email",
+              });
             const role = await prisma.role.findUniqueOrThrow({
               where: { name: "SUBSCRIBER" },
               select: { id: true },
@@ -205,7 +239,9 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
  * Reads the user's role name from DB.
  * Use ensureDefaultRole() if you want to guarantee a default role exists.
  */
-export async function getUserRole(userId?: string | null): Promise<RoleName | null> {
+export async function getUserRole(
+  userId?: string | null,
+): Promise<RoleName | null> {
   if (!userId) return null;
   return readRoleName(userId);
 }
@@ -221,8 +257,8 @@ type BaseUser = NonNullable<BaseSession>["user"];
 
 export type SessionWithRole =
   | (NonNullable<BaseSession> & {
-  user: NonNullable<BaseUser> & { role: RoleName | null };
-})
+      user: NonNullable<BaseUser> & { role: RoleName | null };
+    })
   | null;
 
 /**
@@ -248,7 +284,7 @@ export const getSessionWithRole = cache(async (): Promise<SessionWithRole> => {
 
 export function hasAnyRole(
   role: RoleName | null | undefined,
-  allowed: readonly RoleName[]
+  allowed: readonly RoleName[],
 ): role is RoleName {
   return !!role && allowed.includes(role);
 }
@@ -257,18 +293,25 @@ type HandlerCtx<P extends Record<string, string> = Record<string, string>> = {
   params: P;
 };
 
-type RawHandlerCtx<P extends Record<string, string> = Record<string, string>> = {
-  params: P | Promise<P>;
-};
+type RawHandlerCtx<P extends Record<string, string> = Record<string, string>> =
+  {
+    params: P | Promise<P>;
+  };
 
 type Authed = {
   session: NonNullable<Awaited<ReturnType<typeof getSessionWithRole>>>;
   roleName: RoleName;
 };
 
-export function withAuth<P extends Record<string, string> = Record<string, string>>(
+export function withAuth<
+  P extends Record<string, string> = Record<string, string>,
+>(
   allowed: RoleName[],
-  handler: (req: Request, ctx: HandlerCtx<P>, auth: Authed) => Promise<Response> | Response,
+  handler: (
+    req: Request,
+    ctx: HandlerCtx<P>,
+    auth: Authed,
+  ) => Promise<Response> | Response,
   mutationLimit?: MutationLimit,
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
@@ -289,6 +332,10 @@ export function withAuth<P extends Record<string, string> = Record<string, strin
 
     const bounded = await readBoundedMutationRequest(req);
     if (bounded.response) return bounded.response;
-    return handler(bounded.request ?? req, { params }, { session, roleName: role });
+    return handler(
+      bounded.request ?? req,
+      { params },
+      { session, roleName: role },
+    );
   };
 }

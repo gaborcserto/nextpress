@@ -16,9 +16,10 @@ import {
   TbLayoutSidebarRightExpandFilled,
 } from "react-icons/tb";
 
-import type { NavConfig, SidebarProps } from "./Sidebar.types";
 import { IconButton } from "@/ui/primitives";
-import { NavItem } from "@/ui/shell";
+import { NavItem } from "@/ui/shell/NavItem";
+
+import type { NavConfig, SidebarProps } from "./Sidebar.types";
 import type { IconType } from "react-icons";
 
 const MotionSpan = motion.span;
@@ -71,7 +72,9 @@ export default function Sidebar({
 
   return (
     <aside className="h-full overflow-visible flex flex-col">
-      <div className={`h-14 shrink-0 px-3 flex items-center gap-2 ${onCloseAction ? "sticky top-0 z-10 bg-base-100" : ""}`}>
+      <div
+        className={`h-14 shrink-0 px-3 flex items-center gap-2 ${onCloseAction ? "sticky top-0 z-10 bg-base-100" : ""}`}
+      >
         <MotionDiv
           layout
           initial={false}
@@ -81,7 +84,9 @@ export default function Sidebar({
           <MotionSpan
             layout
             initial={false}
-            className={collapsed ? "block w-full text-center" : "block w-full text-left"}
+            className={
+              collapsed ? "block w-full text-center" : "block w-full text-left"
+            }
             animate={{
               scale: collapsed ? 1.03 : 1,
               letterSpacing: collapsed ? "0.08em" : "0em",
@@ -104,7 +109,10 @@ export default function Sidebar({
         )}
       </div>
 
-      <nav aria-label="Admin navigation" className="flex-1 px-2 py-2 flex flex-col gap-1">
+      <nav
+        aria-label="Admin navigation"
+        className="flex-1 px-2 py-2 flex flex-col gap-1"
+      >
         {ITEMS.map((it) => renderItem(it))}
 
         {role === "ADMIN" && (
@@ -115,21 +123,27 @@ export default function Sidebar({
         )}
       </nav>
 
-      {onToggleCollapsedAction && <div className="px-2 pb-2">
-        <div className="divider my-2" />
-        <div
-          className="tooltip tooltip-right w-full flex justify-start h-10"
-          data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <IconButton
-            icon={collapsed ? TbLayoutSidebarLeftCollapseFilled : TbLayoutSidebarRightExpandFilled}
-            variant="ghost"
-            size="sm"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={onToggleCollapsedAction}
-          />
+      {onToggleCollapsedAction && (
+        <div className="px-2 pb-2">
+          <div className="divider my-2" />
+          <div
+            className="tooltip tooltip-right w-full flex justify-start h-10"
+            data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <IconButton
+              icon={
+                collapsed
+                  ? TbLayoutSidebarLeftCollapseFilled
+                  : TbLayoutSidebarRightExpandFilled
+              }
+              variant="ghost"
+              size="sm"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              onClick={onToggleCollapsedAction}
+            />
+          </div>
         </div>
-      </div>}
+      )}
     </aside>
   );
 }

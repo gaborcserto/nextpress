@@ -1,8 +1,12 @@
-import { readRichContent, RichBlocksSchema, serializeRichContent } from "@nextpress/shared/content";
+import {
+  readRichContent,
+  RichBlocksSchema,
+  serializeRichContent,
+} from "@nextpress/shared/content";
 
 import { slugify } from "@/lib/utils";
-import type { Descendant } from "slate";
 
+import type { Descendant } from "slate";
 
 export const EMPTY_SLATE_VALUE: Descendant[] = [
   {
@@ -32,7 +36,10 @@ export function getEntityId(value: unknown): string | undefined {
 export type SlateLike = Descendant[] | string | null | undefined;
 
 export function normalizeSlateValue(input: SlateLike): Descendant[] {
-  if (Array.isArray(input)) return input.length ? RichBlocksSchema.parse(input) : readRichContent(null).blocks;
+  if (Array.isArray(input))
+    return input.length
+      ? RichBlocksSchema.parse(input)
+      : readRichContent(null).blocks;
   return readRichContent(input ?? null).blocks;
 }
 
@@ -40,7 +47,9 @@ export function slateToString(value: SlateLike): string {
   return serializeRichContent(normalizeSlateValue(value));
 }
 
-export function publicationDateToLocal(value: string | null | undefined): string | null {
+export function publicationDateToLocal(
+  value: string | null | undefined,
+): string | null {
   if (!value) return null;
   const date = new Date(value);
   const pad = (part: number) => String(part).padStart(2, "0");

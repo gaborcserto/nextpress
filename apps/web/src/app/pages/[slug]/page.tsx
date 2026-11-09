@@ -1,18 +1,25 @@
 import { notFound } from "next/navigation";
 
-
-import styles from "./page.module.css";
 import { Container } from "@/components/public-ui/Container";
 import { RichContent } from "@/components/RichContent";
 import { getPublishedPage } from "@/lib/content/public-content.server";
+
+import styles from "./page.module.css";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const page = await getPublishedPage(slug);
-  return page ? { title: page.title, ...(page.summary ? { description: page.summary } : {}) } : {};
+  return page
+    ? {
+        title: page.title,
+        ...(page.summary ? { description: page.summary } : {}),
+      }
+    : {};
 }
 
 export default async function StaticPage({ params }: PageProps) {

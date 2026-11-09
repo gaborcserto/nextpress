@@ -1,7 +1,8 @@
 "use client";
 
-import type { MenuPlacementFieldProps } from "./MenuPlacementField.types";
 import { Checkbox } from "@/ui/primitives";
+
+import type { MenuPlacementFieldProps } from "./MenuPlacementField.types";
 
 /**
  * Two checkboxes controlling header/footer menu placement.
@@ -13,9 +14,7 @@ export default function MenuPlacementField({
 }: MenuPlacementFieldProps) {
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium mb-1">
-        Menu placement
-      </legend>
+      <legend className="text-sm font-medium mb-1">Menu placement</legend>
 
       <Checkbox
         checked={inHeader}

@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import useSWR from "swr";
 
-import type { PostDetailResponse } from "./PostEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import type { PostFormValues } from "@/lib/content/contracts";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
 import { showToast } from "@/ui/utils";
+
+import type { PostDetailResponse } from "./PostEditorScreen.types";
 
 const EMPTY_INITIAL: PostFormValues = {
   status: "DRAFT",
@@ -31,11 +32,11 @@ export function usePostEditor(postId?: string) {
 
   const { data, error, isLoading, mutate } = useSWR<PostDetailResponse>(
     isEdit && postId ? `/api/post/${postId}` : null,
-    jsonFetcher
+    jsonFetcher,
   );
 
   const item: PostFormValues | null = isEdit
-    ? data?.item ?? null
+    ? (data?.item ?? null)
     : EMPTY_INITIAL;
 
   const notFound = isEdit && !isLoading && !data?.item;
@@ -57,7 +58,7 @@ export function usePostEditor(postId?: string) {
       if (!ok) {
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
-          "error"
+          "error",
         );
         return;
       }

@@ -1,7 +1,8 @@
 "use client";
 
-import type { EventFieldsProps } from "./EventFields.types";
 import { Field, FormGrid12, Input } from "@/ui/primitives";
+
+import type { EventFieldsProps } from "./EventFields.types";
 import type { ChangeEvent } from "react";
 
 /**
@@ -10,13 +11,16 @@ import type { ChangeEvent } from "react";
  * - location
  * - registration URL
  */
-export default function EventFields({ values, onChangeAction }: EventFieldsProps) {
+export default function EventFields({
+  values,
+  onChangeAction,
+}: EventFieldsProps) {
   const handleChange =
     (key: "eventStart" | "eventEnd" | "eventLocation" | "registrationUrl") =>
-      (e: ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value;
-        onChangeAction(key, raw ? raw : null);
-      };
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      onChangeAction(key, raw ? raw : null);
+    };
 
   return (
     <FormGrid12>
@@ -51,7 +55,11 @@ export default function EventFields({ values, onChangeAction }: EventFieldsProps
         />
       </Field>
 
-      <Field label="Registration URL" htmlFor="event-registration-url" span={12}>
+      <Field
+        label="Registration URL"
+        htmlFor="event-registration-url"
+        span={12}
+      >
         <Input
           id="event-registration-url"
           type="url"

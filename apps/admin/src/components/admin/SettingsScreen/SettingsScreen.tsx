@@ -4,11 +4,6 @@ import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
 import { useRef, type FormEvent } from "react";
 import { FaSave } from "react-icons/fa";
 
-import { useSettingsScreen } from "./SettingsScreen.hooks";
-import type {
-  ProviderCredentialUpdates,
-  SettingsFormValues,
-} from "./SettingsScreen.types";
 import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import { ROLES, type RoleName } from "@/lib/auth/roles";
 import { DataListEmptyRow, DataListSurface } from "@/ui/components/DataList";
@@ -25,6 +20,12 @@ import {
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
+
+import { useSettingsScreen } from "./SettingsScreen.hooks";
+import type {
+  ProviderCredentialUpdates,
+  SettingsFormValues,
+} from "./SettingsScreen.types";
 
 const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: role }));
 const POST_LISTING_MODE_OPTIONS = [
@@ -66,7 +67,8 @@ export default function SettingsScreen() {
   const credentialForm = useRef<HTMLFormElement>(null);
   const { form, setForm, loading, saving, error, save } =
     useSettingsScreen("SUBSCRIBER");
-  const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage).success
+  const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage)
+    .success
     ? undefined
     : "Enter a whole number from 1 to 50.";
 
@@ -99,12 +101,18 @@ export default function SettingsScreen() {
       className="space-y-6"
     >
       <Alert message={error} status="error" />
-      <AdminPageLayout title="Settings" description="Site name, defaults, and OAuth providers.">
+      <AdminPageLayout
+        title="Settings"
+        description="Site name, defaults, and OAuth providers."
+      >
         <fieldset disabled={saving} className="contents">
           <AdminPageColumns
             sidebar={
               <>
-                <Section title="General" desc="Basic metadata used across the site.">
+                <Section
+                  title="General"
+                  desc="Basic metadata used across the site."
+                >
                   <FormGrid12>
                     <Field label="Site name" htmlFor="site-name" span={12}>
                       <Input
@@ -122,7 +130,11 @@ export default function SettingsScreen() {
                       />
                     </Field>
 
-                    <Field label="Description" htmlFor="site-description" span={12}>
+                    <Field
+                      label="Description"
+                      htmlFor="site-description"
+                      span={12}
+                    >
                       <Input
                         id="site-description"
                         fullWidth
@@ -137,7 +149,12 @@ export default function SettingsScreen() {
                       />
                     </Field>
 
-                    <Field label="Site URL" htmlFor="site-url" hint="Used for canonical URLs." span={12}>
+                    <Field
+                      label="Site URL"
+                      htmlFor="site-url"
+                      hint="Used for canonical URLs."
+                      span={12}
+                    >
                       <Input
                         id="site-url"
                         type="url"
@@ -153,7 +170,11 @@ export default function SettingsScreen() {
                       />
                     </Field>
 
-                    <Field label="Default OG image URL" htmlFor="og-image-url" span={12}>
+                    <Field
+                      label="Default OG image URL"
+                      htmlFor="og-image-url"
+                      span={12}
+                    >
                       <Input
                         id="og-image-url"
                         type="url"
@@ -171,9 +192,16 @@ export default function SettingsScreen() {
                   </FormGrid12>
                 </Section>
 
-                <Section title="Defaults" desc="Defaults for users created by an administrator. Public signup always receives SUBSCRIBER.">
+                <Section
+                  title="Defaults"
+                  desc="Defaults for users created by an administrator. Public signup always receives SUBSCRIBER."
+                >
                   <FormGrid12>
-                    <Field label="Default user role" htmlFor="default-user-role" span={12}>
+                    <Field
+                      label="Default user role"
+                      htmlFor="default-user-role"
+                      span={12}
+                    >
                       <Select
                         id="default-user-role"
                         fullWidth
@@ -190,9 +218,16 @@ export default function SettingsScreen() {
                   </FormGrid12>
                 </Section>
 
-                <Section title="Post listing" desc="Choose how public post lists are navigated.">
+                <Section
+                  title="Post listing"
+                  desc="Choose how public post lists are navigated."
+                >
                   <FormGrid12>
-                    <Field label="Listing mode" htmlFor="post-listing-mode" span={12}>
+                    <Field
+                      label="Listing mode"
+                      htmlFor="post-listing-mode"
+                      span={12}
+                    >
                       <Select
                         id="post-listing-mode"
                         fullWidth
@@ -201,12 +236,19 @@ export default function SettingsScreen() {
                         onChangeAction={(value) => {
                           const parsed = PostListingModeSchema.safeParse(value);
                           if (parsed.success) {
-                            setForm((current) => ({ ...current, postListingMode: parsed.data }));
+                            setForm((current) => ({
+                              ...current,
+                              postListingMode: parsed.data,
+                            }));
                           }
                         }}
                       />
                     </Field>
-                    <Field label="Posts per page / batch" htmlFor="posts-per-page" span={12}>
+                    <Field
+                      label="Posts per page / batch"
+                      htmlFor="posts-per-page"
+                      span={12}
+                    >
                       <Input
                         id="posts-per-page"
                         type="number"
@@ -218,10 +260,15 @@ export default function SettingsScreen() {
                         hint="Applies to both pagination pages and Load more batches."
                         error={postsPerPageError}
                         value={form.postsPerPage}
-                        onChange={(event) => setForm((current) => ({
-                          ...current,
-                          postsPerPage: event.target.value === "" ? "" : event.target.valueAsNumber,
-                        }))}
+                        onChange={(event) =>
+                          setForm((current) => ({
+                            ...current,
+                            postsPerPage:
+                              event.target.value === ""
+                                ? ""
+                                : event.target.valueAsNumber,
+                          }))
+                        }
                       />
                     </Field>
                   </FormGrid12>
@@ -241,89 +288,99 @@ export default function SettingsScreen() {
               </>
             }
           >
+            <Section
+              title="OAuth providers"
+              desc="Only enabled providers with complete credentials are available for sign-in. Environment credentials are used when stored values are blank."
+            >
+              <DataListSurface>
+                <table className="table min-w-[720px] table-zebra w-full">
+                  <thead className="bg-base-200">
+                    <tr>
+                      <th>Provider</th>
+                      <th>Status</th>
+                      <th>Client ID</th>
+                      <th>New secret</th>
+                    </tr>
+                  </thead>
 
-          <Section
-            title="OAuth providers"
-            desc="Only enabled providers with complete credentials are available for sign-in. Environment credentials are used when stored values are blank."
-          >
-            <DataListSurface>
-              <table className="table min-w-[720px] table-zebra w-full">
-                <thead className="bg-base-200">
-                  <tr>
-                    <th>Provider</th>
-                    <th>Status</th>
-                    <th>Client ID</th>
-                    <th>New secret</th>
-                  </tr>
-                </thead>
+                  <tbody>
+                    {form.oauthProviders.length ? (
+                      form.oauthProviders.map((provider, index) => {
+                        const configured =
+                          provider.hasClientId && provider.hasClientSecret;
+                        let statusLabel = "Disabled";
+                        if (provider.enabled) {
+                          statusLabel = configured
+                            ? "Ready"
+                            : "Credentials required";
+                        }
 
-                <tbody>
-                  {form.oauthProviders.length ? form.oauthProviders.map((provider, index) => {
-                    const configured =
-                      provider.hasClientId &&
-                      provider.hasClientSecret;
-                    let statusLabel = "Disabled";
-                    if (provider.enabled) {
-                      statusLabel = configured ? "Ready" : "Credentials required";
-                    }
-
-                    return (
-                      <tr key={provider.provider}>
-                        <td className="font-medium">{provider.provider}</td>
-                        <td className="whitespace-nowrap">
-                          <Toggle
-                            aria-label={`Enable ${provider.provider}`}
-                            checked={provider.enabled}
-                            onChangeAction={(enabled) =>
-                              setForm((current) =>
-                                updateProviderAtIndex(current, index, { enabled }),
-                              )
-                            }
-                            inlineLabel={statusLabel}
-                          />
-                        </td>
-                        <td>
-                          <Input
-                            aria-label={`${provider.provider} client ID`}
-                            fullWidth
-                            maxLength={2000}
-                            value={provider.clientId}
-                            placeholder={provider.hasClientId ? "Using environment value" : ""}
-                            onChange={(event) =>
-                              setForm((current) =>
-                                updateProviderAtIndex(current, index, {
-                                  clientId: event.target.value,
-                                  hasClientId: !!event.target.value,
-                                }),
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input w-full"
-                            type="password"
-                            aria-label={`${provider.provider} new secret`}
-                            maxLength={10000}
-                            name={`clientSecret:${provider.provider}`}
-                            autoComplete="new-password"
-                            placeholder={
-                              provider.hasClientSecret
-                                ? "Stored value preserved"
-                                : "Required"
-                            }
-                          />
-                        </td>
-                      </tr>
-                    );
-                  }) : (
-                    <DataListEmptyRow colSpan={4}>No OAuth providers configured.</DataListEmptyRow>
-                  )}
-                </tbody>
-              </table>
-            </DataListSurface>
-          </Section>
-        </AdminPageColumns>
+                        return (
+                          <tr key={provider.provider}>
+                            <td className="font-medium">{provider.provider}</td>
+                            <td className="whitespace-nowrap">
+                              <Toggle
+                                aria-label={`Enable ${provider.provider}`}
+                                checked={provider.enabled}
+                                onChangeAction={(enabled) =>
+                                  setForm((current) =>
+                                    updateProviderAtIndex(current, index, {
+                                      enabled,
+                                    }),
+                                  )
+                                }
+                                inlineLabel={statusLabel}
+                              />
+                            </td>
+                            <td>
+                              <Input
+                                aria-label={`${provider.provider} client ID`}
+                                fullWidth
+                                maxLength={2000}
+                                value={provider.clientId}
+                                placeholder={
+                                  provider.hasClientId
+                                    ? "Using environment value"
+                                    : ""
+                                }
+                                onChange={(event) =>
+                                  setForm((current) =>
+                                    updateProviderAtIndex(current, index, {
+                                      clientId: event.target.value,
+                                      hasClientId: !!event.target.value,
+                                    }),
+                                  )
+                                }
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="input w-full"
+                                type="password"
+                                aria-label={`${provider.provider} new secret`}
+                                maxLength={10000}
+                                name={`clientSecret:${provider.provider}`}
+                                autoComplete="new-password"
+                                placeholder={
+                                  provider.hasClientSecret
+                                    ? "Stored value preserved"
+                                    : "Required"
+                                }
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <DataListEmptyRow colSpan={4}>
+                        No OAuth providers configured.
+                      </DataListEmptyRow>
+                    )}
+                  </tbody>
+                </table>
+              </DataListSurface>
+            </Section>
+          </AdminPageColumns>
         </fieldset>
       </AdminPageLayout>
     </form>

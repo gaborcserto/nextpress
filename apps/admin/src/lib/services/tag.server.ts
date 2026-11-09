@@ -1,11 +1,13 @@
 import { prisma } from "@nextpress/db/src/client";
 import { tryCatch, unwrapResult } from "@nextpress/shared";
 
-import { contentReadWhere, requireContentWrite, ContentNotFoundError, type ContentActor } from "@/lib/auth/content-access";
-import type {
-  TagDto ,
-  TagWithUsageDto
-} from "@/lib/repos";
+import {
+  contentReadWhere,
+  requireContentWrite,
+  ContentNotFoundError,
+  type ContentActor,
+} from "@/lib/auth/content-access";
+import type { TagDto, TagWithUsageDto } from "@/lib/repos";
 import {
   searchTagsRaw,
   findTagByNameInsensitive,
@@ -14,7 +16,7 @@ import {
   deleteTagRecord,
   getTagsForPage,
   setTagsForPage,
-  listTagsWithUsage
+  listTagsWithUsage,
 } from "@/lib/repos";
 import { slugify } from "@/lib/utils";
 import { TagCreateSchema, TagIdsSchema } from "@/lib/validation";
@@ -33,7 +35,10 @@ function getValidationMessage(error: unknown): string {
     Array.isArray(error.errors)
   ) {
     const errors = error.errors;
-    if (errors.length && errors.every((item): item is string => typeof item === "string")) {
+    if (
+      errors.length &&
+      errors.every((item): item is string => typeof item === "string")
+    ) {
       return errors.join(", ");
     }
   }
@@ -86,7 +91,7 @@ export async function createTagService(rawName: string): Promise<TagDto> {
   if (existing) return existing;
 
   // 3) Generate unique slug
-  let slugBase = slugify(name) || name.toLowerCase().replace(/\s+/g, "-");
+  const slugBase = slugify(name) || name.toLowerCase().replace(/\s+/g, "-");
   let slug = slugBase;
   let counter = 1;
 
@@ -95,12 +100,13 @@ export async function createTagService(rawName: string): Promise<TagDto> {
     if (!found) break;
     slug = `${slugBase}-${++counter}`;
   }
-  if (counter > 10) throw new ValidationError("Unable to create tag with this name");
+  if (counter > 10)
+    throw new ValidationError("Unable to create tag with this name");
 
   // 4) Create and return tag
   return unwrapResult(
     await tryCatch(createTagRecord(name, slug)),
-    () => new Error("Failed to create tag")
+    () => new Error("Failed to create tag"),
   );
 }
 
@@ -118,12 +124,18 @@ export async function deleteTagService(rawId: string): Promise<void> {
 /**
  * Get tags for a specific page.
  */
-export async function getTagsForPageService(pageId: string, actor?: ContentActor | null): Promise<TagDto[]> {
-  const page = await prisma.page.findFirst({ where: { id: pageId, ...contentReadWhere(actor) }, select: { id: true } });
+export async function getTagsForPageService(
+  pageId: string,
+  actor?: ContentActor | null,
+): Promise<TagDto[]> {
+  const page = await prisma.page.findFirst({
+    where: { id: pageId, ...contentReadWhere(actor) },
+    select: { id: true },
+  });
   if (!page) throw new ContentNotFoundError();
   return unwrapResult(
     await tryCatch(getTagsForPage(pageId)),
-    () => new Error("Failed to load tags for page")
+    () => new Error("Failed to load tags for page"),
   );
 }
 
@@ -149,6 +161,6 @@ export async function setTagsForPageService(
 export async function listTagsWithUsageService(): Promise<TagWithUsageDto[]> {
   return unwrapResult(
     await tryCatch(listTagsWithUsage()),
-    () => new Error("Failed to load tags")
+    () => new Error("Failed to load tags"),
   );
 }

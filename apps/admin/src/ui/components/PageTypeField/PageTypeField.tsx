@@ -1,24 +1,29 @@
-import type { PageTypeFieldProps } from "./PageTypeField.types";
 import type { PageType } from "@/lib/content/contracts";
 import { Select } from "@/ui/primitives";
 
+import type { PageTypeFieldProps } from "./PageTypeField.types";
+
 const PAGE_TYPE_OPTIONS = [
-  { value: "STANDARD",      label: "Standard Page" },
-  { value: "HOMEPAGE",      label: "Homepage" },
-  { value: "LISTING",       label: "Listing / Archive" },
-  { value: "GALLERY",       label: "Gallery Page" },
-  { value: "CONTACT",       label: "Contact Page" },
-  { value: "LANDING",       label: "Landing Page" },
-  { value: "REDIRECT",      label: "Redirect Page" },
-  { value: "DOWNLOAD",      label: "Download Page" },
+  { value: "STANDARD", label: "Standard Page" },
+  { value: "HOMEPAGE", label: "Homepage" },
+  { value: "LISTING", label: "Listing / Archive" },
+  { value: "GALLERY", label: "Gallery Page" },
+  { value: "CONTACT", label: "Contact Page" },
+  { value: "LANDING", label: "Landing Page" },
+  { value: "REDIRECT", label: "Redirect Page" },
+  { value: "DOWNLOAD", label: "Download Page" },
   { value: "CATEGORY_PAGE", label: "Category Page" },
-  { value: "EVENT_PAGE",    label: "Event Page" },
+  { value: "EVENT_PAGE", label: "Event Page" },
 ] as const;
 
 /**
  * Simple select field for choosing the page type.
  */
-export default function PageTypeField({ id, value, onChange }: PageTypeFieldProps) {
+export default function PageTypeField({
+  id,
+  value,
+  onChange,
+}: PageTypeFieldProps) {
   return (
     <Select
       id={id}

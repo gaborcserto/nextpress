@@ -13,12 +13,15 @@ vi.mock("@/lib/auth/auth-server", () => ({
 }));
 vi.mock("@/components/auth/SignInForm", () => ({ default: vi.fn() }));
 
-import SignInPageRoute from "./page";
 import SignInForm from "@/components/auth/SignInForm";
+
+import SignInPageRoute from "./page";
 
 beforeEach(() => {
   vi.resetAllMocks();
-  redirect.mockImplementation(() => { throw new Error("redirect"); });
+  redirect.mockImplementation(() => {
+    throw new Error("redirect");
+  });
 });
 
 it("redirects an existing session to the Dashboard", async () => {

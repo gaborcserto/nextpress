@@ -5,6 +5,10 @@ description: Select, run, and report proportionate verification for NextPress co
 
 # Change verification
 
+For maintained source edits read [readability](../nextpress-readability/SKILL.md). Format task-owned files with `npm run format:changed`, then run `npm run check:changed` for formatting plus affected lint/typecheck/tests. With unrelated user edits use explicit `-- --files path...` for formatting. Add `-- --base <ref>` for committed branch scope; an empty worktree does not verify a branch. Detection failure is an error.
+
+Review all modified/new task files against selected skills and check formatting stability. Passing formatter/lint checks is not architectural review. Report scope, actual checks, exceptions and skipped checks.
+
 Read root and owning workspace scripts before selecting commands. Do not claim a check passed unless it ran successfully; report skipped checks and concrete environmental reasons.
 
 - For behavior changes, run focused tests in the owning workspace, then relevant lint and typecheck. Follow [NextPress testing](../nextpress-testing/SKILL.md) for test design.

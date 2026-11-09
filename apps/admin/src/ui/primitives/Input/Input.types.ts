@@ -1,4 +1,5 @@
 import type { InputVariant, UiColor, UiSize, UiRadius } from "@/ui/theme/types";
+
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {

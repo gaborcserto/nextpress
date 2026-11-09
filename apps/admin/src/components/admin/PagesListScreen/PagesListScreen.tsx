@@ -1,7 +1,8 @@
 "use client";
 
-import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 import { ContentList, type ContentListItem } from "@/ui/components";
+
+import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 
 export default function PagesListScreen() {
   const { items, error, isLoading, mutate } = usePagesList();

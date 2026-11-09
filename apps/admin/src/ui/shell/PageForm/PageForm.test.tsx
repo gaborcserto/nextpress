@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import PageForm from "./PageForm";
 import type { PageFormValues } from "@/lib/content/contracts";
+
+import PageForm from "./PageForm";
 
 const { submitAction } = vi.hoisted(() => ({ submitAction: vi.fn() }));
 
@@ -45,7 +46,9 @@ describe("PageForm", () => {
       />,
     );
 
-    const form = screen.getByRole("button", { name: "Create" }).closest("form")!;
+    const form = screen
+      .getByRole("button", { name: "Create" })
+      .closest("form")!;
     fireEvent.submit(form);
 
     expect(screen.getByText("Title is required.")).toBeInTheDocument();

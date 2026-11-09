@@ -2,12 +2,16 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 
-import { forbid } from "./http";
 import { getTrustedOrigins } from "@/lib/auth/origins.server";
+
+import { forbid } from "./http";
 
 export const MAX_MUTATION_BODY_BYTES = 5_000_000;
 
-export async function readBoundedMutationRequest(req: Request, maxBytes = MAX_MUTATION_BODY_BYTES): Promise<{ request?: Request; response?: Response }> {
+export async function readBoundedMutationRequest(
+  req: Request,
+  maxBytes = MAX_MUTATION_BODY_BYTES,
+): Promise<{ request?: Request; response?: Response }> {
   if (!req.body) return { request: req };
 
   const reader = req.body.getReader();
@@ -19,7 +23,12 @@ export async function readBoundedMutationRequest(req: Request, maxBytes = MAX_MU
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
-      return { response: NextResponse.json({ error: "Request body is too large" }, { status: 413 }) };
+      return {
+        response: NextResponse.json(
+          { error: "Request body is too large" },
+          { status: 413 },
+        ),
+      };
     }
     chunks.push(value);
   }
@@ -30,7 +39,13 @@ export async function readBoundedMutationRequest(req: Request, maxBytes = MAX_MU
     body.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return { request: new Request(req.url, { method: req.method, headers: req.headers, body }) };
+  return {
+    request: new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body,
+    }),
+  };
 }
 
 /** Custom cookie-authenticated routes must check this before session lookup. */
@@ -40,12 +55,22 @@ export function requireTrustedMutation(req: Request): Response | null {
   const origin = req.headers.get("origin");
   // Compare serialized origins, not URL prefixes or client-controlled Host /
   // forwarded headers. Missing Origin has no browser or server exception.
-  if (!origin || !getTrustedOrigins().includes(origin)) return forbid("Untrusted request origin");
+  if (!origin || !getTrustedOrigins().includes(origin))
+    return forbid("Untrusted request origin");
 
   const contentType = req.headers.get("content-type");
-  const needsJSON = ["POST", "PUT", "PATCH"].includes(req.method) || req.body !== null || contentType !== null;
-  if (needsJSON && contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") {
-    return NextResponse.json({ error: "Content-Type must be application/json" }, { status: 415 });
+  const needsJSON =
+    ["POST", "PUT", "PATCH"].includes(req.method) ||
+    req.body !== null ||
+    contentType !== null;
+  if (
+    needsJSON &&
+    contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json"
+  ) {
+    return NextResponse.json(
+      { error: "Content-Type must be application/json" },
+      { status: 415 },
+    );
   }
   return null;
 }

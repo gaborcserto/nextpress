@@ -1,6 +1,6 @@
 # NextPress agent guide
 
-This file is the repository-level source of truth for coding agents. Read it before changing files, preserve unrelated user work, and keep changes limited to the requested work. Optional, task-specific guidance is indexed in `.agents/README.md`; load only the skill or workflow relevant to the current task.
+This file is the repository-level source of truth for coding agents. Read it before changing files, preserve unrelated user work, and keep changes limited to the requested work. Discover applicable skills through [.agents/README.md](.agents/README.md) before implementation. Readability is mandatory for maintained JavaScript/TypeScript/JSX/TSX source edits; load other resources when their scope applies.
 
 ## Repository map
 
@@ -70,6 +70,10 @@ The shared ESLint configuration includes Next.js Core Web Vitals and React acces
 
 ## Code quality
 
+Before creating or modifying maintained JS/JSX/MJS/CJS/TS/TSX/MTS/CTS source, explicitly read and apply [.agents/skills/nextpress-readability/SKILL.md](.agents/skills/nextpress-readability/SKILL.md), alongside relevant implementation/testing skills and verification. Discovery metadata alone does not apply a skill. Review all task-modified and new source against selected skills before delivery; passing static checks does not prove architectural readability.
+
+ESLint owns quality/imports, TypeScript owns types, and root Oxfmt owns layout. Use `npm run format:changed` on task-owned changes (add `-- --files path...` when unrelated user edits exist), then `npm run check:changed`. Include `-- --base <ref>` for committed branch changes. Detection failure must fail, never cause empty success or implicit full-repository formatting. Report readability exceptions and checks actually run.
+
 Generated code must look intentionally written and maintained by experienced developers. Prefer simple solutions, descriptive names, native framework/library behavior, and focused files.
 
 Avoid generic boilerplate, wrapper layers, fragmented helpers, speculative abstractions, factories/managers/providers without a concrete need, `utils` dumping grounds, duplicate validation or types, needless `try/catch`, dead code, placeholder code, and inconsistent naming. Avoid decorative emoji in production code, configuration, and logs unless it is intentionally part of the product. Comments should explain why a non-obvious decision exists, not narrate obvious code.
@@ -94,6 +98,9 @@ Run commands from the repository root unless a workspace is intentionally target
 - `npm run lint:fix`: apply the configured ESLint fixes.
 - `npm test`: run the Vitest suites in all test-bearing workspaces.
 - `npm run coverage`: run those suites with V8 coverage.
+- `npm run format:changed`: format changed source/config/style files; never falls back to full writes.
+- `npm run format:check:changed`: check those files without writing.
+- `npm run check:changed`: check formatting then affected lint/typecheck/tests; accepts `-- --base <ref>` for branch scope and `-- --full` for full workspace checks.
 - `npm run typecheck`: run TypeScript checks for supported workspaces through Turbo.
 - `npm run prisma:generate`: generate Prisma artifacts through Turbo.
 - `npm run prisma:migrate`: run the database migration workflow through Turbo; use only when a migration is required.

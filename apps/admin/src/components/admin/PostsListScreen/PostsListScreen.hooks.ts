@@ -3,9 +3,10 @@
 import { useCallback, useRef, useState } from "react";
 import useSWR from "swr";
 
-import type { PostListResponse } from "./PostsListScreen.types";
 import { apiFetch, jsonFetcher } from "@/lib/api";
 import { showToast } from "@/ui/utils";
+
+import type { PostListResponse } from "./PostsListScreen.types";
 
 /**
  * Load paginated list of posts from /api/post.

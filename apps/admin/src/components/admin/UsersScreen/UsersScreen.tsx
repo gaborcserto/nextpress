@@ -1,13 +1,18 @@
 "use client";
 
-import { MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
+import {
+  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
+} from "@nextpress/shared/auth-policy";
 import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
-import { useUsersScreen } from "./UsersScreen.hooks";
-import type { UserRow } from "./UsersScreen.types";
 import type { RoleName } from "@/lib/auth/roles";
 import { ROLES } from "@/lib/auth/roles";
-import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
+import {
+  DataListEmptyRow,
+  DataListLoading,
+  DataListSurface,
+} from "@/ui/components/DataList";
 import {
   ConfirmDialog,
   Alert,
@@ -21,6 +26,9 @@ import {
   useConfirmDialog,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
+
+import { useUsersScreen } from "./UsersScreen.hooks";
+import type { UserRow } from "./UsersScreen.types";
 
 type RoleOption = { value: RoleName; label: string };
 const ROLE_OPTIONS: RoleOption[] = ROLES.map((r) => ({ value: r, label: r }));
@@ -83,10 +91,16 @@ export default function UsersScreen() {
   return (
     <div className="space-y-6">
       <Alert status="error" message={error} />
-      <AdminPageLayout title="Users" description="Create, delete, and manage roles.">
+      <AdminPageLayout
+        title="Users"
+        description="Create, delete, and manage roles."
+      >
         <AdminPageColumns
           sidebar={
-            <Section title="Create user" desc="Create a new user and set an initial role.">
+            <Section
+              title="Create user"
+              desc="Create a new user and set an initial role."
+            >
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -179,18 +193,17 @@ export default function UsersScreen() {
                     </Button>
                   </div>
                 </fieldset>
-                </form>
-              </Section>
-            }
-          >
-
-            <Section title="All users" desc="Edit roles or delete users.">
-              {loading ? (
-                <DataListLoading label="users" />
+              </form>
+            </Section>
+          }
+        >
+          <Section title="All users" desc="Edit roles or delete users.">
+            {loading ? (
+              <DataListLoading label="users" />
             ) : (
               <DataListSurface>
                 <table className="table min-w-[760px] table-zebra w-full">
-                    <thead className="bg-base-200">
+                  <thead className="bg-base-200">
                     <tr>
                       <th>Name</th>
                       <th>Email</th>
@@ -199,9 +212,9 @@ export default function UsersScreen() {
                       <th>Created</th>
                       <th className="whitespace-nowrap text-right">Actions</th>
                     </tr>
-                    </thead>
+                  </thead>
 
-                    <tbody>
+                  <tbody>
                     {users.length ? (
                       users.map((u) => {
                         const isEditing = editingId === u.id;
@@ -209,8 +222,12 @@ export default function UsersScreen() {
 
                         return (
                           <tr key={u.id}>
-                            <td className="whitespace-nowrap">{u.name ?? "—"}</td>
-                            <td className="whitespace-nowrap">{u.email ?? "—"}</td>
+                            <td className="whitespace-nowrap">
+                              {u.name ?? "—"}
+                            </td>
+                            <td className="whitespace-nowrap">
+                              {u.email ?? "—"}
+                            </td>
 
                             <td className="whitespace-nowrap">
                               {isEditing ? (
@@ -232,7 +249,9 @@ export default function UsersScreen() {
                                   />
                                 </form>
                               ) : (
-                                <span className={roleBadgeClass(role)}>{role}</span>
+                                <span className={roleBadgeClass(role)}>
+                                  {role}
+                                </span>
                               )}
                             </td>
 
@@ -301,14 +320,16 @@ export default function UsersScreen() {
                                     </IconButton>
                                   </>
                                 )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <DataListEmptyRow colSpan={6}>No users found.</DataListEmptyRow>
-                  )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <DataListEmptyRow colSpan={6}>
+                        No users found.
+                      </DataListEmptyRow>
+                    )}
                   </tbody>
                 </table>
               </DataListSurface>

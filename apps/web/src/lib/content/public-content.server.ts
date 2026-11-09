@@ -1,8 +1,16 @@
 import "server-only";
 
 import { prisma, type Prisma } from "@nextpress/db";
-import { DEFAULT_POSTS_PER_PAGE, MAX_POSTS_OFFSET, MAX_POSTS_PER_PAGE } from "@nextpress/shared";
-import { ContentSlugSchema, richContentText, type RichDocument } from "@nextpress/shared/content";
+import {
+  DEFAULT_POSTS_PER_PAGE,
+  MAX_POSTS_OFFSET,
+  MAX_POSTS_PER_PAGE,
+} from "@nextpress/shared";
+import {
+  ContentSlugSchema,
+  richContentText,
+  type RichDocument,
+} from "@nextpress/shared/content";
 
 import { parsePublicRichContent } from "./rich-content";
 
@@ -13,8 +21,12 @@ const publicContentSelect = {
   content: true,
   publishedAt: true,
   author: { select: { name: true } },
-  taxonomies: { select: { taxonomy: { select: { type: true, slug: true, name: true } } } },
-  cover: { select: { url: true, alt: true, mime: true, width: true, height: true } },
+  taxonomies: {
+    select: { taxonomy: { select: { type: true, slug: true, name: true } } },
+  },
+  cover: {
+    select: { url: true, alt: true, mime: true, width: true, height: true },
+  },
 } satisfies Prisma.PageSelect;
 
 const publicPostSummarySelect = {
@@ -23,11 +35,17 @@ const publicPostSummarySelect = {
   excerpt: true,
   publishedAt: true,
   author: { select: { name: true } },
-  taxonomies: { select: { taxonomy: { select: { type: true, slug: true, name: true } } } },
+  taxonomies: {
+    select: { taxonomy: { select: { type: true, slug: true, name: true } } },
+  },
 } satisfies Prisma.PageSelect;
 
-type PublicContentRow = Prisma.PageGetPayload<{ select: typeof publicContentSelect }>;
-type PublicPostSummaryRow = Prisma.PageGetPayload<{ select: typeof publicPostSummarySelect }>;
+type PublicContentRow = Prisma.PageGetPayload<{
+  select: typeof publicContentSelect;
+}>;
+type PublicPostSummaryRow = Prisma.PageGetPayload<{
+  select: typeof publicPostSummarySelect;
+}>;
 
 const publicPageNavigationSelect = {
   slug: true,
@@ -36,7 +54,9 @@ const publicPageNavigationSelect = {
   inFooterMenu: true,
 } satisfies Prisma.PageSelect;
 
-type PublicPageNavigationRow = Prisma.PageGetPayload<{ select: typeof publicPageNavigationSelect }>;
+type PublicPageNavigationRow = Prisma.PageGetPayload<{
+  select: typeof publicPageNavigationSelect;
+}>;
 
 export type PublicContent = {
   slug: string;
@@ -46,11 +66,20 @@ export type PublicContent = {
   publishedAt: string | null;
   author: { name: string } | null;
   taxonomies: { type: "TAG" | "CATEGORY"; slug: string; name: string }[];
-  cover: { url: string; alt: string; width: number | null; height: number | null } | null;
+  cover: {
+    url: string;
+    alt: string;
+    width: number | null;
+    height: number | null;
+  } | null;
 };
 
-export type PublicPublishedPost = Omit<PublicContent, "publishedAt"> & { publishedAt: string };
-export type PublicPublishedPage = Omit<PublicContent, "publishedAt"> & { publishedAt: string };
+export type PublicPublishedPost = Omit<PublicContent, "publishedAt"> & {
+  publishedAt: string;
+};
+export type PublicPublishedPage = Omit<PublicContent, "publishedAt"> & {
+  publishedAt: string;
+};
 
 export type PublicPageNavigation = {
   header: { slug: string; title: string }[];
@@ -81,17 +110,31 @@ function projectPublicContent(row: PublicContentRow): PublicContent {
     publishedAt: row.publishedAt?.toISOString() ?? null,
     author: row.author?.name ? { name: row.author.name } : null,
     taxonomies: row.taxonomies.map(({ taxonomy }) => ({
-      type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name,
+      type: taxonomy.type,
+      slug: taxonomy.slug,
+      name: taxonomy.name,
     })),
     // Current public CSP allows same-origin images only. Storage keys and uploader details stay private.
-    cover: cover && cover.mime.startsWith("image/") && /^\/(?!\/)/.test(cover.url)
-      && !/[\\\u0000-\u0020]/.test(cover.url)
-      ? { url: cover.url, alt: cover.alt ?? "", width: cover.width, height: cover.height }
-      : null,
+    cover:
+      cover &&
+      cover.mime.startsWith("image/") &&
+      /^\/(?!\/)/.test(cover.url) &&
+      // Rejecting control characters is intentional at this untrusted URL boundary.
+      // eslint-disable-next-line no-control-regex
+      !/[\\\u0000-\u0020]/.test(cover.url)
+        ? {
+            url: cover.url,
+            alt: cover.alt ?? "",
+            width: cover.width,
+            height: cover.height,
+          }
+        : null,
   };
 }
 
-function projectPublicPostSummary(row: PublicPostSummaryRow): PublicPostSummary {
+function projectPublicPostSummary(
+  row: PublicPostSummaryRow,
+): PublicPostSummary {
   return {
     slug: row.slug,
     title: row.title,
@@ -99,31 +142,55 @@ function projectPublicPostSummary(row: PublicPostSummaryRow): PublicPostSummary 
     publishedAt: row.publishedAt!.toISOString(),
     author: row.author?.name ? { name: row.author.name } : null,
     taxonomies: row.taxonomies.map(({ taxonomy }) => ({
-      type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name,
+      type: taxonomy.type,
+      slug: taxonomy.slug,
+      name: taxonomy.name,
     })),
   };
 }
 
 /** A public post must have an explicit publication time at or before this request. */
-export async function getPublishedPost(slug: string): Promise<PublicPublishedPost | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
+export async function getPublishedPost(
+  slug: string,
+): Promise<PublicPublishedPost | null> {
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim())
+    return null;
   const row = await prisma.page.findFirst({
-    where: { slug, type: "POST", status: "PUBLISHED", publishedAt: { not: null, lte: new Date() } },
+    where: {
+      slug,
+      type: "POST",
+      status: "PUBLISHED",
+      publishedAt: { not: null, lte: new Date() },
+    },
     select: publicContentSelect,
   });
   if (!row?.publishedAt) return null;
-  return { ...projectPublicContent(row), publishedAt: row.publishedAt.toISOString() };
+  return {
+    ...projectPublicContent(row),
+    publishedAt: row.publishedAt.toISOString(),
+  };
 }
 
 /** Static pages use the same strict publication boundary as public posts. */
-export async function getPublishedPage(slug: string): Promise<PublicPublishedPage | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) return null;
+export async function getPublishedPage(
+  slug: string,
+): Promise<PublicPublishedPage | null> {
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim())
+    return null;
   const row = await prisma.page.findFirst({
-    where: { slug, type: "PAGE", status: "PUBLISHED", publishedAt: { not: null, lte: new Date() } },
+    where: {
+      slug,
+      type: "PAGE",
+      status: "PUBLISHED",
+      publishedAt: { not: null, lte: new Date() },
+    },
     select: publicContentSelect,
   });
   if (!row?.publishedAt) return null;
-  return { ...projectPublicContent(row), publishedAt: row.publishedAt.toISOString() };
+  return {
+    ...projectPublicContent(row),
+    publishedAt: row.publishedAt.toISOString(),
+  };
 }
 
 /** Navigation is selected only from pages currently available to the public. */
@@ -139,7 +206,10 @@ export async function getPublicPageNavigation(): Promise<PublicPageNavigation> {
     orderBy: [{ title: "asc" }, { slug: "asc" }],
     select: publicPageNavigationSelect,
   });
-  const project = ({ slug, title }: PublicPageNavigationRow) => ({ slug, title });
+  const project = ({ slug, title }: PublicPageNavigationRow) => ({
+    slug,
+    title,
+  });
   return {
     header: rows.filter(({ inHeaderMenu }) => inHeaderMenu).map(project),
     footer: rows.filter(({ inFooterMenu }) => inFooterMenu).map(project),

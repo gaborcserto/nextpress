@@ -2,8 +2,9 @@
 
 import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 
-import type { ConfirmDialogProps } from "./ConfirmDialog.types";
 import { Button } from "@/ui/primitives/Buttons";
+
+import type { ConfirmDialogProps } from "./ConfirmDialog.types";
 
 export function ConfirmDialog({
   open,
@@ -24,10 +25,13 @@ export function ConfirmDialog({
 
   useEffect(() => {
     if (!open) return;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-    dialogRef.current?.querySelector<HTMLButtonElement>("button:not([disabled])")?.focus();
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    dialogRef.current
+      ?.querySelector<HTMLButtonElement>("button:not([disabled])")
+      ?.focus();
 
     return () => returnFocusRef.current?.focus();
   }, [open]);
@@ -50,7 +54,7 @@ export function ConfirmDialog({
     if (event.key !== "Tab") return;
 
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     );
     if (!focusable?.length) {
       event.preventDefault();
@@ -71,18 +75,40 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={children ? descriptionId : undefined} onKeyDown={handleKeyDown}>
+    <div
+      className="modal modal-open"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={children ? descriptionId : undefined}
+      onKeyDown={handleKeyDown}
+    >
       <div className="modal-box" ref={dialogRef} tabIndex={-1}>
-        <h3 id={titleId} className="font-semibold text-lg">{title}</h3>
+        <h3 id={titleId} className="font-semibold text-lg">
+          {title}
+        </h3>
 
-        {children ? <div id={descriptionId} className="mt-3 text-base-content/80">{children}</div> : null}
+        {children ? (
+          <div id={descriptionId} className="mt-3 text-base-content/80">
+            {children}
+          </div>
+        ) : null}
 
         <div className="modal-action">
-          <Button variant="ghost" color="neutral" onClick={close} disabled={loading}>
+          <Button
+            variant="ghost"
+            color="neutral"
+            onClick={close}
+            disabled={loading}
+          >
             {cancelLabel}
           </Button>
 
-          <Button color={confirmColor} loading={loading} onClick={onConfirmAction}>
+          <Button
+            color={confirmColor}
+            loading={loading}
+            onClick={onConfirmAction}
+          >
             {confirmLabel}
           </Button>
         </div>

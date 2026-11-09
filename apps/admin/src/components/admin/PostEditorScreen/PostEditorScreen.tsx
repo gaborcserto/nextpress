@@ -1,7 +1,5 @@
 "use client";
 
-import { usePostEditor } from "./PostEditorScreen.hooks";
-import type { PostEditorScreenProps } from "./PostEditorScreen.types";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -12,16 +10,12 @@ import {
 import { Alert } from "@/ui/primitives";
 import { AdminPageLayout, PostForm } from "@/ui/shell";
 
+import { usePostEditor } from "./PostEditorScreen.hooks";
+import type { PostEditorScreenProps } from "./PostEditorScreen.types";
+
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
-  const {
-    isEdit,
-    item,
-    isLoading,
-    notFound,
-    error,
-    saving,
-    handleSubmit,
-  } = usePostEditor(postId);
+  const { isEdit, item, isLoading, notFound, error, saving, handleSubmit } =
+    usePostEditor(postId);
 
   const title = isEdit ? "Edit Post" : "Create Post";
   const subtitle = isEdit
@@ -32,7 +26,10 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   if (error && !(error instanceof ApiRequestError && error.status === 404)) {
     return (
       <AdminPageLayout title={title} description={subtitle}>
-        <Alert status="error" message="Unable to load post. Please try again." />
+        <Alert
+          status="error"
+          message="Unable to load post. Please try again."
+        />
       </AdminPageLayout>
     );
   }
@@ -62,17 +59,17 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
 
   return (
     <PostForm
-        initial={item}
-        submitting={saving}
-        submitLabel={submitLabel}
-        onSubmitAction={handleSubmit}
-        loadTagOptionsAction={loadTagOptionsAction}
-        createTagAction={createTagAction}
-        loadEntityTagsAction={loadEntityTagsAction}
-        updateEntityTagsAction={updateEntityTagsAction}
-        sidebarTitle={title}
-        sidebarSubtitle={subtitle}
-        // imageUploadAction
+      initial={item}
+      submitting={saving}
+      submitLabel={submitLabel}
+      onSubmitAction={handleSubmit}
+      loadTagOptionsAction={loadTagOptionsAction}
+      createTagAction={createTagAction}
+      loadEntityTagsAction={loadEntityTagsAction}
+      updateEntityTagsAction={updateEntityTagsAction}
+      sidebarTitle={title}
+      sidebarSubtitle={subtitle}
+      // imageUploadAction
     />
   );
 }

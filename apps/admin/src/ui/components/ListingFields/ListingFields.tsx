@@ -1,8 +1,9 @@
 "use client";
 
-import type { ListingFieldsProps } from "./ListingFields.types";
 import type { ListingKind } from "@/lib/content/contracts";
 import { Field, FormGrid12, Input, Select } from "@/ui/primitives";
+
+import type { ListingFieldsProps } from "./ListingFields.types";
 import type { ChangeEvent } from "react";
 
 /**
@@ -15,7 +16,6 @@ export default function ListingFields({
   listingTaxonomyId,
   onChangeAction,
 }: ListingFieldsProps) {
-
   const listingKindOptions: readonly { value: ListingKind; label: string }[] = [
     { value: "POSTS", label: "Posts" },
     { value: "PRODUCTS", label: "Products" },
@@ -48,7 +48,11 @@ export default function ListingFields({
         />
       </Field>
 
-      <Field label="Filter by taxonomy (optional)" htmlFor="listing-taxonomy" span={6}>
+      <Field
+        label="Filter by taxonomy (optional)"
+        htmlFor="listing-taxonomy"
+        span={6}
+      >
         <Input
           id="listing-taxonomy"
           fullWidth

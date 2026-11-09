@@ -107,6 +107,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check changed-file formatting
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: npm run format:check:changed -- --ci
+
       - name: Test changed-file selection
         run: npm run check:changed:test
 

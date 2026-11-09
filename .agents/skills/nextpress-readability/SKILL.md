@@ -1,9 +1,15 @@
 ---
 name: nextpress-readability
-description: Improve or review code readability in NextPress when readability is explicitly part of the change or a concrete maintenance issue.
+description: Required when creating or modifying maintained JavaScript, TypeScript, JSX or TSX source in NextPress, including tests and tooling; also use for readability reviews.
 ---
 
 # Code readability
+
+Read [source conventions](references/source-conventions.md) before source edits. Preserve behavior and boundaries; review-only work does not authorize refactoring. Apply conventions during implementation and review all task-modified/new source before delivery.
+
+Apply the [import-path policy](references/source-conventions.md#import-paths-and-public-entry-points): prefer relative paths within a component/feature and explicit public module entry points across boundaries. Do not replace local imports with broad barrels or add barrels just to shorten paths. IDE import-shortening suggestions are optional hints; review cycles and Server/Client boundaries before accepting them.
+
+Oxfmt owns layout, ESLint owns quality/imports and TypeScript owns types. Do not enable formatter import sorting or duplicate formatting rules. Run `npm run format:changed` on task-owned files and `npm run check:changed`; include `-- --base <ref>` for committed branch scope. Use explicit `-- --files path...` with formatter commands when unrelated user changes exist. Report contextual exceptions: green checks do not prove cohesive architecture.
 
 Make the control flow and domain intent easier to understand without introducing abstraction for its own sake. First inspect nearby code and follow its established naming and organization.
 

@@ -2,18 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type {
-  ProviderCredentialUpdates,
-  SettingsApiResponse,
-  SettingsFormValues,
-  SettingsScreenState,
-} from "./SettingsScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import type { RoleName } from "@/lib/auth/roles";
 import {
   buildSettingsPayload,
   normalizeSettingsForm,
 } from "@/lib/settings/admin-settings";
+
+import type {
+  ProviderCredentialUpdates,
+  SettingsApiResponse,
+  SettingsFormValues,
+  SettingsScreenState,
+} from "./SettingsScreen.types";
 
 export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
   const [loading, setLoading] = useState(true);
@@ -27,12 +28,17 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
     setLoading(true);
     setError(null);
     try {
-      const data = await jsonFetcher<SettingsApiResponse>("/api/admin/settings", {
-        cache: "no-store",
-      });
+      const data = await jsonFetcher<SettingsApiResponse>(
+        "/api/admin/settings",
+        {
+          cache: "no-store",
+        },
+      );
       setForm(normalizeSettingsForm(data, fallbackRole));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Failed to load settings.");
+      setError(
+        caught instanceof Error ? caught.message : "Failed to load settings.",
+      );
     } finally {
       setLoading(false);
     }
@@ -57,7 +63,9 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
         await load();
         return true;
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Failed to save settings.");
+        setError(
+          caught instanceof Error ? caught.message : "Failed to save settings.",
+        );
         return false;
       } finally {
         savingRef.current = false;

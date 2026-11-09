@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { TagsFieldProps } from "./TagsField.types";
 import type { TagValue } from "@/lib/content/contracts";
 import { TagMultiSelect } from "@/ui/components/TagMultiSelect";
+
+import type { TagsFieldProps } from "./TagsField.types";
 
 export default function TagsField({
   entityId,
@@ -26,11 +27,15 @@ export default function TagsField({
     onChangeRef.current = onChangeAction;
   }, [onChangeAction]);
 
-  const [internalTags, setInternalTags] = useState<TagValue[]>(defaultValue ?? []);
+  const [internalTags, setInternalTags] = useState<TagValue[]>(
+    defaultValue ?? [],
+  );
 
   const tags = isControlled ? (value ?? []) : internalTags;
 
-  const [loadingInitial, setLoadingInitial] = useState<boolean>(Boolean(entityId && loadEntityTagsAction));
+  const [loadingInitial, setLoadingInitial] = useState<boolean>(
+    Boolean(entityId && loadEntityTagsAction),
+  );
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const savingRef = useRef(false);
@@ -82,7 +87,10 @@ export default function TagsField({
       savingRef.current = true;
       setSaving(true);
       try {
-        await updateEntityTagsAction(id, next.map((t) => t.id));
+        await updateEntityTagsAction(
+          id,
+          next.map((t) => t.id),
+        );
       } catch {
         if (!isControlled) setInternalTags(tags);
         onChangeAction?.(tags);
@@ -97,16 +105,20 @@ export default function TagsField({
   return (
     <div className="w-full space-y-1">
       <fieldset disabled={loadingInitial || saving}>
-      <TagMultiSelect
-        label={label}
-        value={tags}
-        onChangeAction={(next) => void setTags(next)}
-        loadOptionsAction={loadOptionsAction}
-        createTagAction={createTagAction}
-        placeholder={placeholder}
-      />
+        <TagMultiSelect
+          label={label}
+          value={tags}
+          onChangeAction={(next) => void setTags(next)}
+          loadOptionsAction={loadOptionsAction}
+          createTagAction={createTagAction}
+          placeholder={placeholder}
+        />
       </fieldset>
-      {error && <p role="alert" className="text-sm text-error">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error">
+          {error}
+        </p>
+      )}
 
       {loadingInitial && (
         <div className="text-xs text-base-content/60">Loading tags…</div>

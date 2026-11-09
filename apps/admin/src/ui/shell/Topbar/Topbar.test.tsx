@@ -12,10 +12,8 @@ vi.mock("@/ui/components", () => ({
   ThemeToggle: () => null,
   UserAvatar: () => <span>Admin avatar</span>,
 }));
-vi.mock("@/ui/shell", () => ({
-  Breadcrumbs: () => null,
-  UserMenu: () => null,
-}));
+vi.mock("@/ui/shell/Breadcrumbs", () => ({ Breadcrumbs: () => null }));
+vi.mock("@/ui/shell/UserMenu", () => ({ UserMenu: () => null }));
 
 describe("Topbar mobile navigation", () => {
   it("provides an accessible trigger for opening mobile navigation", () => {
@@ -29,7 +27,10 @@ describe("Topbar mobile navigation", () => {
       />,
     );
 
-    const trigger = screen.getByRole("button", { name: "Open navigation", expanded: false });
+    const trigger = screen.getByRole("button", {
+      name: "Open navigation",
+      expanded: false,
+    });
     expect(trigger).toHaveAttribute("aria-controls", "admin-mobile-navigation");
     fireEvent.click(trigger);
 

@@ -2,10 +2,21 @@
 
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
-import type { ContentListProps } from "@/ui/components";
-import { DataListEmptyRow, DataListLoading, DataListSurface } from "@/ui/components/DataList";
-import { Alert, IconButton, LinkIconButton, ConfirmDialog, useConfirmDialog } from "@/ui/primitives";
+import {
+  DataListEmptyRow,
+  DataListLoading,
+  DataListSurface,
+} from "@/ui/components/DataList";
+import {
+  Alert,
+  IconButton,
+  LinkIconButton,
+  ConfirmDialog,
+  useConfirmDialog,
+} from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import type { ContentListProps } from "./ContentList.types";
 
 type ConfirmPayload = { id: string; title: string };
 
@@ -59,7 +70,6 @@ export default function ContentList({
         </LinkIconButton>
       }
     >
-
       {error ? (
         <Alert status="error" message={error} />
       ) : isLoading ? (
@@ -112,27 +122,27 @@ export default function ContentList({
                     <td className="whitespace-nowrap text-right">
                       <div className="flex justify-end gap-2">
                         <LinkIconButton
-                        href={editHrefAction(item.id)}
-                        size="sm"
-                        variant="soft"
-                        icon={FaEdit}
-                        aria-label={`Edit ${item.title}`}
-                      >
-                        Edit
+                          href={editHrefAction(item.id)}
+                          size="sm"
+                          variant="soft"
+                          icon={FaEdit}
+                          aria-label={`Edit ${item.title}`}
+                        >
+                          Edit
                         </LinkIconButton>
 
                         {onDeleteAction && (
                           <IconButton
-                          icon={FaTrash}
-                          size="sm"
-                          color="error"
-                          variant="solid"
-                          loading={deletingId === item.id}
-                          disabled={Boolean(deletingId)}
-                          aria-label={`Delete ${item.title}`}
-                          onClick={() => askDelete(item.id, item.title)}
-                        >
-                          Delete
+                            icon={FaTrash}
+                            size="sm"
+                            color="error"
+                            variant="solid"
+                            loading={deletingId === item.id}
+                            disabled={Boolean(deletingId)}
+                            aria-label={`Delete ${item.title}`}
+                            onClick={() => askDelete(item.id, item.title)}
+                          >
+                            Delete
                           </IconButton>
                         )}
                       </div>
@@ -140,7 +150,9 @@ export default function ContentList({
                   </tr>
                 ))
               ) : (
-                <DataListEmptyRow colSpan={colSpan}>No items found.</DataListEmptyRow>
+                <DataListEmptyRow colSpan={colSpan}>
+                  No items found.
+                </DataListEmptyRow>
               )}
             </tbody>
           </table>
@@ -158,7 +170,8 @@ export default function ContentList({
       >
         {confirm.payload ? (
           <p>
-            You are about to delete <span className="font-medium">{confirm.payload.title}</span>.
+            You are about to delete{" "}
+            <span className="font-medium">{confirm.payload.title}</span>.
           </p>
         ) : null}
       </ConfirmDialog>

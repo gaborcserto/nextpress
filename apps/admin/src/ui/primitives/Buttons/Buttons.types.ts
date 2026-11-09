@@ -1,4 +1,5 @@
 import type { ButtonVariant, UiColor, UiSize } from "@/ui/theme/types";
+
 import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
@@ -6,7 +7,7 @@ import type {
   ReactNode,
 } from "react";
 
-export type Size  = UiSize;
+export type Size = UiSize;
 
 export type BaseProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -35,9 +36,9 @@ type IconButtonBaseProps = Omit<BaseProps, "aria-label"> & {
 
 export type IconButtonProps = IconButtonBaseProps &
   IconProps & {
-  children?: ReactNode;
-  shape?: "circle" | "square";
-};
+    children?: ReactNode;
+    shape?: "circle" | "square";
+  };
 
 export type LinkBaseProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   variant?: ButtonVariant;
@@ -67,5 +68,5 @@ type LinkIconButtonBaseProps = Omit<LinkBaseProps, "aria-label"> & {
 
 export type LinkIconButtonProps = LinkIconButtonBaseProps &
   IconProps & {
-  children?: ReactNode;
-};
+    children?: ReactNode;
+  };

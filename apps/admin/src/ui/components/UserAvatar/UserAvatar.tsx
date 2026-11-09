@@ -3,16 +3,17 @@
 import Avatar from "boring-avatars";
 import { useState } from "react";
 
+import { safeImageUrl } from "@/lib/security/image-url";
+
 import type { UserAvatarProps } from "./UserAvatar.types";
 import { normalizeAvatarUrl } from "./UserAvatar.utils";
-import { safeImageUrl } from "@/lib/security/image-url";
 
 export function UserAvatar({
   name,
   image,
   size = "sm",
   asButton = false,
-  className = ""
+  className = "",
 }: UserAvatarProps) {
   const [imgError, setImgError] = useState(false);
 
@@ -20,11 +21,11 @@ export function UserAvatar({
   const px = size === "sm" ? 36 : size === "md" ? 64 : 96;
 
   const sizeClass =
-      size === "sm"
-          ? "w-9 h-9 text-sm" // topbar
-          : size === "md"
-          ? "w-16 h-16 text-2xl"
-          : "w-24 h-24 text-4xl"; // profile
+    size === "sm"
+      ? "w-9 h-9 text-sm" // topbar
+      : size === "md"
+        ? "w-16 h-16 text-2xl"
+        : "w-24 h-24 text-4xl"; // profile
 
   const wrapper = asButton
     ? `btn btn-ghost btn-circle avatar ${className}`

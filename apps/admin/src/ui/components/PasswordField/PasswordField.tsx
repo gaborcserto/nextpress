@@ -1,7 +1,8 @@
 "use client";
 
-import type { PasswordFieldProps } from "./PasswordField.types";
 import { Input } from "@/ui/primitives";
+
+import type { PasswordFieldProps } from "./PasswordField.types";
 import type { ChangeEvent } from "react";
 
 export function PasswordField({

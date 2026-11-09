@@ -1,14 +1,18 @@
 "use client";
 
-import { MIN_PASSWORD_LENGTH, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
+import {
+  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
+} from "@nextpress/shared/auth-policy";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useCallback, useRef, type FormEvent } from "react";
 import { FaUserAlt } from "react-icons/fa";
 
-import { signUpSchema, type SignUpFormValues } from "./SignUpForm.validation";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
-import SignInFormOAuthRow, { type Provider } from "@/components/auth/SignInForm/SignInFormOAuthRow";
+import SignInFormOAuthRow, {
+  type Provider,
+} from "@/components/auth/SignInForm/SignInFormOAuthRow";
 import { fieldErrorsFromIssues } from "@/components/auth/utils/fieldErrors";
 import { safeCallbackUrl } from "@/components/auth/utils/safeCallbackUrl";
 import { signIn, signUp } from "@/lib/auth/auth-client";
@@ -16,6 +20,8 @@ import { EmailField, PasswordField } from "@/ui/components";
 import { Alert, Input } from "@/ui/primitives";
 import { AuthShell } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
+
+import { signUpSchema, type SignUpFormValues } from "./SignUpForm.validation";
 
 type SignUpFormProps = {
   providers: Provider[];
@@ -26,7 +32,9 @@ export function SignUpForm({ providers }: SignUpFormProps) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SignUpFormValues, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof SignUpFormValues, string>>
+  >({});
   const [formError, setFormError] = useState<string | null>(null);
   const submissionLock = useRef(false);
 
@@ -34,13 +42,14 @@ export function SignUpForm({ providers }: SignUpFormProps) {
   const params = useSearchParams();
 
   const callbackURL =
-    safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) || "/";
+    safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) ||
+    "/";
 
   const oauth = useCallback(
     async (provider: Provider) => {
       await signIn.social({ provider, callbackURL });
     },
-    [callbackURL]
+    [callbackURL],
   );
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
@@ -72,8 +81,13 @@ export function SignUpForm({ providers }: SignUpFormProps) {
         return;
       }
 
-      showToast("Registration received. Try signing in or contact an administrator.", "success");
-      router.push(`/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`);
+      showToast(
+        "Registration received. Try signing in or contact an administrator.",
+        "success",
+      );
+      router.push(
+        `/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`,
+      );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
       setFormError(msg);
@@ -109,77 +123,80 @@ export function SignUpForm({ providers }: SignUpFormProps) {
 
       <div className="space-y-4">
         <fieldset disabled={loading} className="contents">
-        <Input
-          id="signup-name"
-          name="name"
-          label="Name"
-          type="text"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setFormError(null);
-            setFieldErrors((current) => ({ ...current, name: undefined }));
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="name"
-          minLength={2}
-          maxLength={64}
-          error={fieldErrors.name}
-        />
+          <Input
+            id="signup-name"
+            name="name"
+            label="Name"
+            type="text"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setFormError(null);
+              setFieldErrors((current) => ({ ...current, name: undefined }));
+            }}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="name"
+            minLength={2}
+            maxLength={64}
+            error={fieldErrors.name}
+          />
 
-        <EmailField
-          id="signup-email"
-          name="email"
-          label="Email"
-          value={email}
-          onChangeAction={(value) => {
-            setEmail(value);
-            setFormError(null);
-            setFieldErrors((current) => ({ ...current, email: undefined }));
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="email"
-          required
-          error={fieldErrors.email}
-        />
+          <EmailField
+            id="signup-email"
+            name="email"
+            label="Email"
+            value={email}
+            onChangeAction={(value) => {
+              setEmail(value);
+              setFormError(null);
+              setFieldErrors((current) => ({ ...current, email: undefined }));
+            }}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="email"
+            required
+            error={fieldErrors.email}
+          />
 
-        <PasswordField
-          id="signup-password"
-          name="password"
-          label="Password"
-          value={password}
-          onChangeAction={(value) => {
-            setPassword(value);
-            setFormError(null);
-            setFieldErrors((current) => ({ ...current, password: undefined }));
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="new-password"
-          required
-          minLength={MIN_PASSWORD_LENGTH}
-          maxLength={MAX_PASSWORD_LENGTH}
-          error={fieldErrors.password}
-        />
+          <PasswordField
+            id="signup-password"
+            name="password"
+            label="Password"
+            value={password}
+            onChangeAction={(value) => {
+              setPassword(value);
+              setFormError(null);
+              setFieldErrors((current) => ({
+                ...current,
+                password: undefined,
+              }));
+            }}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="new-password"
+            required
+            minLength={MIN_PASSWORD_LENGTH}
+            maxLength={MAX_PASSWORD_LENGTH}
+            error={fieldErrors.password}
+          />
 
-        <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
-          Sign up
-        </AuthSubmitButton>
+          <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
+            Sign up
+          </AuthSubmitButton>
 
-        <p className="text-sm text-center">
-          Already have an account?{" "}
-          <Link
-            className="link link-hover"
-            href={`/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`}
-          >
-            Sign in
-          </Link>
-        </p>
+          <p className="text-sm text-center">
+            Already have an account?{" "}
+            <Link
+              className="link link-hover"
+              href={`/auth/sign-in?callbackUrl=${encodeURIComponent(callbackURL)}`}
+            >
+              Sign in
+            </Link>
+          </p>
         </fieldset>
       </div>
     </AuthShell>

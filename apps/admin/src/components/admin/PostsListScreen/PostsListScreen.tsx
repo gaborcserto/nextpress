@@ -1,7 +1,8 @@
 "use client";
 
-import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
 import { ContentList, type ContentListItem } from "@/ui/components";
+
+import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
 
 export default function PostsListScreen() {
   const { items, error, isLoading, mutate } = usePostsList();

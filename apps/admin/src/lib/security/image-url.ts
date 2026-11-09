@@ -1,10 +1,16 @@
 /** Check legacy persisted image URLs at the two browser rendering sinks. */
 export function safeImageUrl(value: string): string | null {
-  if (!value || value !== value.trim() || /[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  // Rejecting control characters is intentional at this untrusted URL boundary.
+  // eslint-disable-next-line no-control-regex
+  if (!value || value !== value.trim() || /[\u0000-\u001f\u007f\\]/.test(value))
+    return null;
   try {
     if (value.startsWith("/")) {
       const path = decodeURIComponent(value.split(/[?#]/, 1)[0]);
-      if (path.startsWith("//") || /[\u0000-\u001f\u007f\\%?#]/.test(path)) return null;
+      // Rejecting control characters is intentional at this untrusted URL boundary.
+      // eslint-disable-next-line no-control-regex
+      if (path.startsWith("//") || /[\u0000-\u001f\u007f\\%?#]/.test(path))
+        return null;
       const url = new URL(value, "https://images.invalid");
       if (url.pathname.startsWith("//")) return null;
       return url.pathname + url.search + url.hash;

@@ -6,7 +6,9 @@ import React, { useEffect, useRef, useState } from "react";
 
 import type { RoleName } from "@/lib/auth/roles";
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
-import { Sidebar, Topbar } from "@/ui/shell";
+import { Sidebar } from "@/ui/shell/Sidebar";
+import { Topbar } from "@/ui/shell/Topbar";
+
 import type { ReactNode } from "react";
 
 const MotionDiv = motion.div;
@@ -92,7 +94,10 @@ export default function AppShell({
       if (isDesktop) {
         // The background is no longer inert after the closed state commits.
         desktopNavRef.current?.querySelector<HTMLElement>("a")?.focus();
-      } else if (mobileTriggerRef.current && openedPathRef.current === pathname) {
+      } else if (
+        mobileTriggerRef.current &&
+        openedPathRef.current === pathname
+      ) {
         mobileTriggerRef.current.focus();
       }
     }
@@ -158,7 +163,9 @@ export default function AppShell({
           <Topbar
             scrolled={scrolled}
             mobileNavOpen={drawerOpen}
-            mobileNavTriggerRef={(node) => { mobileTriggerRef.current = node; }}
+            mobileNavTriggerRef={(node) => {
+              mobileTriggerRef.current = node;
+            }}
             onMobileNavOpenAction={() => setDrawerOpen(true)}
           />
           <main
@@ -180,7 +187,13 @@ export default function AppShell({
         />
         <div className="drawer-content" />
         {/* Expose the open drawer immediately for focus; retain its opacity and slide transitions. */}
-        <div className={drawerOpen ? "drawer-side z-30 [transition-property:opacity]" : "drawer-side z-30"}>
+        <div
+          className={
+            drawerOpen
+              ? "drawer-side z-30 [transition-property:opacity]"
+              : "drawer-side z-30"
+          }
+        >
           <label
             htmlFor="admin-drawer"
             aria-label="close sidebar"
@@ -198,7 +211,10 @@ export default function AppShell({
             inert={!drawerOpen}
             onKeyDown={(event) => {
               if (event.key === "Tab") {
-                const links = mobileNavRef.current?.querySelectorAll<HTMLElement>("a, button:not([disabled])");
+                const links =
+                  mobileNavRef.current?.querySelectorAll<HTMLElement>(
+                    "a, button:not([disabled])",
+                  );
                 if (!links?.length) return;
                 const first = links[0];
                 const last = links[links.length - 1];

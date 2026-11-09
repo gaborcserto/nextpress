@@ -4,6 +4,7 @@ import { PublicShell } from "@/components/public-shell/PublicShell";
 import { getPublicPageNavigation } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { publicSkinId, resolvePublicSkin, resolveColorMode } from "@/lib/skin";
+
 import type { Metadata } from "next";
 import "./globals.css";
 import "./skins/default.css";
@@ -30,7 +31,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [settings, navigation] = await Promise.all([getPublicSiteSettings(), getPublicPageNavigation()]);
+  const [settings, navigation] = await Promise.all([
+    getPublicSiteSettings(),
+    getPublicPageNavigation(),
+  ]);
   const skin = resolvePublicSkin(publicSkinId);
 
   return (
@@ -41,7 +45,11 @@ export default async function RootLayout({
       data-color-mode={resolveColorMode(skin)}
     >
       <body>
-        <PublicShell siteName={settings.siteName} headerPages={navigation.header} footerPages={navigation.footer}>
+        <PublicShell
+          siteName={settings.siteName}
+          headerPages={navigation.header}
+          footerPages={navigation.footer}
+        >
           {children}
         </PublicShell>
       </body>

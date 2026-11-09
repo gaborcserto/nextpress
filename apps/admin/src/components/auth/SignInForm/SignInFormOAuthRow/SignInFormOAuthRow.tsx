@@ -10,12 +10,13 @@ import {
   FaDiscord,
 } from "react-icons/fa";
 
+import { IconButton } from "@/ui/primitives";
+
 import type {
   Provider,
   ProviderIconMap,
   SignInFormOAuthRowProps,
 } from "./SignInFormOAuthRow.types";
-import { IconButton } from "@/ui/primitives";
 
 const ICONS: ProviderIconMap = {
   apple: FaApple,
@@ -28,7 +29,7 @@ const ICONS: ProviderIconMap = {
 
 export function SignInFormOAuthRow({
   onProviderAction,
-  providers = ["facebook", "google", "github",],
+  providers = ["facebook", "google", "github"],
   compact = false,
   stacked = false,
   labelOnMobile = false,

@@ -3,14 +3,15 @@
 import { useCallback, useRef, useState } from "react";
 import useSWR from "swr";
 
-import type { PageListResponse } from "./PagesListScreen.types";
 import { apiFetch, jsonFetcher } from "@/lib/api";
 import { showToast } from "@/ui/utils";
+
+import type { PageListResponse } from "./PagesListScreen.types";
 
 export function usePagesList() {
   const { data, error, isLoading, mutate } = useSWR<PageListResponse>(
     "/api/pages",
-    jsonFetcher
+    jsonFetcher,
   );
 
   return { items: data?.items ?? [], error, isLoading, mutate };
@@ -44,7 +45,7 @@ export function useDeletePage(onDeleted?: () => void) {
         setDeletingId(null);
       }
     },
-    [onDeleted]
+    [onDeleted],
   );
 
   return { deletingId, deletePage };

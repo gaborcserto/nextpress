@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-import styles from "./public-state.module.css";
 import { Container } from "@/components/public-ui/Container";
+
+import styles from "./public-state.module.css";
 
 export default function NotFound() {
   return (

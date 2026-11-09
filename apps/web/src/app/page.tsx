@@ -1,13 +1,17 @@
 import Link from "next/link";
 
-import styles from "./page.module.css";
 import { PostList } from "@/components/public-content/PostList";
 import { Container } from "@/components/public-ui/Container";
 import { getPublishedPosts } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 
+import styles from "./page.module.css";
+
 export default async function Home() {
-  const [settings, latest] = await Promise.all([getPublicSiteSettings(), getPublishedPosts({ limit: 5 })]);
+  const [settings, latest] = await Promise.all([
+    getPublicSiteSettings(),
+    getPublishedPosts({ limit: 5 }),
+  ]);
 
   return (
     <Container className={styles.home}>

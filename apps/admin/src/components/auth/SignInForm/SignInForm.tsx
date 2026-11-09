@@ -1,8 +1,20 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { FaUserAlt } from "react-icons/fa";
+
+import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
+import { signIn } from "@/lib/auth/auth-client";
+import { EmailField, PasswordField } from "@/ui/components";
+import { Alert } from "@/ui/primitives";
+import { AuthShell } from "@/ui/shell";
 
 import { signInSchema, type SignInFormValues } from "./SignInForm.validation";
 import SignInFormFooter from "./SignInFormFooter";
@@ -10,17 +22,24 @@ import SignInFormOAuthRow, { type Provider } from "./SignInFormOAuthRow";
 import { mapNextAuthError } from "../utils/errorMap";
 import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { safeCallbackUrl } from "../utils/safeCallbackUrl";
-import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
-import { signIn } from "@/lib/auth/auth-client";
-import { EmailField, PasswordField } from "@/ui/components";
-import { Alert } from "@/ui/primitives";
-import { AuthShell } from "@/ui/shell";
 
 type SignInFormProps = {
   providers: Provider[];
 };
 
 const rememberedEmailKey = "nextpress.admin.remembered-email";
+
+function signInErrorMessage(status?: number, code?: string): string {
+  if (status === 429 || code === "TOO_MANY_REQUESTS") {
+    return "Too many sign-in attempts. Please wait a minute before trying again.";
+  }
+
+  if (status === 401 || code === "INVALID_EMAIL_OR_PASSWORD") {
+    return "Invalid email or password.";
+  }
+
+  return "Sign in failed. Please try again.";
+}
 
 export default function SignInForm({ providers }: SignInFormProps) {
   const [form, setForm] = useState<SignInFormValues>({
@@ -41,7 +60,8 @@ export default function SignInForm({ providers }: SignInFormProps) {
   const params = useSearchParams();
 
   const callbackURL =
-    safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) || "/";
+    safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) ||
+    "/";
 
   useLayoutEffect(() => {
     try {
@@ -88,17 +108,16 @@ export default function SignInForm({ providers }: SignInFormProps) {
       });
 
       if (error) {
-        setErr(error.status === 429 || error.code === "TOO_MANY_REQUESTS"
-          ? "Too many sign-in attempts. Please wait a minute before trying again."
-          : error.status === 401 || error.code === "INVALID_EMAIL_OR_PASSWORD"
-            ? "Invalid email or password."
-            : "Sign in failed. Please try again.");
+        setErr(signInErrorMessage(error.status, error.code));
         return;
       }
 
       try {
         if (rememberEmail) {
-          window.localStorage.setItem(rememberedEmailKey, result.data.email.trim().toLowerCase());
+          window.localStorage.setItem(
+            rememberedEmailKey,
+            result.data.email.trim().toLowerCase(),
+          );
         } else {
           window.localStorage.removeItem(rememberedEmailKey);
         }
@@ -117,6 +136,23 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   const oauth = async (provider: Provider) => {
     await signIn.social({ provider, callbackURL });
+  };
+
+  const updateField = (field: keyof SignInFormValues, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErr(null);
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const handleRememberEmailChange = (checked: boolean) => {
+    setRememberEmail(checked);
+    if (!checked) {
+      try {
+        window.localStorage.removeItem(rememberedEmailKey);
+      } catch {
+        // Continue sign-in if browser storage is unavailable.
+      }
+    }
   };
 
   return (
@@ -145,60 +181,43 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
       <div className="space-y-4">
         <fieldset disabled={loading} className="contents">
-        <EmailField
-          id="signin-email"
-          name="email"
-          label="Email"
-          value={form.email}
-          onChangeAction={(v) => {
-            setForm((p) => ({ ...p, email: v }));
-            setErr(null);
-            setFieldErrors((current) => ({ ...current, email: undefined }));
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="username"
-          error={fieldErrors.email}
-          required
-        />
+          <EmailField
+            id="signin-email"
+            name="email"
+            label="Email"
+            value={form.email}
+            onChangeAction={(value) => updateField("email", value)}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="username"
+            error={fieldErrors.email}
+            required
+          />
 
-        <PasswordField
-          id="signin-password"
-          name="password"
-          label="Password"
-          value={form.password}
-          onChangeAction={(v) => {
-            setForm((p) => ({ ...p, password: v }));
-            setErr(null);
-            setFieldErrors((current) => ({ ...current, password: undefined }));
-          }}
-          fullWidth
-          rounded="lg"
-          color="neutral"
-          autoComplete="current-password"
-          error={fieldErrors.password}
-          required
-          minLength={6}
-        />
+          <PasswordField
+            id="signin-password"
+            name="password"
+            label="Password"
+            value={form.password}
+            onChangeAction={(value) => updateField("password", value)}
+            fullWidth
+            rounded="lg"
+            color="neutral"
+            autoComplete="current-password"
+            error={fieldErrors.password}
+            required
+            minLength={6}
+          />
 
-        <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
-          Sign in
-        </AuthSubmitButton>
+          <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
+            Sign in
+          </AuthSubmitButton>
 
-        <SignInFormFooter
-          rememberEmail={rememberEmail}
-          onRememberEmailChangeAction={(checked) => {
-            setRememberEmail(checked);
-            if (!checked) {
-              try {
-                window.localStorage.removeItem(rememberedEmailKey);
-              } catch {
-                // Continue sign-in if browser storage is unavailable.
-              }
-            }
-          }}
-        />
+          <SignInFormFooter
+            rememberEmail={rememberEmail}
+            onRememberEmailChangeAction={handleRememberEmailChange}
+          />
         </fieldset>
       </div>
     </AuthShell>

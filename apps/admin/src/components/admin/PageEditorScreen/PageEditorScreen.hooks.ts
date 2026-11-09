@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import useSWR from "swr";
 
-import type { EditPageResponse } from "./PageEditorScreen.types";
 import { jsonFetcher } from "@/lib/api";
 import type { PageFormValues } from "@/lib/content/contracts";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
 import { showToast } from "@/ui/utils";
+
+import type { EditPageResponse } from "./PageEditorScreen.types";
 
 const EMPTY_INITIAL: PageFormValues = {
   type: "STANDARD",
@@ -32,10 +33,12 @@ export function usePageEditor(id?: string) {
 
   const { data, error, isLoading, mutate } = useSWR<EditPageResponse>(
     isEdit && id ? `/api/pages/${id}` : null,
-    jsonFetcher
+    jsonFetcher,
   );
 
-  const item: PageFormValues | null = isEdit ? data?.item ?? null : EMPTY_INITIAL;
+  const item: PageFormValues | null = isEdit
+    ? (data?.item ?? null)
+    : EMPTY_INITIAL;
   const notFound = isEdit && !isLoading && !data?.item;
 
   // Note: returns Promise<void> to match PageForm onSubmitAction type
@@ -56,7 +59,7 @@ export function usePageEditor(id?: string) {
       if (!ok) {
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
-          "error"
+          "error",
         );
         return;
       }

@@ -1,4 +1,5 @@
 import type { MediaValue, UploadFn } from "@/lib/content/contracts";
+
 import type { Descendant } from "slate";
 
 export type PostIntroFieldsProps = {

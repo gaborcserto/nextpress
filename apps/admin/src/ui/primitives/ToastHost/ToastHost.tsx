@@ -3,8 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { FadeTransition } from "../FadeTransition";
-import { POSITIONS, type ActiveToast } from "./ToastHost.types";
 import {
   _subscribeToast,
   type ToastEvent,
@@ -12,26 +10,29 @@ import {
   type ToastType,
 } from "@/ui/utils";
 
+import { FadeTransition } from "../FadeTransition";
+import { POSITIONS, type ActiveToast } from "./ToastHost.types";
+
 // Map ToastPosition → DaisyUI toast classes
 function getPosClass(position: ToastPosition) {
   return position === "top-right"
-      ? "toast-top toast-end"
-      : position === "top-left"
-          ? "toast-top toast-start"
-          : position === "bottom-right"
-              ? "toast-bottom toast-end"
-              : "toast-bottom toast-start";
+    ? "toast-top toast-end"
+    : position === "top-left"
+      ? "toast-top toast-start"
+      : position === "bottom-right"
+        ? "toast-bottom toast-end"
+        : "toast-bottom toast-start";
 }
 
 // Map ToastType → DaisyUI alert variants
 function getVariantClass(type: ToastType) {
   return type === "success"
-      ? "alert-success"
-      : type === "error"
-          ? "alert-error"
-          : type === "warning"
-              ? "alert-warning"
-              : "alert-info";
+    ? "alert-success"
+    : type === "error"
+      ? "alert-error"
+      : type === "warning"
+        ? "alert-warning"
+        : "alert-info";
 }
 
 export function ToastHost() {
@@ -54,7 +55,7 @@ export function ToastHost() {
         // Start exit animation after timeout
         window.setTimeout(() => {
           setToasts((prev) =>
-              prev.map((t) => (t.id === id ? { ...t, isIn: false } : t))
+            prev.map((t) => (t.id === id ? { ...t, isIn: false } : t)),
           );
         }, timeout);
       }
@@ -63,7 +64,7 @@ export function ToastHost() {
       if (event.kind === "hide") {
         const { id } = event;
         setToasts((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, isIn: false } : t))
+          prev.map((t) => (t.id === id ? { ...t, isIn: false } : t)),
         );
       }
     });
@@ -87,44 +88,42 @@ export function ToastHost() {
   for (const t of toasts) groups[t.position].push(t);
 
   return createPortal(
-      <>
-        {POSITIONS.map((pos) => {
-          const list = groups[pos];
-          if (!list.length) return null;
+    <>
+      {POSITIONS.map((pos) => {
+        const list = groups[pos];
+        if (!list.length) return null;
 
-          return (
-              <div key={pos} className={`toast z-[9999] ${getPosClass(pos)}`}>
-                {list.map((t) => (
-                    <FadeTransition
-                        key={t.id}
-                        in={t.isIn}
-                        duration={200}
-                        onExitedAction={() => {
-                          // Remove the toast after exit animation finishes
-                          setToasts((prev) => prev.filter((x) => x.id !== t.id));
-                        }}
-                    >
-                      <div
-                        className={`alert ${getVariantClass(t.type)}`}
-                        role={t.type === "error" ? "alert" : "status"}
-                        aria-live={t.type === "error" ? "assertive" : "polite"}
-                        aria-atomic="true"
-                      >
-                        <div>
-                          <div className="font-semibold">{t.msg}</div>
-                          {t.desc && (
-                              <div className="text-sm opacity-80 mt-1">
-                                {t.desc}
-                              </div>
-                          )}
-                        </div>
-                      </div>
-                    </FadeTransition>
-                ))}
-              </div>
-          );
-        })}
-      </>,
-      document.body
+        return (
+          <div key={pos} className={`toast z-[9999] ${getPosClass(pos)}`}>
+            {list.map((t) => (
+              <FadeTransition
+                key={t.id}
+                in={t.isIn}
+                duration={200}
+                onExitedAction={() => {
+                  // Remove the toast after exit animation finishes
+                  setToasts((prev) => prev.filter((x) => x.id !== t.id));
+                }}
+              >
+                <div
+                  className={`alert ${getVariantClass(t.type)}`}
+                  role={t.type === "error" ? "alert" : "status"}
+                  aria-live={t.type === "error" ? "assertive" : "polite"}
+                  aria-atomic="true"
+                >
+                  <div>
+                    <div className="font-semibold">{t.msg}</div>
+                    {t.desc && (
+                      <div className="text-sm opacity-80 mt-1">{t.desc}</div>
+                    )}
+                  </div>
+                </div>
+              </FadeTransition>
+            ))}
+          </div>
+        );
+      })}
+    </>,
+    document.body,
   );
 }
