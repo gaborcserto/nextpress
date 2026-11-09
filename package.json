@@ -2,10 +2,10 @@
   "name": "nextpress",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "npm@10.2.4",
+  "packageManager": "npm@12.2.2",
   "engines": {
-    "node": "22.x",
-    "npm": "10.2.4"
+    "node": "24.x",
+    "npm": "12.2.2"
   },
   "workspaces": [
     "apps/*",
@@ -16,7 +16,8 @@
     "dev:web": "npm --workspace web run dev",
     "dev:admin": "npm --workspace admin run dev",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "npm run lint:root && turbo run lint",
+    "lint:root": "eslint scripts/ *.mjs",
     "lint:fix": "turbo run lint -- --fix",
     "test": "turbo run test",
     "coverage": "turbo run test:coverage",
@@ -26,6 +27,8 @@
     "openapi:validate": "npm --workspace admin run openapi:validate",
     "prisma:generate": "turbo run prisma:generate",
     "prisma:migrate": "turbo run prisma:migrate",
+    "prisma:validate": "turbo run validate --filter=@nextpress/db",
+    "prisma:deploy": "turbo run prisma:deploy",
     "db:up": "docker compose up -d",
     "db:seed": "npm --workspace @nextpress/db run seed",
     "admin:bootstrap": "npm --workspace admin run bootstrap:admin",

@@ -113,6 +113,14 @@
       "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"],
       "env": ["DATABASE_URL"]
     },
+    "validate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "prisma:deploy": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
     "prisma:migrate": {
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"]

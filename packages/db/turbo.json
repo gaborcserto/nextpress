@@ -3,6 +3,12 @@
   "tasks": {
     "typecheck": {
       "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    },
+    "test": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
+    },
+    "test:coverage": {
+      "dependsOn": ["$TURBO_EXTENDS$", "prisma:generate"]
     }
   }
 }
