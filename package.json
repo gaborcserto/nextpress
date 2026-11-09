@@ -28,7 +28,9 @@
     "db:seed": "npm --workspace @nextpress/db run seed",
     "admin:bootstrap": "npm --workspace admin run bootstrap:admin",
     "bootstrap": "npm run db:up && npm run dev",
-    "prepare": "husky"
+    "prepare": "husky",
+    "agents:validate": "node scripts/validate-agent-resources.mjs",
+    "agents:test": "node --test scripts/validate-agent-resources.test.mjs"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
