@@ -8,5 +8,5 @@ export function mapNextAuthError(code?: string | null): string | null {
     AccessDenied: "Access denied.",
     default: "Sign in failed.",
   };
-  return map[code] ?? map.default;
+  return Object.hasOwn(map, code) ? map[code] : map.default;
 }

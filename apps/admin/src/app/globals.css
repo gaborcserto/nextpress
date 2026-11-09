@@ -81,6 +81,26 @@ html, body {
   padding: 0;
 }
 
+/* DaisyUI's spinner mask embeds an SVG data URL blocked by our image policy. */
+.loading.loading-spinner {
+  mask-image: none;
+  background-image: none;
+  background-color: transparent;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading.loading-spinner {
+    animation: admin-spinner 0.75s linear infinite;
+  }
+}
+
+@keyframes admin-spinner {
+  to { transform: rotate(360deg); }
+}
+
 :root[data-skin="default"] {
 	--radius-surface: 0.75rem;
 	--radius-control: 0.375rem;
@@ -88,6 +108,8 @@ html, body {
 }
 
 :root {
+	/* Both themes disable noise; avoid DaisyUI's unused data-URL image request. */
+	--fx-noise: none;
 	--surface-bg: white;
 	--surface-border: rgba(0,0,0,.2);
 	--text-muted: rgb(75 85 99);         /* gray.600 */

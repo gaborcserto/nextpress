@@ -43,6 +43,8 @@ describe("mapNextAuthError", () => {
   it("maps known errors and provides a stable fallback", () => {
     expect(mapNextAuthError("CredentialsSignin")).toBe("Invalid email or password.");
     expect(mapNextAuthError("unknown")).toBe("Sign in failed.");
+    expect(mapNextAuthError("__proto__")).toBe("Sign in failed.");
+    expect(mapNextAuthError("constructor")).toBe("Sign in failed.");
     expect(mapNextAuthError(null)).toBeNull();
   });
 });

@@ -105,15 +105,46 @@ describe("SignInForm", () => {
   });
 
   it("does not save a new email after a failed sign-in", async () => {
-    emailSignIn.mockResolvedValue({ error: { message: "Invalid credentials" } });
+    emailSignIn.mockResolvedValue({ error: { status: 401, message: "Invalid credentials" } });
     render(<SignInForm providers={[]} />);
     fireEvent.click(screen.getByRole("checkbox", { name: "Remember email" }));
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret1" } });
 
     fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
-    expect(await screen.findByText("Invalid credentials")).toBeInTheDocument();
+    expect(await screen.findByText("Invalid email or password.")).toBeInTheDocument();
     expect(window.localStorage.getItem("nextpress.admin.remembered-email")).toBeNull();
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { error: { status: 429 }, message: "Too many sign-in attempts. Please wait a minute before trying again." },
+    { error: { status: 500, message: "internal details" }, message: "Sign in failed. Please try again." },
+  ])("handles authentication status $error.status without a redirect", async ({ error, message }) => {
+    emailSignIn.mockResolvedValue({ error });
+    render(<SignInForm providers={[]} />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret1" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
+  });
+
+  it("maps untrusted callback errors to a stable message", () => {
+    query.value = "error=internal-provider-details";
+    render(<SignInForm providers={[]} />);
+    expect(screen.getByText("Sign in failed.")).toBeInTheDocument();
+    expect(screen.queryByText("internal-provider-details")).not.toBeInTheDocument();
+  });
+
+  it("handles a network failure without exposing exception details", async () => {
+    emailSignIn.mockRejectedValue(new Error("private upstream details"));
+    render(<SignInForm providers={[]} />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "secret1" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+    expect(await screen.findByText("Unable to sign in. Please check your connection and try again.")).toBeInTheDocument();
     expect(routerPush).not.toHaveBeenCalled();
   });
 

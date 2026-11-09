@@ -7,6 +7,7 @@ import { FaUserAlt } from "react-icons/fa";
 import { signInSchema, type SignInFormValues } from "./SignInForm.validation";
 import SignInFormFooter from "./SignInFormFooter";
 import SignInFormOAuthRow, { type Provider } from "./SignInFormOAuthRow";
+import { mapNextAuthError } from "../utils/errorMap";
 import { fieldErrorsFromIssues } from "../utils/fieldErrors";
 import { safeCallbackUrl } from "../utils/safeCallbackUrl";
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
@@ -61,7 +62,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   useEffect(() => {
     const errorParam = params.get("error");
-    if (errorParam) setErr(errorParam);
+    if (errorParam) setErr(mapNextAuthError(errorParam));
   }, [params]);
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
@@ -87,7 +88,11 @@ export default function SignInForm({ providers }: SignInFormProps) {
       });
 
       if (error) {
-        setErr(error.message || "Sign in failed");
+        setErr(error.status === 429 || error.code === "TOO_MANY_REQUESTS"
+          ? "Too many sign-in attempts. Please wait a minute before trying again."
+          : error.status === 401 || error.code === "INVALID_EMAIL_OR_PASSWORD"
+            ? "Invalid email or password."
+            : "Sign in failed. Please try again.");
         return;
       }
 
@@ -102,12 +107,8 @@ export default function SignInForm({ providers }: SignInFormProps) {
       }
 
       router.push(callbackURL);
-    } catch (error) {
-      if (error instanceof Error) {
-        setErr(error.message);
-      } else {
-        setErr("Unexpected error");
-      }
+    } catch {
+      setErr("Unable to sign in. Please check your connection and try again.");
     } finally {
       submissionLock.current = false;
       setLoading(false);
