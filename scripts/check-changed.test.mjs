@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -26,6 +26,67 @@ for (const file of ['tsconfig.base.json', 'package-lock.json', 'package.json', '
 test('empty and Markdown-only local changes need no tasks', () => {
   assert.equal(selectChanges([]).mode, 'none');
   assert.equal(selectChanges(['README.md', 'apps/web/README.md']).mode, 'none');
+});
+
+for (const file of ['AGENTS.md', '.agents/README.md', '.agents/skills/nextpress-testing/SKILL.md']) {
+  test(`${file} runs repository validation`, () => assert.equal(selectChanges([file]).mode, 'full'));
+}
+
+test('renames and deletions preserve both affected workspaces', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'nextpress-rename-'));
+  const git = (...args) => execFileSync('git', args, { cwd: directory, encoding: 'utf8' });
+  try {
+    git('init', '--quiet');
+    writeFileSync(path.join(directory, 'old.ts'), 'content');
+    git('add', '.');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m', 'fixture');
+    git('mv', 'old.ts', 'new.ts');
+    assert.deepEqual(localChanges(git).sort(), ['new.ts', 'old.ts']);
+    git('restore', '--staged', '.');
+    git('add', '-A');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m', 'rename fixture');
+    git('rm', 'new.ts');
+    assert.deepEqual(localChanges(git), ['new.ts']);
+    assert.deepEqual(turboFilters(selectChanges(['apps/admin/old.ts', 'apps/web/new.ts'])), [
+      '--filter=...{./apps/admin}', '--filter=...{./apps/web}',
+    ]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('CI empty revision diff conservatively selects full verification', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'nextpress-ci-'));
+  const output = path.join(directory, 'output');
+  try {
+    const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    // HEAD-to-HEAD exercises the conservative empty CI diff fallback.
+    execFileSync(process.execPath, ['scripts/check-changed.mjs', '--ci'], {
+      env: { ...process.env, BASE_SHA: head, HEAD_SHA: head, GITHUB_OUTPUT: output },
+    });
+    assert.equal(readFileSync(output, 'utf8'), 'should_validate=true\nturbo_filters=\n');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('CI revision selection emits the local workspace filters', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'nextpress-ci-filters-'));
+  const output = path.join(directory, 'output');
+  try {
+    const base = execFileSync('git', ['rev-parse', 'HEAD^'], { encoding: 'utf8' }).trim();
+    const files = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', base, 'HEAD'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+    let selection = selectChanges(files, { emptyIsFull: true });
+    if (selection.mode === 'affected' && selection.directories.some((directory) => !existsSync(`${directory}/package.json`))) {
+      selection = selectChanges([], { full: true });
+    }
+    execFileSync(process.execPath, ['scripts/check-changed.mjs', '--ci'], {
+      env: { ...process.env, BASE_SHA: base, HEAD_SHA: 'HEAD', GITHUB_OUTPUT: output },
+    });
+    assert.equal(readFileSync(output, 'utf8'), `should_validate=${selection.mode !== 'none'}\nturbo_filters=${turboFilters(selection).join(' ')}\n`);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('CI empty diff, unavailable detection and explicit override select full verification', () => {

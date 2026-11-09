@@ -84,7 +84,7 @@ Avoid generic boilerplate, wrapper layers, fragmented helpers, speculative abstr
 
 ## Commands and environment
 
-Run commands from the repository root unless a workspace is intentionally targeted. The package manager is npm `10.2.4`.
+Run commands from the repository root unless a workspace is intentionally targeted. The package manager is npm `12.2.2`.
 
 - `npm run dev`: run workspace development servers through Turbo.
 - `npm run dev:web`: run `apps/web` at `http://localhost:49100`.

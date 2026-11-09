@@ -28,9 +28,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: package-lock.json
+
+      - name: Set up npm
+        run: npm install --global npm@12.2.2
 
       - name: Audit production dependencies
         run: npm audit --omit=dev
@@ -52,7 +55,7 @@ jobs:
       - name: Set up Node.js for selection
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.1
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Select affected workspaces
         id: filter
@@ -67,6 +70,20 @@ jobs:
     if: needs.changes.outputs.should_validate == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-trixie
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cms?schema=public
 
@@ -80,18 +97,27 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Set up npm
-        run: npm install --global npm@10.2.4
+        run: npm install --global npm@12.2.2
 
       - name: Install dependencies
         run: npm ci
 
       - name: Test changed-file selection
         run: npm run check:changed:test
+
+      - name: Validate agent resources
+        run: npm run agents:validate && npm run agents:test
+
+      - name: Lint root tooling
+        run: npm run lint:root
+
+      - name: Validate schema and deploy migrations to isolated service
+        run: npm run prisma:validate && npm run prisma:deploy
 
       - name: Validate affected workspaces
         env:

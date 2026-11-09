@@ -36,21 +36,27 @@ function main() {
       selection = selectChanges(paths(git('diff', '--name-only', '--no-renames', '-z', base, process.env.HEAD_SHA || 'HEAD')), { emptyIsFull: true });
     } else {
       selection = selectChanges(localChanges(), { full: args.includes('--full') });
-      if (selection.mode === 'affected' && selection.directories.some((directory) => !existsSync(new URL(`${directory}/package.json`, new URL('../', import.meta.url))))) {
-        selection = { mode: 'full', reason: 'A changed workspace manifest is missing; scope cannot be resolved safely.' };
-      }
+    }
+    if (selection.mode === 'affected' && selection.directories.some((directory) => !existsSync(new URL(`${directory}/package.json`, new URL('../', import.meta.url))))) {
+      selection = { mode: 'full', reason: 'A changed workspace manifest is missing; scope cannot be resolved safely.' };
     }
   } catch {
     selection = selectChanges([], { full: true });
   }
   console.log(`[check:changed] ${selection.mode}: ${selection.reason}`);
   if (ci) {
-    // Preserve CI's revision filter and output contract.
-    const filter = selection.mode === 'affected' ? `--filter=...[${process.env.BASE_SHA}]` : '';
+    const filter = turboFilters(selection).join(' ');
     appendFileSync(process.env.GITHUB_OUTPUT, `should_validate=${selection.mode !== 'none'}\nturbo_filters=${filter}\n`);
     return;
   }
   if (selection.mode === 'none') return;
+  const npmCli = process.env.npm_execpath;
+  if (!npmCli) throw new Error('Run through npm run check:changed');
+  for (const script of ['lint:root', 'check:changed:test', 'agents:validate', 'agents:test']) {
+    const check = spawnSync(process.execPath, [npmCli, 'run', script], { cwd: root, stdio: 'inherit' });
+    if (check.error) throw check.error;
+    if (check.status !== 0) { process.exitCode = check.status ?? 1; return; }
+  }
   const filters = turboFilters(selection);
   console.log(`[check:changed] turbo run lint typecheck test ${filters.join(' ') || '(all workspaces)'}`);
   const require = createRequire(import.meta.url);

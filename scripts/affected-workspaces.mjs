@@ -4,6 +4,7 @@ export function selectChanges(files, { full = false, emptyIsFull = false } = {})
   if (!files.length) return { mode: emptyIsFull ? 'full' : 'none', reason: 'No changed files.' };
   const directories = new Set();
   for (const file of files) {
+    if (file === 'AGENTS.md' || file.startsWith('.agents/')) return { mode: 'full', reason: 'Agent instructions or resources changed.' };
     if (file.endsWith('.md')) continue;
     const directory = /^(apps\/(?:web|admin)|packages\/(?:db|shared|eslint-config))\//.exec(file)?.[1];
     if (!directory) return { mode: 'full', reason: `Root configuration or unknown path: ${file}` };
