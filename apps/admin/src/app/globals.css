@@ -81,6 +81,11 @@ html, body {
   padding: 0;
 }
 
+/* Keep DaisyUI's tooltip shape without its CSP-blocked SVG data URL. */
+.tooltip::after {
+  mask-image: url("/tooltip-tail.svg");
+}
+
 /* DaisyUI's spinner mask embeds an SVG data URL blocked by our image policy. */
 .loading.loading-spinner {
   mask-image: none;
