@@ -118,3 +118,11 @@ it("returns stable missing and failure errors", async () => {
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({ error: "Unexpected error" });
 });
+
+it("does not substitute default settings during a database outage", async () => {
+  findUnique.mockRejectedValueOnce(new Error("ECONNREFUSED private database"));
+  const response = await settings();
+
+  expect(response.status).toBe(500);
+  expect(await response.json()).toEqual({ error: "Unexpected error" });
+});

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
-import type { RoleName } from "@/lib/auth/roles";
 import {
   buildSettingsPayload,
   normalizeSettingsForm,
 } from "@/lib/settings/admin-settings";
+
+import type { RoleName } from "@/lib/auth/roles";
 
 import type {
   ProviderCredentialUpdates,
@@ -24,6 +25,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
   const [form, setForm] = useState<SettingsFormValues>(() =>
     normalizeSettingsForm(undefined, fallbackRole),
   );
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -61,11 +63,13 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
           body: JSON.stringify(buildSettingsPayload(form, credentials)),
         });
         await load();
+
         return true;
       } catch (caught) {
         setError(
           caught instanceof Error ? caught.message : "Failed to save settings.",
         );
+
         return false;
       } finally {
         savingRef.current = false;

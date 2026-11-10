@@ -28,11 +28,13 @@ async function fixture(skill = "example", bom = false) {
     path.join(root, `.agents/skills/${skill}/SKILL.md`),
     `${prefix}---\nname: ${skill}\ndescription: Example skill.\n---\nSee [root](../../../AGENTS.md) and npm run lint.`,
   );
+
   return root;
 }
 
 test("accepts BOM-free skill frontmatter", async () => {
   const root = await fixture();
+
   try {
     assert.deepEqual(await validateAgentResources(root), []);
   } finally {
@@ -42,6 +44,7 @@ test("accepts BOM-free skill frontmatter", async () => {
 
 test("accepts actual UTF-8 BOM before valid skill frontmatter", async () => {
   const root = await fixture("example", true);
+
   try {
     assert.deepEqual(await validateAgentResources(root), []);
   } finally {
@@ -51,6 +54,7 @@ test("accepts actual UTF-8 BOM before valid skill frontmatter", async () => {
 
 test("reports invalid metadata, missing links, and unknown scripts", async () => {
   const root = await fixture();
+
   try {
     await writeFile(
       path.join(root, ".agents/skills/example/SKILL.md"),
@@ -71,6 +75,7 @@ test("reports invalid metadata, missing links, and unknown scripts", async () =>
 
 test("validates workflow contents, nested references and Claude imports", async () => {
   const root = await fixture();
+
   try {
     await writeFile(
       path.join(root, ".agents/workflows/change.md"),
@@ -83,6 +88,7 @@ test("validates workflow contents, nested references and Claude imports", async 
     );
     await writeFile(path.join(root, "CLAUDE.md"), "@absent.md\n");
     const errors = await validateAgentResources(root);
+
     for (const fragment of [
       "missing:workflow",
       "missing:reference",

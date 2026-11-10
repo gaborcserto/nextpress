@@ -23,12 +23,16 @@ async function discovery(path: string) {
     redirect: "error",
     signal: AbortSignal.timeout(10000),
   });
+
   if (!response.ok) throw new Error("API discovery unavailable");
   const body: unknown = await response.json();
+
   return body;
 }
+
 export const getSessionWithRole = cache(async () => {
   const { user } = SessionDiscoverySchema.parse(await discovery("session"));
+
   return user ? { user } : null;
 });
 export const getOperationalOAuthProviders = cache(async () => {

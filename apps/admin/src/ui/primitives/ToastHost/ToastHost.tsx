@@ -85,12 +85,14 @@ export function ToastHost() {
     "bottom-right": [],
     "bottom-left": [],
   };
+
   for (const t of toasts) groups[t.position].push(t);
 
   return createPortal(
     <>
       {POSITIONS.map((pos) => {
         const list = groups[pos];
+
         if (!list.length) return null;
 
         return (

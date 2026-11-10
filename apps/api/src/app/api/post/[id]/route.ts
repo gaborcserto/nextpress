@@ -72,6 +72,7 @@ export async function GET(_req: Request, { params }: GetContext) {
       return notfound();
     }
     console.error("GET /api/post/[id] failed");
+
     return oops();
   }
 }
@@ -93,6 +94,7 @@ export const PUT = withAuth(
 
     try {
       const updated = await updatePostService(id, body, session.user);
+
       return ok(updated);
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
@@ -106,6 +108,7 @@ export const PUT = withAuth(
       }
 
       console.error("PUT /api/post/[id] failed");
+
       return oops();
     }
   },
@@ -122,12 +125,14 @@ export const DELETE = withAuth(
 
     try {
       await deletePostService(id, session.user);
+
       return ok({ ok: true });
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
       if (err instanceof ContentNotFoundError) return notfound();
 
       console.error("DELETE /api/post/[id] failed");
+
       return oops();
     }
   },

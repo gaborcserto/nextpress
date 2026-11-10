@@ -29,6 +29,7 @@ export const GET = withAuth(["ADMIN"], async () => {
     );
   } catch {
     console.error("GET /api/admin/users failed");
+
     return oops();
   }
 });

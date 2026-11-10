@@ -27,12 +27,15 @@ export function createBaseConfig({ registerPlugins = true } = {}) {
           groups: [
             ["builtin", "external"],
             ["internal"],
-            ["parent", "sibling", "index", "object", "type"],
+            ["parent", "sibling", "index", "object"],
+            ["type"],
           ],
           pathGroups: [{ pattern: "@/**", group: "internal" }],
           pathGroupsExcludedImportTypes: ["builtin"],
           alphabetize: { order: "asc", caseInsensitive: true },
           "newlines-between": "always",
+          sortTypesGroup: true,
+          "newlines-between-types": "always",
         },
       ],
       "import/no-duplicates": "error",
@@ -58,13 +61,17 @@ export function createBaseConfig({ registerPlugins = true } = {}) {
       "import/no-duplicates": "error",
     },
   };
+
   if (registerPlugins) javascriptConfig.plugins = { import: importPlugin };
 
   return [
     { ignores: ["coverage/**"] },
     {
       files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
-      rules: js.configs.recommended.rules,
+
+      rules: {
+        ...js.configs.recommended.rules,
+      },
     },
     {
       files: ["**/*.{js,mjs,cjs}"],

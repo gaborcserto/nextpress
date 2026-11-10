@@ -38,23 +38,27 @@ export async function applyTags(
 
 export function validateCreateBody(rawBody: unknown) {
   const res = PageSchema.safeParse(rawBody);
+
   if (!res.success) {
     const issues = zodIssues(res.error) ?? [
       { path: null, message: "Validation failed" },
     ];
     throw new PageValidationError(issues);
   }
+
   return res.data;
 }
 
 export function validateUpdateBody(rawBody: unknown) {
   const res = PageUpdateSchema.safeParse(rawBody);
+
   if (!res.success) {
     const issues = zodIssues(res.error) ?? [
       { path: null, message: "Validation failed" },
     ];
     throw new PageValidationError(issues);
   }
+
   return res.data;
 }
 

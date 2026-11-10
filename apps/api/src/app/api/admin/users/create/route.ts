@@ -26,6 +26,7 @@ export const POST = withAuth(
   ["ADMIN"],
   async (req) => {
     let input: unknown;
+
     try {
       input = await req.json();
     } catch {
@@ -49,13 +50,16 @@ export const POST = withAuth(
       return bad("Invalid role");
 
     const parsedEmail = emailSchema.safeParse(input.email);
+
     if (!parsedEmail.success) return bad("Invalid email");
     const email = parsedEmail.data;
+
     if (typeof input.name === "string" && input.name.length > 200) {
       return bad("Name must not exceed 200 characters");
     }
     if (input.password !== undefined) {
       const parsedPassword = passwordSchema.safeParse(input.password);
+
       if (!parsedPassword.success)
         return bad(
           parsedPassword.error.issues[0]?.message ?? "Invalid password",
@@ -74,10 +78,12 @@ export const POST = withAuth(
         where: { email: body.email },
         select: { id: true },
       });
+
       if (existing) return conflict("Email already exists");
 
       const id = randomUUID();
       let password: string | undefined;
+
       if (body.password !== undefined) {
         const auth = await getAuth();
         const context = await auth.$context;
@@ -114,6 +120,7 @@ export const POST = withAuth(
       if (error instanceof APIError && error.statusCode === 429)
         return tooManyRequests(1);
       console.error("POST /api/admin/users/create failed");
+
       return oops();
     }
   },

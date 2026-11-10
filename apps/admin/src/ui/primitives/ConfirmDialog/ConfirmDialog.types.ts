@@ -1,6 +1,6 @@
-import type { UiColor } from "@/ui/theme/types";
-
 import type { ReactNode } from "react";
+
+import type { UiColor } from "@/ui/theme/types";
 
 export type ConfirmDialogProps = {
   open: boolean;

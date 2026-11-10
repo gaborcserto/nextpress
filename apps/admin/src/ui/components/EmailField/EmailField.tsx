@@ -2,8 +2,9 @@
 
 import { Input } from "@/ui/primitives";
 
-import type { EmailFieldProps } from "./EmailField.types";
 import type { ChangeEvent } from "react";
+
+import type { EmailFieldProps } from "./EmailField.types";
 
 export function EmailField({
   id,

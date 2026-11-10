@@ -43,6 +43,7 @@ let nextId = 1;
  */
 export function _subscribeToast(listener: Listener) {
   listeners.add(listener);
+
   return () => listeners.delete(listener);
 }
 
@@ -53,9 +54,9 @@ export function _subscribeToast(listener: Listener) {
  * showToast("Save failed", "error", { desc: "Something went wrong" })
  */
 export function showToast(
-    msg: string,
-    type: ToastType = "success",
-    opts: ToastOptions = {}
+  msg: string,
+  type: ToastType = "success",
+  opts: ToastOptions = {},
 ) {
   if (typeof window === "undefined") return () => {};
 

@@ -5,8 +5,9 @@ import { useState } from "react";
 
 import { safeImageUrl } from "@/lib/security/image-url";
 
-import type { UserAvatarProps } from "./UserAvatar.types";
 import { normalizeAvatarUrl } from "./UserAvatar.utils";
+
+import type { UserAvatarProps } from "./UserAvatar.types";
 
 const avatarSizes = {
   sm: { pixels: 36, className: "w-9 h-9 text-sm" },

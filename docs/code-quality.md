@@ -95,3 +95,82 @@ fresh Codex and Claude sessions with an ordinary TSX edit request, record reads 
 AGENTS/readability/React/verification, inspect the final diff, and verify formatting
 and lint failures are caught. Claude's `/context all` can confirm loaded memory
 files. Record unavailable runtime evidence explicitly.
+
+## Mechanical readability enforcement
+
+`npm run lint:readability` runs eight Movie Explorer parity tests and six
+reporting regression tests, then inspects maintained source with the TypeScript
+parser. `scripts/readability-core.mjs` is the ESM port of Movie Explorer's
+algorithm; the narrower ESLint rule has been removed to avoid overlapping checks.
+ESLint still owns correctness, imports and framework rules. Type-only imports
+have a separate group, sorted into the same path categories as value imports,
+so required readability boundaries also pass import-order validation. Oxfmt retains its
+existing configuration and does not reorder imports.
+
+The checker requires exactly one blank line at eligible comment-free, multiline
+boundaries: function-valued declarations, named functions, methods/constructors,
+returns, relative/non-relative imports, and variable declarations followed by
+if/try/loops/switch. It recognizes parenthesized functions, useCallback and
+identifiable function-valued useMemo results. It preserves ordinary declarations,
+value hooks, unknown factories, attached comments, overload groups, same-line
+statements and side-effect import order. It never reorders AST nodes or rewrites
+JSX text. Malformed syntax fails inspection.
+
+Husky runs the eight semantic tests once through `scripts/test-readability.mjs`,
+then runs lint-staged with verbose output only if those tests pass. The staged
+runner scans eligible
+staged source before Oxfmt can collapse excessive padding, formats selected files
+once, then performs its existing owning-config ESLint pass. lint-staged's hiding
+and restoration of partially staged edits remains responsible for index safety;
+the runner never stages anything. A native lint-staged JavaScript task receives
+the complete matched list after unstaged edits are hidden, avoiding command-line
+length splitting and emitting one consolidated readability summary. Oxfmt still
+batches subprocess arguments internally; ESLint runs once per owning config.
+The test subprocess clears Node's inherited test
+context so tests actually execute even when the hook is exercised by a test.
+
+Root lint and CI's existing `lint:root` command invoke `lint:readability`. The full
+scan selects tracked and nonignored new source, excludes generated/dependency/
+build/vendor/public assets, and deduplicates paths. No second full-project lint or
+format pass is added. Direct workspace ESLint does not substitute for root
+readability verification. The staged report shows all eight test results and
+statistics using the Node spec
+reporter, with green checks and blue statistics when colors are enabled.
+Color preferences propagate from lint-staged; `NO_COLOR` and `FORCE_COLOR` are
+respected, and non-TTY output works as plain text.
+The concise source-scan summary shows inspected files,
+files with violations, total violations and a repair command. Individual spacing
+diagnostics are available with `node scripts/readability.mjs --verbose`.
+Root lint and CI enable verbose diagnostics; the root test reporter retains
+individual test results. Read-only checks never apply readability repairs.
+
+For an intentional whitespace repair, use
+`node scripts/readability.mjs --write --files path...`, then
+`npm run format:changed -- --files path...` and rerun the read-only checks. The
+readability command inserts/removes only boundary whitespace; Oxfmt remains the
+layout formatter. Pre-commit and CI never automatically repair readability.
+
+The isolated integration tests demonstrate real hook success/failure, existing
+lint-staged task execution and preservation of staged and unstaged versions.
+Naming, cohesive responsibilities, appropriate abstractions, meaningful grouping,
+and whether a callback merits extraction remain review/agent guidance. A passing
+mechanical checker is not a claim of subjective code quality.
+
+### Staged progress reporting
+
+The staged checker prints one timed status summary using the unique matched staged
+paths, rather than adding the readability, formatting and ESLint counts together.
+It measures elapsed time across the staged checks and reports failure even when a
+formatter or lint operation throws. The eight self-tests and readability scan
+retain their own reports.
+
+Successful Oxfmt batch-timing lines are hidden only in the default staged task.
+Other stdout, warnings, stderr and failing formatter output remain visible.
+Oxfmt still uses batches of 20 paths and its existing internal threading; there
+are no extra validation passes. Standalone formatting commands retain their
+normal output.
+
+For detailed staged progress, use node scripts/check-staged.mjs --verbose paths.
+With lint-staged, --debug enables the same detail (the hook's existing --verbose
+flag only makes task output visible). Detailed readability file/line reports
+remain available via node scripts/readability.mjs --verbose.

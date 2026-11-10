@@ -13,11 +13,13 @@ export async function validateTagIds(
   db: Pick<Prisma.TransactionClient, "taxonomy"> = prisma,
 ) {
   const ids = [...new Set(tagIds)];
+
   if (!ids.length) return;
   const tags = await db.taxonomy.findMany({
     where: { id: { in: ids }, type: "TAG" },
     select: { id: true },
   });
+
   if (tags.length !== ids.length) throw new TaxonomyScopeError();
 }
 
@@ -48,6 +50,7 @@ function mapTaxonomyToTagDto(t: {
  */
 export function normalizeTagIds(tagIds: unknown): string[] {
   if (!Array.isArray(tagIds)) return [];
+
   return tagIds
     .filter((id): id is string => typeof id === "string")
     .map((id) => id.trim())
@@ -185,6 +188,7 @@ export async function setTagsForPage(
       });
     }
   };
+
   if (transaction) await replace(transaction);
   else await prisma.$transaction(replace);
 }

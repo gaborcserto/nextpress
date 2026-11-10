@@ -32,7 +32,9 @@ export const defaultSkin = {
   },
 } as const satisfies PublicSkin;
 
-const publicSkins: Readonly<Record<SkinId, PublicSkin>> = { default: defaultSkin };
+const publicSkins: Readonly<Record<SkinId, PublicSkin>> = {
+  default: defaultSkin,
+};
 
 // Public selection is independent of the admin selection and color-mode preference.
 export const publicSkinId: SkinId = "default";
@@ -62,6 +64,7 @@ export function resolveColorMode(
       if (preference === "system" && capability.supportsSystem) {
         return "system";
       }
+
       return capability.defaultPreference;
   }
 }

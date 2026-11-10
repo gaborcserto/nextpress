@@ -7,12 +7,14 @@ import { selectChanges } from "./affected-workspaces.mjs";
 import { formatFiles } from "./quality-files.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+
 const git = (...args) =>
   execFileSync("git", args, {
     cwd: root,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
+
 const paths = (output) => output.split("\0").filter(Boolean);
 
 export function localChanges(runGit = git, base) {
@@ -48,6 +50,7 @@ function main() {
   const args = process.argv.slice(2);
   let base;
   const baseIndex = args.indexOf("--base");
+
   if (baseIndex !== -1) {
     base = args[baseIndex + 1];
     if (!base || base.startsWith("--"))
@@ -56,6 +59,7 @@ function main() {
   }
   const filesIndex = args.indexOf("--files");
   const explicitFiles = filesIndex === -1 ? null : args.splice(filesIndex + 1);
+
   if (filesIndex !== -1) args.splice(filesIndex, 1);
   if (
     args.some(
@@ -69,6 +73,7 @@ function main() {
   const formatOnly =
     args.includes("--format") || args.includes("--format-check");
   const write = args.includes("--format");
+
   if (write && args.includes("--format-check"))
     throw new Error("Choose one formatting mode");
   if (ci && base) throw new Error("CI uses BASE_SHA/HEAD_SHA, not --base");
@@ -80,9 +85,11 @@ function main() {
     );
   let files;
   let selection;
+
   try {
     if (ci) {
       const ciBase = process.env.BASE_SHA;
+
       if (!ciBase) throw new Error("Missing base revision");
       git("cat-file", "-e", `${ciBase}^{commit}`);
       files = paths(
@@ -131,11 +138,13 @@ function main() {
       process.env.GITHUB_OUTPUT,
       `should_validate=${selection.mode !== "none"}\nturbo_filters=${filter}\n`,
     );
+
     return;
   }
   formatFiles(files, { cwd: root, write });
   if (formatOnly || selection.mode === "none") return;
   const npmCli = process.env.npm_execpath;
+
   if (!npmCli) throw new Error("Run through npm run check:changed");
   for (const script of [
     "lint:root",
@@ -147,9 +156,11 @@ function main() {
       cwd: root,
       stdio: "inherit",
     });
+
     if (check.error) throw check.error;
     if (check.status !== 0) {
       process.exitCode = check.status ?? 1;
+
       return;
     }
   }
@@ -170,6 +181,7 @@ function main() {
     ],
     { cwd: root, stdio: "inherit" },
   );
+
   if (result.error) throw result.error;
   process.exitCode = result.status ?? 1;
 }

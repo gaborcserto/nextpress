@@ -10,7 +10,7 @@ import type { TagLoadOptionsFn, TagValue } from "./TagMultiSelect.types";
 export function useTagMultiSelectSearch(
   query: string,
   loadOptions: TagLoadOptionsFn,
-  minChars = 2
+  minChars = 2,
 ) {
   const [options, setOptions] = useState<TagValue[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,7 @@ export function useTagMultiSelectSearch(
     if (trimmed.length < minChars) {
       setOptions([]);
       setLoading(false);
+
       return;
     }
 
@@ -33,6 +34,7 @@ export function useTagMultiSelectSearch(
     const timer = setTimeout(async () => {
       try {
         const result = await loadOptions(trimmed);
+
         if (!cancelled) setOptions(result);
       } catch {
         if (!cancelled) {

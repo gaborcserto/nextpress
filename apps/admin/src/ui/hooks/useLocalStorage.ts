@@ -19,6 +19,7 @@ export function useLocalStorage<T>(key: string, defaultValue: T) {
 
     try {
       const json = window.localStorage.getItem(key);
+
       if (json != null) {
         return JSON.parse(json) as T;
       }

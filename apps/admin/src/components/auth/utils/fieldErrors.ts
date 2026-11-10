@@ -5,6 +5,7 @@ export function fieldErrorsFromIssues(issues: readonly ZodIssue[]) {
 
   for (const issue of issues) {
     const field = issue.path[0];
+
     if (typeof field === "string" && !errors[field]) {
       errors[field] = issue.message;
     }

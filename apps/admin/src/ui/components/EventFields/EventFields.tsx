@@ -2,8 +2,9 @@
 
 import { Field, FormGrid12, Input } from "@/ui/primitives";
 
-import type { EventFieldsProps } from "./EventFields.types";
 import type { ChangeEvent } from "react";
+
+import type { EventFieldsProps } from "./EventFields.types";
 
 /**
  * Event-specific fields for event pages:

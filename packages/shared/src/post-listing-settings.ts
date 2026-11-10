@@ -10,9 +10,14 @@ export const MIN_POSTS_PER_PAGE = 1;
 export const MAX_POSTS_PER_PAGE = 50;
 export const MAX_POSTS_OFFSET = 100_000;
 
-export const PostsPerPageSchema = z.number().int().min(MIN_POSTS_PER_PAGE).max(MAX_POSTS_PER_PAGE);
+export const PostsPerPageSchema = z
+  .number()
+  .int()
+  .min(MIN_POSTS_PER_PAGE)
+  .max(MAX_POSTS_PER_PAGE);
 
 export function normalizePostsPerPage(value: unknown): number {
   const parsed = PostsPerPageSchema.safeParse(value);
+
   return parsed.success ? parsed.data : DEFAULT_POSTS_PER_PAGE;
 }

@@ -8,12 +8,14 @@ import type { TagMultiSelectDropdownProps } from "./TagMultiSelect.types";
  */
 function underlineMatch(label: string, query?: string) {
   const q = (query ?? "").trim();
+
   if (!q) return label;
 
   const lowerLabel = label.toLowerCase();
   const lowerQ = q.toLowerCase();
 
   const start = lowerLabel.indexOf(lowerQ);
+
   if (start === -1) return label;
 
   const end = start + q.length;
@@ -55,9 +57,7 @@ export function TagMultiSelectDropdown({
       className="absolute left-0 top-full mt-1 w-full rounded-xl border border-base-300 bg-base-100 shadow z-50 max-h-64 overflow-auto"
     >
       {loading && (
-        <div className="px-3 py-2 text-sm text-base-content/60">
-          Searching…
-        </div>
+        <div className="px-3 py-2 text-sm text-base-content/60">Searching…</div>
       )}
 
       {options.map((option) => (

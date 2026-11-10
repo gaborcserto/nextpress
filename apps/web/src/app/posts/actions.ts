@@ -6,10 +6,13 @@ import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.serve
 
 export async function getNextPostBatch(page: number) {
   const settings = await getPublicSiteSettings();
-  if (settings.postListingMode !== "LOAD_MORE"
-    || !Number.isSafeInteger(page)
-    || page < 2
-    || page > getMaxPostsPage(settings.postsPerPage)) {
+
+  if (
+    settings.postListingMode !== "LOAD_MORE" ||
+    !Number.isSafeInteger(page) ||
+    page < 2 ||
+    page > getMaxPostsPage(settings.postsPerPage)
+  ) {
     return null;
   }
 

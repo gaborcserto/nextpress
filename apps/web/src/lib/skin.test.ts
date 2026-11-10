@@ -10,7 +10,16 @@ import {
 } from "./skin";
 
 describe("public skin color modes", () => {
-  it.each(["default", "unknown", "removed-skin", undefined, null, "", {}, ["default"]])(
+  it.each([
+    "default",
+    "unknown",
+    "removed-skin",
+    undefined,
+    null,
+    "",
+    {},
+    ["default"],
+  ])(
     "resolves identity %j independently of color-mode preferences",
     (identity) => {
       const skin = resolvePublicSkin(identity);
@@ -50,7 +59,14 @@ describe("public skin color modes", () => {
     "ignores preferences for a $capability.kind skin",
     ({ capability, expected }) => {
       const skin: PublicSkin = { id: "default", colorMode: capability };
-      for (const preference of [undefined, "light", "dark", "system", "invalid"]) {
+
+      for (const preference of [
+        undefined,
+        "light",
+        "dark",
+        "system",
+        "invalid",
+      ]) {
         expect(resolveColorMode(skin, preference)).toBe(expected);
       }
     },
@@ -87,10 +103,16 @@ describe("public skin color modes", () => {
 
   it("restricts defaults to the capability's supported preferences", () => {
     expectTypeOf<
-      Extract<SkinColorMode, { kind: "switchable"; supportsSystem: false }>["defaultPreference"]
+      Extract<
+        SkinColorMode,
+        { kind: "switchable"; supportsSystem: false }
+      >["defaultPreference"]
     >().toEqualTypeOf<"light" | "dark">();
     expectTypeOf<
-      Extract<SkinColorMode, { kind: "switchable"; supportsSystem: true }>["defaultPreference"]
+      Extract<
+        SkinColorMode,
+        { kind: "switchable"; supportsSystem: true }
+      >["defaultPreference"]
     >().toEqualTypeOf<"light" | "dark" | "system">();
     expectTypeOf<
       Extract<SkinColorMode, { kind: "fixed" | "light-only" | "dark-only" }>

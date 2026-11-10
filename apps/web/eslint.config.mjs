@@ -3,26 +3,36 @@ import config from "@nextpress/eslint-config/next";
 const workspaceConfig = [
   ...config,
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["**/*.{js,mjs,cjs,ts,tsx,mts,cts}"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: [
-        { group: ["admin", "admin/**", "**/apps/admin/**", "**/admin/src/**"], message: "Public code must not import admin implementation." },
-      ] }],
-    },
-  },
-  {
-    files: ["src/**/*.{ts,tsx}"],
-    ignores: [
-      "src/lib/content/*.server.ts",
-      "src/lib/content/*.server.test.ts",
-      "src/lib/settings/public-site-settings.server.ts",
-      "src/lib/settings/public-site-settings.server.test.ts",
-    ],
-    rules: {
-      "no-restricted-imports": ["error", { patterns: [
-        { group: ["admin", "admin/**", "**/apps/admin/**", "**/admin/src/**"], message: "Public code must not import admin implementation." },
-        { group: ["@nextpress/db", "@nextpress/db/**"], message: "Use the server-only public content or site settings boundary instead of database records." },
-      ] }],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@nextpress/db",
+                "@nextpress/db/**",
+                "@prisma/**",
+                "**/generated/prisma/**",
+                "**/packages/db/**",
+                "better-auth",
+                "better-auth/**",
+                "api",
+                "api/**",
+                "admin",
+                "admin/**",
+                "**/apps/api/**",
+                "**/apps/admin/**",
+                "**/api/src/**",
+                "**/admin/src/**",
+              ],
+              message:
+                "Web consumes portable shared contracts and the public HTTP API only.",
+            },
+          ],
+        },
+      ],
     },
   },
 ];

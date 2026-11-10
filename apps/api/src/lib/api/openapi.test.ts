@@ -21,12 +21,14 @@ describe("OpenAPI contract", () => {
 
   it("covers every owned route method and excludes the delegated auth and docs handlers", () => {
     const expected: string[] = [];
+
     for (const file of readdirSync(apiRoot, {
       recursive: true,
       encoding: "utf8",
     })) {
       if (!file.endsWith("route.ts")) continue;
       const normalized = file.replaceAll("\\", "/");
+
       if (
         normalized === "auth/[...all]/route.ts" ||
         normalized === "openapi/route.ts"
@@ -34,6 +36,7 @@ describe("OpenAPI contract", () => {
         continue;
       const path = `/api/${normalized.replace(/\/route\.ts$/, "").replace(/\[([^\]]+)\]/g, "{$1}")}`;
       const source = readFileSync(new URL(normalized, apiRoot), "utf8");
+
       for (const method of methods) {
         if (
           new RegExp(

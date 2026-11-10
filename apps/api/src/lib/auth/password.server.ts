@@ -49,7 +49,9 @@ export async function verifyCredentialPassword({
     // Legacy bcrypt cannot distinguish suffixes beyond 72 bytes. These accounts
     // need a new credential when the original password exceeded that boundary.
     if (Buffer.byteLength(password, "utf8") > 72) return false;
+
     return runPasswordWork(() => bcrypt.compare(password, hash));
   }
+
   return runPasswordWork(() => verifyPassword({ hash, password }));
 }

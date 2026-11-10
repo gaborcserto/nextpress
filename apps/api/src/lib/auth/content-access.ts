@@ -2,8 +2,9 @@ import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
 
-import type { RoleName } from "./roles";
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
+
+import type { RoleName } from "./roles";
 
 export type ContentActor = { id: string; role: RoleName | null };
 export type ContentType = "PAGE" | "POST";
@@ -23,9 +24,11 @@ export function contentReadWhere(
     status: "PUBLISHED",
     OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
   };
+
   if (actor?.role === "AUTHOR") {
     return { OR: [published, { authorId: actor.id }] };
   }
+
   return published;
 }
 
@@ -42,10 +45,13 @@ export async function requireContentWrite(
   deleting = false,
 ) {
   const scope = contentWriteWhere(actor);
+
   if (deleting && !isEditor(actor)) throw new ContentForbiddenError();
   const item = await prisma.page.findUnique({ where: { id } });
+
   if (!item || (type && item.type !== type)) throw new ContentNotFoundError();
   if (scope.authorId && item.authorId !== scope.authorId)
     throw new ContentForbiddenError();
+
   return item;
 }

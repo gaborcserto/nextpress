@@ -1,11 +1,11 @@
-import type { ButtonVariant, UiColor, UiSize } from "@/ui/theme/types";
-
 import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   ComponentType,
   ReactNode,
 } from "react";
+
+import type { ButtonVariant, UiColor, UiSize } from "@/ui/theme/types";
 
 export type Size = UiSize;
 

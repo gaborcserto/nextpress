@@ -30,6 +30,7 @@ export const POST = withAuth(
 
     try {
       const created = await createPostService(body, session.user);
+
       return ok(created, 201);
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
@@ -42,6 +43,7 @@ export const POST = withAuth(
       }
 
       console.error("POST /api/post failed");
+
       return oops();
     }
   },
@@ -56,6 +58,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
 
   const pagination = parsePagination(url.searchParams);
+
   if (!pagination) return bad("Invalid pagination");
 
   const result = await listPostsService(
@@ -63,5 +66,6 @@ export async function GET(req: Request) {
     pagination.limit,
     actor,
   );
+
   return ok(result);
 }

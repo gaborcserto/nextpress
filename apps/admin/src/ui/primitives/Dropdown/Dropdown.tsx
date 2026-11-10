@@ -10,6 +10,12 @@ import {
 } from "react";
 
 import type {
+  KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  RefObject,
+} from "react";
+
+import type {
   DropdownAction,
   DropdownProps,
   DropdownTriggerProps,
@@ -18,8 +24,6 @@ import type {
   DropdownLabelProps,
   DropdownDividerProps,
 } from "./Dropdown.types";
-import type { KeyboardEvent, MouseEvent as ReactMouseEvent, RefObject } from "react";
-
 
 const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
@@ -38,15 +42,21 @@ const DropdownContext = createContext<DropdownContextValue | null>(null);
 
 function useDropdownContext() {
   const ctx = useContext(DropdownContext);
+
   if (!ctx) {
     throw new Error("Dropdown components must be used inside <Dropdown>.");
   }
+
   return ctx;
 }
 
 /* ---------------- Root <Dropdown> ---------------- */
 
-export function Dropdown({ children, align = "end", className }: DropdownProps) {
+export function Dropdown({
+  children,
+  align = "end",
+  className,
+}: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [onAction, setOnAction] = useState<DropdownAction | undefined>();
   const menuId = useId();
@@ -94,7 +104,7 @@ export function Dropdown({ children, align = "end", className }: DropdownProps) 
           "dropdown",
           align === "end" && "dropdown-end",
           open && "dropdown-open",
-          className
+          className,
         )}
       >
         {children}
@@ -140,21 +150,30 @@ export function DropdownMenu({
   "aria-label": ariaLabel,
   onAction,
 }: DropdownMenuProps) {
-  const { open, menuId, setOnAction, menuRef, setOpen, triggerRef } = useDropdownContext();
+  const { open, menuId, setOnAction, menuRef, setOpen, triggerRef } =
+    useDropdownContext();
 
   useEffect(() => {
     setOnAction?.(onAction);
+
     return () => setOnAction?.(undefined);
   }, [onAction, setOnAction]);
 
   if (!open) return null;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? []);
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not([disabled])',
+      ) ?? [],
+    );
     const index = items.indexOf(document.activeElement as HTMLElement);
     let nextIndex: number | undefined;
-    if (event.key === "ArrowDown") nextIndex = index < items.length - 1 ? index + 1 : 0;
-    if (event.key === "ArrowUp") nextIndex = index > 0 ? index - 1 : items.length - 1;
+
+    if (event.key === "ArrowDown")
+      nextIndex = index < items.length - 1 ? index + 1 : 0;
+    if (event.key === "ArrowUp")
+      nextIndex = index > 0 ? index - 1 : items.length - 1;
     if (event.key === "Home") nextIndex = 0;
     if (event.key === "End") nextIndex = items.length - 1;
     if (nextIndex !== undefined) {
@@ -176,7 +195,7 @@ export function DropdownMenu({
       tabIndex={0}
       className={cx(
         "dropdown-content menu bg-base-100 rounded-[var(--radius-surface)] shadow border border-base-300 w-56 p-2",
-        className
+        className,
       )}
       onKeyDown={handleKeyDown}
     >
@@ -221,7 +240,7 @@ export function DropdownItem({
           "hover:bg-base-200",
           disabled && "opacity-50 pointer-events-none",
           colorCls,
-          className
+          className,
         )}
         onClick={handleClick}
         disabled={disabled}
@@ -244,7 +263,7 @@ export function DropdownLabel({ children, className }: DropdownLabelProps) {
     <li
       className={cx(
         "menu-title px-2 py-1 text-xs uppercase tracking-wide opacity-70",
-        className
+        className,
       )}
       role="presentation"
     >

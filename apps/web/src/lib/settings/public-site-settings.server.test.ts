@@ -1,88 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const { findUnique } = vi.hoisted(() => ({ findUnique: vi.fn() }));
-vi.mock("@nextpress/db", () => ({ prisma: { siteSettings: { findUnique } } }));
+import { afterEach, expect, it, vi } from "vitest";
 
 import { getPublicSiteSettings } from "./public-site-settings.server";
 
-beforeEach(() => {
-  vi.resetAllMocks();
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
-
-describe("public site settings boundary", () => {
-  it("reads only public identity fields and excludes internal data from the result", async () => {
-    findUnique.mockResolvedValue({
-      siteName: " Example Publication ",
-      siteDescription: " Independent reporting. ",
-      postListingMode: "LOAD_MORE",
-      postsPerPage: 25,
-      id: "default",
-      defaultUserRole: "ADMIN",
-      siteUrl: "https://example.test",
-      ogImageUrl: "https://example.test/cover.png",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      oauthProviders: [{ clientId: "private-client", clientSecret: "private-secret" }],
-      futurePrivateSetting: "private-value",
-    });
-
-    expect(await getPublicSiteSettings()).toEqual({
-      siteName: "Example Publication",
-      siteDescription: "Independent reporting.",
-      postListingMode: "LOAD_MORE",
-      postsPerPage: 25,
-    });
-    expect(findUnique).toHaveBeenCalledWith({
-      where: { id: "default" },
-      select: { siteName: true, siteDescription: true, postListingMode: true, postsPerPage: true },
-    });
-  });
-
-  it.each([
-    null,
-    { siteName: "NextPress", siteDescription: null, postListingMode: "PAGINATION", postsPerPage: 10 },
-    { siteName: "", siteDescription: "", postListingMode: "PAGINATION", postsPerPage: 10 },
-    { siteName: "  ", siteDescription: "  ", postListingMode: "PAGINATION", postsPerPage: 10 },
-  ])("uses existing identity defaults for missing or blank configuration: %j", async (settings) => {
-    findUnique.mockResolvedValue(settings);
-
-    expect(await getPublicSiteSettings()).toEqual({
-      siteName: "NextPress",
-      siteDescription: "A publication powered by NextPress.",
-      postListingMode: "PAGINATION",
-      postsPerPage: 10,
-    });
-  });
-
-  it("preserves a configured name when the optional description is absent", async () => {
-    findUnique.mockResolvedValue({
-      siteName: "Example Publication", siteDescription: null,
-      postListingMode: "UNSUPPORTED", postsPerPage: 500,
-    });
-
-    expect(await getPublicSiteSettings()).toEqual({
-      siteName: "Example Publication",
-      siteDescription: "A publication powered by NextPress.",
-      postListingMode: "PAGINATION",
-      postsPerPage: 10,
-    });
-  });
-
-  it("defaults only the new listing fields for a settings row predating the migration", async () => {
-    findUnique.mockResolvedValue({ siteName: "Legacy publication", siteDescription: null });
-
-    expect(await getPublicSiteSettings()).toEqual({
-      siteName: "Legacy publication",
-      siteDescription: "A publication powered by NextPress.",
-      postListingMode: "PAGINATION",
-      postsPerPage: 10,
-    });
-  });
-
-  it("propagates database failures instead of treating them as missing configuration", async () => {
-    const failure = new Error("Database unavailable");
-    findUnique.mockRejectedValue(failure);
-
-    await expect(getPublicSiteSettings()).rejects.toBe(failure);
-  });
+it("consumes validated public settings with API-owned defaults", async () => {
+  const settings = {
+    siteName: "NextPress",
+    siteDescription: "A publication powered by NextPress.",
+    postListingMode: "PAGINATION",
+    postsPerPage: 10,
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(settings)));
+  expect(await getPublicSiteSettings()).toEqual(settings);
+});
+it("does not replace API outages with default settings", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
+  );
+  await expect(getPublicSiteSettings()).rejects.toMatchObject({ status: 500 });
 });

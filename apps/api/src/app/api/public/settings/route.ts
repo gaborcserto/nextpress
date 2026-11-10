@@ -11,7 +11,8 @@ export async function GET() {
     );
     response.headers.set("Cache-Control", "no-store");
     return response;
-  } catch {
+  } catch (error) {
+    console.error(error);
     return oops();
   }
 }

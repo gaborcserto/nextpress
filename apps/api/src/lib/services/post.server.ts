@@ -26,6 +26,7 @@ import {
 export async function createPostService(rawBody: unknown, actor: ContentActor) {
   contentWriteWhere(actor);
   const parsed = validateCreateBody(rawBody);
+
   if (parsed.type !== "POST") {
     throw new PageValidationError([
       { path: "type", message: "Content type does not match endpoint" },
@@ -58,6 +59,7 @@ export async function updatePostService(
 ) {
   await requireContentWrite(id, actor, "POST");
   const parsed = validateUpdateBody(rawBody);
+
   if (parsed.type && parsed.type !== "POST") {
     throw new PageValidationError([
       { path: "type", message: "Content type cannot be changed" },
@@ -121,6 +123,7 @@ export async function getPostWithTagsService(
   actor?: ContentActor | null,
 ) {
   const item = await getPageById(id, { type: "POST", actor });
+
   if (!item) {
     throw new PageNotFoundError();
   }

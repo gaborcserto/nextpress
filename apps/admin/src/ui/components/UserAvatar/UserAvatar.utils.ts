@@ -17,6 +17,7 @@ const AVATAR_RULES: AvatarRule[] = [
     normalize: (u, px) => {
       if (/=s\d+/.test(u) || /[?&]sz=\d+/.test(u)) return u;
       const join = u.includes("?") ? "&" : "?";
+
       return `${u}${join}sz=${px}`;
     },
   },
@@ -25,6 +26,7 @@ const AVATAR_RULES: AvatarRule[] = [
     normalize: (u, px) => {
       if (/[?&]s=\d+/.test(u)) return u;
       const join = u.includes("?") ? "&" : "?";
+
       return `${u}${join}s=${px}`;
     },
   },
@@ -33,6 +35,7 @@ const AVATAR_RULES: AvatarRule[] = [
     normalize: (u, px) => {
       if (/[?&]size=\d+/.test(u)) return u;
       const join = u.includes("?") ? "&" : "?";
+
       return `${u}${join}size=${px}`;
     },
   },
@@ -41,6 +44,7 @@ const AVATAR_RULES: AvatarRule[] = [
     normalize: (u, px) => {
       if (/[?&](height|width)=\d+/.test(u)) return u;
       const join = u.includes("?") ? "&" : "?";
+
       return `${u}${join}height=${px}&width=${px}`;
     },
   },
@@ -49,18 +53,17 @@ const AVATAR_RULES: AvatarRule[] = [
     normalize: (u, px) => {
       if (/[?&]name=/.test(u)) return u;
 
-      const name =
-        px <= 48 ? "small" :
-        px <= 96 ? "normal" :
-        "bigger";
+      const name = px <= 48 ? "small" : px <= 96 ? "normal" : "bigger";
 
       const join = u.includes("?") ? "&" : "?";
+
       return `${u}${join}name=${name}`;
     },
-  }
+  },
 ];
 
 export function normalizeAvatarUrl(url: string, px: number) {
   const rule = AVATAR_RULES.find((r) => r.match(url));
+
   return rule ? rule.normalize(url, px) : url;
 }

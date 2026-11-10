@@ -13,12 +13,19 @@ import {
 } from "slate-react";
 
 import { EMPTY_SLATE_VALUE } from "./slate.constants";
-import type { Align } from "./slate.d";
-import type { SlateEditorProps } from "./slate.types";
 import SlateToolbar from "./SlateToolbar";
+
 import type { CSSProperties } from "react";
 
-export default function SlateEditor({ label = "Content", readOnly = false, value, onChangeAction }: SlateEditorProps) {
+import type { Align } from "./slate.d";
+import type { SlateEditorProps } from "./slate.types";
+
+export default function SlateEditor({
+  label = "Content",
+  readOnly = false,
+  value,
+  onChangeAction,
+}: SlateEditorProps) {
   const codeId = useId();
   const editor = useMemo(() => withHistory(withReact(createEditor())), []);
   const [isCodeView, setIsCodeView] = useState(false);
@@ -37,11 +44,37 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
     switch (element.type) {
       case "heading": {
         const level = element.level;
-        if (level === 2) return <h2 {...attributes} style={style}>{children}</h2>;
-        if (level === 3) return <h3 {...attributes} style={style}>{children}</h3>;
-        if (level === 4) return <h4 {...attributes} style={style}>{children}</h4>;
-        if (level === 5) return <h5 {...attributes} style={style}>{children}</h5>;
-        return <h6 {...attributes} style={style}>{children}</h6>;
+
+        if (level === 2)
+          return (
+            <h2 {...attributes} style={style}>
+              {children}
+            </h2>
+          );
+        if (level === 3)
+          return (
+            <h3 {...attributes} style={style}>
+              {children}
+            </h3>
+          );
+        if (level === 4)
+          return (
+            <h4 {...attributes} style={style}>
+              {children}
+            </h4>
+          );
+        if (level === 5)
+          return (
+            <h5 {...attributes} style={style}>
+              {children}
+            </h5>
+          );
+
+        return (
+          <h6 {...attributes} style={style}>
+            {children}
+          </h6>
+        );
       }
       case "blockquote":
         return (
@@ -54,14 +87,25 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
           </blockquote>
         );
       case "bulleted-list":
-        return <ul {...attributes} className="list-disc pl-6">{children}</ul>;
+        return (
+          <ul {...attributes} className="list-disc pl-6">
+            {children}
+          </ul>
+        );
       case "numbered-list":
-        return <ol {...attributes} className="list-decimal pl-6">{children}</ol>;
+        return (
+          <ol {...attributes} className="list-decimal pl-6">
+            {children}
+          </ol>
+        );
       case "list-item":
         return <li {...attributes}>{children}</li>;
       case "code-block":
         return (
-          <pre {...attributes} className="rounded-md border border-base-300 bg-base-200 p-3 overflow-auto">
+          <pre
+            {...attributes}
+            className="rounded-md border border-base-300 bg-base-200 p-3 overflow-auto"
+          >
             <code>{children}</code>
           </pre>
         );
@@ -74,11 +118,17 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
     const { attributes, children, leaf } = props;
 
     let out = children;
+
     if (leaf.bold) out = <strong>{out}</strong>;
     if (leaf.italic) out = <em>{out}</em>;
     if (leaf.underline) out = <u>{out}</u>;
     if (leaf.strikethrough) out = <s>{out}</s>;
-    if (leaf.code) out = <code className="px-1 rounded bg-base-200 border border-base-300">{out}</code>;
+    if (leaf.code)
+      out = (
+        <code className="px-1 rounded bg-base-200 border border-base-300">
+          {out}
+        </code>
+      );
 
     return <span {...attributes}>{out}</span>;
   }, []);
@@ -93,8 +143,15 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
 
   return (
     <div className="border border-base-300 rounded-md bg-base-100">
-      <Slate editor={editor} initialValue={safeValue} onValueChange={onChangeAction}>
-        <SlateToolbar onToggleCodeViewAction={toggleCodeViewAction} isCodeView={isCodeView} />
+      <Slate
+        editor={editor}
+        initialValue={safeValue}
+        onValueChange={onChangeAction}
+      >
+        <SlateToolbar
+          onToggleCodeViewAction={toggleCodeViewAction}
+          isCodeView={isCodeView}
+        />
 
         {isCodeView ? (
           <div className="p-3">
@@ -112,15 +169,25 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
               onChange={(e) => {
                 setCodeDraft(e.target.value);
                 try {
-                  const result = RichBlocksSchema.safeParse(JSON.parse(e.target.value));
+                  const result = RichBlocksSchema.safeParse(
+                    JSON.parse(e.target.value),
+                  );
+
                   if (!result.success) {
-                    setCodeError("Enter a supported non-empty array of rich-content elements.");
+                    setCodeError(
+                      "Enter a supported non-empty array of rich-content elements.",
+                    );
+
                     return;
                   }
                   const parsed = result.data;
                   Transforms.deselect(editor);
                   Editor.withoutNormalizing(editor, () => {
-                    for (let index = editor.children.length - 1; index >= 0; index--) {
+                    for (
+                      let index = editor.children.length - 1;
+                      index >= 0;
+                      index--
+                    ) {
                       Transforms.removeNodes(editor, { at: [index] });
                     }
                     Transforms.insertNodes(editor, parsed, { at: [0] });
@@ -132,7 +199,15 @@ export default function SlateEditor({ label = "Content", readOnly = false, value
                 }
               }}
             />
-            {codeError && <p id={`${codeId}-error`} role="alert" className="mt-2 text-sm text-error">{codeError}</p>}
+            {codeError && (
+              <p
+                id={`${codeId}-error`}
+                role="alert"
+                className="mt-2 text-sm text-error"
+              >
+                {codeError}
+              </p>
+            )}
             <p className="text-xs opacity-70 mt-2">
               Tip: if the JSON is invalid, we don’t update the editor value.
             </p>

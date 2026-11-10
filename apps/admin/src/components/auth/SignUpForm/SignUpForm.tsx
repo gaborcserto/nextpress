@@ -59,8 +59,10 @@ export function SignUpForm({ providers }: SignUpFormProps) {
     setFormError(null);
 
     const parsed = signUpSchema.safeParse({ email, password, name });
+
     if (!parsed.success) {
       setFieldErrors(fieldErrorsFromIssues(parsed.error.issues));
+
       return;
     }
 
@@ -78,6 +80,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
 
       if (error) {
         setFormError(error.message || "Sign up failed");
+
         return;
       }
 

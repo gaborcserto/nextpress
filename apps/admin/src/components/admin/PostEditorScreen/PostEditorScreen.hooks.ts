@@ -5,10 +5,11 @@ import { useRef, useState } from "react";
 import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
-import type { PostFormValues } from "@/lib/content/contracts";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
 import { showToast } from "@/ui/utils";
+
+import type { PostFormValues } from "@/lib/content/contracts";
 
 import type { PostDetailResponse } from "./PostEditorScreen.types";
 
@@ -45,6 +46,7 @@ export function usePostEditor(postId?: string) {
     if (savingRef.current) return;
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
+
       return;
     }
 
@@ -60,6 +62,7 @@ export function usePostEditor(postId?: string) {
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
         );
+
         return;
       }
 

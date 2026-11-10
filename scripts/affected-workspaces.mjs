@@ -11,6 +11,7 @@ export function selectChanges(
   if (!files.length)
     return { mode: emptyIsFull ? "full" : "none", reason: "No changed files." };
   const directories = new Set();
+
   for (const file of files) {
     if (
       file === "AGENTS.md" ||
@@ -26,6 +27,7 @@ export function selectChanges(
       /^(apps\/(?:web|admin|api)|packages\/(?:db|shared|eslint-config))\//.exec(
         file,
       )?.[1];
+
     if (!directory)
       return {
         mode: "full",
@@ -33,6 +35,7 @@ export function selectChanges(
       };
     directories.add(directory);
   }
+
   return directories.size
     ? {
         mode: "affected",

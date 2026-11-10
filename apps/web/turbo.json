@@ -1,17 +1,1 @@
-{
-  "extends": ["//"],
-  "tasks": {
-    "build": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]
-    },
-    "typecheck": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]
-    },
-    "test": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]
-    },
-    "test:coverage": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]
-    }
-  }
-}
+{ "extends": ["//"] }

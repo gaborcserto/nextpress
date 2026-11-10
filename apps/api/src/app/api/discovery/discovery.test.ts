@@ -49,3 +49,11 @@ it("returns only operational provider names", async () => {
     providers: ["github"],
   });
 });
+
+it("does not treat a database outage as an anonymous session", async () => {
+  session.mockRejectedValueOnce(new Error("ECONNREFUSED private database"));
+  const response = await discoverSession(new Request("http://localhost"));
+
+  expect(response.status).toBe(500);
+  expect(await response.json()).toEqual({ error: "Unexpected error" });
+});

@@ -1,10 +1,12 @@
 "use client";
 
-import type { ListingKind } from "@/lib/content/contracts";
 import { Field, FormGrid12, Input, Select } from "@/ui/primitives";
 
-import type { ListingFieldsProps } from "./ListingFields.types";
 import type { ChangeEvent } from "react";
+
+import type { ListingKind } from "@/lib/content/contracts";
+
+import type { ListingFieldsProps } from "./ListingFields.types";
 
 /**
  * Listing configuration fields:
@@ -25,6 +27,7 @@ export default function ListingFields({
   const handleListingKindChange = (raw: string | number | "") => {
     if (!raw) {
       onChangeAction("listingKind", null);
+
       return;
     }
     onChangeAction("listingKind", raw as ListingKind);

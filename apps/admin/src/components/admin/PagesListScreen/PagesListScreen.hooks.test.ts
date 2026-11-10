@@ -19,13 +19,21 @@ describe.each([
 
   it("uses the UI confirmation and prevents concurrent deletion", async () => {
     const confirm = vi.spyOn(window, "confirm");
+
     let resolveRequest: (response: Response) => void = () => undefined;
-    apiFetch.mockReturnValue(new Promise<Response>((resolve) => { resolveRequest = resolve; }));
+    apiFetch.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
     const onDeleted = vi.fn();
     const { result } = renderHook(() => useDelete(onDeleted));
 
     await act(async () => {
-      const deleteItem = "deletePage" in result.current ? result.current.deletePage : result.current.deletePost;
+      const deleteItem =
+        "deletePage" in result.current
+          ? result.current.deletePage
+          : result.current.deletePost;
       const first = deleteItem("item-1");
       const second = deleteItem("item-2");
       resolveRequest(new Response(null, { status: 204 }));
@@ -43,10 +51,16 @@ describe.each([
     apiFetch.mockRejectedValue(new Error("offline"));
     const { result } = renderHook(() => useDelete());
     await act(async () => {
-      const deleteItem = "deletePage" in result.current ? result.current.deletePage : result.current.deletePost;
+      const deleteItem =
+        "deletePage" in result.current
+          ? result.current.deletePage
+          : result.current.deletePost;
       await deleteItem("item-1");
     });
-    expect(showToast).toHaveBeenCalledWith(`Unable to delete ${kind}. Please try again.`, "error");
+    expect(showToast).toHaveBeenCalledWith(
+      `Unable to delete ${kind}. Please try again.`,
+      "error",
+    );
     expect(result.current.deletingId).toBeNull();
   });
 });

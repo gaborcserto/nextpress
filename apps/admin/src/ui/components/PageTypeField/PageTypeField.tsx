@@ -1,5 +1,6 @@
-import type { PageType } from "@/lib/content/contracts";
 import { Select } from "@/ui/primitives";
+
+import type { PageType } from "@/lib/content/contracts";
 
 import type { PageTypeFieldProps } from "./PageTypeField.types";
 

@@ -12,6 +12,7 @@ const actor = { id: "unused", role: "ADMIN" as const };
 describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
   beforeAll(async () => {
     const url = new URL(testUrl ?? "");
+
     if (
       testUrl !== process.env.DATABASE_URL ||
       !["localhost", "127.0.0.1"].includes(url.hostname) ||

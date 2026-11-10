@@ -21,6 +21,7 @@ it("forwards method, body, cookies and exact Origin only to the configured origi
     expect(init.redirect).toBe("manual");
     expect(init.cache).toBe("no-store");
     expect(await new Response(init.body).text()).toBe('{"title":"test"}');
+
     return Response.json(
       { error: "Untrusted request origin" },
       { status: 403 },

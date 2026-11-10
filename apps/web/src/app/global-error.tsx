@@ -16,6 +16,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   const skin = resolvePublicSkin(publicSkinId);
+
   return (
     <html
       lang="en"

@@ -14,9 +14,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { stripVTControlCharacters } from "node:util";
 import { format } from "oxfmt";
 
-import { formatFiles } from "./quality-files.mjs";
+import { formatFiles, reportFormatterOutput } from "./quality-files.mjs";
+import { format as formatReadability } from "./readability-core.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const config = JSON.parse(
@@ -30,12 +32,14 @@ function fixture(t) {
     rmSync(directory, { recursive: true, force: true });
   });
   writeFileSync(path.join(directory, ".oxfmtrc.json"), JSON.stringify(config));
+
   return directory;
 }
 
 test("formatter rejects drift, writes only selected paths with spaces, ignores generated files and is stable", (t) => {
   const cwd = fixture(t);
   const source = "export const value={a:1}\n";
+
   for (const file of ["selected file.ts", "untouched.ts"])
     writeFileSync(path.join(cwd, file), source);
   mkdirSync(path.join(cwd, "generated"));
@@ -73,6 +77,7 @@ test("staged runner uses owning configs across React, server, shared and root fi
     "packages/shared",
     "packages/db",
   ];
+
   for (const workspace of workspaces) {
     mkdirSync(path.join(cwd, workspace), { recursive: true });
     copyFileSync(
@@ -81,7 +86,14 @@ test("staged runner uses owning configs across React, server, shared and root fi
     );
   }
   mkdirSync(path.join(cwd, "scripts"));
-  for (const name of ["check-staged.mjs", "quality-files.mjs"])
+  for (const name of [
+    "check-staged.mjs",
+    "test-readability.mjs",
+    "quality-files.mjs",
+    "readability.mjs",
+    "readability-core.mjs",
+    "readability.test.mjs",
+  ])
     copyFileSync(
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
@@ -100,25 +112,40 @@ test("staged runner uses owning configs across React, server, shared and root fi
     "packages/db/generated/client.ts",
   ];
   const generatedSource = "debugger; export const generated={value:1}\n";
+
   for (const file of files) {
     mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
     let source = "export const example={value:1}\n";
+
     if (file.includes("generated/")) source = generatedSource;
     else if (file.endsWith(".tsx"))
       source = "export const example=<div>Example</div>\n";
     writeFileSync(path.join(cwd, file), source);
   }
-  const run = (selected) =>
+
+  const run = (selected, verbose = false) =>
     spawnSync(
       process.execPath,
       [
         "scripts/check-staged.mjs",
+        ...(verbose ? ["--verbose"] : []),
         ...selected.map((file) => path.join(cwd, file)),
       ],
       { cwd, encoding: "utf8" },
     );
   const valid = run(files);
   assert.equal(valid.status, 0, valid.stdout + valid.stderr);
+  const duplicate = run([files[0], files[0]]);
+  assert.equal(duplicate.status, 0, duplicate.stdout + duplicate.stderr);
+  assert.match(duplicate.stdout, /Inspected 1 source files/);
+  assert.match(
+    duplicate.stdout,
+    /Staged checks: 1 files processed in \d+\.\d{2}s \(passed\)/,
+  );
+  assert.doesNotMatch(valid.stdout, /Finished in/);
+  const detailed = run([files[0]], true);
+  assert.equal(detailed.status, 0, detailed.stdout + detailed.stderr);
+  assert.match(detailed.stdout, /Finished in/);
   assert.equal(
     readFileSync(path.join(cwd, files.at(-1)), "utf8"),
     generatedSource,
@@ -137,7 +164,22 @@ test("staged runner uses owning configs across React, server, shared and root fi
     const invalid = run([file]);
     assert.notEqual(invalid.status, 0, file);
     assert.match(invalid.stdout, /no-debugger/, file);
+    assert.match(
+      invalid.stdout,
+      /Staged checks: 1 files processed in \d+\.\d{2}s \(failed\)/,
+    );
   }
+  writeFileSync(path.join(cwd, files[0]), "export const = ;");
+  const formatterFailure = run([files[0]]);
+  assert.notEqual(formatterFailure.status, 0);
+  assert.match(
+    formatterFailure.stdout,
+    /Staged checks: 1 files processed in \d+\.\d{2}s \(failed\)/,
+  );
+  assert.match(
+    formatterFailure.stdout + formatterFailure.stderr,
+    /Formatting write failed/,
+  );
 });
 
 test("formatter supports required languages and preserves directives, import order and JSX text", async () => {
@@ -158,6 +200,7 @@ test("formatter supports required languages and preserves directives, import ord
     "package.json": '{"version":"1.0.0","name":"example"}\n',
     "config.yml": "name: test\nitems: [one,two]\n",
   };
+
   for (const [file, source] of Object.entries(samples)) {
     const once = await format(file, source, config);
     assert.deepEqual(once.errors, [], file);
@@ -215,8 +258,10 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
 
 test("admin UI modules cannot import their own umbrella but local and narrow public entries remain valid", async () => {
   const eslint = new ESLint({ cwd: path.join(root, "apps/admin") });
+
   for (const section of ["components", "primitives", "shell"]) {
     const filePath = `src/ui/${section}/Example/Example.ts`;
+
     for (const suffix of ["", "/", "/index", "/index.ts", "/index.js"]) {
       const [result] = await eslint.lintText(
         `export { Example } from "@/ui/${section}${suffix}";`,
@@ -247,6 +292,7 @@ test("admin UI modules cannot import their own umbrella but local and narrow pub
     "existing external umbrella consumers remain supported",
   );
   const web = new ESLint({ cwd: path.join(root, "apps/web") });
+
   for (const source of ["./PostList", "@/components/public-ui/Container"]) {
     const [result] = await web.lintText(
       `export { Example } from "${source}";`,
@@ -298,6 +344,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
     );
+
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
   git("init", "--quiet");
   git("add", ".");
@@ -351,6 +398,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
     "-m",
     "web change",
   );
+
   const run = (...args) =>
     spawnSync(process.execPath, ["scripts/check-changed.mjs", ...args], {
       cwd,
@@ -415,7 +463,13 @@ test("local and CI entry points reject committed format drift and base writes le
     path.join(cwd, "node_modules"),
     "junction",
   );
+  const copiedFormatter = path.join(cwd, "scripts/quality-files.mjs");
+  writeFileSync(
+    copiedFormatter,
+    formatReadability(readFileSync(copiedFormatter, "utf8"), copiedFormatter),
+  );
   writeFileSync(path.join(cwd, ".gitignore"), "node_modules/\n");
+
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
   git("init", "--quiet");
   assert.equal(
@@ -450,6 +504,7 @@ test("local and CI entry points reject committed format drift and base writes le
     "-m",
     "drift",
   );
+
   const run = (...args) =>
     spawnSync(process.execPath, ["scripts/check-changed.mjs", ...args], {
       cwd,
@@ -468,9 +523,17 @@ test("local and CI entry points reject committed format drift and base writes le
 
 test("lint-staged preserves partial unstaged edits and handles paths with spaces", (t) => {
   const cwd = fixture(t);
+
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
   mkdirSync(path.join(cwd, "scripts"));
-  for (const name of ["check-staged.mjs", "quality-files.mjs"])
+  for (const name of [
+    "check-staged.mjs",
+    "test-readability.mjs",
+    "quality-files.mjs",
+    "readability.mjs",
+    "readability-core.mjs",
+    "readability.test.mjs",
+  ])
     copyFileSync(
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
@@ -482,12 +545,17 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(path.join(cwd, "package.json"), '{"type":"module"}');
   writeFileSync(
     path.join(cwd, "eslint.config.mjs"),
-    'export default [{files:["**/*.mjs"],rules:{"no-debugger":"error"}}];',
+    'import config from "@nextpress/eslint-config/base"; export default config;',
   );
   symlinkSync(
     path.join(root, "node_modules"),
     path.join(cwd, "node_modules"),
     "junction",
+  );
+  const copiedFormatter = path.join(cwd, "scripts/quality-files.mjs");
+  writeFileSync(
+    copiedFormatter,
+    formatReadability(readFileSync(copiedFormatter, "utf8"), copiedFormatter),
   );
   writeFileSync(path.join(cwd, ".gitignore"), "node_modules/\n");
   git("init", "--quiet");
@@ -536,10 +604,49 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   git("add", "file with spaces.mjs");
   writeFileSync(
     file,
-    "export const x={value:2}\n\n\n// unrelated unstaged note\n",
+    "export const x={value:2}\n\n\n// unrelated unstaged note\ndebugger;\n",
   );
   writeFileSync(unrelated, "export const unrelated={untouched:2}\n");
-  git("hook", "run", "pre-commit");
+  const plainEnvironment = { ...process.env, NO_COLOR: "1" };
+  delete plainEnvironment.FORCE_COLOR;
+  const success = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: plainEnvironment,
+  });
+  const successOutput = success.stdout + success.stderr;
+  assert.equal(success.status, 0, successOutput);
+  assert.ok(!successOutput.includes("\u001b["));
+  const plainOutput = stripVTControlCharacters(successOutput);
+  assert.match(plainOutput, /tests 8/);
+  assert.match(plainOutput, /pass 8/);
+  assert.match(plainOutput, /fail 0/);
+  assert.equal(
+    (
+      plainOutput.match(
+        /^\u2714 (?:separates|preserves|keeps|rejects) .+ \(.+\)$/gm,
+      ) ?? []
+    ).length,
+    8,
+  );
+  assert.match(
+    plainOutput,
+    /\u2714 separates function values, named functions, methods, control flow and returns/,
+  );
+  assert.match(
+    plainOutput,
+    /\u2714 keeps value hooks and unidentifiable factory calls grouped/,
+  );
+  assert.match(
+    successOutput,
+    /Inspected 1 source files; 0 readability violations/,
+  );
+  assert.match(successOutput, /Check staged files/);
+  assert.doesNotMatch(successOutput, /Finished in/);
+  assert.match(
+    plainOutput,
+    /Staged checks: 1 files processed in \d+\.\d{2}s \(passed\)/,
+  );
   assert.equal(readFileSync(generated, "utf8"), generatedSource);
   assert.equal(
     git("diff", "--cached", "--name-only").trim(),
@@ -553,6 +660,8 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   const staged = git("show", ":file with spaces.mjs");
   assert.ok(staged.includes("// original"));
   assert.ok(!staged.includes("unrelated unstaged note"));
+  assert.ok(!staged.includes("debugger"));
+  assert.match(readFileSync(file, "utf8"), /debugger;/);
   assert.ok(staged.includes("value: 2"));
   // A lint failure must preserve both the staged version and unrelated worktree edits.
   writeFileSync(file, "debugger;\n\n// original\n");
@@ -569,4 +678,263 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   assert.equal(readFileSync(file, "utf8"), beforeWorktree);
   assert.ok(git("show", ":file with spaces.mjs").includes("debugger;"));
   assert.ok(readFileSync(file, "utf8").includes("// unrelated unstaged note"));
+  writeFileSync(file, "export const colored = 1;\n");
+  git("add", "file with spaces.mjs");
+  const colorEnvironment = { ...process.env, FORCE_COLOR: "1" };
+  delete colorEnvironment.NO_COLOR;
+  delete colorEnvironment.NODE_DISABLE_COLORS;
+  const colored = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: colorEnvironment,
+  });
+  const colorOutput = colored.stdout + colored.stderr;
+  assert.equal(colored.status, 0, stripVTControlCharacters(colorOutput));
+  assert.ok(colorOutput.includes("\u001b[32m\u2714 separates function values"));
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 tests 8"));
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 pass 8"));
+  const violation = "export function first() {}\nexport function second() {}\n";
+  writeFileSync(file, violation + "\n// original\n");
+  git("add", "file with spaces.mjs");
+  writeFileSync(file, violation + "\n// unrelated unstaged note\n");
+  const readabilityIndex = git("write-tree");
+  const readabilityWorktree = readFileSync(file, "utf8");
+  const readabilityFailure = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+  });
+  assert.notEqual(readabilityFailure.status, 0);
+  assert.match(
+    readabilityFailure.stdout + readabilityFailure.stderr,
+    /1 readability violations in 1 files/,
+  );
+  assert.equal(git("write-tree"), readabilityIndex);
+  assert.equal(readFileSync(file, "utf8"), readabilityWorktree);
+  assert.match(
+    stripVTControlCharacters(
+      readabilityFailure.stdout + readabilityFailure.stderr,
+    ),
+    /pass 8/,
+  );
+  assert.doesNotMatch(
+    readabilityFailure.stdout + readabilityFailure.stderr,
+    /readability\/spacing/,
+  );
+  writeFileSync(file, "export const clean = 1;\n");
+  git("add", "file with spaces.mjs");
+  const testFile = path.join(cwd, "scripts/readability.test.mjs");
+  writeFileSync(
+    testFile,
+    readFileSync(testFile, "utf8") +
+      '\ntest("fixture-only test failure", () => assert.fail("expected fixture failure"));\n',
+  );
+  const testFailure = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: colorEnvironment,
+  });
+  assert.notEqual(testFailure.status, 0);
+  const failureOutput = stripVTControlCharacters(
+    testFailure.stdout + testFailure.stderr,
+  );
+  assert.match(failureOutput, /fixture-only test failure/);
+  assert.match(failureOutput, /fail 1/);
+  assert.doesNotMatch(failureOutput, /Oxfmt formatting/);
+  // Keep a low argument limit to prove native tasks receive the complete file list.
+  writeFileSync(
+    testFile,
+    readFileSync(path.join(root, "scripts/readability.test.mjs"), "utf8"),
+  );
+  const hookFile = path.join(cwd, ".husky/pre-commit");
+  writeFileSync(
+    hookFile,
+    readFileSync(hookFile, "utf8").replace(
+      "lint-staged --verbose",
+      "lint-staged --verbose --max-arg-length 4000 --concurrent false",
+    ),
+  );
+  const largeFiles = Array.from(
+    { length: 80 },
+    (_, index) =>
+      `large file ${String(index).padStart(3, "0")}-${"x".repeat(64)}.mjs`,
+  );
+
+  for (const [index, name] of largeFiles.entries()) {
+    writeFileSync(
+      path.join(cwd, name),
+      `export const value={index:${index}}\n`,
+    );
+  }
+  writeFileSync(path.join(cwd, "large style.css"), ".example{color:red}\n");
+  writeFileSync(path.join(cwd, "large config.json"), '{"example":true}');
+  git("add", "--", ...largeFiles, "large style.css", "large config.json");
+  writeFileSync(
+    file,
+    "export const clean = 1;\n// preserved unstaged comment\n",
+  );
+  const batched = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: plainEnvironment,
+  });
+  const batchedOutput = stripVTControlCharacters(
+    batched.stdout + batched.stderr,
+  );
+  assert.equal(batched.status, 0, batchedOutput);
+  assert.equal(
+    (batchedOutput.match(/tests 8/g) ?? []).length,
+    1,
+    batchedOutput,
+  );
+  const inspectedBatches = [
+    ...batchedOutput.matchAll(
+      /Inspected (\d+) source files; 0 readability violations/g,
+    ),
+  ];
+  assert.equal(inspectedBatches.length, 1, batchedOutput);
+  assert.equal((batchedOutput.match(/\[check:staged\]/g) ?? []).length, 1);
+  assert.equal((batchedOutput.match(/Staged checks:/g) ?? []).length, 1);
+  assert.match(
+    batchedOutput,
+    /Staged checks: 83 files processed in \d+\.\d{2}s \(passed\)/,
+  );
+  assert.doesNotMatch(batchedOutput, /Finished in/);
+  assert.equal(
+    inspectedBatches.reduce((sum, match) => sum + Number(match[1]), 0),
+    81,
+  );
+
+  for (const [index, name] of largeFiles.entries()) {
+    assert.equal(
+      git("show", `:${name}`),
+      `export const value = { index: ${index} };\n`,
+    );
+  }
+  assert.match(readFileSync(file, "utf8"), /preserved unstaged comment/);
+  assert.doesNotMatch(
+    git("show", ":file with spaces.mjs"),
+    /preserved unstaged comment/,
+  );
+  const defaultHook = readFileSync(hookFile, "utf8");
+  writeFileSync(hookFile, defaultHook.trimEnd() + " --debug\n");
+  const detailedHook = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: plainEnvironment,
+  });
+  const detailedOutput = stripVTControlCharacters(
+    detailedHook.stdout + detailedHook.stderr,
+  );
+  assert.equal(detailedHook.status, 0, detailedOutput);
+  assert.ok(
+    (detailedOutput.match(/Finished in/g) ?? []).length > 1,
+    detailedOutput,
+  );
+  assert.equal(
+    (detailedOutput.match(/Inspected \d+ source files/g) ?? []).length,
+    1,
+  );
+  assert.equal((detailedOutput.match(/Staged checks:/g) ?? []).length, 1);
+  writeFileSync(hookFile, defaultHook);
+  const lastFile = largeFiles.at(-1);
+  const lastPath = path.join(cwd, lastFile);
+  const invalidSource =
+    "export const value = 1;\nexport const callback = () => value;\n";
+  writeFileSync(lastPath, invalidSource);
+  git("add", "--", lastFile);
+  writeFileSync(lastPath, invalidSource + "// preserved unstaged tail\n");
+  const batchIndex = git("write-tree");
+  const batchWorktree = readFileSync(lastPath, "utf8");
+  const rejectedBatch = spawnSync("git", ["hook", "run", "pre-commit"], {
+    cwd,
+    encoding: "utf8",
+    env: plainEnvironment,
+  });
+  const rejectedOutput = stripVTControlCharacters(
+    rejectedBatch.stdout + rejectedBatch.stderr,
+  );
+  assert.notEqual(rejectedBatch.status, 0);
+  assert.equal(
+    (rejectedOutput.match(/tests 8/g) ?? []).length,
+    1,
+    rejectedOutput,
+  );
+  assert.match(rejectedOutput, /1 readability violations in 1 files/);
+  assert.match(
+    rejectedOutput,
+    /Staged checks: 83 files processed in \d+\.\d{2}s \(failed\)/,
+  );
+  assert.equal(
+    (rejectedOutput.match(/Inspected \d+ source files/g) ?? []).length,
+    1,
+    rejectedOutput,
+  );
+  assert.match(
+    rejectedOutput,
+    /Inspected 81 source files; 1 readability violations in 1 files/,
+  );
+  assert.equal(git("write-tree"), batchIndex);
+  assert.equal(readFileSync(lastPath, "utf8"), batchWorktree);
+  assert.match(readFileSync(file, "utf8"), /preserved unstaged comment/);
+});
+
+test("type import grouping and readability boundaries agree without disabling either rule", async () => {
+  const eslint = new ESLint({ cwd: path.join(root, "apps/web") });
+  const source =
+    'import styles from "./styles.module.css";\n\nimport type { ReactNode } from "react";\n\nexport const example = styles;\nexport type Child = ReactNode;\n';
+  const [clean] = await eslint.lintText(source, {
+    filePath: "src/components/ReadabilityImportFixture.ts",
+  });
+  assert.equal(clean.errorCount, 0, JSON.stringify(clean.messages));
+  assert.equal(formatReadability(source, "fixture.ts"), source);
+  const [invalid] = await eslint.lintText(
+    source.replace(";\n\nimport type", ";\nimport type"),
+    { filePath: "src/components/ReadabilityImportFixture.ts" },
+  );
+  assert.ok(
+    invalid.messages.some((message) => message.ruleId === "import/order"),
+  );
+});
+
+test("staged formatter output hides only successful timing lines and retains diagnostics", (t) => {
+  const progress = "Finished in 3ms on 20 files using 16 threads.";
+  const messages = [];
+  reportFormatterOutput(
+    {
+      stdout:
+        "\u001b[32m" + progress + "\u001b[39m\nWarning: example warning\n",
+      stderr: "stderr warning\n",
+      status: 0,
+    },
+    { log: (message) => messages.push(message) },
+  );
+  assert.doesNotMatch(messages.join("\n"), /Finished in/);
+  assert.match(messages.join("\n"), /Warning: example warning/);
+  assert.match(messages.join("\n"), /stderr warning/);
+  const detailed = [];
+  reportFormatterOutput(
+    { stdout: progress, stderr: "", status: 0 },
+    { verbose: true, log: (message) => detailed.push(message) },
+  );
+  assert.equal(detailed[0], progress);
+  const failure = [];
+  reportFormatterOutput(
+    { stdout: progress, stderr: "error details", status: 1 },
+    { log: (message) => failure.push(message) },
+  );
+  assert.equal(failure[0], progress);
+  assert.equal(failure[1], "error details");
+  const cwd = fixture(t);
+  writeFileSync(path.join(cwd, "bad.ts"), "export const = ;");
+  const errors = [];
+  assert.throws(
+    () =>
+      formatFiles(["bad.ts"], {
+        cwd,
+        write: true,
+        log: (message) => errors.push(message),
+      }),
+    /write failed/,
+  );
+  assert.match(errors.join("\n"), /bad.ts/);
 });

@@ -33,6 +33,7 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
   await authAbusePolicy(ctx);
 
   const body: unknown = ctx.body;
+
   if (!isRecord(body)) return;
   const input = body;
 
@@ -65,6 +66,7 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
   for (const field of ["email", "newEmail"] as const) {
     if (!(field in input)) continue;
     const result = emailSchema.safeParse(input[field]);
+
     if (!result.success)
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_EMAIL",
@@ -75,8 +77,10 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
 
   const newPassword =
     ctx.path === "/sign-up/email" ? input.password : input.newPassword;
+
   if (newPassword !== undefined) {
     const result = passwordSchema.safeParse(newPassword);
+
     if (!result.success)
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_PASSWORD",
@@ -95,5 +99,6 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
       });
     }
   }
+
   return { context: { body: normalized } };
 });

@@ -45,6 +45,7 @@ import {
 } from "./auth-server";
 import { verifyCredentialPassword } from "./password.server";
 import { bootstrapAdmin } from "../../../scripts/admin-bootstrap";
+
 import type { BetterAuthOptions } from "better-auth";
 
 const password = "a long passphrase";
@@ -52,6 +53,7 @@ const origin = "http://localhost:49101";
 
 async function call(path: string, body: unknown) {
   const auth = await getAuth();
+
   return auth.handler(
     new Request(`${origin}/api/auth${path}`, {
       method: "POST",
@@ -116,8 +118,10 @@ async function signIn(auth: AppAuth, cookie?: string, requestOrigin = origin) {
   const value = response.headers
     .getSetCookie()
     .find((entry) => entry.startsWith(`${name}=`));
+
   if (!value) throw new Error("Missing session cookie");
   const body: unknown = await response.json();
+
   if (
     typeof body !== "object" ||
     body === null ||
@@ -126,6 +130,7 @@ async function signIn(auth: AppAuth, cookie?: string, requestOrigin = origin) {
   ) {
     throw new Error("Missing session token");
   }
+
   return { response, cookie: value.split(";", 1)[0], token: body.token };
 }
 
@@ -140,6 +145,7 @@ async function registeredAuth() {
       })
     ).status,
   ).toBe(200);
+
   return auth;
 }
 
@@ -161,6 +167,7 @@ async function registeredAuthWithFastPasswords() {
       })
     ).status,
   ).toBe(200);
+
   return { auth, verify };
 }
 
@@ -170,6 +177,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
     const start = Date.now();
     let failure: unknown;
+
     for (let i = 0; i < 5; i++) {
       const known = await sessionRequest(auth, "/sign-in/email", {
         email: i % 2 ? " USER@Example.com " : "user@example.com",
@@ -217,6 +225,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
 
   it("resets account attempts after success while retaining the process work budget", async () => {
     const { auth } = await registeredAuthWithFastPasswords();
+
     for (let i = 0; i < 4; i++)
       await sessionRequest(auth, "/sign-in/email", {
         email: "user@example.com",
@@ -261,10 +270,12 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
 
   it("reserves parallel guesses before password verification starts", async () => {
     const auth = await registeredAuth();
+
     let release = () => {};
     const passwordGate = new Promise<void>((resolve) => {
       release = resolve;
     });
+
     let signalReserved = () => {};
     const attemptsReserved = new Promise<void>((resolve) => {
       signalReserved = resolve;
@@ -276,6 +287,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       .mockImplementation(async (input) => {
         if (verify.mock.calls.length === 5) signalReserved();
         await passwordGate;
+
         return verifyCredentialPassword(input);
       });
     const requests = Array.from({ length: 12 }, () =>
@@ -284,6 +296,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         password: "wrong",
       }),
     );
+
     try {
       await attemptsReserved;
     } finally {
@@ -302,6 +315,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("covers direct server API guesses and rejects malformed bodies before hashing", async () => {
     const auth = await getAuth();
     const hash = vi.spyOn((await auth.$context).password, "hash");
+
     for (let i = 0; i < 5; i++) {
       await expect(
         auth.api.signInEmail({ body: { email: "bad-email", password } }),
@@ -348,6 +362,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const auth = await getAuth();
     const now = vi.spyOn(Date, "now").mockReturnValue(Date.now());
     const start = Date.now();
+
     for (let i = 0; i < 3; i++) {
       expect(
         (
@@ -400,6 +415,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("bounds signup amplification across different identities before hashing", async () => {
     const auth = await getAuth();
     const hash = vi.spyOn((await auth.$context).password, "hash");
+
     for (let i = 0; i < 10; i++)
       expect(
         (
@@ -426,6 +442,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("shares credential budgets with password change and server password verification", async () => {
     const { auth } = await registeredAuthWithFastPasswords();
     const { cookie } = await signIn(auth);
+
     for (let i = 0; i < 5; i++) {
       const response = await sessionRequest(
         auth,
@@ -471,6 +488,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       },
     ]);
     const auth = await getAuth();
+
     for (let i = 0; i < 60; i++) authBudgets.consume("oauth-work", 60, 60_000);
     expect(
       (
@@ -497,6 +515,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
 
   it("keeps recovery disabled without tokens regardless of exhausted budgets", async () => {
     const auth = await getAuth();
+
     for (let i = 0; i < 120; i++)
       authBudgets.consume("auth-ingress", 120, 60_000);
     for (const email of ["user@example.com", "missing@example.com"]) {
@@ -566,6 +585,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const options: BetterAuthOptions = auth.options;
     const log = options.logger?.log;
+
     if (!log) throw new Error("Missing safe authentication logger");
     for (let i = 0; i < 100; i++)
       log("error", "OAuth code=secret", {
@@ -580,6 +600,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);
     const headers = new Headers({ cookie });
+
     for (let i = 0; i < 30; i++)
       await expect(auth.api.listSessions({ headers })).resolves.toHaveLength(1);
     await expect(auth.api.listSessions({ headers })).rejects.toMatchObject({
@@ -597,6 +618,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("bounds authenticated profile mutations by verified user identity", async () => {
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);
+
     for (let i = 0; i < 30; i++)
       expect(
         (
@@ -631,6 +653,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       role: { name: "ADMIN" },
     });
     const originalExpiry = db.Session[0].expires;
+
     for (const path of [
       "/admin",
       "/admin/taxonomy",
@@ -704,6 +727,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       },
     ]);
     const socialAuth = await getAuth();
+
     for (const callbackURL of ["/admin/profile", `${origin}/admin`]) {
       const response = await sessionRequest(socialAuth, "/sign-in/social", {
         provider: "google",
@@ -956,6 +980,7 @@ describe("session lifecycle with the installed Better Auth", () => {
   it("keeps Better Auth's own origin and JSON guards active", async () => {
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);
+
     for (const requestOrigin of [
       "https://evil.example",
       "http://localhost:3000",
@@ -1028,6 +1053,7 @@ describe("session lifecycle with the installed Better Auth", () => {
   it("enforces CSRF before lookup and preserves authentication and role checks for trusted mutations", async () => {
     const handler = vi.fn(() => Response.json({ success: true }));
     const protectedRoute = withAuth(["ADMIN"], handler);
+
     const req = (originHeader = origin) =>
       new Request(`${origin}/api/test`, {
         method: "POST",
@@ -1193,6 +1219,7 @@ describe("configured authentication policy with real Better Auth", () => {
 
   it("rejects reset callbacks and verification links when email delivery is unavailable", async () => {
     const auth = await getAuth();
+
     for (const path of [
       "/reset-password/fake?callbackURL=/auth/reset-password",
       "/verify-email?token=fake",
@@ -1220,6 +1247,7 @@ describe("configured authentication policy with real Better Auth", () => {
       password,
     });
     const cookie = login.headers.get("set-cookie")?.split(";")[0];
+
     if (!cookie) throw new Error("Missing sign-in cookie");
     const headers = new Headers({ cookie });
     await expect(
@@ -1271,6 +1299,7 @@ describe("configured authentication policy with real Better Auth", () => {
       password,
     });
     const cookie = login.headers.get("set-cookie")?.split(";")[0];
+
     if (!cookie) throw new Error("Missing admin cookie");
     requestHeaders.mockResolvedValue(new Headers({ cookie }));
     prisma.user.findUnique
@@ -1301,6 +1330,7 @@ describe("configured authentication policy with real Better Auth", () => {
           userId: data.id,
           ...data.accounts.create,
         });
+
         return {
           id: data.id,
           email: data.email,
@@ -1366,6 +1396,7 @@ describe("configured authentication policy with real Better Auth", () => {
       const configuredPassword =
         kind === "legacy" ? "admin123" : "a known local admin passphrase";
       let originalHash: string | undefined;
+
       if (kind === "legacy") {
         originalHash = await bcrypt.hash(configuredPassword, 4);
         db.User.push({
@@ -1411,6 +1442,7 @@ describe("configured authentication policy with real Better Auth", () => {
             email,
             emailVerified: true,
           });
+
         return { id: "bootstrap-admin", email };
       });
       prisma.account.create.mockImplementation(

@@ -2,8 +2,9 @@
 
 import { Input } from "@/ui/primitives";
 
-import type { PasswordFieldProps } from "./PasswordField.types";
 import type { ChangeEvent } from "react";
+
+import type { PasswordFieldProps } from "./PasswordField.types";
 
 export function PasswordField({
   id,

@@ -4,12 +4,13 @@ import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
-import type { RoleName } from "@/lib/auth/roles";
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
 import { Sidebar } from "@/ui/shell/Sidebar";
 import { Topbar } from "@/ui/shell/Topbar";
 
 import type { ReactNode } from "react";
+
+import type { RoleName } from "@/lib/auth/roles";
 
 const MotionDiv = motion.div;
 
@@ -18,9 +19,11 @@ function useIsDesktop() {
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
+
     const handler = () => setIsDesktop(mq.matches);
     handler();
     mq.addEventListener?.("change", handler);
+
     return () => mq.removeEventListener?.("change", handler);
   }, []);
 
@@ -53,6 +56,7 @@ export default function AppShell({
 
     try {
       const stored = window.localStorage.getItem("admin.sidebar.collapsed");
+
       if (stored === null) return;
 
       const next = stored === "true";
@@ -88,6 +92,7 @@ export default function AppShell({
         wasDrawerOpenRef.current = true;
         mobileNavRef.current?.querySelector<HTMLElement>("a")?.focus();
       }
+
       return;
     }
     if (wasDrawerOpenRef.current) {
@@ -106,12 +111,14 @@ export default function AppShell({
 
   useEffect(() => {
     if (!drawerOpen) return;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setDrawerOpen(false);
     };
     document.addEventListener("keydown", onKeyDown);
+
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen]);
 
@@ -121,11 +128,13 @@ export default function AppShell({
     if (isDesktop) {
       setCollapsed((prev) => {
         const next = !prev;
+
         try {
           window.localStorage.setItem("admin.sidebar.collapsed", String(next));
         } catch {
           // ignore
         }
+
         return next;
       });
     } else {
@@ -215,9 +224,11 @@ export default function AppShell({
                   mobileNavRef.current?.querySelectorAll<HTMLElement>(
                     "a, button:not([disabled])",
                   );
+
                 if (!links?.length) return;
                 const first = links[0];
                 const last = links[links.length - 1];
+
                 if (event.shiftKey && document.activeElement === first) {
                   event.preventDefault();
                   last.focus();

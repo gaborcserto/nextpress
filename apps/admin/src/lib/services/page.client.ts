@@ -1,11 +1,12 @@
 "use client";
 
 import { apiFetch } from "@/lib/api";
-import type { PageFormValues } from "@/lib/content/contracts";
 import { slateToString } from "@/lib/content/editor";
 
 import type { PageSchema } from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
+
+import type { PageFormValues } from "@/lib/content/contracts";
 
 export type PageDto = z.input<typeof PageSchema>;
 

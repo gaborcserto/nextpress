@@ -58,6 +58,7 @@ function isSettingsPayload(value: unknown): value is SettingsApiPayload {
   }
 
   const providers = value.oauthProviders.map((row) => row.provider);
+
   return (
     providers.length === OAUTH_PROVIDERS.length &&
     new Set(providers).size === OAUTH_PROVIDERS.length &&
@@ -69,6 +70,7 @@ function validOptionalUrl(value: string) {
   if (!value.trim()) return true;
   try {
     const url = new URL(value);
+
     return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
@@ -142,6 +144,7 @@ export const GET = withAuth(["ADMIN"], async () => {
         : 10,
       oauthProviders: OAUTH_PROVIDERS.map((provider) => {
         const row = byName.get(provider)!;
+
         return {
           provider,
           enabled: row.enabled,
@@ -152,6 +155,7 @@ export const GET = withAuth(["ADMIN"], async () => {
     });
   } catch {
     console.error("GET /api/admin/settings failed");
+
     return oops();
   }
 });
@@ -160,6 +164,7 @@ export const PUT = withAuth(
   ["ADMIN"],
   async (req) => {
     let body: unknown;
+
     try {
       body = await req.json();
     } catch {
@@ -184,6 +189,7 @@ export const PUT = withAuth(
     }
 
     let existing: OAuthProviderRow[];
+
     try {
       existing = await prisma.oAuthProvider.findMany({
         where: { provider: { in: [...OAUTH_PROVIDERS] } },
@@ -196,10 +202,12 @@ export const PUT = withAuth(
       });
     } catch {
       console.error("PUT /api/admin/settings failed to read provider settings");
+
       return oops();
     }
 
     const existingByName = new Map(existing.map((row) => [row.provider, row]));
+
     for (const input of body.oauthProviders) {
       if (
         input.clientId.length > 2000 ||
@@ -216,6 +224,7 @@ export const PUT = withAuth(
         clientId: input.clientId,
         clientSecret: clientSecret || current?.clientSecret || null,
       };
+
       if (input.enabled && !getOAuthProviderStatus(candidate).operational) {
         return bad(
           `Provider ${input.provider} is missing required credentials`,
@@ -274,6 +283,7 @@ export const PUT = withAuth(
       return ok({ ok: true });
     } catch {
       console.error("PUT /api/admin/settings failed");
+
       return oops();
     }
   },

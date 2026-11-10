@@ -3,6 +3,7 @@
 import { FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 
 import { useInput } from "./Input.hook";
+
 import type { InputProps } from "./Input.types";
 
 const cx = (...xs: Array<string | false | undefined>) =>
@@ -73,7 +74,7 @@ function Input(props: InputProps) {
     variantCls,
     widthCls,
     roundedCls,
-    className
+    className,
   );
 
   const hasLeftIcon = !!leftIcon;
@@ -125,7 +126,7 @@ function Input(props: InputProps) {
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-base-content/70 hover:text-base-content"
-            onClick={() => setShowPassword(v => !v)}
+            onClick={() => setShowPassword((v) => !v)}
           >
             {showPassword ? (
               <FaEyeSlash size={18} aria-hidden="true" />

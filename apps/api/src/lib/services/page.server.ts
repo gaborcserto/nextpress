@@ -20,6 +20,7 @@ import {
 export async function createPageService(rawBody: unknown, actor: ContentActor) {
   contentWriteWhere(actor);
   const parsed = validateCreateBody(rawBody);
+
   if (parsed.type !== "PAGE") {
     throw new PageValidationError([
       { path: "type", message: "Content type does not match endpoint" },
@@ -52,6 +53,7 @@ export async function updatePageService(
 ) {
   await requireContentWrite(id, actor, "PAGE");
   const parsed = validateUpdateBody(rawBody);
+
   if (parsed.type && parsed.type !== "PAGE") {
     throw new PageValidationError([
       { path: "type", message: "Content type cannot be changed" },

@@ -6,10 +6,12 @@ import {
   type ContentActor,
 } from "@/lib/auth/content-access";
 import { slugify } from "@/lib/utils";
-import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
 
 import { setTagsForPage } from "./tagRepo";
+
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
+
+import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
 
 type PageTypeLiteral = "PAGE" | "POST";
 
@@ -22,6 +24,7 @@ export async function getPageById(
   opts?: { type?: PageTypeLiteral; actor?: ContentActor | null },
 ) {
   const ref = (idOrSlug ?? "").trim();
+
   if (!ref) return null;
 
   // When type is not provided, default to PAGE
@@ -160,6 +163,7 @@ export async function updatePage(
   }
 
   let publishedAt: Date | null | undefined;
+
   if (next.publishedAt) {
     publishedAt = new Date(next.publishedAt);
   } else if (next.publishedAt === null || next.status === "PUBLISHED") {
@@ -201,6 +205,7 @@ export async function createPageWithTags(
   return prisma.$transaction(async (tx) => {
     const page = await createPage(input, tx);
     await setTagsForPage(page.id, tagIds, tx);
+
     return page;
   });
 }
@@ -214,7 +219,9 @@ export async function updatePageWithTags(
 ) {
   return prisma.$transaction(async (tx) => {
     const page = await updatePage(id, input, type, actor, tx);
+
     if (tagIds !== undefined) await setTagsForPage(page.id, tagIds, tx);
+
     return page;
   });
 }

@@ -24,6 +24,7 @@ export function safeCallbackUrl(raw?: string | null): string {
     // Decode the path once; preserve query/hash escapes for the destination.
     // Reject residual path escapes rather than making another decoding decision.
     const decoded = decodeURIComponent(path);
+
     if (
       !decoded.startsWith("/") ||
       decoded.startsWith("//") ||
@@ -43,6 +44,7 @@ export function safeCallbackUrl(raw?: string | null): string {
     ) {
       return DEFAULT_CALLBACK;
     }
+
     return url.pathname + url.search + url.hash;
   } catch {
     return DEFAULT_CALLBACK;

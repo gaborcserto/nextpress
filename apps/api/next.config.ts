@@ -5,6 +5,7 @@ const monorepoRoot = path.resolve(__dirname, "../..");
 const nextConfig: NextConfig = {
   agentRules: false,
   poweredByHeader: false,
+  output: "standalone",
   serverExternalPackages: ["swagger-ui-dist"],
   turbopack: { root: monorepoRoot },
   outputFileTracingRoot: monorepoRoot,

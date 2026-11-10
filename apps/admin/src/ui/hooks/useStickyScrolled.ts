@@ -11,12 +11,14 @@ export function useStickyScrolled(ref?: RefObject<HTMLElement | null>) {
 
   useEffect(() => {
     const el = ref?.current || window;
+
     const onScroll = () => {
       const offset = ref?.current?.scrollTop ?? window.scrollY;
       setScrolled(offset > 4);
     };
     onScroll();
     el.addEventListener("scroll", onScroll, { passive: true });
+
     return () => el.removeEventListener("scroll", onScroll);
   }, [ref]);
 

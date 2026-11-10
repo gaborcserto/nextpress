@@ -59,6 +59,7 @@ test("Quality Gates propagates upstream failures and permits only the expected v
           encoding: "utf8",
         }).trim()
       : "bash";
+
   for (const changes of ["success", "failure", "cancelled", "skipped"])
     for (const audit of ["success", "failure", "cancelled", "skipped"])
       for (const required of ["true", "false"])
@@ -111,6 +112,7 @@ test("Turbo expands shared package changes to dependent applications", () => {
     { encoding: "utf8" },
   );
   const { packages } = JSON.parse(output);
+
   for (const name of ["@nextpress/shared", "@nextpress/db", "web", "admin"])
     assert.ok(packages.includes(name), name);
 });
@@ -143,8 +145,10 @@ for (const file of [
 
 test("renames and deletions preserve both affected workspaces", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-rename-"));
+
   const git = (...args) =>
     execFileSync("git", args, { cwd: directory, encoding: "utf8" });
+
   try {
     git("init", "--quiet");
     writeFileSync(path.join(directory, "old.ts"), "content");
@@ -186,11 +190,13 @@ test("renames and deletions preserve both affected workspaces", () => {
 
 test("base selection includes committed branch work alongside local changes", () => {
   const calls = [];
+
   const runGit = (...args) => {
     calls.push(args);
     if (args[0] === "merge-base") return "ancestor\n";
     if (args.includes("ancestor")) return "apps/admin/committed.ts\0";
     if (args.includes("--cached")) return "apps/web/staged.ts\0";
+
     return "";
   };
   assert.deepEqual(localChanges(runGit, "origin/master").sort(), [
@@ -212,6 +218,7 @@ test("base selection includes committed branch work alongside local changes", ()
 test("CI empty revision diff conservatively selects full verification", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-ci-"));
   const output = path.join(directory, "output");
+
   try {
     const head = execFileSync("git", ["rev-parse", "HEAD"], {
       encoding: "utf8",
@@ -237,6 +244,7 @@ test("CI empty revision diff conservatively selects full verification", () => {
 test("CI revision selection emits the local workspace filters", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-ci-filters-"));
   const output = path.join(directory, "output");
+
   try {
     const base = execFileSync("git", ["rev-parse", "HEAD^"], {
       encoding: "utf8",
@@ -249,6 +257,7 @@ test("CI revision selection emits the local workspace filters", () => {
       .split("\0")
       .filter(Boolean);
     let selection = selectChanges(files, { emptyIsFull: true });
+
     if (
       selection.mode === "affected" &&
       selection.directories.some(
@@ -285,8 +294,10 @@ test("CI empty diff, unavailable detection and explicit override select full ver
 
 test("Git collection includes staged, unstaged and untracked paths, including spaces", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-changes-"));
+
   const git = (...args) =>
     execFileSync("git", args, { cwd: directory, encoding: "utf8" });
+
   try {
     git("init", "--quiet");
     writeFileSync(path.join(directory, "staged.ts"), "initial");
@@ -325,6 +336,7 @@ test("Git collection includes staged, unstaged and untracked paths, including sp
 test("CI detection failure emits full verification outputs", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-fallback-"));
   const output = path.join(directory, "output");
+
   try {
     execFileSync(process.execPath, ["scripts/check-changed.mjs", "--ci"], {
       env: {

@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { PageFormValues } from "@/lib/content/contracts";
 import {
   buildInitialForm,
   getEntityId,
@@ -30,6 +29,8 @@ import {
   StickyWrapper,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import type { PageFormValues } from "@/lib/content/contracts";
 
 import type { PageFormProps } from "./PageForm.types";
 

@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { PageFormValues } from "@/lib/content/contracts";
-
 import PageForm from "./PageForm";
+
+import type { PageFormValues } from "@/lib/content/contracts";
 
 const { submitAction } = vi.hoisted(() => ({ submitAction: vi.fn() }));
 

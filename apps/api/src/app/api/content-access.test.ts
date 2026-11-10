@@ -12,7 +12,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
-import type { RoleName } from "@/lib/auth/roles";
 import { actionLimits } from "@/lib/security/rate-limit.server";
 
 import { PUT as updateSettings } from "./admin/settings/route";
@@ -35,7 +34,10 @@ import {
 import { GET as listPosts, POST as createPost } from "./post/route";
 import { GET as readLinks, PUT as replaceTags } from "./tags/link/route";
 import { POST as createTag, DELETE as deleteTag } from "./tags/route";
+
 import type { BetterAuthOptions } from "better-auth";
+
+import type { RoleName } from "@/lib/auth/roles";
 
 const { prisma, session, configureAuth } = vi.hoisted(() => ({
   prisma: {
@@ -70,6 +72,7 @@ vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("better-auth", () => ({
   betterAuth: (options: BetterAuthOptions) => {
     configureAuth(options);
+
     return { api: { getSession: session } };
   },
 }));
@@ -129,6 +132,7 @@ function content(
 
 function matches(item: Content, where: Filter): boolean {
   const { OR, publishedAt, ...fields } = where;
+
   return (
     Object.entries(fields).every(
       ([key, value]) => item[key as keyof Content] === value,
@@ -151,6 +155,7 @@ function request(method = "GET", body?: unknown, query = "") {
     },
   });
 }
+
 function context(id: string) {
   return { params: Promise.resolve({ id }) };
 }
@@ -195,15 +200,19 @@ beforeEach(() => {
   prisma.page.findUniqueOrThrow.mockImplementation(
     async ({ where }: { where: Filter }) => {
       const item = records.find((item) => matches(item, where));
+
       if (!item) throw new Error("Record not found");
+
       return item;
     },
   );
   prisma.page.update.mockImplementation(
     async ({ where, data }: { where: Filter; data: Partial<Content> }) => {
       const item = records.find((item) => matches(item, where));
+
       if (!item) throw new Error("Record not found");
       Object.assign(item, data);
+
       return item;
     },
   );
@@ -216,6 +225,7 @@ beforeEach(() => {
       inFooterMenu: data.inFooterMenu ?? false,
     };
     records.push(item);
+
     return item;
   });
   prisma.taxonomy.findMany.mockImplementation(
@@ -280,6 +290,7 @@ describe.each([
     async (origin) => {
       role = "ADMIN";
       const headers = new Headers({ "content-type": "application/json" });
+
       if (origin !== undefined) headers.set("origin", origin);
       expect(
         (
@@ -856,6 +867,7 @@ describe("parent and taxonomy access boundaries", () => {
         async ({ where }: { where: { id: string; type: string } }) => {
           if (where.id === "category-1" && where.type === "TAG")
             throw { code: "P2025" };
+
           return { id: where.id, type: "CATEGORY" };
         },
       );
@@ -981,6 +993,7 @@ describe("public registration roles", () => {
       await getAuth();
       const options = configureAuth.mock.calls[0]?.[0];
       const before = options?.databaseHooks?.user?.create?.before;
+
       if (!before) throw new Error("Missing registration authorization hook");
       const result = await before(
         {
@@ -1014,6 +1027,7 @@ describe("public registration roles", () => {
     await getAuth();
     const before =
       configureAuth.mock.calls[0]?.[0].databaseHooks?.user?.create?.before;
+
     if (!before) throw new Error("Missing registration authorization hook");
     await expect(
       before(
@@ -1115,6 +1129,7 @@ describe.each(routes)(
       const record = records.find(
         (item) => item.id === (type === "PAGE" ? "page-draft" : "post-draft"),
       );
+
       if (!record) throw new Error("Expected fixture content");
       record.content = '{"version":99,"secret":"private-data"}';
       const response = await read(request(), context(record.id));

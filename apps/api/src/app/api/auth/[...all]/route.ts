@@ -13,11 +13,14 @@ async function handler(request: Request) {
     )
   ) {
     const retry = authBudgets.consume("auth-ingress", 120, 60_000);
+
     if (retry !== null) return tooManyRequests(retry);
   }
   const bounded = await readBoundedMutationRequest(request, 16_384);
+
   if (bounded.response) return bounded.response;
   const auth = await getAuth();
+
   return auth.handler(bounded.request ?? request);
 }
 

@@ -2,10 +2,32 @@ import { spawnSync } from "node:child_process";
 import { statSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 const require = createRequire(import.meta.url);
 
-export function formatFiles(files, { cwd, write = false } = {}) {
+export function reportFormatterOutput(result, { log, verbose = false }) {
+  const output = (result.stdout ?? "")
+    .split(/\r?\n/)
+    .filter(
+      (line) =>
+        verbose ||
+        result.status !== 0 ||
+        !/^Finished in \d+(?:\.\d+)?(?:ms|s) on \d+ files? using \d+ threads?\.$/.test(
+          stripVTControlCharacters(line),
+        ),
+    )
+    .join("\n")
+    .trimEnd();
+
+  if (output) log(output);
+  if (result.stderr) log(result.stderr.trimEnd());
+}
+
+export function formatFiles(
+  files,
+  { cwd, write = false, log, verbose = false } = {},
+) {
   const selected = [...new Set(files)].filter((file) => {
     if (!/\.(?:[cm]?[jt]sx?|css|scss|jsonc?|ya?ml)$/.test(file)) return false;
     try {
@@ -15,9 +37,11 @@ export function formatFiles(files, { cwd, write = false } = {}) {
       throw error;
     }
   });
+
   if (!selected.length) return selected;
   // CI selects workspaces before installing dependencies.
   let formatter;
+
   try {
     formatter = path.join(
       path.dirname(require.resolve("oxfmt/package.json")),
@@ -43,13 +67,18 @@ export function formatFiles(files, { cwd, write = false } = {}) {
           .slice(offset, offset + 20)
           .map((file) => path.resolve(cwd, file)),
       ],
-      { cwd, stdio: "inherit" },
+      log
+        ? { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
+        : { cwd, stdio: "inherit" },
     );
+
+    if (log) reportFormatterOutput(result, { log, verbose });
     if (result.error) throw result.error;
     if (result.status !== 0)
       throw new Error(
         `Formatting ${write ? "write" : "check"} failed (${result.status}).`,
       );
   }
+
   return selected;
 }

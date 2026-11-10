@@ -9,6 +9,7 @@ import {
 import { ContentSlugSchema, richContentText } from "@nextpress/shared/content";
 
 import { parsePublicRichContent } from "./rich-content";
+
 import type {
   PublicContentSchema,
   PublicNavigationSchema,

@@ -1,4 +1,5 @@
 import { jsonFetcher } from "@/lib/api/client";
+
 import type { TagValue } from "@/lib/content/contracts";
 
 /* ---------- Type guards ---------- */
@@ -30,7 +31,7 @@ function isTagValueArray(value: unknown): value is TagValue[] {
  * Expected shape: { items: TagValue[] }
  */
 function isPaginatedTagResponse(
-  value: unknown
+  value: unknown,
 ): value is { items: TagValue[] } {
   if (typeof value !== "object" || value === null) return false;
 
@@ -50,6 +51,7 @@ function unwrapOkData(raw: unknown): unknown {
   if (typeof raw !== "object" || raw === null) return raw;
 
   const obj = raw as Record<string, unknown>;
+
   return "data" in obj ? obj.data : raw;
 }
 
@@ -59,10 +61,9 @@ function unwrapOkData(raw: unknown): unknown {
  * Load tag options for autocomplete / multiselect fields.
  * Used by TagMultiSelect during search.
  */
-export async function loadTagOptionsAction(
-  query: string
-): Promise<TagValue[]> {
+export async function loadTagOptionsAction(query: string): Promise<TagValue[]> {
   const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`);
+
   if (!res.ok) throw new Error("Failed to load tag options");
 
   const raw: unknown = await res.json();
@@ -85,9 +86,7 @@ export async function loadTagOptionsAction(
  * Create a new tag by name.
  * If a tag with the same name already exists, the API may return it instead.
  */
-export async function createTagAction(
-  label: string
-): Promise<TagValue> {
+export async function createTagAction(label: string): Promise<TagValue> {
   const res = await fetch("/api/tags", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -109,10 +108,9 @@ export async function createTagAction(
    * Defensive fallback in case the API returns
    * a partially malformed or unexpected payload.
    */
-  const obj =
-    (typeof unwrapped === "object" && unwrapped !== null
-      ? unwrapped
-      : {}) as Record<string, unknown>;
+  const obj = (
+    typeof unwrapped === "object" && unwrapped !== null ? unwrapped : {}
+  ) as Record<string, unknown>;
 
   const id =
     typeof obj.id === "string"
@@ -122,9 +120,7 @@ export async function createTagAction(
         : crypto.randomUUID();
 
   const name =
-    typeof obj.name === "string" && obj.name.trim()
-      ? obj.name
-      : label;
+    typeof obj.name === "string" && obj.name.trim() ? obj.name : label;
 
   const slug =
     typeof obj.slug === "string" && obj.slug.trim()
@@ -140,11 +136,12 @@ export async function createTagAction(
  * Load tags assigned to a specific entity (Page or Post).
  */
 export async function loadEntityTagsAction(
-  entityId: string
+  entityId: string,
 ): Promise<TagValue[]> {
   const res = await fetch(
-    `/api/tags/link?entityId=${encodeURIComponent(entityId)}`
+    `/api/tags/link?entityId=${encodeURIComponent(entityId)}`,
   );
+
   if (!res.ok) throw new Error("Failed to load assigned tags");
 
   const raw: unknown = await res.json();
@@ -160,13 +157,17 @@ export async function loadEntityTagsAction(
  */
 export async function updateEntityTagsAction(
   entityId: string,
-  tagIds: string[]
+  tagIds: string[],
 ): Promise<void> {
-  const res = await fetch(`/api/tags/link?entityId=${encodeURIComponent(entityId)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tagIds }),
-  });
+  const res = await fetch(
+    `/api/tags/link?entityId=${encodeURIComponent(entityId)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tagIds }),
+    },
+  );
+
   if (!res.ok) throw new Error("Failed to save tags");
 }
 
@@ -181,21 +182,22 @@ export type TagWithUsageValue = TagValue & { usedCount: number };
 /**
  * Runtime type guard for TagWithUsageValue.
  */
-function isTagWithUsageValue(
-  value: unknown
-): value is TagWithUsageValue {
+function isTagWithUsageValue(value: unknown): value is TagWithUsageValue {
   if (!isTagValue(value)) return false;
 
   const obj = value as Record<string, unknown>;
-  return typeof obj.usedCount === "number" && Number.isInteger(obj.usedCount) && obj.usedCount >= 0;
+
+  return (
+    typeof obj.usedCount === "number" &&
+    Number.isInteger(obj.usedCount) &&
+    obj.usedCount >= 0
+  );
 }
 
 /**
  * Runtime type guard for arrays of TagWithUsageValue.
  */
-function isTagWithUsageArray(
-  value: unknown
-): value is TagWithUsageValue[] {
+function isTagWithUsageArray(value: unknown): value is TagWithUsageValue[] {
   return Array.isArray(value) && value.every(isTagWithUsageValue);
 }
 
@@ -204,15 +206,16 @@ function isTagWithUsageArray(
  * including usage counts.
  */
 export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
-  const raw = await jsonFetcher<unknown>("/api/admin/tags", { cache: "no-store" });
+  const raw = await jsonFetcher<unknown>("/api/admin/tags", {
+    cache: "no-store",
+  });
   const unwrapped = unwrapOkData(raw);
 
   if (isTagWithUsageArray(unwrapped)) return unwrapped;
 
-  const obj =
-    (typeof unwrapped === "object" && unwrapped !== null
-      ? unwrapped
-      : {}) as Record<string, unknown>;
+  const obj = (
+    typeof unwrapped === "object" && unwrapped !== null ? unwrapped : {}
+  ) as Record<string, unknown>;
 
   if (isTagWithUsageArray(obj.items)) return obj.items;
 
@@ -223,13 +226,10 @@ export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
  * Delete a tag by ID from the admin interface.
  * This also removes the tag from all linked pages/posts.
  */
-export async function deleteTagAdminAction(
-  id: string
-): Promise<void> {
-  const res = await fetch(
-    `/api/admin/tags/${encodeURIComponent(id)}`,
-    { method: "DELETE" }
-  );
+export async function deleteTagAdminAction(id: string): Promise<void> {
+  const res = await fetch(`/api/admin/tags/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 
   if (!res.ok) {
     throw new Error("Failed to delete tag");

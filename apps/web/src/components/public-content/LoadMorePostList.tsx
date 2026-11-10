@@ -6,10 +6,11 @@ import { useEffect, useState } from "react";
 import { getNextPostBatch } from "@/app/posts/actions";
 import { ActionButton } from "@/components/public-ui/ActionButton";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
-import type { PublicPostSummary } from "@/lib/content/public-content.server";
 
 import styles from "./post-list.module.css";
 import { PostList } from "./PostList";
+
+import type { PublicPostSummary } from "@/lib/content/public-content.server";
 
 export function LoadMorePostList({
   posts: initialPosts,
@@ -34,6 +35,7 @@ export function LoadMorePostList({
   useEffect(() => {
     const reloadFromArchiveUrl = () => window.location.reload();
     window.addEventListener("popstate", reloadFromArchiveUrl);
+
     return () => window.removeEventListener("popstate", reloadFromArchiveUrl);
   }, []);
 
@@ -48,12 +50,15 @@ export function LoadMorePostList({
     setMessage("");
     try {
       const batch = await getNextPostBatch(nextPage);
+
       if (!batch) {
         setEnhanced(false);
+
         return;
       }
       setPosts((current) => {
         const knownSlugs = new Set(current.map(({ slug }) => slug));
+
         return [
           ...current,
           ...batch.posts.filter(({ slug }) => !knownSlugs.has(slug)),

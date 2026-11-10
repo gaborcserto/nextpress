@@ -22,8 +22,10 @@ function request(
   contentType: string | null = "application/json",
 ) {
   const headers = new Headers();
+
   if (origin !== null) headers.set("origin", origin);
   if (contentType !== null) headers.set("content-type", contentType);
+
   return new Request("http://attacker.invalid/api/test", {
     method,
     headers,
@@ -97,6 +99,7 @@ describe("custom mutation origin and media-type boundary", () => {
 
   it("does not trust Host, forwarded headers, Fetch Metadata or Referer in place of Origin", () => {
     const req = request("POST", null);
+
     for (const header of ["host", "x-forwarded-host"])
       req.headers.set(header, "localhost:49101");
     req.headers.set("x-forwarded-proto", "http");

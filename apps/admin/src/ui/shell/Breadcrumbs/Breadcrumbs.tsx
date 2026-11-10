@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 
 import type { DetailTitle } from "./Breadcrumbs.types";
 
-
 // Build a readable label for each segment
 function toLabel(seg: string, prev?: string) {
   const looksLikeId = /^[0-9a-z-]{8,}$/i.test(seg);
@@ -15,6 +14,7 @@ function toLabel(seg: string, prev?: string) {
   if ((seg === "new" || seg === "create") && prev) {
     if (prev === "pages") return "Create Page";
     if (prev === "posts") return "Create Post";
+
     return "New";
   }
 
@@ -22,11 +22,13 @@ function toLabel(seg: string, prev?: string) {
   if (looksLikeId && prev) {
     if (prev === "posts") return "Edit Post";
     if (prev === "pages") return "Edit Page";
+
     return "Edit";
   }
 
   // Slug to readable text
   const spaced = seg.replace(/-/g, " ");
+
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
@@ -59,6 +61,7 @@ export default function Breadcrumbs() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         const title = data?.item?.title ?? data?.title;
+
         if (typeof title === "string") {
           setDetailTitle({ id: detailId, title });
         }
@@ -86,7 +89,11 @@ export default function Breadcrumbs() {
 
   if (items.length === 0) {
     return (
-      <nav aria-label="Breadcrumb" tabIndex={0} className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary">
+      <nav
+        aria-label="Breadcrumb"
+        tabIndex={0}
+        className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary"
+      >
         <ul className="w-max pr-1">
           <li>
             <Link href="/admin" className="link link-hover">
@@ -99,12 +106,22 @@ export default function Breadcrumbs() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" tabIndex={0} className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary">
+    <nav
+      aria-label="Breadcrumb"
+      tabIndex={0}
+      className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary"
+    >
       <ul className="w-max pr-1">
         {items.map(({ href, label, isLast }) => (
           <li key={href} className="max-w-[20ch] shrink-0 sm:max-w-[28ch]">
             {isLast ? (
-              <span aria-current="page" title={label} className="truncate text-base-content/70">{label}</span>
+              <span
+                aria-current="page"
+                title={label}
+                className="truncate text-base-content/70"
+              >
+                {label}
+              </span>
             ) : (
               <Link href={href} className="link link-hover truncate">
                 {label}

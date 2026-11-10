@@ -7,7 +7,6 @@ import {
   ContentNotFoundError,
   type ContentActor,
 } from "@/lib/auth/content-access";
-import type { TagDto, TagWithUsageDto } from "@/lib/repos";
 import {
   searchTagsRaw,
   findTagByNameInsensitive,
@@ -20,6 +19,8 @@ import {
 } from "@/lib/repos";
 import { slugify } from "@/lib/utils";
 import { TagCreateSchema, TagIdsSchema } from "@/lib/validation";
+
+import type { TagDto, TagWithUsageDto } from "@/lib/repos";
 
 export class ValidationError extends Error {}
 export class NotFoundError extends Error {}
@@ -35,6 +36,7 @@ function getValidationMessage(error: unknown): string {
     Array.isArray(error.errors)
   ) {
     const errors = error.errors;
+
     if (
       errors.length &&
       errors.every((item): item is string => typeof item === "string")
@@ -60,12 +62,14 @@ function getValidationMessage(error: unknown): string {
  */
 export async function searchTagsService(query: string): Promise<TagDto[]> {
   const trimmed = query.trim();
+
   if (trimmed.length < 2) return [];
 
   const slugified =
     slugify(trimmed) || trimmed.toLowerCase().replace(/\s+/g, "-");
 
   const [tags, err] = await tryCatch(searchTagsRaw(slugified));
+
   if (err || !tags) {
     throw new Error("Failed to search tags");
   }
@@ -88,6 +92,7 @@ export async function createTagService(rawName: string): Promise<TagDto> {
 
   // 2) Return existing if one matches case-insensitively
   const existing = await findTagByNameInsensitive(name);
+
   if (existing) return existing;
 
   // 3) Generate unique slug
@@ -97,6 +102,7 @@ export async function createTagService(rawName: string): Promise<TagDto> {
 
   while (counter <= 10) {
     const found = await findTagBySlug(slug);
+
     if (!found) break;
     slug = `${slugBase}-${++counter}`;
   }
@@ -115,9 +121,11 @@ export async function createTagService(rawName: string): Promise<TagDto> {
  */
 export async function deleteTagService(rawId: string): Promise<void> {
   const id = rawId.trim();
+
   if (!id) throw new ValidationError("ID is required");
 
   const deleted = await deleteTagRecord(id);
+
   if (!deleted) throw new NotFoundError("Tag not found");
 }
 
@@ -132,7 +140,9 @@ export async function getTagsForPageService(
     where: { id: pageId, ...contentReadWhere(actor) },
     select: { id: true },
   });
+
   if (!page) throw new ContentNotFoundError();
+
   return unwrapResult(
     await tryCatch(getTagsForPage(pageId)),
     () => new Error("Failed to load tags for page"),
@@ -150,6 +160,7 @@ export async function setTagsForPageService(
 ): Promise<void> {
   await requireContentWrite(pageId, actor);
   const parsed = TagIdsSchema.safeParse(rawTagIds);
+
   if (!parsed.success) throw new ValidationError("Invalid tag IDs");
   await setTagsForPage(pageId, parsed.data);
 }

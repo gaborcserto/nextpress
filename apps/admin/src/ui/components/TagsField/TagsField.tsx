@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { TagValue } from "@/lib/content/contracts";
 import { TagMultiSelect } from "@/ui/components/TagMultiSelect";
+
+import type { TagValue } from "@/lib/content/contracts";
 
 import type { TagsFieldProps } from "./TagsField.types";
 
@@ -43,6 +44,7 @@ export default function TagsField({
   // Managed mode: load initial tags from DB if entityId is provided.
   useEffect(() => {
     const id = entityId?.trim();
+
     if (!id || !loadEntityTagsAction) return;
 
     let cancelled = false;
@@ -51,6 +53,7 @@ export default function TagsField({
       setLoadingInitial(true);
       try {
         const loaded = await loadEntityTagsAction(id);
+
         if (cancelled) return;
 
         // If controlled, notify parent; otherwise store internally.
@@ -83,6 +86,7 @@ export default function TagsField({
 
     // Persist changes if managed mode is enabled
     const id = entityId?.trim();
+
     if (id && persist && updateEntityTagsAction) {
       savingRef.current = true;
       setSaving(true);

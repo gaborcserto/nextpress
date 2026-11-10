@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
-import type { RoleName } from "@/lib/auth/roles";
 import { showToast } from "@/ui/utils";
+
+import type { RoleName } from "@/lib/auth/roles";
 
 import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 

@@ -1,13 +1,20 @@
 import path from "path";
 
 import { webSecurityHeaders } from "./src/lib/security/headers";
+
 import type { NextConfig } from "next";
 
 const monorepoRoot = path.resolve(__dirname, "..", "..");
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  output: "standalone",
   async headers() {
-    return [{ source: "/:path*", headers: webSecurityHeaders(process.env.NODE_ENV === "production") }];
+    return [
+      {
+        source: "/:path*",
+        headers: webSecurityHeaders(process.env.NODE_ENV === "production"),
+      },
+    ];
   },
   turbopack: {
     root: monorepoRoot,

@@ -14,6 +14,7 @@ export const verifyLogout = createAuthMiddleware(async (ctx) => {
     ctx.context.authCookies.sessionToken.name,
     ctx.context.secret,
   );
+
   if (!token) return;
   try {
     if (!(await ctx.context.internalAdapter.findSession(token))) return;

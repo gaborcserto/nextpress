@@ -145,6 +145,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
           before: async (user) => {
             limitAccountCreation();
             const email = emailSchema.safeParse(user.email);
+
             if (!email.success)
               throw new APIError("BAD_REQUEST", {
                 code: "INVALID_EMAIL",
@@ -154,6 +155,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
               where: { name: "SUBSCRIBER" },
               select: { id: true },
             });
+
             return { data: { email: email.data, roleId: role.id } };
           },
         },
@@ -181,6 +183,7 @@ async function readOAuthProviderRows(): Promise<OAuthProviderRow[]> {
   });
 
   if (rows.length) return rows;
+
   return OAUTH_PROVIDERS.map((provider) => ({
     provider,
     enabled: true,
@@ -204,6 +207,7 @@ async function readRoleName(userId: string): Promise<RoleName | null> {
   });
 
   const name = user?.role?.name ?? null;
+
   return isRole(name) ? name : null;
 }
 
@@ -232,6 +236,7 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
     where: { id: userId, roleId: null },
     data: { roleId: role.id },
   });
+
   return readRoleName(userId);
 }
 
@@ -243,12 +248,14 @@ export async function getUserRole(
   userId?: string | null,
 ): Promise<RoleName | null> {
   if (!userId) return null;
+
   return readRoleName(userId);
 }
 
 export async function getSession(requestHeaders?: Headers) {
   const header = requestHeaders ?? (await headers());
   const auth = await getAuth();
+
   return auth.api.getSession({ headers: header });
 }
 
@@ -271,6 +278,7 @@ export async function getRequestSessionWithRole(
 ): Promise<SessionWithRole> {
   const session = await getSession(requestHeaders);
   const userId = session?.user?.id;
+
   if (!userId) return null;
 
   const role = await ensureDefaultRole(userId);
@@ -320,22 +328,28 @@ export function withAuth<
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
     const rejection = requireTrustedMutation(req);
+
     if (rejection) return rejection;
     const params = await ctx.params;
 
     const session = await getSessionWithRole();
+
     if (!session?.user?.id) return unauthorized();
 
     const role = session.user.role;
+
     if (!hasAnyRole(role, allowed)) return forbid();
 
     if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const throttled = limitMutation(session.user.id, mutationLimit);
+
       if (throttled) return throttled;
     }
 
     const bounded = await readBoundedMutationRequest(req);
+
     if (bounded.response) return bounded.response;
+
     return handler(
       bounded.request ?? req,
       { params },

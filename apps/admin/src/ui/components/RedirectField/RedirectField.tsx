@@ -2,8 +2,9 @@
 
 import { Input } from "@/ui/primitives";
 
-import type { RedirectFieldProps } from "./RedirectField.types";
 import type { ChangeEvent } from "react";
+
+import type { RedirectFieldProps } from "./RedirectField.types";
 
 /**
  * Simple URL field used for redirect target.

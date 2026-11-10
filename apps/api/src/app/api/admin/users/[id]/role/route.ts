@@ -12,6 +12,7 @@ export const PATCH = withAuth(
     if (!ctx.params.id || ctx.params.id.length > 64)
       return bad("Invalid user ID");
     let body: unknown;
+
     try {
       body = await _req.json();
     } catch {
@@ -22,6 +23,7 @@ export const PATCH = withAuth(
       typeof body === "object" && body !== null && "role" in body
         ? body.role
         : undefined;
+
     if (!isRole(role)) return bad("Invalid role");
 
     try {
@@ -41,6 +43,7 @@ export const PATCH = withAuth(
       )
         return notfound("User not found");
       console.error("PATCH /api/admin/users/:id/role failed");
+
       return oops();
     }
   },

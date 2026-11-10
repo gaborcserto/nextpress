@@ -18,6 +18,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.delete("Content-Security-Policy-Report-Only");
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", policy);
+
   return response;
 }
 

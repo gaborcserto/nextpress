@@ -36,6 +36,7 @@ import {
 } from "@/lib/validation";
 
 import { version } from "../../../package.json";
+
 import type { OpenAPIV3 } from "openapi-types";
 
 // Input mode preserves the wire shape before defaults and transforms run.
@@ -55,9 +56,12 @@ const boolean = { type: "boolean" } as const;
 const integer = { type: "integer" } as const;
 const nullableString = { type: "string", nullable: true } as const;
 const date = { type: "string", format: "date-time" } as const;
+
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
+
 const array = (items: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject) =>
   ({ type: "array", items }) as const;
+
 function object(
   properties: Record<
     string,
@@ -71,6 +75,7 @@ function object(
     ...(required.length ? { required } : {}),
   } as const;
 }
+
 const role = schema(z.enum(ROLES));
 const provider = schema(z.enum(OAUTH_PROVIDERS));
 const roleRelation: OpenAPIV3.SchemaObject = {
@@ -221,6 +226,7 @@ function response(
 ): OpenAPIV3.ResponseObject {
   return { description, content: { "application/json": { schema: value } } };
 }
+
 function operation(
   operationId: string,
   tag: string,
@@ -235,6 +241,7 @@ function operation(
   const responses: OpenAPIV3.ResponsesObject = {
     [success]: response("Success", result),
   };
+
   for (const code of codes) {
     responses[code] =
       code === 500 && ["listPages", "listPosts"].includes(operationId)
@@ -245,6 +252,7 @@ function operation(
         "Retry-After": { description: "Seconds until retry.", schema: integer },
       };
   }
+
   return {
     operationId,
     tags: [tag],
@@ -267,6 +275,7 @@ function operation(
       : {}),
   };
 }
+
 function parameter(
   name: string,
   location: "path" | "query",
@@ -276,6 +285,7 @@ function parameter(
 ): OpenAPIV3.ParameterObject {
   return { name, in: location, required, schema: value, description };
 }
+
 const id = parameter(
   "id",
   "path",
@@ -313,6 +323,7 @@ const paths: OpenAPIV3.PathsObject = {
     ),
   },
 };
+
 for (const [path, result, operationId] of [
   ["public/posts", "PublicPostBatch", "publicPosts"],
   ["public/posts/{slug}", "PublicContent", "publicPost"],
@@ -337,6 +348,7 @@ for (const [path, result, operationId] of [
       : "Same-origin discovery; session identity is validated by Better Auth and roles read live. No tokens or credentials returned.",
     path === "discovery/session" ? "optional" : "public",
   );
+
   if (path.includes("{slug}"))
     read.parameters = [
       parameter("slug", "path", string, "Canonical content slug."),

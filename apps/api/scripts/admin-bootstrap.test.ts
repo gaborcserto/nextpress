@@ -82,6 +82,7 @@ it("repairs legacy account identity on repeated runs while preserving the usable
     password: hash,
   });
   const legacyEnvironment = { ...environment, ADMIN_PASSWORD: "admin123" };
+
   for (let run = 0; run < 2; run++) {
     expect(await bootstrapAdmin(legacyEnvironment)).toEqual({
       preservedPassword: true,

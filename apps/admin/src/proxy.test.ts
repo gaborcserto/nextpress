@@ -44,6 +44,7 @@ describe("Next.js CSP proxy", () => {
 
   it("covers callback/error/API/prefetch requests while skipping Next assets", () => {
     const matcher = new RegExp(`^${config.matcher[0]}$`);
+
     for (const path of [
       "/",
       "/auth/sign-in",

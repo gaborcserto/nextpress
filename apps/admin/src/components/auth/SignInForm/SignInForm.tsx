@@ -66,9 +66,11 @@ export default function SignInForm({ providers }: SignInFormProps) {
   useLayoutEffect(() => {
     try {
       const savedEmail = window.localStorage.getItem(rememberedEmailKey);
+
       if (savedEmail === null) return;
 
       const email = signInSchema.shape.email.safeParse(savedEmail);
+
       if (email.success) {
         setForm((current) => ({ ...current, email: email.data }));
         setRememberEmail(true);
@@ -82,6 +84,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   useEffect(() => {
     const errorParam = params.get("error");
+
     if (errorParam) setErr(mapNextAuthError(errorParam));
   }, [params]);
 
@@ -95,6 +98,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
     if (!result.success) {
       setFieldErrors(fieldErrorsFromIssues(result.error.issues));
+
       return;
     }
 
@@ -109,6 +113,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
       if (error) {
         setErr(signInErrorMessage(error.status, error.code));
+
         return;
       }
 

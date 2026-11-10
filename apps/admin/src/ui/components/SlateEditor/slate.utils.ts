@@ -20,11 +20,13 @@ const LIST_TYPES: BlockFormat[] = ["bulleted-list", "numbered-list"];
 
 export function isMarkActive(editor: Editor, format: MarkFormat): boolean {
   const marks = Editor.marks(editor);
+
   return Boolean(marks?.[format]);
 }
 
 export function toggleMark(editor: Editor, format: MarkFormat): void {
   const active = isMarkActive(editor, format);
+
   if (active) Editor.removeMark(editor, format);
   else Editor.addMark(editor, format, true);
 }
@@ -33,6 +35,7 @@ export function isBlockActive(editor: Editor, type: BlockFormat): boolean {
   const [match] = Editor.nodes(editor, {
     match: (n) => SlateElement.isElement(n) && n.type === type,
   });
+
   return Boolean(match);
 }
 
@@ -40,7 +43,7 @@ export function setAlign(editor: Editor, align: Align): void {
   Transforms.setNodes(
     editor,
     { align },
-    { match: (n) => SlateElement.isElement(n), split: true }
+    { match: (n) => SlateElement.isElement(n), split: true },
   );
 }
 
@@ -48,9 +51,15 @@ export function getActiveAlign(editor: Editor): Align | null {
   const [match] = Editor.nodes(editor, {
     match: (n) => SlateElement.isElement(n) && typeof n.align === "string",
   });
+
   if (!match) return null;
   const [node] = match;
-  return (SlateElement.isElement(node) ? (node.align as Align | undefined) : undefined) ?? null;
+
+  return (
+    (SlateElement.isElement(node)
+      ? (node.align as Align | undefined)
+      : undefined) ?? null
+  );
 }
 
 export function toggleBlock(editor: Editor, type: BlockFormat): void {
@@ -69,8 +78,9 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
     Transforms.setNodes(
       editor,
       isActive ? { type: "paragraph" } : { type: "heading", level: 2 },
-      { match: (n) => SlateElement.isElement(n) }
+      { match: (n) => SlateElement.isElement(n) },
     );
+
     return;
   }
 
@@ -78,8 +88,9 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
     Transforms.setNodes(
       editor,
       isActive ? { type: "paragraph" } : { type: "blockquote" },
-      { match: (n) => SlateElement.isElement(n) }
+      { match: (n) => SlateElement.isElement(n) },
     );
+
     return;
   }
 
@@ -87,8 +98,9 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
     Transforms.setNodes(
       editor,
       isActive ? { type: "paragraph" } : { type: "code-block" },
-      { match: (n) => SlateElement.isElement(n) }
+      { match: (n) => SlateElement.isElement(n) },
     );
+
     return;
   }
 
@@ -96,7 +108,7 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
   Transforms.setNodes(
     editor,
     { type: isActive ? "paragraph" : "list-item" },
-    { match: (n) => SlateElement.isElement(n) }
+    { match: (n) => SlateElement.isElement(n) },
   );
 
   if (!isActive && isList) {
@@ -104,13 +116,13 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
       Transforms.wrapNodes(
         editor,
         { type: "bulleted-list", children: [] },
-        { match: (n) => SlateElement.isElement(n) && n.type === "list-item" }
+        { match: (n) => SlateElement.isElement(n) && n.type === "list-item" },
       );
     } else {
       Transforms.wrapNodes(
         editor,
         { type: "numbered-list", children: [] },
-        { match: (n) => SlateElement.isElement(n) && n.type === "list-item" }
+        { match: (n) => SlateElement.isElement(n) && n.type === "list-item" },
       );
     }
   }
@@ -121,19 +133,18 @@ export function toggleHeading(editor: Editor, level: 2 | 3 | 4 | 5 | 6): void {
 
   Transforms.setNodes(
     editor,
-    isActive
-      ? { type: "paragraph" }
-      : { type: "heading", level },
-    { match: (n) => SlateElement.isElement(n) }
+    isActive ? { type: "paragraph" } : { type: "heading", level },
+    { match: (n) => SlateElement.isElement(n) },
   );
 }
 
-export function isHeadingActive(editor: Editor, level: 2 | 3 | 4 | 5 | 6): boolean {
+export function isHeadingActive(
+  editor: Editor,
+  level: 2 | 3 | 4 | 5 | 6,
+): boolean {
   const [match] = Editor.nodes(editor, {
     match: (n) =>
-      SlateElement.isElement(n) &&
-      n.type === "heading" &&
-      n.level === level,
+      SlateElement.isElement(n) && n.type === "heading" && n.level === level,
   });
 
   return Boolean(match);

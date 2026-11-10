@@ -36,8 +36,10 @@ export function ResetPasswordForm({ token }: { token: string }) {
     setFormError(null);
 
     const parsed = resetPasswordSchema.safeParse({ token, password, confirm });
+
     if (!parsed.success) {
       setFieldErrors(fieldErrorsFromIssues(parsed.error.issues));
+
       return;
     }
 
@@ -51,6 +53,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
       if (error) {
         setFormError(error.message || "Reset failed");
+
         return;
       }
 

@@ -12,5 +12,6 @@ export default async function SignInPageRoute() {
   if ((await getSessionWithRole())?.user.id) redirect("/admin");
 
   const providers = await getOperationalOAuthProviders();
+
   return <SignInForm providers={providers} />;
 }

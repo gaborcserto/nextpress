@@ -5,6 +5,7 @@ import {
   isOAuthProviderName,
   type OAuthProviderName,
 } from "./oauth-providers";
+
 import type { BetterAuthOptions } from "better-auth";
 
 export type OAuthProviderRow = {
@@ -16,6 +17,7 @@ export type OAuthProviderRow = {
 
 function nonEmpty(value: string | null | undefined) {
   const normalized = value?.trim();
+
   return normalized || undefined;
 }
 
@@ -87,6 +89,7 @@ export function buildSocialProviders(
 
   for (const provider of OAUTH_PROVIDERS) {
     const row = rowFor(rows, provider);
+
     if (!row || !getOAuthProviderStatus(row).operational) continue;
 
     const credentials = credentialsFor(row, provider);

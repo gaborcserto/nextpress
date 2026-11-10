@@ -18,6 +18,7 @@ vi.mock("@/ui/shell", () => ({
 }));
 
 import AdminLayout from "./layout";
+
 import type { ReactNode } from "react";
 
 beforeEach(() => {

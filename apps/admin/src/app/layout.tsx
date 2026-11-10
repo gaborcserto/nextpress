@@ -7,6 +7,7 @@ import { normalizeThemeCookie } from "@/lib/theme";
 import { ToastHost } from "@/ui/primitives/ToastHost";
 
 import { Providers } from "./providers";
+
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 

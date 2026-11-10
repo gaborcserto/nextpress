@@ -24,8 +24,10 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
   const handleSignOut = useCallback(async () => {
     try {
       const { error } = await signOut();
+
       if (error) {
         showToast("Sign out failed", "error");
+
         return;
       }
       router.replace("/auth/sign-in");

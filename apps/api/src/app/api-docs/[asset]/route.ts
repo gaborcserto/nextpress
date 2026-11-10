@@ -36,6 +36,7 @@ export async function GET(
       : asset === "swagger-ui.css"
         ? assets["swagger-ui.css"]
         : null;
+
   if (!selectedAsset) {
     return new Response(null, {
       status: 404,
@@ -52,6 +53,7 @@ export async function GET(
     throw new Error("swagger-ui-dist does not expose its distribution path");
   }
   const distributionPath: unknown = swaggerUiDistribution.getAbsoluteFSPath();
+
   if (typeof distributionPath !== "string") {
     throw new Error("swagger-ui-dist returned an invalid distribution path");
   }

@@ -6,7 +6,6 @@ import {
 } from "@nextpress/shared/auth-policy";
 import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
-import type { RoleName } from "@/lib/auth/roles";
 import { ROLES } from "@/lib/auth/roles";
 import {
   DataListEmptyRow,
@@ -28,6 +27,9 @@ import {
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 
 import { useUsersScreen } from "./UsersScreen.hooks";
+
+import type { RoleName } from "@/lib/auth/roles";
+
 import type { UserRow } from "./UsersScreen.types";
 
 type RoleOption = { value: RoleName; label: string };

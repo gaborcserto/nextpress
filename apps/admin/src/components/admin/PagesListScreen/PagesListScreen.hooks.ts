@@ -33,6 +33,7 @@ export function useDeletePage(onDeleted?: () => void) {
 
         if (!res.ok) {
           showToast(text || `Request failed: ${res.status}`, "error");
+
           return;
         }
 

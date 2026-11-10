@@ -15,6 +15,7 @@ function messageFromBody(body: string, status: number): string {
 
   try {
     const parsed: unknown = JSON.parse(body);
+
     if (
       typeof parsed === "object" &&
       parsed !== null &&
@@ -41,7 +42,9 @@ export async function jsonResult<T>(
   input: RequestInfo,
   init?: RequestInit,
 ): Promise<Result<T>> {
-  const [response, fetchError] = await tryCatch<Response>(apiFetch(input, init));
+  const [response, fetchError] = await tryCatch<Response>(
+    apiFetch(input, init),
+  );
 
   if (fetchError || !response) {
     return [
@@ -54,6 +57,7 @@ export async function jsonResult<T>(
 
   if (!response.ok) {
     const [text] = await tryCatch<string>(response.text());
+
     return [
       null,
       new ApiRequestError(
@@ -70,5 +74,8 @@ export async function jsonFetcher<T>(
   input: RequestInfo,
   init?: RequestInit,
 ): Promise<T> {
-  return unwrapResult(await jsonResult<T>(input, init), (error: Error) => error);
+  return unwrapResult(
+    await jsonResult<T>(input, init),
+    (error: Error) => error,
+  );
 }

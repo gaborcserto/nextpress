@@ -24,10 +24,12 @@ function getTagName(body: unknown): string {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const query = url.searchParams.get("query") ?? "";
+
   if (query.length > 200) return bad("Search query is too long");
 
   try {
     const tags = await searchTagsService(query);
+
     return ok(tags);
   } catch (err) {
     console.error("GET /api/tags failed");
@@ -59,6 +61,7 @@ export const POST = withAuth(
 
     try {
       const tag = await createTagService(name);
+
       return ok(tag, 201);
     } catch (err) {
       console.error("POST /api/tags failed");
@@ -81,10 +84,12 @@ export const DELETE = withAuth(
   async (req) => {
     const url = new URL(req.url);
     const id = url.searchParams.get("id") ?? "";
+
     if (id.trim().length > 64) return bad("Invalid tag ID");
 
     try {
       await deleteTagService(id);
+
       return ok({ message: "Deleted successfully" });
     } catch (err) {
       console.error("DELETE /api/tags failed");

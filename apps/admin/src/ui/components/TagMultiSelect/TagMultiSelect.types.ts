@@ -1,10 +1,10 @@
+import type { KeyboardEvent, InputHTMLAttributes } from "react";
+
 import type {
   TagCreateFn,
   TagLoadOptionsFn,
   TagValue,
 } from "@/lib/content/contracts";
-
-import type { KeyboardEvent, InputHTMLAttributes } from "react";
 
 export type {
   TagCreateFn,

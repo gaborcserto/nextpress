@@ -9,6 +9,7 @@ export function GET() {
       headers: { "Cache-Control": "no-store" },
     });
   }
+
   return new Response(JSON.stringify(openApiDocument, null, 2), {
     headers: {
       "Content-Type": "application/json",

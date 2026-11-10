@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { parsePublicRichContent } from "@/lib/content/rich-content";
 
 import styles from "./RichContent.module.css";
+
 import type {
   RichBlock,
   RichDocument,
@@ -13,11 +14,13 @@ const headings = { 2: "h2", 3: "h3", 4: "h4", 5: "h5", 6: "h6" } as const;
 
 function renderText(leaf: RichText): ReactNode {
   let text: ReactNode = leaf.text;
+
   if (leaf.code) text = <code>{text}</code>;
   if (leaf.bold) text = <strong>{text}</strong>;
   if (leaf.italic) text = <em>{text}</em>;
   if (leaf.underline) text = <u>{text}</u>;
   if (leaf.strikethrough) text = <s>{text}</s>;
+
   return text;
 }
 
@@ -34,6 +37,7 @@ function renderBlock(block: RichBlock): ReactNode {
         {renderLeaves(item.children)}
       </li>
     ));
+
     return block.type === "bulleted-list" ? (
       <ul data-align={block.align}>{items}</ul>
     ) : (
@@ -42,12 +46,14 @@ function renderBlock(block: RichBlock): ReactNode {
   }
 
   const text = renderLeaves(block.children);
+
   switch (block.type) {
     case "paragraph":
       return <p data-align={block.align}>{text}</p>;
     case "heading": {
       // The canonical schema permits only h2 through h6; the page owns h1.
       const Heading = headings[block.level];
+
       return <Heading data-align={block.align}>{text}</Heading>;
     }
     case "blockquote":
@@ -78,6 +84,7 @@ export function RichContent({
   content: RichDocument | string | null;
 }) {
   const document = parsePublicRichContent(content);
+
   return (
     <div className={styles.prose}>
       {document.blocks.map((block, index) => (

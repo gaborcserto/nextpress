@@ -49,6 +49,7 @@ export function ConfirmDialog({
     if (event.key === "Escape") {
       event.preventDefault();
       close();
+
       return;
     }
     if (event.key !== "Tab") return;
@@ -56,13 +57,16 @@ export function ConfirmDialog({
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     );
+
     if (!focusable?.length) {
       event.preventDefault();
       dialogRef.current?.focus();
+
       return;
     }
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
+
     if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();

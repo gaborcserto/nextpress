@@ -5,10 +5,11 @@ import { useRef, useState } from "react";
 import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
-import type { PageFormValues } from "@/lib/content/contracts";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
 import { showToast } from "@/ui/utils";
+
+import type { PageFormValues } from "@/lib/content/contracts";
 
 import type { EditPageResponse } from "./PageEditorScreen.types";
 
@@ -46,6 +47,7 @@ export function usePageEditor(id?: string) {
     if (savingRef.current) return;
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
+
       return;
     }
 
@@ -61,6 +63,7 @@ export function usePageEditor(id?: string) {
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
         );
+
         return;
       }
 

@@ -30,6 +30,7 @@ export async function GET(req: Request) {
       entityId,
       (await getSessionWithRole())?.user,
     );
+
     return ok(tags);
   } catch (err) {
     if (err instanceof ContentForbiddenError) return forbid();
@@ -78,6 +79,7 @@ export const PUT = withAuth(
 
     try {
       await setTagsForPageService(entityId, rawTagIds, session.user);
+
       return ok({ ok: true });
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 
+import type { ReactNode } from "react";
+
 import type {
   BaseProps,
   ButtonProps,
@@ -11,7 +13,6 @@ import type {
   LinkIconButtonProps,
   Size,
 } from "./Buttons.types";
-import type { ReactNode } from "react";
 
 const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
@@ -81,7 +82,7 @@ function buildClasses({
     wideCls,
     activeCls,
     "inline-flex items-center justify-center gap-2",
-    className
+    className,
   );
 }
 
@@ -125,10 +126,7 @@ function BaseButton({
       {loading && (
         <>
           <span
-            className={cx(
-              "loading loading-spinner",
-              spinnerSize(size)
-            )}
+            className={cx("loading loading-spinner", spinnerSize(size))}
             aria-hidden="true"
           />
           <span className="sr-only">Loading</span>
@@ -187,11 +185,7 @@ export function IconButton({
   });
 
   const shapeCls =
-    shape === "circle"
-      ? "btn-circle"
-      : shape === "square"
-        ? "btn-square"
-        : "";
+    shape === "circle" ? "btn-circle" : shape === "square" ? "btn-square" : "";
 
   let content: ReactNode;
 
@@ -199,10 +193,7 @@ export function IconButton({
     content = (
       <span className="inline-flex items-center gap-2">
         <span
-          className={cx(
-            "loading loading-spinner",
-            spinnerSize(size)
-          )}
+          className={cx("loading loading-spinner", spinnerSize(size))}
           aria-hidden="true"
         />
         <span className="sr-only">Loading</span>
@@ -267,7 +258,7 @@ export function LinkButton({
     active,
     className: cx(
       className,
-      isDisabled && "btn-disabled pointer-events-none opacity-60"
+      isDisabled && "btn-disabled pointer-events-none opacity-60",
     ),
   });
 
@@ -281,6 +272,7 @@ export function LinkButton({
         if (isDisabled) {
           e.preventDefault();
           e.stopPropagation();
+
           return;
         }
         onClick?.(e);
@@ -302,7 +294,6 @@ export function LinkButton({
     </Link>
   );
 }
-
 
 /* ---------------- LinkIconButton ---------------- */
 
@@ -337,7 +328,7 @@ export function LinkIconButton({
     active,
     className: cx(
       className,
-      isDisabled && "btn-disabled pointer-events-none opacity-60"
+      isDisabled && "btn-disabled pointer-events-none opacity-60",
     ),
   });
 
@@ -379,6 +370,7 @@ export function LinkIconButton({
         if (isDisabled) {
           e.preventDefault();
           e.stopPropagation();
+
           return;
         }
         onClick?.(e);

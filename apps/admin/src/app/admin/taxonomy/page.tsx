@@ -5,11 +5,13 @@ import { getSessionWithRole, hasAnyRole } from "@/lib/auth/session.server";
 
 export default async function AdminTaxonomyRoute() {
   const session = await getSessionWithRole();
+
   if (!session?.user?.id) {
     redirect("/auth/sign-in?callbackUrl=%2Fadmin%2Ftaxonomy");
   }
   if (!hasAnyRole(session.user.role, ["ADMIN", "EDITOR", "AUTHOR"])) {
     return <div role="alert">You do not have permission to manage tags.</div>;
   }
+
   return <TaxonomyScreen />;
 }

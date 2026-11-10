@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 
-import type { MediaValue } from "@/lib/content/contracts";
 import {
   buildInitialForm,
   getEntityId,
@@ -26,6 +25,8 @@ import {
   StickyWrapper,
 } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import type { MediaValue } from "@/lib/content/contracts";
 
 import type {
   PostFormProps,
@@ -70,6 +71,7 @@ export default function PostForm({
   const [slugEdited, setSlugEdited] = useState<boolean>(() => {
     if (!initial.title || !initial.slug) return false;
     const autoSlug = slugify(initial.title);
+
     return initial.slug !== autoSlug;
   });
   const [fieldErrors, setFieldErrors] = useState<{

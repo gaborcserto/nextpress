@@ -17,12 +17,15 @@ export async function readBoundedMutationRequest(
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
+
   while (true) {
     const { done, value } = await reader.read();
+
     if (done) break;
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
+
       return {
         response: NextResponse.json(
           { error: "Request body is too large" },
@@ -35,10 +38,12 @@ export async function readBoundedMutationRequest(
 
   const body = new Uint8Array(size);
   let offset = 0;
+
   for (const chunk of chunks) {
     body.set(chunk, offset);
     offset += chunk.byteLength;
   }
+
   return {
     request: new Request(req.url, {
       method: req.method,
@@ -63,6 +68,7 @@ export function requireTrustedMutation(req: Request): Response | null {
     ["POST", "PUT", "PATCH"].includes(req.method) ||
     req.body !== null ||
     contentType !== null;
+
   if (
     needsJSON &&
     contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json"
@@ -72,5 +78,6 @@ export function requireTrustedMutation(req: Request): Response | null {
       { status: 415 },
     );
   }
+
   return null;
 }

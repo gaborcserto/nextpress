@@ -16,6 +16,7 @@ export function parsePagination(searchParams: URLSearchParams) {
     return null;
   const pageValue = searchParams.get("page");
   const limitValue = searchParams.get("limit");
+
   if (
     (pageValue !== null && !/^\d+$/.test(pageValue)) ||
     (limitValue !== null && !/^\d+$/.test(limitValue))

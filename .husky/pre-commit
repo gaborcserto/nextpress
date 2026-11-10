@@ -1,1 +1,1 @@
-npx lint-staged
+node scripts/test-readability.mjs && npx lint-staged --verbose

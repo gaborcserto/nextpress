@@ -7,6 +7,7 @@ import { RichContent } from "@/components/RichContent";
 import { getPublishedPost } from "@/lib/content/public-content.server";
 
 import styles from "./page.module.css";
+
 import type { Metadata } from "next";
 
 type PostPageProps = { params: Promise<{ slug: string }> };
@@ -16,6 +17,7 @@ export async function generateMetadata({
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPublishedPost(slug);
+
   return post
     ? {
         title: post.title,
@@ -27,6 +29,7 @@ export async function generateMetadata({
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
   const post = await getPublishedPost(slug);
+
   if (!post) notFound();
 
   return (

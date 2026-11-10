@@ -1,8 +1,10 @@
 "use client";
 
 import { useToggle } from "./Toggle.hook";
-import type { ToggleProps } from "./Toggle.types";
+
 import type { ReactNode } from "react";
+
+import type { ToggleProps } from "./Toggle.types";
 
 const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
@@ -27,8 +29,12 @@ function sizeClass(variant: "toggle" | "checkbox", size?: ToggleProps["size"]) {
         : "toggle-md";
 }
 
-function colorClass(variant: "toggle" | "checkbox", color?: ToggleProps["color"]) {
+function colorClass(
+  variant: "toggle" | "checkbox",
+  color?: ToggleProps["color"],
+) {
   if (!color || color === "default") return "";
+
   return variant === "checkbox" ? `checkbox-${color}` : `toggle-${color}`;
 }
 
@@ -64,19 +70,22 @@ export default function Toggle(props: ToggleProps) {
     baseCls,
     sizeClass(variant, size),
     colorClass(variant, color),
-    className
+    className,
   );
 
-  const below: ReactNode =
-    error ? (
-      <span id={`${inputId}-error`} className="label-text-alt text-error" role="alert">
-        {error}
-      </span>
-    ) : hint ? (
-      <span id={`${inputId}-hint`} className="label-text-alt">
-        {hint}
-      </span>
-    ) : null;
+  const below: ReactNode = error ? (
+    <span
+      id={`${inputId}-error`}
+      className="label-text-alt text-error"
+      role="alert"
+    >
+      {error}
+    </span>
+  ) : hint ? (
+    <span id={`${inputId}-hint`} className="label-text-alt">
+      {hint}
+    </span>
+  ) : null;
 
   // We render:
   // - optional label above
@@ -90,14 +99,21 @@ export default function Toggle(props: ToggleProps) {
         </label>
       )}
 
-      <label className={cx("label cursor-pointer justify-start gap-3", disabled && "opacity-60")}>
+      <label
+        className={cx(
+          "label cursor-pointer justify-start gap-3",
+          disabled && "opacity-60",
+        )}
+      >
         <input
           {...inputProps}
           id={inputId}
           type="checkbox"
           className={inputCls}
           checked={typeof checked === "boolean" ? checked : undefined}
-          defaultChecked={typeof checked === "boolean" ? undefined : defaultChecked}
+          defaultChecked={
+            typeof checked === "boolean" ? undefined : defaultChecked
+          }
           disabled={disabled}
           aria-invalid={!!error}
           aria-describedby={describedBy}

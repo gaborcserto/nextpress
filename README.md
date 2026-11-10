@@ -26,13 +26,13 @@ review any required platform-specific script before approving it.
 5. Optionally run `npm run db:seed` for development content. It requires `ALLOW_DEVELOPMENT_CONTENT_SEED=true` and rejects production execution.
 6. Run `npm run dev` to start both apps.
 
-The admin app runs at [localhost:49101](http://localhost:49101); the public site runs at [localhost:49100](http://localhost:49100). The API listens on localhost:49102. Only API, web and db need `DATABASE_URL`; admin uses `API_INTERNAL_ORIGIN`. See [backend boundaries](docs/backend-boundaries.md) for topology and deployment limits.
+The admin app runs at [localhost:49101](http://localhost:49101); the public site runs at [localhost:49100](http://localhost:49100). The API listens on localhost:49102. Only API and db need `DATABASE_URL`; admin and web use `API_INTERNAL_ORIGIN`. See [backend boundaries](docs/backend-boundaries.md) for topology and deployment limits.
 
 ## Essential commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev:api` / `npm run dev:admin` / `npm run dev:web` | Start one application |
+| `npm run dev:api` / `npm run dev:admin` / `npm run dev:web` | Start API alone, API + admin, or API + web respectively |
 | `npm run build` | Build all workspaces |
 | `npm run lint` / `npm run typecheck` | Check code quality and types |
 | `npm run check:changed` | Run lint, typecheck and tests for local changes and dependent workspaces |

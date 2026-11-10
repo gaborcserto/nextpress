@@ -12,6 +12,7 @@ export const DELETE = withAuth(
       return bad("Invalid user ID");
     try {
       await prisma.user.delete({ where: { id: ctx.params.id } });
+
       return ok({ ok: true });
     } catch (e) {
       if (
@@ -22,6 +23,7 @@ export const DELETE = withAuth(
       )
         return notfound("User not found");
       console.error("DELETE /api/admin/users/:id failed");
+
       return oops();
     }
   },

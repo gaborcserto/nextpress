@@ -22,8 +22,7 @@ import {
 } from "react-icons/bs";
 import { useSlate } from "slate-react";
 
-import { ICON_SIZE } from "./slate.constants"
-import type { ToolbarProps } from "./slate.types"
+import { ICON_SIZE } from "./slate.constants";
 import {
   toggleMark,
   isMarkActive,
@@ -34,7 +33,10 @@ import {
   toggleHeading,
   isHeadingActive,
 } from "./slate.utils";
+
 import type { ReactNode } from "react";
+
+import type { ToolbarProps } from "./slate.types";
 
 function SlateToolbarButton({
   active,
@@ -57,10 +59,7 @@ function SlateToolbarButton({
         e.preventDefault();
       }}
       onClick={onClick}
-      className={[
-        "btn btn-sm",
-        active ? "btn-primary" : "btn-ghost",
-      ].join(" ")}
+      className={["btn btn-sm", active ? "btn-primary" : "btn-ghost"].join(" ")}
     >
       {children}
     </button>

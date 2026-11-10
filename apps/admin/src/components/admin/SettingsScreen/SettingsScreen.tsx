@@ -4,7 +4,6 @@ import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
 import { useRef, type FormEvent } from "react";
 import { FaSave } from "react-icons/fa";
 
-import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import { ROLES, type RoleName } from "@/lib/auth/roles";
 import { DataListEmptyRow, DataListSurface } from "@/ui/components/DataList";
 import {
@@ -22,6 +21,9 @@ import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
 import { useSettingsScreen } from "./SettingsScreen.hooks";
+
+import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
+
 import type {
   ProviderCredentialUpdates,
   SettingsFormValues,
@@ -40,6 +42,7 @@ function updateProviderAtIndex(
 ): SettingsFormValues {
   const oauthProviders = [...previous.oauthProviders];
   oauthProviders[index] = { ...oauthProviders[index], ...patch };
+
   return { ...previous, oauthProviders };
 }
 
@@ -57,6 +60,7 @@ function readCredentialUpdates(
         ? { clientSecret }
         : {}),
     };
+
     if (Object.keys(update).length) updates[provider] = update;
   }
 
@@ -79,6 +83,7 @@ export default function SettingsScreen() {
       credentialForm.current,
       form.oauthProviders.map((provider) => provider.provider),
     );
+
     if (await save(credentials)) {
       credentialForm.current.reset();
       showToast("Settings saved.", "success");
@@ -235,6 +240,7 @@ export default function SettingsScreen() {
                         options={POST_LISTING_MODE_OPTIONS}
                         onChangeAction={(value) => {
                           const parsed = PostListingModeSchema.safeParse(value);
+
                           if (parsed.success) {
                             setForm((current) => ({
                               ...current,
@@ -309,6 +315,7 @@ export default function SettingsScreen() {
                         const configured =
                           provider.hasClientId && provider.hasClientSecret;
                         let statusLabel = "Disabled";
+
                         if (provider.enabled) {
                           statusLabel = configured
                             ? "Ready"

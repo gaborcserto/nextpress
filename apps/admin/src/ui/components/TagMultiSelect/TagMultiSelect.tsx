@@ -1,18 +1,13 @@
 "use client";
 
-import {
-  useRef,
-  useState,
-  useId,
-  useMemo,
-  type KeyboardEvent,
-} from "react";
+import { useRef, useState, useId, useMemo, type KeyboardEvent } from "react";
 
-import type { TagMultiSelectProps, TagValue } from "./TagMultiSelect.types";
 import { TagMultiSelectChip } from "./TagMultiSelectChip";
 import { TagMultiSelectDropdown } from "./TagMultiSelectDropdown";
 import { TagMultiSelectInput } from "./TagMultiSelectInput";
 import { useTagMultiSelectSearch } from "./TagMultiSelectSearch.hook";
+
+import type { TagMultiSelectProps, TagValue } from "./TagMultiSelect.types";
 
 /** Small utility to compose classNames conditionally. */
 const cx = (...classes: Array<string | false | undefined>) =>
@@ -44,11 +39,12 @@ export function TagMultiSelect({
   const inputId = useId();
   const listboxId = useId();
 
-  const { options, loading, error: searchError, setOptions } = useTagMultiSelectSearch(
-    query,
-    loadOptionsAction,
-    2
-  );
+  const {
+    options,
+    loading,
+    error: searchError,
+    setOptions,
+  } = useTagMultiSelectSearch(query, loadOptionsAction, 2);
 
   const trimmedQuery = query.trim();
 
@@ -58,12 +54,16 @@ export function TagMultiSelect({
    */
   const selectableOptions = useMemo(() => {
     const selectedIds = new Set(selectedTags.map((t) => t.id));
+
     return options.filter((opt) => !selectedIds.has(opt.id));
   }, [options, selectedTags]);
 
   /** Add tag (avoid duplicates) */
   const addTag = (tag: TagValue): void => {
-    const alreadySelected = selectedTags.some((current) => current.id === tag.id);
+    const alreadySelected = selectedTags.some(
+      (current) => current.id === tag.id,
+    );
+
     if (alreadySelected) return;
 
     onChangeAction([...selectedTags, tag]);
@@ -99,15 +99,18 @@ export function TagMultiSelect({
 
       if (selectableOptions.length > 0) {
         addTag(selectableOptions[0]);
+
         return;
       }
 
       await handleCreateClick();
+
       return;
     }
 
     if (event.key === "Backspace" && !query && selectedTags.length > 0) {
       removeTag(selectedTags[selectedTags.length - 1]);
+
       return;
     }
 
@@ -119,7 +122,7 @@ export function TagMultiSelect({
   const showCreate =
     trimmedQuery.length > 0 &&
     !selectableOptions.some(
-      (option) => option.name.toLowerCase() === trimmedQuery.toLowerCase()
+      (option) => option.name.toLowerCase() === trimmedQuery.toLowerCase(),
     );
 
   const handleCreateClick = async (): Promise<void> => {
@@ -155,7 +158,7 @@ export function TagMultiSelect({
         <div
           className={cx(
             "input input-bordered w-full flex items-center gap-2",
-            "min-h-12 px-2 py-1 focus-within:outline-2 focus-within:outline-primary"
+            "min-h-12 px-2 py-1 focus-within:outline-2 focus-within:outline-primary",
           )}
           onClick={() => {
             inputRef.current?.focus();
@@ -178,7 +181,7 @@ export function TagMultiSelect({
             className={cx(
               // Make the input comfortable: not full-width, but still responsive.
               "bg-transparent outline-none",
-              "w-full max-w-md"
+              "w-full max-w-md",
             )}
           />
         </div>
@@ -196,7 +199,11 @@ export function TagMultiSelect({
         />
       </div>
 
-      {(error || searchError) && <p role="alert" className="text-sm text-error">{error || searchError}</p>}
+      {(error || searchError) && (
+        <p role="alert" className="text-sm text-error">
+          {error || searchError}
+        </p>
+      )}
 
       {selectedTags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">

@@ -5,6 +5,7 @@ import { RichContent } from "@/components/RichContent";
 import { getPublishedPage } from "@/lib/content/public-content.server";
 
 import styles from "./page.module.css";
+
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -14,6 +15,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const page = await getPublishedPage(slug);
+
   return page
     ? {
         title: page.title,
@@ -25,6 +27,7 @@ export async function generateMetadata({
 export default async function StaticPage({ params }: PageProps) {
   const { slug } = await params;
   const page = await getPublishedPage(slug);
+
   if (!page) notFound();
 
   return (

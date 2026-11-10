@@ -4,6 +4,7 @@ import { Container } from "@/components/public-ui/Container";
 import { SkipLink } from "@/components/public-ui/SkipLink";
 
 import styles from "./PublicShell.module.css";
+
 import type { ReactNode } from "react";
 
 type NavigationPage = { slug: string; title: string };

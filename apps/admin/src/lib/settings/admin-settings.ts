@@ -6,10 +6,10 @@ import {
   type PostListingMode,
 } from "@nextpress/shared";
 
+import type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";
+
 import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import type { RoleName } from "@/lib/auth/roles";
-
-import type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";
 
 export type OAuthProviderSettings = {
   provider: OAuthProviderName;
@@ -52,6 +52,7 @@ export function normalizeSettingsForm(
   const postListingMode = PostListingModeSchema.safeParse(
     data?.postListingMode,
   );
+
   return {
     siteName: data?.siteName ?? "",
     siteDescription: data?.siteDescription ?? "",

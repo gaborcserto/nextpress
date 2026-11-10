@@ -18,14 +18,17 @@ export class RateLimiter {
   ): number | null {
     // Keys contain identities, so retain only a fixed-size digest in memory.
     const digest = createHash("sha256").update(key).digest("hex");
+
     for (const [storedKey, entry] of this.entries) {
       if (entry.expiresAt <= now) this.entries.delete(storedKey);
     }
     const existing = this.entries.get(digest);
+
     if (existing) {
       if (existing.count >= max)
         return Math.max(1, Math.ceil((existing.expiresAt - now) / 1000));
       existing.count++;
+
       return null;
     }
     if (this.entries.size >= this.maxEntries) {
@@ -33,9 +36,11 @@ export class RateLimiter {
       const firstExpiry = Math.min(
         ...Array.from(this.entries.values(), (entry) => entry.expiresAt),
       );
+
       return Math.max(1, Math.ceil((firstExpiry - now) / 1000));
     }
     this.entries.set(digest, { count: 1, expiresAt: now + windowMs });
+
     return null;
   }
 
@@ -59,8 +64,10 @@ export const actionLimits = new RateLimiter();
 export const authBudgets = new RateLimiter(16);
 
 let nextLogAt = 0;
+
 export function logAbuseThrottle() {
   const now = Date.now();
+
   if (now < nextLogAt) return;
   nextLogAt = now + 60_000;
   console.warn("Application abuse limit reached");
@@ -68,6 +75,7 @@ export function logAbuseThrottle() {
 
 export function tooManyRequests(retryAfter: number): Response {
   logAbuseThrottle();
+
   return Response.json(
     { error: "Too many requests. Please try again later." },
     {
@@ -100,5 +108,6 @@ export function limitMutation(
   const windowMs =
     scope === "create-content" || scope === "users" ? 600_000 : 60_000;
   const retry = actionLimits.consume(`${scope}:${userId}`, max, windowMs);
+
   return retry === null ? null : tooManyRequests(retry);
 }

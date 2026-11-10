@@ -5,13 +5,25 @@ import { FiMoon, FiSun } from "react-icons/fi";
 
 import type { ThemeToggleProps } from "./ThemeToggle.types";
 
+function currentTheme() {
+  return (
+    document.documentElement.getAttribute("data-theme") ||
+    (window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light")
+  );
+}
+
 export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
-  const [{ mounted, isDark }, setUi] = useState({ mounted: false, isDark: false });
+  const [{ mounted, isDark }, setUi] = useState({
+    mounted: false,
+    isDark: false,
+  });
 
   useEffect(() => {
     if (typeof document === "undefined") return;
 
-    const curr = document.documentElement.getAttribute("data-theme") || "light";
+    const curr = currentTheme();
     const next = { mounted: true, isDark: curr === "dark" };
 
     const raf = requestAnimationFrame(() => {
@@ -24,7 +36,7 @@ export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
   const handleToggle = () => {
     if (typeof document === "undefined") return;
 
-    const curr = document.documentElement.getAttribute("data-theme") || "light";
+    const curr = currentTheme();
     const nextTheme = curr === "dark" ? "light" : "dark";
 
     document.documentElement.setAttribute("data-theme", nextTheme);
@@ -42,7 +54,7 @@ export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
         className={`btn btn-ghost btn-circle ${className}`}
         onClick={handleToggle}
       >
-        <FiMoon size={18} />
+        <FiMoon size={18} aria-hidden="true" />
       </button>
     );
   }

@@ -32,12 +32,15 @@ function sessionCookie(response: Response) {
   const value = response.headers
     .getSetCookie()
     .find((header) => header.startsWith("better-auth.session_token="));
+
   if (!value) throw new Error("Expected a development session cookie");
+
   return value.split(";", 1)[0];
 }
 
 async function sessionToken(response: Response) {
   const body: unknown = await response.json();
+
   if (
     typeof body !== "object" ||
     body === null ||
@@ -46,6 +49,7 @@ async function sessionToken(response: Response) {
   ) {
     throw new Error("Expected an authentication session token");
   }
+
   return body.token;
 }
 
@@ -54,11 +58,13 @@ describe.skipIf(!testDatabaseUrl)(
   () => {
     beforeAll(async () => {
       const configuredTestDatabaseUrl = testDatabaseUrl;
+
       if (!configuredTestDatabaseUrl)
         throw new Error("Missing isolated integration database URL");
       const actualUrl = new URL(process.env.DATABASE_URL ?? "");
       const requestedUrl = new URL(configuredTestDatabaseUrl);
       const databaseName = requestedUrl.pathname.slice(1);
+
       if (
         actualUrl.toString() !== requestedUrl.toString() ||
         !["localhost", "127.0.0.1"].includes(requestedUrl.hostname) ||
@@ -82,6 +88,7 @@ describe.skipIf(!testDatabaseUrl)(
         where: { name: { in: ["ADMIN", "EDITOR", "AUTHOR", "SUBSCRIBER"] } },
         select: { name: true },
       });
+
       if (roles.length !== 4)
         throw new Error(
           "Seed the standard roles before running the PostgreSQL security integration test",
@@ -119,6 +126,7 @@ describe.skipIf(!testDatabaseUrl)(
         where: { email: signupEmail },
         include: { role: true, accounts: true },
       });
+
       if (!user) throw new Error("Expected signup to persist its user");
       expect(user).toMatchObject({
         role: { name: "SUBSCRIBER" },
@@ -182,12 +190,14 @@ describe.skipIf(!testDatabaseUrl)(
           }),
         ),
       );
+
       for (const [index, user] of users.entries()) {
         expect(user.role?.name).toBe(roles[index]);
         expect(await getUserRole(user.id)).toBe(roles[index]);
       }
 
       const author = users.at(2);
+
       if (!author) throw new Error("Expected an AUTHOR role user");
       const page = await prisma.page.create({
         data: {

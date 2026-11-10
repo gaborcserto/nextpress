@@ -19,8 +19,9 @@ import {
 import { IconButton } from "@/ui/primitives";
 import { NavItem } from "@/ui/shell/NavItem";
 
-import type { NavConfig, SidebarProps } from "./Sidebar.types";
 import type { IconType } from "react-icons";
+
+import type { NavConfig, SidebarProps } from "./Sidebar.types";
 
 const MotionSpan = motion.span;
 const MotionDiv = motion.div;

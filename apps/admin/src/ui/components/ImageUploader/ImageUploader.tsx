@@ -29,8 +29,10 @@ export default function ImageUploader({
     if (!files?.length || !uploaderAction) return;
 
     const file = files[0];
+
     if (!file.type.startsWith("image/")) {
       setError("Only image files are allowed.");
+
       return;
     }
 

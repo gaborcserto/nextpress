@@ -64,6 +64,7 @@ export async function GET(_req: Request, { params }: GetContext) {
 
     const actor = (await getSessionWithRole())?.user;
     const page = await getPageById(id, { actor });
+
     if (!page) return notfound();
 
     const tags = await getTagsForPage(page.id);
@@ -72,6 +73,7 @@ export async function GET(_req: Request, { params }: GetContext) {
     return ok({ item });
   } catch {
     console.error("GET /api/pages/[id] failed");
+
     return oops();
   }
 }
@@ -85,6 +87,7 @@ export const PUT = withAuth(
     const { id } = ctx.params;
 
     let body: unknown;
+
     try {
       body = await req.json();
     } catch {
@@ -93,6 +96,7 @@ export const PUT = withAuth(
 
     try {
       const updated = await updatePageService(id, body, session.user);
+
       return ok(updated);
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
@@ -106,6 +110,7 @@ export const PUT = withAuth(
       }
 
       console.error("PUT /api/pages/[id] failed");
+
       return oops();
     }
   },
@@ -122,12 +127,14 @@ export const DELETE = withAuth(
 
     try {
       await deletePageService(id, session.user);
+
       return ok({ ok: true });
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
       if (err instanceof ContentNotFoundError) return notfound();
 
       console.error("DELETE /api/pages/[id] failed");
+
       return oops();
     }
   },

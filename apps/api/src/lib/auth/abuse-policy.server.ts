@@ -33,6 +33,7 @@ function accountKey(body: unknown): string {
       ? body.email
       : undefined;
   const parsed = emailSchema.safeParse(email);
+
   return parsed.success ? `credential:${parsed.data}` : "credential:invalid";
 }
 
@@ -58,6 +59,7 @@ export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
   ) {
     enforce(authBudgets.consume("credential-work", 60, 60_000));
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+
     if (session) {
       // One account bucket across sign-in and current-password verification.
       enforce(
@@ -78,6 +80,7 @@ export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
     ].includes(ctx.path ?? "")
   ) {
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+
     if (session)
       enforce(
         actionLimits.consume(`account-mutation:${session.user.id}`, 30, 60_000),
@@ -85,6 +88,7 @@ export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
   } else if (ctx.path === "/list-sessions" || ctx.path === "/list-accounts") {
     // Better Auth returns the complete account-owned set rather than pagination.
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
+
     if (session)
       enforce(
         actionLimits.consume(`account-list:${session.user.id}`, 30, 60_000),

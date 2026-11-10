@@ -26,8 +26,10 @@ export function ForgotPasswordForm() {
     if (submissionLock.current || sent) return;
 
     const parsed = forgotPasswordSchema.safeParse({ email });
+
     if (!parsed.success) {
       setFieldError(fieldErrorsFromIssues(parsed.error.issues).email);
+
       return;
     }
 
@@ -44,6 +46,7 @@ export function ForgotPasswordForm() {
         setFormError(
           "Password recovery is unavailable. Contact an administrator.",
         );
+
         return;
       }
       setSent(true);
