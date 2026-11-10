@@ -4,10 +4,6 @@ import { createRequire } from "node:module";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const formatter = path.join(
-  path.dirname(require.resolve("oxfmt/package.json")),
-  "bin/oxfmt",
-);
 
 export function formatFiles(files, { cwd, write = false } = {}) {
   const selected = [...new Set(files)].filter((file) => {
@@ -19,6 +15,20 @@ export function formatFiles(files, { cwd, write = false } = {}) {
       throw error;
     }
   });
+  if (!selected.length) return selected;
+  // CI selects workspaces before installing dependencies.
+  let formatter;
+  try {
+    formatter = path.join(
+      path.dirname(require.resolve("oxfmt/package.json")),
+      "bin/oxfmt",
+    );
+  } catch (error) {
+    throw new Error(
+      "Oxfmt is required for formatting. Run npm ci before formatting checks or writes.",
+      { cause: error },
+    );
+  }
   // Without paths the CLI targets cwd. Never allow that implicit full write.
   for (let offset = 0; offset < selected.length; offset += 20) {
     const result = spawnSync(

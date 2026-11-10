@@ -87,9 +87,8 @@ export function LoadMorePostList({
         <p>
           Page <span aria-current="page">{page}</span>
         </p>
-        {canLoadMore && !enhanced ? (
-          <Link href={fallbackHref}>Next page</Link>
-        ) : canLoadMore ? (
+        {canLoadMore && !enhanced && <Link href={fallbackHref}>Next page</Link>}
+        {canLoadMore && enhanced && (
           <ActionButton
             type="button"
             disabled={loading}
@@ -98,9 +97,8 @@ export function LoadMorePostList({
           >
             {loading ? "Loading posts…" : "Load more posts"}
           </ActionButton>
-        ) : (
-          <span aria-hidden="true" />
         )}
+        {!canLoadMore && <span aria-hidden="true" />}
       </nav>
       {message ? (
         <p className={styles.batchStatus} role="status" aria-live="polite">

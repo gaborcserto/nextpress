@@ -8,6 +8,12 @@ import { safeImageUrl } from "@/lib/security/image-url";
 import type { UserAvatarProps } from "./UserAvatar.types";
 import { normalizeAvatarUrl } from "./UserAvatar.utils";
 
+const avatarSizes = {
+  sm: { pixels: 36, className: "w-9 h-9 text-sm" },
+  md: { pixels: 64, className: "w-16 h-16 text-2xl" },
+  lg: { pixels: 96, className: "w-24 h-24 text-4xl" },
+};
+
 export function UserAvatar({
   name,
   image,
@@ -18,14 +24,7 @@ export function UserAvatar({
   const [imgError, setImgError] = useState(false);
 
   const seed = (name?.trim() || "user").toLowerCase();
-  const px = size === "sm" ? 36 : size === "md" ? 64 : 96;
-
-  const sizeClass =
-    size === "sm"
-      ? "w-9 h-9 text-sm" // topbar
-      : size === "md"
-        ? "w-16 h-16 text-2xl"
-        : "w-24 h-24 text-4xl"; // profile
+  const { pixels: px, className: sizeClass } = avatarSizes[size];
 
   const wrapper = asButton
     ? `btn btn-ghost btn-circle avatar ${className}`

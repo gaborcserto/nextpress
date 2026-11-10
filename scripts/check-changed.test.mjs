@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -14,6 +14,82 @@ import test from "node:test";
 
 import { selectChanges } from "./affected-workspaces.mjs";
 import { localChanges, turboFilters } from "./check-changed.mjs";
+
+test("CI installs dependencies before formatting and keeps detection dependency-free", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+  const detection = workflow.split("  changes:")[1].split("  validate:")[0];
+  assert.ok(detection.includes("run: node scripts/check-changed.mjs --ci"));
+  assert.ok(!detection.includes("npm ci"));
+  const validation = workflow
+    .split("  validate:")[1]
+    .split("  quality-gates:")[0];
+  const install = validation.indexOf("run: npm ci");
+  const format = validation.indexOf(
+    "run: npm run format:check:changed -- --ci",
+  );
+  assert.ok(install !== -1 && format > install);
+});
+
+test("Quality Gates propagates upstream failures and permits only the expected validation result", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+  const gates = workflow.split("  quality-gates:")[1];
+  assert.ok(gates.includes("if: always()"));
+  for (const job of ["changes", "validate", "dependency-audit"])
+    assert.ok(gates.includes(`      - ${job}`));
+  for (const expression of [
+    "needs.changes.result",
+    "needs.validate.result",
+    "needs.changes.outputs.should_validate",
+    "needs.dependency-audit.result",
+  ])
+    assert.ok(gates.includes(`\${{ ${expression} }}`));
+  const match = / {8}run: \|\r?\n((?: {10}[^\n]*(?:\n|$))+)/.exec(gates);
+  assert.ok(match, "Quality Gates shell script must be present");
+  const script = match[1].replace(/^ {10}/gm, "");
+  // Use Git's POSIX shell on Windows, where bash on PATH may launch WSL.
+  const shell =
+    process.platform === "win32"
+      ? execFileSync("git", ["var", "GIT_SHELL_PATH"], {
+          encoding: "utf8",
+        }).trim()
+      : "bash";
+  for (const changes of ["success", "failure", "cancelled", "skipped"])
+    for (const audit of ["success", "failure", "cancelled", "skipped"])
+      for (const required of ["true", "false"])
+        for (const validation of [
+          "success",
+          "failure",
+          "cancelled",
+          "skipped",
+        ]) {
+          const expected =
+            changes === "success" &&
+            audit === "success" &&
+            validation === (required === "true" ? "success" : "skipped");
+          const result = spawnSync(shell, ["-c", script], {
+            env: {
+              ...process.env,
+              CHANGES_RESULT: changes,
+              AUDIT_RESULT: audit,
+              VALIDATE_REQUIRED: required,
+              VALIDATE_RESULT: validation,
+            },
+            encoding: "utf8",
+          });
+          assert.ifError(result.error);
+          assert.equal(
+            result.status,
+            expected ? 0 : 1,
+            `${changes}/${audit}/${required}/${validation}: ${result.stderr}`,
+          );
+        }
+});
 
 test("one application selects its directory", () => {
   assert.deepEqual(turboFilters(selectChanges(["apps/web/src/app/page.tsx"])), [
@@ -218,10 +294,29 @@ test("Git collection includes staged, unstaged and untracked paths, including sp
     // Changing the same staged file must not hide either version's path.
     writeFileSync(path.join(directory, "staged.ts"), "updated");
     writeFileSync(path.join(directory, "untracked file.ts"), "new");
+    writeFileSync(path.join(directory, ".gitignore"), "ignored.ts\n");
+    git("add", ".gitignore");
+    writeFileSync(path.join(directory, "ignored.ts"), "ignored");
     assert.deepEqual(localChanges(git).sort(), [
+      ".gitignore",
       "staged.ts",
       "untracked file.ts",
     ]);
+    // Even when unstaged content restores HEAD, the index still needs checking.
+    git(
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@example.invalid",
+      "commit",
+      "--quiet",
+      "-m",
+      "fixture",
+    );
+    writeFileSync(path.join(directory, "staged.ts"), "staged change");
+    git("add", "staged.ts");
+    writeFileSync(path.join(directory, "staged.ts"), "initial");
+    assert.ok(localChanges(git).includes("staged.ts"));
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
