@@ -8,7 +8,8 @@
         "$TURBO_DEFAULT$",
         "apps/admin/.env",
         "apps/web/.env",
-        "packages/db/.env"
+        "packages/db/.env",
+        "apps/api/.env"
       ],
       "env": [
         "BETTER_AUTH_URL",
@@ -26,7 +27,8 @@
         "FACEBOOK_CLIENT_ID",
         "FACEBOOK_CLIENT_SECRET",
         "DISCORD_CLIENT_ID",
-        "DISCORD_CLIENT_SECRET"
+        "DISCORD_CLIENT_SECRET",
+        "API_INTERNAL_ORIGIN"
       ]
     },
     "build": {
@@ -36,7 +38,8 @@
         "$TURBO_DEFAULT$",
         "apps/admin/.env",
         "apps/web/.env",
-        "packages/db/.env"
+        "packages/db/.env",
+        "apps/api/.env"
       ],
       "env": [
         "BETTER_AUTH_URL",
@@ -55,7 +58,8 @@
         "FACEBOOK_CLIENT_ID",
         "FACEBOOK_CLIENT_SECRET",
         "DISCORD_CLIENT_ID",
-        "DISCORD_CLIENT_SECRET"
+        "DISCORD_CLIENT_SECRET",
+        "API_INTERNAL_ORIGIN"
       ]
     },
     "lint": {
@@ -63,7 +67,8 @@
         "$TURBO_DEFAULT$",
         "apps/admin/.env",
         "apps/web/.env",
-        "packages/db/.env"
+        "packages/db/.env",
+        "apps/api/.env"
       ],
       "env": [
         "NEXTPRESS_SECURITY_TEST_DATABASE_URL",
@@ -89,7 +94,8 @@
         "FACEBOOK_CLIENT_SECRET",
         "DISCORD_CLIENT_ID",
         "DISCORD_CLIENT_SECRET",
-        "NEXTPRESS_CONTENT_TEST_DATABASE_URL"
+        "NEXTPRESS_CONTENT_TEST_DATABASE_URL",
+        "API_INTERNAL_ORIGIN"
       ]
     },
     "test": {

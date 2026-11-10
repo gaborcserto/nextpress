@@ -9,6 +9,8 @@ import {
 import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
 import type { RoleName } from "@/lib/auth/roles";
 
+import type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";
+
 export type OAuthProviderSettings = {
   provider: OAuthProviderName;
   enabled: boolean;
@@ -33,33 +35,32 @@ export type ProviderCredentialUpdates = Partial<
   Record<OAuthProviderName, { clientSecret?: string }>
 >;
 
-export type SettingsApiResponse = Omit<SettingsFormValues, "postsPerPage"> & { postsPerPage: number };
-type SettingsApiData = Partial<Omit<SettingsApiResponse, "postListingMode" | "postsPerPage">> & {
+export type SettingsApiResponse = Omit<SettingsFormValues, "postsPerPage"> & {
+  postsPerPage: number;
+};
+type SettingsApiData = Partial<
+  Omit<SettingsApiResponse, "postListingMode" | "postsPerPage">
+> & {
   postListingMode?: unknown;
   postsPerPage?: unknown;
-};
-
-export type SettingsApiPayload = Omit<SettingsFormValues, "oauthProviders" | "postsPerPage"> & {
-  postsPerPage: number;
-  oauthProviders: Array<
-    Pick<OAuthProviderSettings, "provider" | "enabled" | "clientId"> & {
-      clientSecret?: string;
-    }
-  >;
 };
 
 export function normalizeSettingsForm(
   data: SettingsApiData | null | undefined,
   fallbackRole: RoleName,
 ): SettingsFormValues {
-  const postListingMode = PostListingModeSchema.safeParse(data?.postListingMode);
+  const postListingMode = PostListingModeSchema.safeParse(
+    data?.postListingMode,
+  );
   return {
     siteName: data?.siteName ?? "",
     siteDescription: data?.siteDescription ?? "",
     siteUrl: data?.siteUrl ?? "",
     ogImageUrl: data?.ogImageUrl ?? "",
     defaultUserRole: data?.defaultUserRole ?? fallbackRole,
-    postListingMode: postListingMode.success ? postListingMode.data : DEFAULT_POST_LISTING_MODE,
+    postListingMode: postListingMode.success
+      ? postListingMode.data
+      : DEFAULT_POST_LISTING_MODE,
     postsPerPage: normalizePostsPerPage(data?.postsPerPage),
     oauthProviders: data?.oauthProviders ?? [],
   };
@@ -85,3 +86,5 @@ export function buildSettingsPayload(
     })),
   };
 }
+
+export type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";

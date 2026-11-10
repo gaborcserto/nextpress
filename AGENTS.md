@@ -7,14 +7,15 @@ This file is the repository-level source of truth for coding agents. Read it bef
 NextPress is an npm workspace monorepo run with Turborepo:
 
 - `apps/web`: public-facing Next.js application.
-- `apps/admin`: authenticated Next.js administration application, content editing UI, and API route handlers.
+- `apps/api`: authoritative Node.js Next.js backend, Better Auth, API routes, validation, services and repositories.
+- `apps/admin`: authenticated administration UI consuming the API through same-origin HTTP forwarding.
 - `packages/db`: Prisma schema, generated client integration, migrations, seed logic, and database package code.
 - `packages/shared`: genuinely cross-workspace TypeScript exports.
 - `packages/eslint-config`: shared flat ESLint configuration for the Next.js applications.
 
-Both applications are first-class. Keep code in its owning workspace, and do not assume that an admin pattern also belongs in the public application. Add to `packages/shared` only when more than one workspace needs the same abstraction.
+All three applications are first-class. Keep code in its owning workspace, and do not assume that an admin pattern also belongs in the public application. Add to `packages/shared` only when more than one workspace needs the same abstraction.
 
-Admin-specific: keep admin UI organized with the existing `src/components`, `src/ui`, `src/lib`, and `src/app/api` split. Admin validation commonly lives in `src/lib/validation`; follow a nearby implementation before adding another location.
+Admin-specific: keep admin UI organized with the existing `src/components`, `src/ui`, `src/lib`, and `src/app/api` split. API validation commonly lives in `apps/api/src/lib/validation`; follow a nearby implementation before adding another location.
 
 The database package owns `packages/db/prisma/schema.prisma`, migrations, seed logic, and the Prisma client. Do not edit generated output. Do not change the schema or migrations unless the task explicitly requires a database change and includes the appropriate Prisma workflow.
 
@@ -45,20 +46,20 @@ Preserve existing behavior unless the task intentionally changes it, and make th
 - Prefer domain types, inferred types where readable, schema-derived types, Prisma-generated types, and library-provided types.
 - Narrow `unknown` at boundaries. Avoid `any`, unsafe casts, unnecessary `as`, `@ts-ignore`, and unnecessary non-null assertions.
 - Reuse existing types and schemas instead of duplicating interfaces or validation rules.
-- Treat request bodies, query parameters, form values, URL values, uploaded content, and external responses as untrusted. Validate them at the appropriate boundary; use the existing Zod validation and error-handling patterns in admin where applicable.
+- Treat request bodies, query parameters, form values, URL values, uploaded content, and external responses as untrusted. Validate them at the appropriate boundary; use the existing Zod validation and error-handling patterns in API where applicable.
 - Keep client and server responsibilities clear in Next.js. Do not import server-only database, secret, or authentication code into client components.
 
 ## Security
 
 - Authentication and authorization are different responsibilities. Enforce authorization on the server for every protected operation.
-- Admin-specific: preserve the existing Better Auth/session boundaries and reuse server auth helpers such as `withAuth` and role checks rather than relying on hidden UI controls or client-provided roles.
+- API-specific: preserve the existing Better Auth/session boundaries and reuse server auth helpers such as `withAuth` and role checks rather than relying on hidden UI controls or client-provided roles.
 - Never expose secrets, credentials, tokens, session secrets, OAuth secrets, database URLs, or other sensitive environment values to client code or logs. Keep real `.env` files out of Git; update only `.env.example` when documenting required variables.
 - Use safe Prisma operations with explicit `where` clauses and allowlisted fields. Never blindly spread request payloads into database create or update calls.
 - Return stable, minimal client-facing errors. Do not expose stack traces, SQL details, credentials, or unnecessary internal state.
 - Preserve existing input sanitization for rich content and URLs. Do not bypass it for convenience.
 - Do not redesign authentication or authorization as part of an unrelated task; flag broader security issues for a dedicated change.
 
-In admin API routes, follow the existing response and error-handling helpers where they fit. Across both applications, do not swallow failures, leak internal details, or introduce a second error contract without a concrete need.
+In API routes, follow the existing response and error-handling helpers where they fit. Across both applications, do not swallow failures, leak internal details, or introduce a second error contract without a concrete need.
 
 ## UI and accessibility
 
@@ -92,6 +93,7 @@ Run commands from the repository root unless a workspace is intentionally target
 
 - `npm run dev`: run workspace development servers through Turbo.
 - `npm run dev:web`: run `apps/web` at `http://localhost:49100`.
+- `npm run dev:api`: run `apps/api` at `http://localhost:49102`.
 - `npm run dev:admin`: run `apps/admin` at `http://localhost:49101`.
 - `npm run build`: build all workspaces through Turbo.
 - `npm run lint`: lint all configured workspaces through Turbo.
@@ -107,9 +109,9 @@ Run commands from the repository root unless a workspace is intentionally target
 - `npm run db:up`: start local services from `docker-compose.yml`.
 - `npm run bootstrap`: start local database services, then all development servers.
 
-Useful narrow checks include `npm --workspace admin run lint`, `npm --workspace admin test`, `npm --workspace web run lint`, `npm --workspace web test`, `npm --workspace @nextpress/db run lint`, `npm --workspace @nextpress/db test`, `npm --workspace @nextpress/db run validate`, and `npm --workspace @nextpress/shared test`. Use the relevant checks for the files changed. Do not claim a check passed unless that command was actually run and passed.
+Useful narrow checks include `npm --workspace api run lint`, `npm --workspace api test`, `npm --workspace admin run lint`, `npm --workspace admin test`, `npm --workspace web run lint`, `npm --workspace web test`, `npm --workspace @nextpress/db run lint`, `npm --workspace @nextpress/db test`, `npm --workspace @nextpress/db run validate`, and `npm --workspace @nextpress/shared test`. Use the relevant checks for the files changed. Do not claim a check passed unless that command was actually run and passed.
 
-Environment templates are `apps/web/.env.example`, `apps/admin/.env.example`, and `packages/db/.env.example`. Local database/auth-dependent flows require the corresponding environment and PostgreSQL setup. Do not assume port `3000`.
+Environment templates are `apps/api/.env.example`, `apps/web/.env.example`, `apps/admin/.env.example`, and `packages/db/.env.example`. Local database/auth-dependent flows require the corresponding environment and PostgreSQL setup. Do not assume port `3000`.
 
 ## Completion checklist
 

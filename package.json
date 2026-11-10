@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:web": "npm --workspace web run dev",
-    "dev:admin": "npm --workspace admin run dev",
+    "dev:admin": "turbo run dev --parallel --filter=admin --filter=api",
     "build": "turbo run build",
     "lint": "npm run lint:root && turbo run lint",
     "lint:root": "eslint scripts/ \"*.{mjs,cjs}\" --max-warnings 0",
@@ -24,20 +24,21 @@
     "typecheck": "turbo run typecheck",
     "check:changed": "node scripts/check-changed.mjs",
     "check:changed:test": "node --test scripts/check-changed.test.mjs scripts/quality-files.test.mjs",
-    "openapi:validate": "npm --workspace admin run openapi:validate",
+    "openapi:validate": "npm --workspace api run openapi:validate",
     "prisma:generate": "turbo run prisma:generate",
     "prisma:migrate": "turbo run prisma:migrate",
     "prisma:validate": "turbo run validate --filter=@nextpress/db",
     "prisma:deploy": "turbo run prisma:deploy",
     "db:up": "docker compose up -d",
     "db:seed": "npm --workspace @nextpress/db run seed",
-    "admin:bootstrap": "npm --workspace admin run bootstrap:admin",
+    "admin:bootstrap": "npm --workspace api run bootstrap:admin",
     "bootstrap": "npm run db:up && npm run dev",
     "prepare": "husky",
     "agents:validate": "node scripts/validate-agent-resources.mjs",
     "agents:test": "node --test scripts/validate-agent-resources.test.mjs",
     "format:changed": "node scripts/check-changed.mjs --format",
-    "format:check:changed": "node scripts/check-changed.mjs --format-check"
+    "format:check:changed": "node scripts/check-changed.mjs --format-check",
+    "dev:api": "npm --workspace api run dev"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

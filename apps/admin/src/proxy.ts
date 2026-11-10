@@ -8,8 +8,9 @@ export function proxy(request: NextRequest) {
   const policy = adminContentSecurityPolicy(
     nonce,
     process.env.NODE_ENV === "production",
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-    request.nextUrl.pathname === "/api-docs" || request.nextUrl.pathname.startsWith("/api-docs/"),
+    undefined,
+    request.nextUrl.pathname === "/api-docs" ||
+      request.nextUrl.pathname.startsWith("/api-docs/"),
   );
   const requestHeaders = new Headers(request.headers);
   // Overwrite untrusted inbound CSP; only our nonce may authorize scripts.

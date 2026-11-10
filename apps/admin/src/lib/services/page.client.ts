@@ -4,17 +4,10 @@ import { apiFetch } from "@/lib/api";
 import type { PageFormValues } from "@/lib/content/contracts";
 import { slateToString } from "@/lib/content/editor";
 
-export type PageDto = {
-  type: "PAGE";
-  layout: PageFormValues["type"];
-  status: PageFormValues["status"];
-  slug: string;
-  title: string;
-  content: string;
-  inHeaderMenu: boolean;
-  inFooterMenu: boolean;
-  tagIds: string[];
-};
+import type { PageSchema } from "@nextpress/shared/api-contracts";
+import type { z } from "zod";
+
+export type PageDto = z.input<typeof PageSchema>;
 
 export function pageValuesToDto(values: PageFormValues): PageDto {
   const tagIds =
@@ -39,7 +32,7 @@ export type PageApiResult = {
 };
 
 export async function createPageApi(
-  values: PageFormValues
+  values: PageFormValues,
 ): Promise<PageApiResult> {
   const body = pageValuesToDto(values);
 
@@ -54,7 +47,7 @@ export async function createPageApi(
 
 export async function updatePageApi(
   id: string,
-  values: PageFormValues
+  values: PageFormValues,
 ): Promise<PageApiResult> {
   const body = pageValuesToDto(values);
 

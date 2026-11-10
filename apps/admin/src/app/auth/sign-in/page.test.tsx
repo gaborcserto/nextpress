@@ -7,7 +7,7 @@ const { session, getProviders, redirect } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({ redirect }));
-vi.mock("@/lib/auth/auth-server", () => ({
+vi.mock("@/lib/auth/session.server", () => ({
   getSessionWithRole: session,
   getOperationalOAuthProviders: getProviders,
 }));

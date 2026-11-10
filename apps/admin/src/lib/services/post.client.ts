@@ -4,20 +4,14 @@ import { apiFetch } from "@/lib/api";
 import type { PostFormValues } from "@/lib/content/contracts";
 import { slateToString } from "@/lib/content/editor";
 
+import type { PageSchema } from "@nextpress/shared/api-contracts";
+import type { z } from "zod";
+
 /**
  * Data Transfer Object used when creating or updating a Post via the API.
  * This represents the normalized, backend-facing shape of PostFormValues.
  */
-export type PostDto = {
-  type: "POST";
-  status: PostFormValues["status"];
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  tagIds: string[];
-  publishedAt: PostFormValues["publishedAt"];
-};
+export type PostDto = z.input<typeof PageSchema>;
 
 /**
  * Convert PostFormValues coming from the UI into a PostDto
@@ -54,7 +48,7 @@ export type PostApiResult = {
  * Create a new post via the API.
  */
 export async function createPostApi(
-  values: PostFormValues
+  values: PostFormValues,
 ): Promise<PostApiResult> {
   const body = postValuesToDto(values);
 
@@ -72,7 +66,7 @@ export async function createPostApi(
  */
 export async function updatePostApi(
   id: string,
-  values: PostFormValues
+  values: PostFormValues,
 ): Promise<PostApiResult> {
   const body = postValuesToDto(values);
 

@@ -9,7 +9,10 @@
     "./auth-policy": "./src/utils/auth-policy.ts",
     "./content": "./src/content.ts",
     "./utils/*": "./src/utils/*",
-    "./api-contracts": "./src/api-contracts.ts"
+    "./api-contracts": "./src/api-contracts.ts",
+    "./roles": "./src/roles.ts",
+    "./oauth-providers": "./src/oauth-providers.ts",
+    "./settings-contracts": "./src/settings-contracts.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

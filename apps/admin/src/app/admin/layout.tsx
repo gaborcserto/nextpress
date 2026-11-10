@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSessionWithRole } from "@/lib/auth/auth-server";
+import { getSessionWithRole } from "@/lib/auth/session.server";
 import { AppShell } from "@/ui/shell";
 
 import type { ReactNode } from "react";

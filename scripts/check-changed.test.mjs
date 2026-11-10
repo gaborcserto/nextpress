@@ -341,3 +341,10 @@ test("CI detection failure emits full verification outputs", () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("API changes select the API workspace without dependency installation", () => {
+  assert.deepEqual(
+    selectChanges(["apps/api/src/app/api/health/route.ts"]).directories,
+    ["apps/api"],
+  );
+});

@@ -125,6 +125,30 @@ jobs:
       - name: Validate schema and deploy migrations to isolated service
         run: npm run prisma:validate && npm run prisma:deploy
 
+      - name: Validate isolated backend transactions
+        env:
+          PGPASSWORD: postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nextpress_phase1_verify_ci
+          NEXTPRESS_CONTENT_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nextpress_phase1_verify_ci
+        run: |
+          createdb --host localhost --username postgres nextpress_phase1_verify_ci
+          npm --workspace @nextpress/db run prisma:deploy
+          npm run prisma:generate
+          npm --workspace api test -- src/lib/repos/content-transaction.integration.test.ts
+
+      - name: Validate isolated authentication lifecycle
+        env:
+          PGPASSWORD: postgres
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nextpress_security_verify_ci
+          NEXTPRESS_SECURITY_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nextpress_security_verify_ci
+          ADMIN_EMAIL: ci-admin@example.invalid
+          ADMIN_PASSWORD: disposable-ci-bootstrap-passphrase
+        run: |
+          createdb --host localhost --username postgres nextpress_security_verify_ci
+          npm --workspace @nextpress/db run prisma:deploy
+          npm run admin:bootstrap
+          npm --workspace api test -- src/lib/auth/live-postgres.integration.test.ts
+
       - name: Validate affected workspaces
         env:
           TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}

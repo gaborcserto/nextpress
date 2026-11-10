@@ -23,7 +23,7 @@ export function selectChanges(
       };
     if (file.endsWith(".md")) continue;
     const directory =
-      /^(apps\/(?:web|admin)|packages\/(?:db|shared|eslint-config))\//.exec(
+      /^(apps\/(?:web|admin|api)|packages\/(?:db|shared|eslint-config))\//.exec(
         file,
       )?.[1];
     if (!directory)

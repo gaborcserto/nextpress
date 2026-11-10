@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 
 import SignInForm from "@/components/auth/SignInForm";
-import { getOperationalOAuthProviders, getSessionWithRole } from "@/lib/auth/auth-server";
+import {
+  getOperationalOAuthProviders,
+  getSessionWithRole,
+} from "@/lib/auth/session.server";
 
 export const dynamic = "force-dynamic";
 
