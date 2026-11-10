@@ -36,6 +36,7 @@ function mapPostToFormValues(
   tags: Awaited<ReturnType<typeof getPostWithTagsService>>["tags"],
 ): EditorialPost {
   return {
+    workingVersion: page.workingVersion,
     status: page.status,
     slug: page.slug,
     title: page.title,

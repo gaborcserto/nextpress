@@ -68,8 +68,9 @@ export async function createPostApi(
 export async function updatePostApi(
   id: string,
   values: PostFormValues,
+  expectedVersion: number,
 ): Promise<PostApiResult> {
-  const body = postValuesToDto(values);
+  const body = { ...postValuesToDto(values), expectedVersion };
 
   const res = await apiFetch(`/api/post/${id}`, {
     method: "PUT",

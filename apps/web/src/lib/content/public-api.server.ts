@@ -12,7 +12,7 @@ export class PublicApiError extends Error {
   }
 }
 
-function apiOrigin(): string {
+export function publicApiOrigin(): string {
   const configured = process.env.API_INTERNAL_ORIGIN;
 
   if (!configured && process.env.NODE_ENV === "production") {
@@ -46,7 +46,7 @@ export async function fetchPublic<T>(
   missingAllowed = false,
 ): Promise<T | null> {
   try {
-    const response = await fetch(`${apiOrigin()}/api/public/${path}`, {
+    const response = await fetch(`${publicApiOrigin()}/api/public/${path}`, {
       cache: "no-store",
       credentials: "omit",
       redirect: "error",
@@ -63,7 +63,17 @@ export async function fetchPublic<T>(
 
     return parsed.data;
   } catch (error) {
-    if (error instanceof PublicApiError) throw error;
-    throw new PublicApiError(503, "transport");
+    const failure =
+      error instanceof PublicApiError
+        ? error
+        : new PublicApiError(503, "transport");
+    console.error(
+      JSON.stringify({
+        event: "public.upstream.failed",
+        code: failure.code,
+        status: failure.status,
+      }),
+    );
+    throw failure;
   }
 }

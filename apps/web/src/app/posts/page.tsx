@@ -8,8 +8,13 @@ import { Container } from "@/components/public-ui/Container";
 import { getMaxPostsPage, parsePostsPage } from "@/lib/content/post-archive";
 import { getPublishedPosts } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
+import { contentMetadata } from "@/lib/settings/seo";
 
 import styles from "./page.module.css";
+
+export function generateMetadata() {
+  return contentMetadata("Posts", "/posts");
+}
 
 type PostsPageProps = {
   searchParams: Promise<{ page?: string | string[] }>;

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -59,17 +61,24 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <PageForm
-      initial={item}
-      submitting={saving}
-      submitLabel={submitLabel}
-      onSubmitAction={handleSubmit}
-      loadTagOptionsAction={loadTagOptionsAction}
-      createTagAction={createTagAction}
-      loadEntityTagsAction={loadEntityTagsAction}
-      updateEntityTagsAction={updateEntityTagsAction}
-      sidebarTitle={title}
-      sidebarSubtitle={subtitle}
-    />
+    <>
+      {isEdit && (
+        <Link className="btn" href={`/admin/pages/${id}/composition`}>
+          Composition and working revisions
+        </Link>
+      )}
+      <PageForm
+        initial={item}
+        submitting={saving}
+        submitLabel={submitLabel}
+        onSubmitAction={handleSubmit}
+        loadTagOptionsAction={loadTagOptionsAction}
+        createTagAction={createTagAction}
+        loadEntityTagsAction={loadEntityTagsAction}
+        updateEntityTagsAction={updateEntityTagsAction}
+        sidebarTitle={title}
+        sidebarSubtitle={subtitle}
+      />
+    </>
   );
 }

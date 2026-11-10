@@ -7,6 +7,7 @@ import {
   MAX_POSTS_PER_PAGE,
 } from "@nextpress/shared";
 import { ContentSlugSchema, richContentText } from "@nextpress/shared/content";
+import { readPageDocument } from "@nextpress/shared/page-document";
 
 import { parsePublicRichContent } from "./rich-content";
 
@@ -23,6 +24,7 @@ const publicContentSelect = {
   title: true,
   excerpt: true,
   content: true,
+  pageDocument: true,
   publishedAt: true,
   author: { select: { name: true } },
   taxonomies: {
@@ -72,7 +74,11 @@ type PublicPostBatch = z.infer<typeof PublicPostBatchSchema>;
 function projectPublicContent(row: PublicContentRow): PublicContent {
   if (!row.publishedAt) throw new Error("Missing publication time");
   const cover = row.cover;
+  const document = row.pageDocument ? readPageDocument(row.pageDocument) : null;
   return {
+    ...(row.pageDocument
+      ? { pageDocument: document?.supported ? document.document : null }
+      : {}),
     slug: row.slug,
     title: row.title,
     summary: richContentText(parsePublicRichContent(row.excerpt)),

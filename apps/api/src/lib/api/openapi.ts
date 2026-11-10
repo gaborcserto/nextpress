@@ -13,6 +13,8 @@ import {
   PublicPaginationSchema,
   SessionDiscoverySchema,
   ProviderDiscoverySchema,
+  PublicContentIndexSchema,
+  PublicContentIndexQuerySchema,
 } from "@nextpress/shared/api-contracts";
 import {
   emailSchema,
@@ -24,6 +26,16 @@ import {
   RichBlocksSchema,
   RichDocumentSchema,
 } from "@nextpress/shared/content";
+import {
+  MediaMetadataSchema,
+  MediaUploadSchema,
+} from "@nextpress/shared/media";
+import {
+  RevisionActionSchema,
+  RevisionInputSchema,
+  RevisionListSchema,
+  RevisionRecordSchema,
+} from "@nextpress/shared/revisions";
 import { z } from "zod";
 
 import { OAUTH_PROVIDERS } from "@/lib/auth/oauth-providers";
@@ -126,6 +138,13 @@ const settingsProperties = {
 };
 
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
+  MediaUpload: schema(MediaUploadSchema),
+  RevisionInput: schema(RevisionInputSchema),
+  RevisionAction: schema(RevisionActionSchema),
+  RevisionList: schema(RevisionListSchema),
+  RevisionRecord: schema(RevisionRecordSchema),
+  MediaMetadata: schema(MediaMetadataSchema),
+  PublicContentIndex: schema(PublicContentIndexSchema),
   Health: object({ status: { type: "string", enum: ["ok"] } }),
   Error: schema(ApiErrorSchema),
   Success: object({ ok: { type: "boolean", enum: [true] } }),
@@ -213,7 +232,7 @@ const errors: Record<number, string> = {
   401: "Session missing or role disallowed (both currently return 401).",
   403: "Untrusted mutation Origin or content ownership restriction.",
   404: "Resource missing or hidden by content read scope.",
-  409: "Slug or email conflict.",
+  409: "Resource conflict, stale revision, referenced media, or last-administrator protection.",
   413: "Request body exceeds 5,000,000 bytes.",
   415: "Mutation Content-Type must be application/json.",
   429: "Application mutation rate limit reached.",
@@ -241,6 +260,13 @@ function operation(
   const responses: OpenAPIV3.ResponsesObject = {
     [success]: response("Success", result),
   };
+
+  if ("format" in result && result.format === "binary") {
+    responses[success] = {
+      description: "PNG image",
+      content: { "image/png": { schema: result } },
+    };
+  }
 
   for (const code of codes) {
     responses[code] =
@@ -312,6 +338,127 @@ const readScope =
 const writeScope =
   "ADMIN, EDITOR or AUTHOR. AUTHOR may update only owned content. Mutations require a trusted Origin and application/json; request body maximum 5,000,000 bytes.";
 const paths: OpenAPIV3.PathsObject = {
+  "/api/public/content": {
+    get: {
+      ...operation(
+        "publicContentIndex",
+        "Delivery",
+        "Published content index for listings and sitemap",
+        ref("PublicContentIndex"),
+        [400, 500],
+        "Cookie-independent. Published and dated only. Bounded pagination; no body content or ownership information.",
+      ),
+      parameters: Object.entries(PublicContentIndexQuerySchema.shape).map(
+        ([key, value]) =>
+          parameter(
+            key,
+            "query",
+            schema(value),
+            "Bounded content index filter",
+            false,
+          ),
+      ),
+    },
+  },
+  "/api/media": {
+    get: operation(
+      "listMedia",
+      "Media",
+      "List authorized media",
+      { type: "array", items: ref("MediaMetadata") },
+      [401, 403, 500],
+      "ADMIN/EDITOR all; AUTHOR owned media only.",
+      "protected",
+    ),
+    post: operation(
+      "uploadMedia",
+      "Media",
+      "Upload validated PNG or JPEG",
+      ref("MediaMetadata"),
+      [400, ...mutationCodes, 500],
+      "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Signature and full decoder validation; normalized to PNG. No client paths or filenames accepted. ADMIN/EDITOR/AUTHOR only.",
+      "protected",
+      "MediaUpload",
+      201,
+    ),
+  },
+  "/api/media/{id}": {
+    parameters: [id],
+    get: operation(
+      "serveMedia",
+      "Media",
+      "Serve authorized or published referenced media",
+      { type: "string", format: "binary" },
+      [404, 500],
+      "Private media requires an editor/admin or owning author session. No-store; PNG only.",
+      "optional",
+    ),
+    delete: operation(
+      "deleteMedia",
+      "Media",
+      "Delete unreferenced media",
+      ref("Success"),
+      [400, ...mutationCodes, 404, 409, 500],
+      "ADMIN/EDITOR all; AUTHOR owned only. References in published content, drafts or revision history block deletion.",
+      "protected",
+    ),
+  },
+  "/api/public/media/{id}": {
+    parameters: [id],
+    get: operation(
+      "publicMedia",
+      "Media",
+      "Serve only publicly referenced images",
+      { type: "string", format: "binary" },
+      [404, 500],
+      "Requires an exact media reference from published, dated content. Ignores sessions; no-store.",
+      "public",
+    ),
+  },
+  "/api/pages/{id}/revisions": {
+    parameters: [id],
+    get: {
+      ...operation(
+        "listRevisions",
+        "Content",
+        "List working revisions or preview one",
+        { oneOf: [ref("RevisionList"), ref("RevisionRecord")] },
+        [401, 403, 404, 500],
+        "Authenticated ADMIN/EDITOR or owning AUTHOR only. Private no-store. Preview requires explicit revisionId; public delivery is never overridden.",
+        "protected",
+      ),
+      parameters: [
+        parameter(
+          "revisionId",
+          "query",
+          string,
+          "Exact revision identity for authenticated preview.",
+          false,
+        ),
+      ],
+    },
+    post: operation(
+      "saveRevision",
+      "Content",
+      "Save an independent working revision",
+      ref("RevisionRecord"),
+      [400, ...mutationCodes, 409, 500],
+      "Requires expectedVersion and a full revision snapshot. Does not change published content. Authenticated ADMIN/EDITOR or owning AUTHOR.",
+      "protected",
+      "RevisionInput",
+      201,
+    ),
+    patch: operation(
+      "revisionAction",
+      "Content",
+      "Restore, publish or unpublish a revision",
+      { type: "object", additionalProperties: true },
+      [400, ...mutationCodes, 404, 409, 500],
+      "Requires exact revisionId and expectedVersion. Restore creates a new draft and never publishes. Author publishing rights remain scoped to owned content.",
+      "protected",
+      "RevisionAction",
+    ),
+  },
   "/api/health": {
     get: operation(
       "health",
@@ -423,7 +570,7 @@ for (const [path, kind, detail] of [
       `Update ${kind.toLowerCase()}`,
       ref("ContentRecord"),
       [400, ...mutationCodes, 404, 409, 500],
-      `${writeScope} Partial update despite PUT; content type cannot change. Unknown fields are stripped.`,
+      `${writeScope} Partial update despite PUT; expectedVersion from editorial GET workingVersion is required. Missing versions return 400; stale versions return 409 without writing. Content type cannot change. Unknown fields are stripped.`,
       "protected",
       `${kind}Update`,
     ),
@@ -587,8 +734,8 @@ paths["/api/admin/users/{id}"] = {
     "Users",
     "Delete a user",
     ref("Success"),
-    [400, ...mutationCodes, 404, 500],
-    "ADMIN only. Requires trusted Origin.",
+    [400, ...mutationCodes, 404, 409, 500],
+    "ADMIN only. Requires trusted Origin. The final administrator cannot be deleted.",
     "protected",
   ),
 };
@@ -606,8 +753,8 @@ paths["/api/admin/users/{id}/role"] = {
     "Users",
     "Assign a user role",
     ref("UpdatedRole"),
-    [400, ...mutationCodes, 404, 500],
-    "ADMIN only. Requires trusted Origin and application/json.",
+    [400, ...mutationCodes, 404, 409, 500],
+    "ADMIN only. Requires trusted Origin and application/json. The final administrator cannot be demoted.",
     "protected",
     "RoleUpdate",
   ),

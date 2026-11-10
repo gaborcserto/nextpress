@@ -165,6 +165,8 @@ model Page {
   title   String
   excerpt String?
   content String // Serialized RichDocument; legacy HTML is read as literal text.
+  pageDocument String?
+  workingVersion Int @default(0)
 
   // Layout / template (corresponds to PageForm.type)
   layout PageLayout @default(STANDARD)
@@ -280,6 +282,8 @@ model PageRevision {
   slug        String
   excerpt     String?
   content     String
+  pageDocument String?
+  workingVersion Int @default(0)
   layout      PageLayout
   status      PublishStatus
   publishedAt DateTime?

@@ -327,7 +327,11 @@ export function withAuth<
   mutationLimit?: MutationLimit,
 ) {
   return async (req: Request, ctx: RawHandlerCtx<P>) => {
-    const rejection = requireTrustedMutation(req);
+    // HTTP adapters can represent a bodyless DELETE as an empty stream.
+    // Validate its actual body after the bounded read, retaining the Origin gate.
+    const rejection = requireTrustedMutation(req, {
+      bodyReadPending: req.method === "DELETE",
+    });
 
     if (rejection) return rejection;
     const params = await ctx.params;
@@ -349,6 +353,9 @@ export function withAuth<
     const bounded = await readBoundedMutationRequest(req);
 
     if (bounded.response) return bounded.response;
+    const bodyRejection = requireTrustedMutation(bounded.request ?? req);
+
+    if (bodyRejection) return bodyRejection;
 
     return handler(
       bounded.request ?? req,

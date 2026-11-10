@@ -20,6 +20,8 @@ mkdirSync(destination, { recursive: true });
 // Next traces local environment files too; never ship operator credentials.
 cpSync(source, destination, {
   recursive: true,
+  // Keep Next's relative external-package links portable after copying.
+  verbatimSymlinks: true,
   filter: (file) => !path.basename(file).startsWith(".env"),
 });
 for (const directory of [".next/static", "public"]) {

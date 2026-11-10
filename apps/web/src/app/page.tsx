@@ -4,8 +4,15 @@ import { PostList } from "@/components/public-content/PostList";
 import { Container } from "@/components/public-ui/Container";
 import { getPublishedPosts } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
+import { contentMetadata } from "@/lib/settings/seo";
 
 import styles from "./page.module.css";
+
+export async function generateMetadata() {
+  const settings = await getPublicSiteSettings();
+
+  return contentMetadata(settings.siteName, "/", settings.siteDescription);
+}
 
 export default async function Home() {
   const [settings, latest] = await Promise.all([

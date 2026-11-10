@@ -103,7 +103,7 @@ describe("OpenAPI contract", () => {
         tagIds: { type: "array", maxItems: 100 },
       },
     });
-    expect(schemas?.PageUpdate).not.toHaveProperty("required");
+    expect(schemas?.PageUpdate).toHaveProperty("required", ["expectedVersion"]);
     expect(schemas?.PageDetail).toMatchObject({
       properties: { item: { properties: { content: { type: "array" } } } },
     });

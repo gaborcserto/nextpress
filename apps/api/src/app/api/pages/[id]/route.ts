@@ -28,6 +28,7 @@ function mapPageToFormValues(
   tags: Awaited<ReturnType<typeof getTagsForPage>>,
 ): EditorialPage {
   return {
+    workingVersion: page.workingVersion,
     type: page.layout,
     status: page.status,
     slug: page.slug,

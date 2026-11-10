@@ -10,7 +10,7 @@ import { validateTagIds } from "@/lib/repos/tagRepo";
 import {
   validateCreateBody,
   validateUpdateBody,
-  runWithSlugConflictHandling,
+  runWithContentConflictHandling,
   PageValidationError,
 } from "./content.shared";
 
@@ -29,7 +29,7 @@ export async function createPageService(rawBody: unknown, actor: ContentActor) {
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
 
-  const created = await runWithSlugConflictHandling(() =>
+  const created = await runWithContentConflictHandling(() =>
     createPageWithTags(
       {
         ...pageData,
@@ -63,7 +63,7 @@ export async function updatePageService(
 
   const { tagIds, ...pageData } = parsed;
 
-  const updated = await runWithSlugConflictHandling(() =>
+  const updated = await runWithContentConflictHandling(() =>
     updatePageWithTags(id, pageData, "PAGE", actor, tagIds),
   );
 

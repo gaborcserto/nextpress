@@ -65,12 +65,24 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         await db.pageOnTaxonomy.create({
           data: { pageId: page.id, taxonomyId: category.id },
         });
-        await update(page.id, { title: "Committed" }, type, actor, []);
+        await update(
+          page.id,
+          { title: "Committed", expectedVersion: 0 },
+          type,
+          actor,
+          [],
+        );
         expect(
           await db.pageOnTaxonomy.findMany({ where: { pageId: page.id } }),
         ).toEqual([{ pageId: page.id, taxonomyId: category.id }]);
         await expect(
-          update(page.id, { title: "Invalid" }, type, actor, [category.id]),
+          update(
+            page.id,
+            { title: "Invalid", expectedVersion: 1 },
+            type,
+            actor,
+            [category.id],
+          ),
         ).rejects.toThrow("Invalid tag IDs");
         await expect(
           create({ ...input, slug: `${slug}-invalid` }, ["missing"]),
@@ -79,9 +91,13 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         await db.$executeRaw`CREATE TRIGGER phase1_fail_links BEFORE INSERT ON "PageOnTaxonomy" FOR EACH ROW EXECUTE FUNCTION phase1_fail_links()`;
         try {
           await expect(
-            update(page.id, { title: "Should roll back" }, type, actor, [
-              tag.id,
-            ]),
+            update(
+              page.id,
+              { title: "Should roll back", expectedVersion: 1 },
+              type,
+              actor,
+              [tag.id],
+            ),
           ).rejects.toThrow();
           await expect(
             create({ ...input, slug: `${slug}-failed` }, [tag.id]),
@@ -104,8 +120,19 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         await expect(create(input, [tag.id])).rejects.toThrow(
           "Slug already exists",
         );
-        await update(page.id, { title: "With tags" }, type, actor, [tag.id]);
-        await update(page.id, { title: "Tags retained" }, type, actor);
+        await update(
+          page.id,
+          { title: "With tags", expectedVersion: 1 },
+          type,
+          actor,
+          [tag.id],
+        );
+        await update(
+          page.id,
+          { title: "Tags retained", expectedVersion: 2 },
+          type,
+          actor,
+        );
         expect(
           await db.pageOnTaxonomy.count({ where: { pageId: page.id } }),
         ).toBe(2);

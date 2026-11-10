@@ -5,7 +5,7 @@ import {
   contentWriteWhere,
   type ContentActor,
 } from "@/lib/auth/content-access";
-import { slugify } from "@/lib/utils";
+import { ContentVersionConflictError, slugify } from "@/lib/utils";
 
 import { setTagsForPage } from "./tagRepo";
 
@@ -155,7 +155,7 @@ export async function updatePage(
   actor: ContentActor,
   db: Prisma.TransactionClient = prisma,
 ) {
-  const next: PageUpdateInput = { ...data };
+  const { expectedVersion, ...next } = data;
 
   if (typeof data.slug === "string") {
     next.slug = slugify(data.slug);
@@ -178,8 +178,13 @@ export async function updatePage(
   }
 
   return db.page.update({
-    where: { id, type, ...contentWriteWhere(actor) },
-    data: { ...next, publishedAt },
+    where: {
+      id,
+      type,
+      ...contentWriteWhere(actor),
+      workingVersion: expectedVersion,
+    },
+    data: { ...next, publishedAt, workingVersion: { increment: 1 } },
   });
 }
 
@@ -217,11 +222,22 @@ export async function updatePageWithTags(
   actor: ContentActor,
   tagIds?: string[],
 ) {
-  return prisma.$transaction(async (tx) => {
-    const page = await updatePage(id, input, type, actor, tx);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const page = await updatePage(id, input, type, actor, tx);
 
-    if (tagIds !== undefined) await setTagsForPage(page.id, tagIds, tx);
+      if (tagIds !== undefined) await setTagsForPage(page.id, tagIds, tx);
 
-    return page;
-  });
+      return page;
+    });
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2025"
+    )
+      throw new ContentVersionConflictError();
+    throw error;
+  }
 }

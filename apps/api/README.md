@@ -116,7 +116,11 @@ content results per page, page numbers at most 10,000, 20 tag-search results,
 200-character tag queries, and 500 rows for user/tag/parent selectors. Counts and
 substring searches still cost more as the database grows; result bounds do not
 make queries constant-cost. Tag creation makes at most ten slug-collision lookups.
-There is no media upload endpoint or configured remote image-optimization source.
+Minimum media upload is available with a 2 MiB decoded input limit, signature and
+decoder validation, PNG normalization, private filesystem storage and controlled
+serving. There is no configured remote image-optimization source. See
+[CMS foundations](../../docs/cms-foundations.md) for storage, reference ownership,
+revision/preview lifecycle and deletion restrictions.
 
 Rate-limit responses use 429, standard Retry-After seconds and Cache-Control:
 no-store, without keys, counters or account-existence details. The password-work

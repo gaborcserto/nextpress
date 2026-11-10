@@ -48,13 +48,16 @@ export async function readBoundedMutationRequest(
     request: new Request(req.url, {
       method: req.method,
       headers: req.headers,
-      body,
+      body: size ? body : undefined,
     }),
   };
 }
 
 /** Custom cookie-authenticated routes must check this before session lookup. */
-export function requireTrustedMutation(req: Request): Response | null {
+export function requireTrustedMutation(
+  req: Request,
+  { bodyReadPending = false }: { bodyReadPending?: boolean } = {},
+): Response | null {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return null;
 
   const origin = req.headers.get("origin");
@@ -66,7 +69,7 @@ export function requireTrustedMutation(req: Request): Response | null {
   const contentType = req.headers.get("content-type");
   const needsJSON =
     ["POST", "PUT", "PATCH"].includes(req.method) ||
-    req.body !== null ||
+    (!bodyReadPending && req.body !== null) ||
     contentType !== null;
 
   if (

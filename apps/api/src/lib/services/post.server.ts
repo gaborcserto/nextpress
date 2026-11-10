@@ -15,7 +15,7 @@ import { validateTagIds } from "@/lib/repos/tagRepo";
 import {
   validateCreateBody,
   validateUpdateBody,
-  runWithSlugConflictHandling,
+  runWithContentConflictHandling,
   PageNotFoundError,
   PageValidationError,
 } from "./content.shared";
@@ -35,7 +35,7 @@ export async function createPostService(rawBody: unknown, actor: ContentActor) {
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
 
-  const created = await runWithSlugConflictHandling(() =>
+  const created = await runWithContentConflictHandling(() =>
     createPageWithTags(
       {
         ...pageData,
@@ -69,7 +69,7 @@ export async function updatePostService(
 
   const { tagIds, ...pageData } = parsed;
 
-  const updated = await runWithSlugConflictHandling(() =>
+  const updated = await runWithContentConflictHandling(() =>
     updatePageWithTags(id, pageData, "POST", actor, tagIds),
   );
 

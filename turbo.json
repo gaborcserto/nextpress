@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["NEXTPRESS_E2E", "MEDIA_STORAGE_ROOT", "SITE_URL"],
   "tasks": {
     "dev": {
       "cache": false,
@@ -95,18 +96,28 @@
         "DISCORD_CLIENT_ID",
         "DISCORD_CLIENT_SECRET",
         "NEXTPRESS_CONTENT_TEST_DATABASE_URL",
-        "API_INTERNAL_ORIGIN"
+        "API_INTERNAL_ORIGIN",
+        "NEXTPRESS_E2E_WEB_PRODUCTION",
+        "NEXTPRESS_E2E_WEB_ARTIFACT"
       ]
     },
     "test": {
       "dependsOn": ["^test"],
       "outputs": [],
-      "env": ["NEXTPRESS_CONTENT_TEST_DATABASE_URL", "DATABASE_URL"]
+      "env": [
+        "NEXTPRESS_CONTENT_TEST_DATABASE_URL",
+        "DATABASE_URL",
+        "VITEST_MAX_WORKERS"
+      ]
     },
     "test:coverage": {
       "dependsOn": ["^test:coverage"],
       "outputs": ["coverage/**"],
-      "env": ["NEXTPRESS_CONTENT_TEST_DATABASE_URL", "DATABASE_URL"]
+      "env": [
+        "NEXTPRESS_CONTENT_TEST_DATABASE_URL",
+        "DATABASE_URL",
+        "VITEST_MAX_WORKERS"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],

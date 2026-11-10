@@ -1,0 +1,4 @@
+ALTER TABLE "Page" ADD COLUMN "pageDocument" TEXT,
+  ADD COLUMN "workingVersion" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "PageRevision" ADD COLUMN "pageDocument" TEXT,
+  ADD COLUMN "workingVersion" INTEGER NOT NULL DEFAULT 0;

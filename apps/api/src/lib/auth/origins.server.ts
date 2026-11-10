@@ -1,11 +1,14 @@
 import "server-only";
 
+// Read aliases at runtime; Next.js otherwise inlines NEXT_PUBLIC values at build time.
 function configuredURLs() {
   return [
-    process.env.BETTER_AUTH_URL,
-    process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
-    process.env.NEXT_PUBLIC_ADMIN_URL,
-  ].filter((value): value is string => !!value);
+    "BETTER_AUTH_URL",
+    "NEXT_PUBLIC_BETTER_AUTH_URL",
+    "NEXT_PUBLIC_ADMIN_URL",
+  ]
+    .map((name) => process.env[name])
+    .filter((value): value is string => !!value);
 }
 
 export function getAuthSecret(): string | undefined {

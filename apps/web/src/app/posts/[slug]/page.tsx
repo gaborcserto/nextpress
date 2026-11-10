@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PageDocument } from "@/components/PageDocument";
 import { PostMetadata } from "@/components/public-content/PostMetadata";
 import { Container } from "@/components/public-ui/Container";
 import { RichContent } from "@/components/RichContent";
 import { getPublishedPost } from "@/lib/content/public-content.server";
+import { contentMetadata } from "@/lib/settings/seo";
 
 import styles from "./page.module.css";
 
@@ -19,10 +21,7 @@ export async function generateMetadata({
   const post = await getPublishedPost(slug);
 
   return post
-    ? {
-        title: post.title,
-        ...(post.summary ? { description: post.summary } : {}),
-      }
+    ? contentMetadata(post.title, `/posts/${post.slug}`, post.summary)
     : {};
 }
 
@@ -50,6 +49,7 @@ export default async function PostPage({ params }: PostPageProps) {
           ) : null}
         </header>
         <RichContent content={post.content} />
+        {post.pageDocument && <PageDocument document={post.pageDocument} />}
       </article>
     </Container>
   );

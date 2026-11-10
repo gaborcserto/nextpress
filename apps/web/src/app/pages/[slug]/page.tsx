@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 
+import { PageDocument } from "@/components/PageDocument";
 import { Container } from "@/components/public-ui/Container";
 import { RichContent } from "@/components/RichContent";
 import { getPublishedPage } from "@/lib/content/public-content.server";
+import { contentMetadata } from "@/lib/settings/seo";
 
 import styles from "./page.module.css";
 
@@ -17,10 +19,7 @@ export async function generateMetadata({
   const page = await getPublishedPage(slug);
 
   return page
-    ? {
-        title: page.title,
-        ...(page.summary ? { description: page.summary } : {}),
-      }
+    ? contentMetadata(page.title, `/pages/${page.slug}`, page.summary)
     : {};
 }
 
@@ -37,6 +36,7 @@ export default async function StaticPage({ params }: PageProps) {
           <h1>{page.title}</h1>
         </header>
         <RichContent content={page.content} />
+        {page.pageDocument && <PageDocument document={page.pageDocument} />}
       </article>
     </Container>
   );

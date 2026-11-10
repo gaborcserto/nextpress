@@ -35,6 +35,12 @@ export function usePageEditor(id?: string) {
   const { data, error, isLoading, mutate } = useSWR<EditPageResponse>(
     isEdit && id ? `/api/pages/${id}` : null,
     jsonFetcher,
+    // Keep the version tied to the loaded form, not a background revalidation.
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
   );
 
   const item: PageFormValues | null = isEdit
@@ -54,11 +60,25 @@ export function usePageEditor(id?: string) {
     savingRef.current = true;
     setSaving(true);
     try {
-      const { ok, status } = isEdit
-        ? await updatePageApi(id!, values)
-        : await createPageApi(values);
+      if (id && data?.item.workingVersion === undefined) {
+        showToast("Reload the editor before saving.", "warning");
+
+        return;
+      }
+      const { ok, status } =
+        id && data
+          ? await updatePageApi(id, values, data.item.workingVersion)
+          : await createPageApi(values);
 
       if (!ok) {
+        if (status === 409) {
+          showToast(
+            "Content changed elsewhere. Your edits are preserved; reload before retrying.",
+            "warning",
+          );
+
+          return;
+        }
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
@@ -69,8 +89,12 @@ export function usePageEditor(id?: string) {
 
       showToast(isEdit ? "Page updated." : "Page created.", "success");
 
-      if (isEdit) {
-        await mutate();
+      if (data) {
+        // Advance only our successful write; a GET could return a newer remote edit.
+        await mutate(
+          { item: { ...values, workingVersion: data.item.workingVersion + 1 } },
+          { revalidate: false },
+        );
       } else {
         router.push("/admin/pages");
       }

@@ -9,5 +9,5 @@ export type PostEditorScreenProps = {
 };
 
 export type PostDetailResponse = {
-  item: PostFormValues;
+  item: PostFormValues & { workingVersion: number };
 };

@@ -34,6 +34,12 @@ export function usePostEditor(postId?: string) {
   const { data, error, isLoading, mutate } = useSWR<PostDetailResponse>(
     isEdit && postId ? `/api/post/${postId}` : null,
     jsonFetcher,
+    // Keep the version tied to the loaded form, not a background revalidation.
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
   );
 
   const item: PostFormValues | null = isEdit
@@ -53,11 +59,25 @@ export function usePostEditor(postId?: string) {
     savingRef.current = true;
     setSaving(true);
     try {
-      const { ok, status } = isEdit
-        ? await updatePostApi(postId!, values)
-        : await createPostApi(values);
+      if (postId && data?.item.workingVersion === undefined) {
+        showToast("Reload the editor before saving.", "warning");
+
+        return;
+      }
+      const { ok, status } =
+        postId && data
+          ? await updatePostApi(postId, values, data.item.workingVersion)
+          : await createPostApi(values);
 
       if (!ok) {
+        if (status === 409) {
+          showToast(
+            "Content changed elsewhere. Your edits are preserved; reload before retrying.",
+            "warning",
+          );
+
+          return;
+        }
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
@@ -68,8 +88,12 @@ export function usePostEditor(postId?: string) {
 
       showToast(isEdit ? "Post updated." : "Post created.", "success");
 
-      if (isEdit) {
-        await mutate();
+      if (data) {
+        // Advance only our successful write; a GET could return a newer remote edit.
+        await mutate(
+          { item: { ...values, workingVersion: data.item.workingVersion + 1 } },
+          { revalidate: false },
+        );
       } else {
         router.push("/admin/posts");
       }

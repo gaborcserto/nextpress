@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -59,18 +61,24 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   if (!item) return null;
 
   return (
-    <PostForm
-      initial={item}
-      submitting={saving}
-      submitLabel={submitLabel}
-      onSubmitAction={handleSubmit}
-      loadTagOptionsAction={loadTagOptionsAction}
-      createTagAction={createTagAction}
-      loadEntityTagsAction={loadEntityTagsAction}
-      updateEntityTagsAction={updateEntityTagsAction}
-      sidebarTitle={title}
-      sidebarSubtitle={subtitle}
-      // imageUploadAction
-    />
+    <>
+      {isEdit && (
+        <Link className="btn" href={`/admin/posts/${postId}/composition`}>
+          Composition and working revisions
+        </Link>
+      )}
+      <PostForm
+        initial={item}
+        submitting={saving}
+        submitLabel={submitLabel}
+        onSubmitAction={handleSubmit}
+        loadTagOptionsAction={loadTagOptionsAction}
+        createTagAction={createTagAction}
+        loadEntityTagsAction={loadEntityTagsAction}
+        updateEntityTagsAction={updateEntityTagsAction}
+        sidebarTitle={title}
+        sidebarSubtitle={subtitle}
+      />
+    </>
   );
 }

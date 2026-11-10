@@ -148,6 +148,7 @@ function main() {
   if (!npmCli) throw new Error("Run through npm run check:changed");
   for (const script of [
     "lint:root",
+    "typecheck:e2e",
     "check:changed:test",
     "agents:validate",
     "agents:test",

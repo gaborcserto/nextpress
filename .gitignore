@@ -77,6 +77,10 @@ logs/
 # Coverage / Test artifacts
 # ───────────────────────────────
 coverage/
+.next-e2e/
+.media/
+playwright-report/
+test-results/
 *.lcov
 
 # ───────────────────────────────

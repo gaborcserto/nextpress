@@ -36,6 +36,37 @@ function request(
 }
 
 describe("custom mutation origin and media-type boundary", () => {
+  it("normalizes empty DELETE streams while rejecting nonempty untyped bodies", async () => {
+    const incoming = new Request("http://localhost:49101/api/test", {
+      method: "DELETE",
+      headers: { origin: "http://localhost:49101" },
+      body: new Uint8Array(),
+    });
+    expect(
+      requireTrustedMutation(incoming, { bodyReadPending: true }),
+    ).toBeNull();
+    const normalized = await readBoundedMutationRequest(incoming);
+    expect(normalized.request?.body).toBeNull();
+    expect(requireTrustedMutation(normalized.request ?? incoming)).toBeNull();
+    const nonempty = new Request("http://localhost:49101/api/test", {
+      method: "DELETE",
+      headers: { origin: "http://localhost:49101" },
+      body: new TextEncoder().encode("not JSON"),
+    });
+    expect(
+      requireTrustedMutation(nonempty, { bodyReadPending: true }),
+    ).toBeNull();
+    const checked = await readBoundedMutationRequest(nonempty);
+    expect(requireTrustedMutation(checked.request ?? nonempty)?.status).toBe(
+      415,
+    );
+    expect(
+      requireTrustedMutation(
+        new Request("http://localhost:49101/api/test", { method: "DELETE" }),
+        { bodyReadPending: true },
+      )?.status,
+    ).toBe(403);
+  });
   it("preserves small bodies and rejects oversized streamed mutation bodies", async () => {
     const small = await readBoundedMutationRequest(request());
     expect(await small.request?.text()).toBe("{}");

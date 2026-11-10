@@ -10,11 +10,13 @@ import {
 
 const request = vi.fn();
 beforeEach(() => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal("fetch", request);
   request.mockReset();
   vi.stubEnv("API_INTERNAL_ORIGIN", "http://api.test:49102");
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -34,6 +36,22 @@ const post = {
 };
 
 describe("public HTTP content", () => {
+  it("logs redacted failure classification without upstream error details", async () => {
+    request.mockRejectedValue(new Error("private-connection-details"));
+    await expect(getPublishedPosts()).rejects.toThrow(
+      "temporarily unavailable",
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: "public.upstream.failed",
+        code: "transport",
+        status: 503,
+      }),
+    );
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      "private-connection-details",
+    );
+  });
   it.each([getPublishedPage, getPublishedPost])(
     "validates delivery content and sends anonymous uncached requests",
     async (read) => {

@@ -9,5 +9,5 @@ export type PageEditorScreenProps = {
 };
 
 export type EditPageResponse = {
-  item: PageFormValues;
+  item: PageFormValues & { workingVersion: number };
 };

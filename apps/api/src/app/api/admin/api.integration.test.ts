@@ -8,6 +8,8 @@ const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } =
       siteSettings: { upsert: vi.fn() },
       oAuthProvider: { upsert: vi.fn(), findMany: vi.fn() },
       user: {
+        findUniqueOrThrow: vi.fn(),
+        count: vi.fn(),
         findMany: vi.fn(),
         findUnique: vi.fn(),
         create: vi.fn(),
@@ -15,6 +17,7 @@ const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } =
         delete: vi.fn(),
       },
       $transaction: vi.fn(),
+      $executeRaw: vi.fn(),
     },
     bcryptHash: vi.fn(),
     getDefaultUserRole: vi.fn(),
@@ -120,6 +123,10 @@ function settingsPayload() {
 beforeEach(() => {
   authState.role = "ADMIN";
   vi.clearAllMocks();
+  prisma.user.findUniqueOrThrow.mockResolvedValue({
+    role: { name: "SUBSCRIBER" },
+  });
+  prisma.user.count.mockResolvedValue(1);
   getDefaultUserRole.mockResolvedValue("SUBSCRIBER");
   authHandler.mockResolvedValue(Response.json({ handled: true }));
   bcryptHash.mockResolvedValue("hashed-password");
@@ -505,6 +512,23 @@ describe("admin API route integration", () => {
           data: { role: { connect: { name: "EDITOR" } } },
         }),
       );
+    });
+
+    it("rejects deletion and demotion of the last administrator", async () => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        role: { name: "ADMIN" },
+      });
+      const deletion = await deleteUser(request("DELETE"), {
+        params: { id: "last-admin" },
+      });
+      const demotion = await updateUserRole(
+        request("PATCH", { role: "EDITOR" }),
+        { params: { id: "last-admin" } },
+      );
+      expect(deletion.status).toBe(409);
+      expect(demotion.status).toBe(409);
+      expect(prisma.user.delete).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
     it("returns 404 when deleting a missing user", async () => {

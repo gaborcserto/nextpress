@@ -1,5 +1,5 @@
 import { normalizeTagIds, setTagsForPage } from "@/lib/repos";
-import { isSlugConflictError } from "@/lib/utils";
+import { ContentVersionConflictError, isSlugConflictError } from "@/lib/utils";
 import {
   PageSchema,
   PageUpdateSchema,
@@ -62,12 +62,14 @@ export function validateUpdateBody(rawBody: unknown) {
   return res.data;
 }
 
-export async function runWithSlugConflictHandling<T>(
+export async function runWithContentConflictHandling<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   try {
     return await fn();
   } catch (err) {
+    if (err instanceof ContentVersionConflictError)
+      throw new PageConflictError("Content changed; reload before saving");
     if (isSlugConflictError(err)) {
       throw new PageConflictError();
     }

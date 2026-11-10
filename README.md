@@ -1,46 +1,76 @@
 # NextPress
 
-NextPress is an npm workspace monorepo for a PostgreSQL-backed content management system, with an authenticated admin app and a public Next.js site.
+## Overview
 
-## Repository structure
+NextPress is a modular, PostgreSQL-backed headless content management system. It separates the backend API, authenticated administration interface and public website so each application has a clear role and can be developed independently.
 
-- `apps/admin` — administration UI, authentication, and API routes.
-- `apps/web` — public site for published content.
-- `packages/db` — Prisma schema, client, migrations, and database helpers.
-- `packages/shared` — cross-workspace TypeScript exports.
-- `packages/eslint-config` — shared ESLint configuration.
+## Features
 
-## Quick start
+- **Implemented:** authenticated content administration for posts, pages, taxonomy, users and settings; public content delivery; versioned rich content; media handling; SEO metadata and sitemap support.
+- **Partial:** page composition foundations support validated blocks, working revisions, preview and publishing. The editor is a minimum JSON-based workflow, not a drag-and-drop builder. Appearance and post-list templates provide basic rendering, not a complete theme system.
+- **Planned:** complete page and site templates, backend presets, and AI-assisted site creation.
 
-Requirements: Node.js 24.22.2 (24 LTS), npm 12.2.2, and Docker for local PostgreSQL.
+## Architecture
 
-Use `.nvmrc` to select Node and install the pinned npm version with
-`npm install --global npm@12.2.2`. npm 12 blocks unapproved dependency install
-scripts by default. The repository does not enable a blanket script exception;
-review any required platform-specific script before approving it.
+- `apps/api` owns authentication, authorization, validation, business rules, OpenAPI and database access.
+- `apps/admin` is the authenticated CMS interface and communicates with the API over HTTP.
+- `apps/web` renders the public site using anonymous content-delivery endpoints; it does not connect to the database.
+- `packages/db` owns Prisma and PostgreSQL persistence. `packages/shared` contains portable contracts and content types. Shared tooling is maintained in workspace configuration and `packages/eslint-config`.
 
-1. Run `npm ci` at the repository root.
-2. Copy each `.env.example` to `.env` in `apps/api`, `apps/admin`, `apps/web`, and `packages/db`; set local values and keep credentials private. Configure the root Compose `.env` and external volume as described in [PostgreSQL setup](docs/postgresql.md).
-3. For an existing Docker installation, read [PostgreSQL persistence safety](docs/postgresql.md) before recreating containers. Run `npm run db:up`, `npm run prisma:generate`, and `npm run prisma:migrate`.
-4. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/api/.env`, then run `npm run admin:bootstrap`. There is no default account; new passwords must be at least 15 characters.
-5. Optionally run `npm run db:seed` for development content. It requires `ALLOW_DEVELOPMENT_CONTENT_SEED=true` and rejects production execution.
-6. Run `npm run dev` to start both apps.
+## Technology Stack
 
-The admin app runs at [localhost:49101](http://localhost:49101); the public site runs at [localhost:49100](http://localhost:49100). The API listens on localhost:49102. Only API and db need `DATABASE_URL`; admin and web use `API_INTERNAL_ORIGIN`. See [backend boundaries](docs/backend-boundaries.md) for topology and deployment limits.
+TypeScript, Next.js, React, Node.js, Better Auth, Prisma, PostgreSQL, Zod, npm workspaces, Turborepo and Playwright.
 
-## Essential commands
+## Repository Structure
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev:api` / `npm run dev:admin` / `npm run dev:web` | Start API alone, API + admin, or API + web respectively |
-| `npm run build` | Build all workspaces |
-| `npm run lint` / `npm run typecheck` | Check code quality and types |
-| `npm run check:changed` | Run lint, typecheck and tests for local changes and dependent workspaces |
-| `npm test` / `npm run coverage` | Run tests / tests with coverage |
-| `npm run openapi:validate` | Validate the API OpenAPI contract and route coverage |
+| Path                     | Responsibility                                               |
+| ------------------------ | ------------------------------------------------------------ |
+| `apps/api`               | Backend API and authentication                               |
+| `apps/admin`             | Administration frontend                                      |
+| `apps/web`               | Public frontend                                              |
+| `packages/db`            | Prisma schema, migrations and database package               |
+| `packages/shared`        | Cross-workspace contracts and types                          |
+| `packages/eslint-config` | Shared application lint configuration                        |
+| `docs`                   | Maintained setup, architecture and operational documentation |
 
-`check:changed` includes staged, unstaged and untracked files. It shares CI's path policy and Turbo filters to include dependent workspaces. Documentation-only Markdown changes skip application checks; agent resources, root configuration, lockfile changes, unknown paths or failed Git detection trigger all workspaces. Selected changes also run root tooling lint and agent/selector checks. Use `npm run check:changed -- --full` to force all lint, typecheck and test tasks. This local command does not run builds or coverage; CI retains those checks. Run selector tests with `npm run check:changed:test`.
+## Getting Started
 
-See the [admin README](apps/admin/README.md), [web README](apps/web/README.md), and [agent resources](.agents/README.md) for focused guidance. The [API contracts skill](.agents/skills/nextpress-api-contracts/SKILL.md) describes the API maintenance workflow. Environment templates are the source for configuration; never commit real credentials.
+Requirements: Node.js 24.x (the repository pins 24.22.2 in `.nvmrc`), npm 12.2.2 and Docker for the local PostgreSQL service.
 
-Backend ownership, delivery policy, discovery and extraction prerequisites are described in [backend boundaries](docs/backend-boundaries.md).
+1. Install the pinned npm version if needed (`npm install --global npm@12.2.2`), then run `npm ci` at the repository root.
+2. Copy `.env.example` to `.env` for `apps/api`, `apps/admin`, `apps/web` and `packages/db`. Configure the root Compose environment and PostgreSQL volume as described in [PostgreSQL setup](docs/postgresql.md). Keep local credentials private.
+3. Start PostgreSQL with `npm run db:up`, then generate Prisma and apply development migrations with `npm run prisma:generate` and `npm run prisma:migrate`.
+4. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `apps/api/.env` and run `npm run admin:bootstrap`. No default administrator is created; passwords must be at least 15 characters.
+5. Start all applications with `npm run dev`.
+
+The admin UI is at [localhost:49101](http://localhost:49101), the public site at [localhost:49100](http://localhost:49100), and the API at [localhost:49102](http://localhost:49102). The API and database use `DATABASE_URL`; admin and web use the server-side `API_INTERNAL_ORIGIN` setting. See [backend boundaries](docs/backend-boundaries.md) for deployment topology and limits.
+
+## Development & Testing
+
+| Command                                                     | Purpose                                                                          |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev`                                               | Start API, admin and web                                                         |
+| `npm run dev:api` / `npm run dev:admin` / `npm run dev:web` | Start an individual app with its required API dependency                         |
+| `npm run build`                                             | Build all workspaces                                                             |
+| `npm run lint` / `npm run typecheck`                        | Run lint and type checks                                                         |
+| `npm run check:changed`                                     | Check affected workspaces for local changes                                      |
+| `npm test`                                                  | Run workspace tests                                                              |
+| `npm run test:e2e`                                          | Run Playwright browser tests against disposable PostgreSQL and local app servers |
+
+Install Playwright Chromium with `npx playwright install chromium` before E2E runs. The E2E runner provisions and removes its own test database; it is separate from ordinary unit tests. See [CMS foundations](docs/cms-foundations.md) for setup and scope. Application-specific instructions are in the [API](apps/api/README.md), [admin](apps/admin/README.md) and [web](apps/web/README.md) READMEs.
+
+## Security
+
+The API enforces session-based authentication and server-side authorization. Public delivery exposes published content through bounded, cookie-free API endpoints, while editorial and preview operations remain protected. These are security foundations, not a production-readiness claim: deployment still requires appropriate HTTPS ingress, trusted proxy configuration, protected audit retention, rate limiting strategy and backup/restore procedures. See [deployment guidance](docs/deployment.md) and [CMS security and production gates](docs/cms-foundations.md).
+
+## Roadmap
+
+Complete the page and appearance template system, expand backend presets, and explore AI-assisted site creation. Composition, revisions, preview and media are partial foundations; production deployment and security acceptance also have outstanding operational gates.
+
+## Documentation
+
+- [PostgreSQL setup and persistence safety](docs/postgresql.md)
+- [Backend boundaries and API compatibility](docs/backend-boundaries.md)
+- [Deployment](docs/deployment.md)
+- [CMS foundations, limitations and production gates](docs/cms-foundations.md)
+- [API](apps/api/README.md) · [Admin](apps/admin/README.md) · [Web](apps/web/README.md)

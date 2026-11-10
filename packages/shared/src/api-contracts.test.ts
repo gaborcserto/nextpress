@@ -25,7 +25,10 @@ describe("portable CMS contracts", () => {
     expect(parsed).not.toHaveProperty("authorId");
     expect(parsed).not.toHaveProperty("role");
     expect(parsed.tagIds).toEqual([]);
-    expect(PageUpdateSchema.parse({})).toEqual({});
+    expect(PageUpdateSchema.safeParse({}).success).toBe(false);
+    expect(PageUpdateSchema.parse({ expectedVersion: 0 })).toEqual({
+      expectedVersion: 0,
+    });
   });
   it("keeps legacy editorial arrays distinct from delivery documents", () => {
     const content = readRichContent(
@@ -33,6 +36,7 @@ describe("portable CMS contracts", () => {
     );
     const item = {
       status: "DRAFT",
+      workingVersion: 0,
       slug: "legacy",
       title: "Legacy",
       excerpt: content.blocks,

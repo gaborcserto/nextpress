@@ -19,7 +19,7 @@ import {
   PageNotFoundError,
   PageValidationError,
   applyTags,
-  runWithSlugConflictHandling,
+  runWithContentConflictHandling,
   validateCreateBody,
   validateUpdateBody,
 } from "./content.shared";
@@ -71,14 +71,14 @@ describe("content service boundaries", () => {
 
   it("maps only slug conflict failures and preserves other failures", async () => {
     await expect(
-      runWithSlugConflictHandling(async () => {
+      runWithContentConflictHandling(async () => {
         throw { code: "SLUG_CONFLICT" };
       }),
     ).rejects.toBeInstanceOf(PageConflictError);
 
     const failure = new Error("database unavailable");
     await expect(
-      runWithSlugConflictHandling(async () => {
+      runWithContentConflictHandling(async () => {
         throw failure;
       }),
     ).rejects.toBe(failure);

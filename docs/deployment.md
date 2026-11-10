@@ -18,3 +18,32 @@ Admin requires `API_INTERNAL_ORIGIN` and trusted browser/auth origins configured
 Run one composition at a time. To connect either UI to an existing API, run its workspace `dev` command directly. Root compositions invoke workspace commands directly through Turbo, avoiding nested API startup.
 
 Independent artifact generation does not certify a production topology. Validate TLS ingress, OAuth callback/cookie behavior, proxy headers, database pool sizing and artifact operation on the target host. Multi-instance/serverless deployment requires distributed rate limits and connection-pool validation. Existing counters remain process-local. No cloud provider, distributed limiter or production deployment is supplied.
+
+Composition requires migration `20261110220000_page_working_revisions` before the
+new API starts. Configure `MEDIA_STORAGE_ROOT` as a private persistent volume,
+outside every public/static directory. Back up metadata and files together.
+API alone needs that filesystem access; web serves images through the API's
+publication-filtered interface. See [CMS foundations](cms-foundations.md) for
+permissions and operational assumptions.
+
+After packaging, run `node scripts/scan-artifacts.mjs <artifact-directory>` from
+the source repository. It checks for environment files, configured secret values
+and PEM private-key blocks without printing matched values. Run it for each
+independent artifact; raw `.next/standalone` remains unsuitable for deployment.
+The packager preserves Next's relative external-package links. Artifact checks
+reject absolute links or links escaping the artifact. Mutable media is excluded
+from build tracing; deploy its runtime volume separately.
+
+API media traces explicitly include installed Sharp native helpers, including
+Windows DLLs. Verify uploads and image delivery from the packaged artifact on the
+target platform. Auth origin compatibility aliases are read at runtime; configure
+all supplied aliases consistently with the production HTTPS admin origin.
+
+For an existing development database, check pending migrations with
+`npm exec --workspace @nextpress/db -- prisma migrate status`, then apply reviewed
+migrations with `npm run prisma:deploy` before starting the updated API. Client
+generation, `db:up`, `dev` and `bootstrap` do not apply database migrations. A
+healthy liveness endpoint or public post summary does not establish schema
+readiness: those queries may not access the new columns. A Prisma P2022 on full
+page/post reads requires correcting the API/database migration mismatch, not
+bypassing version checks or defaulting missing schema fields.

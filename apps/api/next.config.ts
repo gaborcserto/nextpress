@@ -3,12 +3,18 @@ import path from "node:path";
 import type { NextConfig } from "next";
 const monorepoRoot = path.resolve(__dirname, "../..");
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXTPRESS_E2E === "1" ? ".next-e2e" : ".next",
   agentRules: false,
   poweredByHeader: false,
   output: "standalone",
   serverExternalPackages: ["swagger-ui-dist"],
   turbopack: { root: monorepoRoot },
   outputFileTracingRoot: monorepoRoot,
+  // Native Sharp helpers (including Windows DLLs) are loaded outside JS imports.
+  outputFileTracingIncludes: {
+    "/api/media{,/**}": ["../../node_modules/@img/sharp-*/lib/**/*"],
+    "/api/public/media/**": ["../../node_modules/@img/sharp-*/lib/**/*"],
+  },
   async headers() {
     return [
       {

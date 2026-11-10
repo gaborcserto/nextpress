@@ -49,8 +49,9 @@ export async function createPageApi(
 export async function updatePageApi(
   id: string,
   values: PageFormValues,
+  expectedVersion: number,
 ): Promise<PageApiResult> {
-  const body = pageValuesToDto(values);
+  const body = { ...pageValuesToDto(values), expectedVersion };
 
   const res = await apiFetch(`/api/pages/${id}`, {
     method: "PUT",

@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: [...configDefaults.exclude, "**/.next/**", "**/.next-e2e/**"],
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
   },

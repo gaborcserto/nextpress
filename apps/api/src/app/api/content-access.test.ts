@@ -86,6 +86,7 @@ type Filter = {
   type?: string;
   status?: string;
   authorId?: string;
+  workingVersion?: number;
   publishedAt?: null | { lte: Date };
   OR?: Filter[];
 };
@@ -114,6 +115,8 @@ function content(
     coverId: null,
     viewCount: 0,
     uniqueViewCount: 0,
+    workingVersion: 0,
+    pageDocument: null,
     likeCount: 0,
     lastViewedAt: null,
     publishedAt: null as Date | null,
@@ -207,11 +210,22 @@ beforeEach(() => {
     },
   );
   prisma.page.update.mockImplementation(
-    async ({ where, data }: { where: Filter; data: Partial<Content> }) => {
+    async ({
+      where,
+      data,
+    }: {
+      where: Filter;
+      data: Omit<Partial<Content>, "workingVersion"> & {
+        workingVersion?: { increment: number };
+      };
+    }) => {
       const item = records.find((item) => matches(item, where));
 
-      if (!item) throw new Error("Record not found");
-      Object.assign(item, data);
+      if (!item)
+        throw Object.assign(new Error("Record not found"), { code: "P2025" });
+      const { workingVersion, ...fields } = data;
+      Object.assign(item, fields);
+      if (workingVersion) item.workingVersion += workingVersion.increment;
 
       return item;
     },
@@ -484,7 +498,11 @@ describe.each(routes)(
         expect(
           (
             await update(
-              request("PUT", { title: "Edited", status: "PUBLISHED" }),
+              request("PUT", {
+                expectedVersion: 0,
+                title: "Edited",
+                status: "PUBLISHED",
+              }),
               context(`other-${prefix}`),
             )
           ).status,
@@ -516,21 +534,61 @@ describe.each(routes)(
       },
     );
 
+    it("rejects unversioned and stale saves without overwriting content", async () => {
+      role = "AUTHOR";
+      const target = context(`${prefix}-draft`);
+      expect(
+        (await update(request("PUT", { title: "Unversioned" }), target)).status,
+      ).toBe(400);
+      expect(
+        (
+          await update(
+            request("PUT", { title: "First", expectedVersion: 0 }),
+            target,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await update(
+            request("PUT", { title: "Stale", expectedVersion: 0 }),
+            target,
+          )
+        ).status,
+      ).toBe(409);
+      expect(records.find((item) => item.id === `${prefix}-draft`)?.title).toBe(
+        "First",
+      );
+    });
+
     it("allows owner editing, publishing, and unpublishing without clearing omitted tags", async () => {
       role = "AUTHOR";
-      for (const status of ["PUBLISHED", "DRAFT"]) {
+      for (const [expectedVersion, status] of [
+        "PUBLISHED",
+        "DRAFT",
+      ].entries()) {
         expect(
           (
             await update(
-              request("PUT", { title: "Own edit", status }),
+              request("PUT", { expectedVersion, title: "Own edit", status }),
               context(`${prefix}-draft`),
             )
           ).status,
         ).toBe(200);
       }
       expect(prisma.page.update).toHaveBeenCalledWith({
-        where: { id: `${prefix}-draft`, type, authorId: "author-1" },
-        data: { title: "Own edit", status: "DRAFT", publishedAt: undefined },
+        where: {
+          id: `${prefix}-draft`,
+          type,
+          authorId: "author-1",
+          workingVersion: 1,
+        },
+        data: {
+          title: "Own edit",
+          status: "DRAFT",
+          publishedAt: undefined,
+          workingVersion: { increment: 1 },
+        },
       });
       expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();
       expect(
@@ -549,7 +607,7 @@ describe.each(routes)(
         expect(
           (
             await update(
-              request("PUT", { title: "No" }),
+              request("PUT", { expectedVersion: 0, title: "No" }),
               context(`${prefix}-live`),
             )
           ).status,
@@ -591,7 +649,7 @@ describe.each(routes)(
       expect(
         (
           await update(
-            request("PUT", { title: "No" }),
+            request("PUT", { expectedVersion: 0, title: "No" }),
             context(`${otherPrefix}-draft`),
           )
         ).status,
@@ -599,7 +657,7 @@ describe.each(routes)(
       expect(
         (
           await update(
-            request("PUT", { type: otherType }),
+            request("PUT", { expectedVersion: 0, type: otherType }),
             context(`${prefix}-draft`),
           )
         ).status,
@@ -632,7 +690,11 @@ describe.each(routes)(
         expect(
           (
             await update(
-              request("PUT", { title: "No", tagIds: [tagId] }),
+              request("PUT", {
+                expectedVersion: 0,
+                title: "No",
+                tagIds: [tagId],
+              }),
               context(`${prefix}-draft`),
             )
           ).status,
@@ -1113,6 +1175,7 @@ describe.each(routes)(
       ];
       const nextDto = {
         ...dto,
+        expectedVersion: 0,
         content: serializeRichContent(edited),
         ...(type === "POST" ? { excerpt: serializeRichContent(blocks) } : {}),
       };
@@ -1123,6 +1186,43 @@ describe.each(routes)(
       expect(result.item.content).toEqual(edited);
       if (type === "POST") expect(result.item.excerpt).toEqual(blocks);
     });
+
+    it.each([
+      "",
+      "Legacy literal <script>text</script>",
+      '[{"type":"paragraph","children":[{"text":"Legacy Slate"}]}]',
+      EMPTY_RICH_CONTENT,
+    ])(
+      "reads and version-saves legacy content without composition or revisions: %s",
+      async (content) => {
+        role = "ADMIN";
+        const record = records.find(
+          (item) => item.id === (type === "PAGE" ? "page-draft" : "post-draft"),
+        );
+
+        if (!record) throw new Error("Missing legacy fixture");
+        record.content = content;
+        const response = await read(request(), context(record.id));
+        expect(response.status).toBe(200);
+        const before = await response.json();
+        expect(before.item.workingVersion).toBe(0);
+        expect(before.item.content.length).toBeGreaterThan(0);
+        expect(
+          (
+            await update(
+              request("PUT", { expectedVersion: 0, title: "Legacy saved" }),
+              context(record.id),
+            )
+          ).status,
+        ).toBe(200);
+        const after = await (await read(request(), context(record.id))).json();
+        expect(after.item).toMatchObject({
+          title: "Legacy saved",
+          workingVersion: 1,
+          content: before.item.content,
+        });
+      },
+    );
 
     it("returns a stable failure for corrupt stored documents without changing them", async () => {
       role = "AUTHOR";
@@ -1162,7 +1262,7 @@ describe.each(routes)(
         expect(
           (
             await update(
-              request("PUT", { content }),
+              request("PUT", { expectedVersion: 0, content }),
               context(type === "PAGE" ? "page-draft" : "post-draft"),
             )
           ).status,

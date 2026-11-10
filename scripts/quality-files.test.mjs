@@ -1,6 +1,6 @@
 import { ESLint } from "eslint";
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -21,6 +21,51 @@ import { formatFiles, reportFormatterOutput } from "./quality-files.mjs";
 import { format as formatReadability } from "./readability-core.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+
+function runGitHook({ cwd, env = process.env, timeoutMs = 120_000 }) {
+  return new Promise((resolve, reject) => {
+    const environment = { ...env };
+    delete environment.NODE_TEST_CONTEXT;
+    const child = spawn("git", ["hook", "run", "pre-commit"], {
+      cwd,
+      env: environment,
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32",
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const timeout = setTimeout(() => {
+      if (process.platform === "win32" && child.pid) {
+        spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+          stdio: "ignore",
+          timeout: 5000,
+        });
+      } else if (child.pid) process.kill(-child.pid, "SIGKILL");
+      child.stdout.destroy();
+      child.stderr.destroy();
+      reject(
+        new Error(
+          `Git hook fixture timed out after ${timeoutMs}ms\n${stdout}\n${stderr}`,
+        ),
+      );
+    }, timeoutMs);
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.on("close", (status) => {
+      clearTimeout(timeout);
+      resolve({ status, stdout, stderr });
+    });
+  });
+}
+
 const config = JSON.parse(
   readFileSync(new URL("../.oxfmtrc.json", import.meta.url), "utf8"),
 );
@@ -35,6 +80,20 @@ function fixture(t) {
 
   return directory;
 }
+
+test("hook fixture times out with captured diagnostics and terminates its process tree", async (t) => {
+  const cwd = fixture(t);
+  execFileSync("git", ["init", "--quiet"], { cwd });
+  writeFileSync(
+    path.join(cwd, ".git/hooks/pre-commit"),
+    "#!/bin/sh\nnode -e 'console.log(\"waiting for fixture\");setInterval(()=>{},1000)'\n",
+    { mode: 0o755 },
+  );
+  await assert.rejects(
+    runGitHook({ cwd, timeoutMs: 3000 }),
+    /timed out after 3000ms[\s\S]*waiting for fixture/,
+  );
+});
 
 test("formatter rejects drift, writes only selected paths with spaces, ignores generated files and is stable", (t) => {
   const cwd = fixture(t);
@@ -521,7 +580,7 @@ test("local and CI entry points reject committed format drift and base writes le
   );
 });
 
-test("lint-staged preserves partial unstaged edits and handles paths with spaces", (t) => {
+test("lint-staged preserves partial unstaged edits and handles paths with spaces", async (t) => {
   const cwd = fixture(t);
 
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
@@ -609,7 +668,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(unrelated, "export const unrelated={untouched:2}\n");
   const plainEnvironment = { ...process.env, NO_COLOR: "1" };
   delete plainEnvironment.FORCE_COLOR;
-  const success = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const success = await runGitHook({
     cwd,
     encoding: "utf8",
     env: plainEnvironment,
@@ -669,7 +728,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(file, "debugger;\n\n// unrelated unstaged note\n");
   const beforeIndex = git("write-tree");
   const beforeWorktree = readFileSync(file, "utf8");
-  const failure = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const failure = await runGitHook({
     cwd,
     encoding: "utf8",
   });
@@ -683,7 +742,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   const colorEnvironment = { ...process.env, FORCE_COLOR: "1" };
   delete colorEnvironment.NO_COLOR;
   delete colorEnvironment.NODE_DISABLE_COLORS;
-  const colored = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const colored = await runGitHook({
     cwd,
     encoding: "utf8",
     env: colorEnvironment,
@@ -699,7 +758,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(file, violation + "\n// unrelated unstaged note\n");
   const readabilityIndex = git("write-tree");
   const readabilityWorktree = readFileSync(file, "utf8");
-  const readabilityFailure = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const readabilityFailure = await runGitHook({
     cwd,
     encoding: "utf8",
   });
@@ -728,7 +787,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     readFileSync(testFile, "utf8") +
       '\ntest("fixture-only test failure", () => assert.fail("expected fixture failure"));\n',
   );
-  const testFailure = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const testFailure = await runGitHook({
     cwd,
     encoding: "utf8",
     env: colorEnvironment,
@@ -772,7 +831,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     file,
     "export const clean = 1;\n// preserved unstaged comment\n",
   );
-  const batched = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const batched = await runGitHook({
     cwd,
     encoding: "utf8",
     env: plainEnvironment,
@@ -817,7 +876,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   );
   const defaultHook = readFileSync(hookFile, "utf8");
   writeFileSync(hookFile, defaultHook.trimEnd() + " --debug\n");
-  const detailedHook = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const detailedHook = await runGitHook({
     cwd,
     encoding: "utf8",
     env: plainEnvironment,
@@ -845,7 +904,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(lastPath, invalidSource + "// preserved unstaged tail\n");
   const batchIndex = git("write-tree");
   const batchWorktree = readFileSync(lastPath, "utf8");
-  const rejectedBatch = spawnSync("git", ["hook", "run", "pre-commit"], {
+  const rejectedBatch = await runGitHook({
     cwd,
     encoding: "utf8",
     env: plainEnvironment,

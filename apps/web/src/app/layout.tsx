@@ -4,6 +4,7 @@ import { PublicShell } from "@/components/public-shell/PublicShell";
 import { publicAppearance } from "@/lib/appearance";
 import { getPublicPageNavigation } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
+import { siteOrigin } from "@/lib/settings/seo";
 import { resolvePublicSkin, resolveColorMode } from "@/lib/skin";
 
 import type { Metadata } from "next";
@@ -25,7 +26,13 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPublicSiteSettings();
 
-  return { title: settings.siteName, description: settings.siteDescription };
+  return {
+    metadataBase: siteOrigin(),
+    title: settings.siteName,
+    description: settings.siteDescription,
+    robots: { index: true, follow: true },
+    openGraph: { siteName: settings.siteName, type: "website" },
+  };
 }
 
 export default async function RootLayout({
@@ -42,6 +49,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable}`}
       data-skin={skin.id}
       data-color-mode={resolveColorMode(skin, publicAppearance.colorMode)}

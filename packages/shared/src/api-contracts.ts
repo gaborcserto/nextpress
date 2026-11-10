@@ -8,6 +8,7 @@ import {
   RichBlocksSchema,
   RichDocumentSchema,
 } from "./content";
+import { PageDocumentSchema } from "./page-document";
 import {
   PostListingModeSchema,
   MAX_POSTS_PER_PAGE,
@@ -50,6 +51,7 @@ export type PageCreateInput = Omit<z.infer<typeof PageSchema>, "tagIds">;
 
 /** Update PAGE / POST */
 export const PageUpdateSchema = z.object({
+  expectedVersion: z.number().int().min(0).max(2_147_483_646),
   type: z.enum(["PAGE", "POST"]).optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
   slug: ContentSlugSchema.optional(),
@@ -83,6 +85,7 @@ export const TagWithUsageSchema = TagSchema.extend({
 const date = z.iso.datetime({ offset: true });
 const nullableString = z.string().nullable();
 const editorialFields = {
+  workingVersion: z.number().int().nonnegative(),
   status: z.enum(["DRAFT", "PUBLISHED"]),
   slug: z.string(),
   title: z.string(),
@@ -132,6 +135,7 @@ export const ContentListSchema = z.object({
   pages: z.number().int(),
 });
 export const ContentRecordSchema = z.object({
+  workingVersion: z.number().int().nonnegative(),
   id: z.string(),
   type: z.enum(["PAGE", "POST"]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
@@ -176,6 +180,7 @@ const publicSummary = {
 };
 export const PublicPostSummarySchema = z.strictObject(publicSummary);
 export const PublicContentSchema = z.strictObject({
+  pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,
   content: RichDocumentSchema,
   cover: z
@@ -186,6 +191,24 @@ export const PublicContentSchema = z.strictObject({
       height: z.number().int().nullable(),
     })
     .nullable(),
+});
+
+export const PublicContentIndexQuerySchema = z.object({
+  kind: z.enum(["PAGE", "POST"]).optional(),
+  taxonomyId: z.string().min(1).max(128).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(100),
+  offset: z.coerce.number().int().min(0).max(10000).default(0),
+});
+export const PublicContentIndexSchema = z.strictObject({
+  items: z.array(
+    z.strictObject({
+      type: z.enum(["PAGE", "POST"]),
+      slug: ContentSlugSchema,
+      title: z.string(),
+      updatedAt: z.iso.datetime(),
+    }),
+  ),
+  hasMore: z.boolean(),
 });
 export const PublicPostBatchSchema = z.strictObject({
   posts: z.array(PublicPostSummarySchema),

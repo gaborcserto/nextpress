@@ -8,6 +8,7 @@ import { createBaseConfig } from "./base.js";
  * Extends the neutral TypeScript/Turborepo base with Next.js and React rules.
  */
 const config = [
+  { ignores: [".next-e2e/**"] },
   ...createBaseConfig({ registerPlugins: false }),
   ...nextCoreWebVitals,
   // Next's TS override covers .ts/.tsx; config modules need the TS parser too.
