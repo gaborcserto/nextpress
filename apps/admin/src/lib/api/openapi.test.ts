@@ -10,28 +10,45 @@ const apiRoot = new URL("../../app/api/", import.meta.url);
 
 describe("OpenAPI contract", () => {
   it("validates the complete specification without external reference resolution", async () => {
-    const validated = await SwaggerParser.validate(structuredClone(openApiDocument), {
-      resolve: { external: false },
-    });
+    const validated = await SwaggerParser.validate(
+      structuredClone(openApiDocument),
+      {
+        resolve: { external: false },
+      },
+    );
     expect(validated.info.title).toBe("NextPress API");
   });
 
   it("covers every owned route method and excludes the delegated auth and docs handlers", () => {
     const expected: string[] = [];
-    for (const file of readdirSync(apiRoot, { recursive: true, encoding: "utf8" })) {
+    for (const file of readdirSync(apiRoot, {
+      recursive: true,
+      encoding: "utf8",
+    })) {
       if (!file.endsWith("route.ts")) continue;
       const normalized = file.replaceAll("\\", "/");
-      if (normalized === "auth/[...all]/route.ts" || normalized === "openapi/route.ts") continue;
+      if (
+        normalized === "auth/[...all]/route.ts" ||
+        normalized === "openapi/route.ts"
+      )
+        continue;
       const path = `/api/${normalized.replace(/\/route\.ts$/, "").replace(/\[([^\]]+)\]/g, "{$1}")}`;
       const source = readFileSync(new URL(normalized, apiRoot), "utf8");
       for (const method of methods) {
-        if (new RegExp(`export (?:async )?(?:function|const) ${method.toUpperCase()}\\b`).test(source)) {
+        if (
+          new RegExp(
+            `export (?:async )?(?:function|const) ${method.toUpperCase()}\\b`,
+          ).test(source)
+        ) {
           expected.push(`${method} ${path}`);
         }
       }
     }
-    const documented = Object.entries(openApiDocument.paths).flatMap(([path, item]) =>
-      methods.filter((method) => item?.[method]).map((method) => `${method} ${path}`),
+    const documented = Object.entries(openApiDocument.paths).flatMap(
+      ([path, item]) =>
+        methods
+          .filter((method) => item?.[method])
+          .map((method) => `${method} ${path}`),
     );
     expect(documented.sort()).toEqual(expected.sort());
     expect(existsSync(new URL("ping/route.ts", apiRoot))).toBe(false);
@@ -46,11 +63,21 @@ describe("OpenAPI contract", () => {
     expect(write?.responses).toHaveProperty("413");
     expect(write?.responses).toHaveProperty("415");
     expect(write?.responses).toHaveProperty("429");
-    expect(openApiDocument.paths["/api/admin/users"]?.get?.responses).toHaveProperty("403");
-    expect(openApiDocument.components?.securitySchemes).toEqual(expect.objectContaining({
-      sessionCookie: expect.objectContaining({ in: "cookie", name: "better-auth.session_token" }),
-      secureSessionCookie: expect.objectContaining({ in: "cookie", name: "__Secure-better-auth.session_token" }),
-    }));
+    expect(
+      openApiDocument.paths["/api/admin/users"]?.get?.responses,
+    ).toHaveProperty("403");
+    expect(openApiDocument.components?.securitySchemes).toEqual(
+      expect.objectContaining({
+        sessionCookie: expect.objectContaining({
+          in: "cookie",
+          name: "better-auth.session_token",
+        }),
+        secureSessionCookie: expect.objectContaining({
+          in: "cookie",
+          name: "__Secure-better-auth.session_token",
+        }),
+      }),
+    );
   });
 
   it("documents the allowlisted listing mode and bounded post batch size", () => {
@@ -67,12 +94,15 @@ describe("OpenAPI contract", () => {
     const schemas = openApiDocument.components?.schemas;
     expect(schemas?.PageCreate).toMatchObject({
       properties: {
-        type: { enum: ["PAGE"] }, title: { maxLength: 300 },
+        type: { enum: ["PAGE"] },
+        title: { maxLength: 300 },
         content: { type: "string", maxLength: 1000000 },
         tagIds: { type: "array", maxItems: 100 },
       },
     });
     expect(schemas?.PageUpdate).not.toHaveProperty("required");
-    expect(schemas?.PageDetail).toMatchObject({ properties: { item: { properties: { content: { $ref: "#/components/schemas/RichBlocks" } } } } });
+    expect(schemas?.PageDetail).toMatchObject({
+      properties: { item: { properties: { content: { type: "array" } } } },
+    });
   });
 });

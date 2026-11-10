@@ -42,3 +42,5 @@ The admin app runs at [localhost:49101](http://localhost:49101); the public site
 `check:changed` includes staged, unstaged and untracked files. It shares CI's path policy and Turbo filters to include dependent workspaces. Documentation-only Markdown changes skip application checks; agent resources, root configuration, lockfile changes, unknown paths or failed Git detection trigger all workspaces. Selected changes also run root tooling lint and agent/selector checks. Use `npm run check:changed -- --full` to force all lint, typecheck and test tasks. This local command does not run builds or coverage; CI retains those checks. Run selector tests with `npm run check:changed:test`.
 
 See the [admin README](apps/admin/README.md), [web README](apps/web/README.md), and [agent resources](.agents/README.md) for focused guidance. The [API contracts skill](.agents/skills/nextpress-api-contracts/SKILL.md) describes the API maintenance workflow. Environment templates are the source for configuration; never commit real credentials.
+
+Backend ownership, delivery policy, discovery and extraction prerequisites are described in [backend boundaries](docs/backend-boundaries.md).

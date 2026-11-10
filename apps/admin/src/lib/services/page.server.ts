@@ -3,11 +3,11 @@ import {
   requireContentWrite,
   type ContentActor,
 } from "@/lib/auth/content-access";
-import { createPage, updatePage, deletePage, listPages } from "@/lib/repos";
+import { deletePage, listPages } from "@/lib/repos";
+import { createPageWithTags, updatePageWithTags } from "@/lib/repos/pageRepo";
 import { validateTagIds } from "@/lib/repos/tagRepo";
 
 import {
-  applyTags,
   validateCreateBody,
   validateUpdateBody,
   runWithSlugConflictHandling,
@@ -29,14 +29,16 @@ export async function createPageService(rawBody: unknown, actor: ContentActor) {
   const { tagIds, ...pageData } = parsed;
 
   const created = await runWithSlugConflictHandling(() =>
-    createPage({
-      ...pageData,
-      type: "PAGE",
-      authorId: actor.id,
-    }),
+    createPageWithTags(
+      {
+        ...pageData,
+        type: "PAGE",
+        authorId: actor.id,
+      },
+      tagIds,
+    ),
   );
 
-  await applyTags(created.id, tagIds);
   return created;
 }
 
@@ -60,10 +62,8 @@ export async function updatePageService(
   const { tagIds, ...pageData } = parsed;
 
   const updated = await runWithSlugConflictHandling(() =>
-    updatePage(id, pageData, "PAGE", actor),
+    updatePageWithTags(id, pageData, "PAGE", actor, tagIds),
   );
-
-  if (tagIds !== undefined) await applyTags(updated.id, tagIds);
 
   return updated;
 }

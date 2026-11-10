@@ -19,7 +19,7 @@
     "**/*.tsbuildinfo",
     "**/package-lock.json",
     "**/migrations/**",
-    "**/public/**",
+    "apps/*/public/**",
     "**/vendor/**",
     "**/*.min.*",
     ".notes/**",

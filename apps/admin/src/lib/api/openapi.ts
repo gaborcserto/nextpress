@@ -1,11 +1,26 @@
 import {
+  ApiErrorSchema,
+  TagSchema,
+  TagWithUsageSchema,
+  ContentRecordSchema,
+  ContentListSchema,
+  EditorialPageSchema,
+  EditorialPostSchema,
+  PublicContentSchema,
+  PublicPostBatchSchema,
+  PublicNavigationSchema,
+  PublicSiteSettingsSchema,
+  PublicPaginationSchema,
+  SessionDiscoverySchema,
+  ProviderDiscoverySchema,
+} from "@nextpress/shared/api-contracts";
+import {
   emailSchema,
   passwordSchema,
   MIN_PASSWORD_LENGTH,
   MAX_PASSWORD_LENGTH,
 } from "@nextpress/shared/auth-policy";
 import {
-  ContentLayoutSchema,
   RichBlocksSchema,
   RichDocumentSchema,
 } from "@nextpress/shared/content";
@@ -40,11 +55,6 @@ const boolean = { type: "boolean" } as const;
 const integer = { type: "integer" } as const;
 const nullableString = { type: "string", nullable: true } as const;
 const date = { type: "string", format: "date-time" } as const;
-const nullableDate = {
-  type: "string",
-  nullable: true,
-  format: "date-time",
-} as const;
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 const array = (items: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject) =>
   ({ type: "array", items }) as const;
@@ -63,9 +73,6 @@ function object(
 }
 const role = schema(z.enum(ROLES));
 const provider = schema(z.enum(OAUTH_PROVIDERS));
-const status = schema(PageSchema.shape.status);
-const contentType = schema(PageSchema.shape.type);
-const tagProperties = { id: string, name: string, slug: string };
 const roleRelation: OpenAPIV3.SchemaObject = {
   anyOf: [
     object({ name: string }),
@@ -78,13 +85,6 @@ const userProperties = {
   name: nullableString,
   role: roleRelation,
   roleName: nullableString,
-};
-const formProperties = {
-  status,
-  slug: string,
-  title: string,
-  content: ref("RichBlocks"),
-  tags: array(ref("Tag")),
 };
 const providerInput = object(
   {
@@ -122,17 +122,11 @@ const settingsProperties = {
 
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   Health: object({ status: { type: "string", enum: ["ok"] } }),
-  Error: object(
-    {
-      error: string,
-      issues: array(object({ path: nullableString, message: string })),
-    },
-    ["error"],
-  ),
+  Error: schema(ApiErrorSchema),
   Success: object({ ok: { type: "boolean", enum: [true] } }),
   DeletedTag: object({ message: string }),
-  Tag: object(tagProperties),
-  TagWithUsage: object({ ...tagProperties, usedCount: integer }),
+  Tag: schema(TagSchema),
+  TagWithUsage: schema(TagWithUsageSchema),
   TagCreate: schema(TagCreateSchema),
   TagLinks: {
     anyOf: [schema(TagIdsSchema), object({ tagIds: schema(TagIdsSchema) })],
@@ -149,92 +143,19 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   PostUpdate: schema(
     PageUpdateSchema.extend({ type: z.literal("POST").optional() }),
   ),
-  ContentRecord: object({
-    id: string,
-    type: contentType,
-    status,
-    slug: string,
-    title: string,
-    excerpt: nullableString,
-    content: string,
-    layout: schema(ContentLayoutSchema),
-    coverId: nullableString,
-    authorId: nullableString,
-    publishedAt: nullableDate,
-    inHeaderMenu: boolean,
-    inFooterMenu: boolean,
-    parentId: nullableString,
-    listingKind: {
-      type: "string",
-      nullable: true,
-      enum: ["POSTS", "PRODUCTS", "EVENTS", null],
-    },
-    listingTaxonomyId: nullableString,
-    eventStart: nullableDate,
-    eventEnd: nullableDate,
-    eventLocation: nullableString,
-    registrationUrl: nullableString,
-    redirectTo: nullableString,
-    viewCount: integer,
-    uniqueViewCount: integer,
-    likeCount: integer,
-    lastViewedAt: nullableDate,
-    createdAt: date,
-    updatedAt: date,
-  }),
-  ContentList: object({
-    items: array(
-      object({
-        id: string,
-        type: contentType,
-        status,
-        slug: string,
-        title: string,
-        excerpt: nullableString,
-        updatedAt: date,
-      }),
-    ),
-    page: integer,
-    limit: integer,
-    total: integer,
-    pages: integer,
-  }),
+  ContentRecord: schema(ContentRecordSchema),
+  ContentList: schema(ContentListSchema),
   ParentOptions: array(
     object({ id: string, title: string, parentId: nullableString }),
   ),
-  PageDetail: object({
-    item: object({
-      ...formProperties,
-      type: schema(ContentLayoutSchema),
-      parentId: nullableString,
-      inHeaderMenu: boolean,
-      inFooterMenu: boolean,
-      listingKind: {
-        type: "string",
-        nullable: true,
-        enum: ["POSTS", "PRODUCTS", "EVENTS", null],
-      },
-      listingTaxonomyId: nullableString,
-      eventStart: nullableDate,
-      eventEnd: nullableDate,
-      eventLocation: nullableString,
-      registrationUrl: nullableString,
-      redirectTo: nullableString,
-    }),
-  }),
-  PostDetail: object({
-    item: object({
-      ...formProperties,
-      excerpt: ref("RichBlocks"),
-      publishedAt: nullableDate,
-      cover: {
-        anyOf: [
-          object({ id: string, url: string, alt: nullableString }),
-          { type: "object", nullable: true, enum: [null] },
-        ],
-      },
-    }),
-  }),
+  PageDetail: schema(z.object({ item: EditorialPageSchema })),
+  PostDetail: schema(z.object({ item: EditorialPostSchema })),
+  PublicContent: schema(PublicContentSchema),
+  PublicPostBatch: schema(PublicPostBatchSchema),
+  PublicNavigation: schema(PublicNavigationSchema),
+  PublicSiteSettings: schema(PublicSiteSettingsSchema),
+  SessionDiscovery: schema(SessionDiscoverySchema),
+  ProviderDiscovery: schema(ProviderDiscoverySchema),
   UserCreate: object(
     {
       email: schema(emailSchema),
@@ -392,6 +313,46 @@ const paths: OpenAPIV3.PathsObject = {
     ),
   },
 };
+for (const [path, result, operationId] of [
+  ["public/posts", "PublicPostBatch", "publicPosts"],
+  ["public/posts/{slug}", "PublicContent", "publicPost"],
+  ["public/pages/{slug}", "PublicContent", "publicPage"],
+  ["public/navigation", "PublicNavigation", "publicNavigation"],
+  ["public/settings", "PublicSiteSettings", "publicSettings"],
+  ["discovery/session", "SessionDiscovery", "sessionDiscovery"],
+  ["discovery/providers", "ProviderDiscovery", "providerDiscovery"],
+]) {
+  const read = operation(
+    operationId,
+    "Delivery and discovery",
+    operationId,
+    ref(result),
+    path.includes("{slug}")
+      ? [404, 500]
+      : path === "public/posts"
+        ? [400, 500]
+        : [500],
+    path.startsWith("public/")
+      ? "Cookie-independent delivery. Only PUBLISHED content with explicit publication time at or before the request is visible. Uncached."
+      : "Same-origin discovery; session identity is validated by Better Auth and roles read live. No tokens or credentials returned.",
+    path === "discovery/session" ? "optional" : "public",
+  );
+  if (path.includes("{slug}"))
+    read.parameters = [
+      parameter("slug", "path", string, "Canonical content slug."),
+    ];
+  if (path === "public/posts")
+    read.parameters = Object.entries(PublicPaginationSchema.shape).map(
+      ([key, value]) =>
+        parameter(
+          key,
+          "query",
+          schema(value),
+          "Single bounded decimal integer; duplicates rejected.",
+        ),
+    );
+  paths[`/api/${path}`] = { get: read };
+}
 for (const [path, kind, detail] of [
   ["pages", "Page", "PageDetail"],
   ["post", "Post", "PostDetail"],

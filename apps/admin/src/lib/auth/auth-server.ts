@@ -246,8 +246,8 @@ export async function getUserRole(
   return readRoleName(userId);
 }
 
-export async function getSession() {
-  const header = await headers();
+export async function getSession(requestHeaders?: Headers) {
+  const header = requestHeaders ?? (await headers());
   const auth = await getAuth();
   return auth.api.getSession({ headers: header });
 }
@@ -266,8 +266,10 @@ export type SessionWithRole =
  * Returns the session plus user.role (from DB).
  * Better Auth's session payload does not include DB relations by default.
  */
-export const getSessionWithRole = cache(async (): Promise<SessionWithRole> => {
-  const session = await getSession();
+export async function getRequestSessionWithRole(
+  requestHeaders?: Headers,
+): Promise<SessionWithRole> {
+  const session = await getSession(requestHeaders);
   const userId = session?.user?.id;
   if (!userId) return null;
 
@@ -280,7 +282,9 @@ export const getSessionWithRole = cache(async (): Promise<SessionWithRole> => {
       role,
     },
   };
-});
+}
+
+export const getSessionWithRole = cache(() => getRequestSessionWithRole());
 
 export function hasAnyRole(
   role: RoleName | null | undefined,

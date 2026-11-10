@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./auth-policy": "./src/utils/auth-policy.ts",
     "./content": "./src/content.ts",
-    "./utils/*": "./src/utils/*"
+    "./utils/*": "./src/utils/*",
+    "./api-contracts": "./src/api-contracts.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

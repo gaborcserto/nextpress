@@ -1,8 +1,11 @@
+import { readRichContent } from "@nextpress/shared/content";
+
 import { ok, bad, notfound, conflict, oops, forbid } from "@/lib/api";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
-import { ContentForbiddenError, ContentNotFoundError } from "@/lib/auth/content-access";
-import type { PostFormValues } from "@/lib/content/contracts";
-import { normalizeSlateValue } from "@/lib/content/editor";
+import {
+  ContentForbiddenError,
+  ContentNotFoundError,
+} from "@/lib/auth/content-access";
 import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
 import {
   PageValidationError,
@@ -14,6 +17,8 @@ import {
   updatePostService,
   deletePostService,
 } from "@/lib/services/post.server";
+
+import type { EditorialPost } from "@nextpress/shared/api-contracts";
 
 export const runtime = "nodejs";
 
@@ -28,23 +33,23 @@ type GetContext = {
  */
 function mapPostToFormValues(
   page: Awaited<ReturnType<typeof getPostWithTagsService>>["item"],
-  tags: Awaited<ReturnType<typeof getPostWithTagsService>>["tags"]
-): PostFormValues {
+  tags: Awaited<ReturnType<typeof getPostWithTagsService>>["tags"],
+): EditorialPost {
   return {
     status: page.status,
     slug: page.slug,
     title: page.title,
-    excerpt: normalizeSlateValue(page.excerpt),
-    content: normalizeSlateValue(page.content),
+    excerpt: readRichContent(page.excerpt).blocks,
+    content: readRichContent(page.content).blocks,
     tags: tags.map((t) => ({
       id: t.id,
       name: t.name,
       slug: t.slug,
     })),
-    cover: page.cover ? { id: page.cover.id, url: page.cover.url, alt: page.cover.alt } : null,
-    publishedAt: page.publishedAt
-      ? page.publishedAt.toISOString()
+    cover: page.cover
+      ? { id: page.cover.id, url: page.cover.url, alt: page.cover.alt }
       : null,
+    publishedAt: page.publishedAt ? page.publishedAt.toISOString() : null,
   };
 }
 
@@ -53,8 +58,11 @@ function mapPostToFormValues(
  */
 export async function GET(_req: Request, { params }: GetContext) {
   try {
-    const { id } =  await params;
-    const { item, tags } = await getPostWithTagsService(id, (await getSessionWithRole())?.user);
+    const { id } = await params;
+    const { item, tags } = await getPostWithTagsService(
+      id,
+      (await getSessionWithRole())?.user,
+    );
 
     const formItem = mapPostToFormValues(item, tags);
 
@@ -101,7 +109,7 @@ export const PUT = withAuth(
       return oops();
     }
   },
-  "content"
+  "content",
 );
 
 /**
@@ -123,5 +131,5 @@ export const DELETE = withAuth(
       return oops();
     }
   },
-  "content"
+  "content",
 );

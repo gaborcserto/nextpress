@@ -1,3 +1,10 @@
+import {
+  TagWithUsageSchema,
+  EditorialPostSchema,
+  EditorialPageSchema,
+  ContentListSchema,
+  ContentRecordSchema,
+} from "@nextpress/shared/api-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
@@ -98,7 +105,13 @@ function content(
     excerpt: "",
     layout: "STANDARD" as const,
     cover: null,
+    createdAt: new Date(),
     updatedAt: new Date(),
+    coverId: null,
+    viewCount: 0,
+    uniqueViewCount: 0,
+    likeCount: 0,
+    lastViewedAt: null,
     publishedAt: null as Date | null,
     parentId: null,
     inHeaderMenu: false,
@@ -194,7 +207,13 @@ beforeEach(() => {
     },
   );
   prisma.page.create.mockImplementation(async ({ data }: { data: Content }) => {
-    const item = { ...content("created", data.type, data.status), ...data };
+    const item = {
+      ...content("created", data.type, data.status),
+      ...data,
+      layout: data.layout ?? "STANDARD",
+      inHeaderMenu: data.inHeaderMenu ?? false,
+      inFooterMenu: data.inFooterMenu ?? false,
+    };
     records.push(item);
     return item;
   });
@@ -309,7 +328,9 @@ describe.each(routes)(
         role = viewer;
         const response = await list(request());
         expect(response.status).toBe(200);
-        expect(await response.json()).toMatchObject({
+        const body = await response.json();
+        expect(ContentListSchema.safeParse(body).success).toBe(true);
+        expect(body).toMatchObject({
           items: [{ id: `${prefix}-live` }],
           total: 1,
         });
@@ -413,9 +434,14 @@ describe.each(routes)(
           context(`${prefix}-live${lookup === "slug" ? "-slug" : ""}`),
         );
         expect(response.status).toBe(200);
-        expect(await response.json()).toMatchObject({
-          item: { title: `${prefix}-live` },
-        });
+        const body = await response.json();
+        expect(
+          (prefix === "post"
+            ? EditorialPostSchema
+            : EditorialPageSchema
+          ).safeParse(body.item).success,
+        ).toBe(true);
+        expect(body).toMatchObject({ item: { title: `${prefix}-live` } });
         expect(prisma.pageOnTaxonomy.findMany).toHaveBeenCalledWith(
           expect.objectContaining({ where: { pageId: `${prefix}-live` } }),
         );
@@ -536,6 +562,9 @@ describe.each(routes)(
         context(""),
       );
       expect(response.status).toBe(201);
+      expect(
+        ContentRecordSchema.safeParse(await response.clone().json()).success,
+      ).toBe(true);
       expect(prisma.page.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ authorId: "author-1", type }),
@@ -630,6 +659,10 @@ describe("admin taxonomy loading", () => {
       ]);
       const response = await listAdminTags(request(), { params: {} });
       expect(response.status).toBe(200);
+      expect(
+        TagWithUsageSchema.array().safeParse(await response.clone().json())
+          .success,
+      ).toBe(true);
       expect(await response.json()).toEqual([
         { id: "unused", name: "Unused", slug: "unused", usedCount: 0 },
         { id: "one", name: "One", slug: "one", usedCount: 1 },

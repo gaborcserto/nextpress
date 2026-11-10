@@ -1,8 +1,15 @@
 import { prisma } from "@nextpress/db/src/client";
 
-import { contentReadWhere, contentWriteWhere, type ContentActor } from "@/lib/auth/content-access";
+import {
+  contentReadWhere,
+  contentWriteWhere,
+  type ContentActor,
+} from "@/lib/auth/content-access";
 import { slugify } from "@/lib/utils";
 import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
+
+import { setTagsForPage } from "./tagRepo";
+import type { Prisma } from "@nextpress/db/generated/prisma/client";
 
 type PageTypeLiteral = "PAGE" | "POST";
 
@@ -12,7 +19,7 @@ type PageTypeLiteral = "PAGE" | "POST";
  */
 export async function getPageById(
   idOrSlug?: string | null,
-  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null }
+  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null },
 ) {
   const ref = (idOrSlug ?? "").trim();
   if (!ref) return null;
@@ -30,7 +37,11 @@ export async function getPageById(
 
   // 2) Fallback: try by slug
   const bySlug = await prisma.page.findUnique({
-    where: { ...contentReadWhere(opts?.actor), slug: slugify(ref), type: typeFilter },
+    where: {
+      ...contentReadWhere(opts?.actor),
+      slug: slugify(ref),
+      type: typeFilter,
+    },
     include: { cover: { select: { id: true, url: true, alt: true } } },
   });
 
@@ -46,7 +57,7 @@ export async function getPageById(
 export async function listPages(
   skip: number,
   take: number,
-  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null }
+  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null },
 ) {
   const typeFilter = opts?.type ?? "PAGE";
 
@@ -78,10 +89,13 @@ export async function listPages(
  * Ensure that a given slug is globally unique.
  * This validation applies to both pages and posts.
  */
-export async function ensureUniqueSlug(opts: { slug: string; excludeId?: string }) {
+export async function ensureUniqueSlug(
+  opts: { slug: string; excludeId?: string },
+  db: Prisma.TransactionClient = prisma,
+) {
   const clean = slugify(opts.slug);
 
-  const exists = await prisma.page.findFirst({
+  const exists = await db.page.findFirst({
     where: opts.excludeId
       ? { slug: clean, NOT: { id: opts.excludeId } }
       : { slug: clean },
@@ -100,12 +114,13 @@ export async function ensureUniqueSlug(opts: { slug: string; excludeId?: string 
  * POST creation can easily extend this with { type: 'POST' }.
  */
 export async function createPage(
-  input: PageCreateInput & { authorId?: string | null }
+  input: PageCreateInput & { authorId?: string | null },
+  db: Prisma.TransactionClient = prisma,
 ) {
   const cleanSlug = slugify(input.slug);
-  await ensureUniqueSlug({ slug: cleanSlug });
+  await ensureUniqueSlug({ slug: cleanSlug }, db);
 
-  return prisma.page.create({
+  return db.page.create({
     data: {
       type: input.type,
       status: input.status,
@@ -116,7 +131,11 @@ export async function createPage(
       layout: input.layout,
       inHeaderMenu: input.inHeaderMenu,
       inFooterMenu: input.inFooterMenu,
-      publishedAt: input.publishedAt ? new Date(input.publishedAt) : input.status === "PUBLISHED" ? new Date() : null,
+      publishedAt: input.publishedAt
+        ? new Date(input.publishedAt)
+        : input.status === "PUBLISHED"
+          ? new Date()
+          : null,
       authorId: input.authorId ?? null,
     },
   });
@@ -126,28 +145,35 @@ export async function createPage(
  * Update PAGE (or POST) record.
  * If slug is provided, normalize and check for uniqueness.
  */
-export async function updatePage(id: string, data: PageUpdateInput, type: PageTypeLiteral, actor: ContentActor) {
+export async function updatePage(
+  id: string,
+  data: PageUpdateInput,
+  type: PageTypeLiteral,
+  actor: ContentActor,
+  db: Prisma.TransactionClient = prisma,
+) {
   const next: PageUpdateInput = { ...data };
 
   if (typeof data.slug === "string") {
     next.slug = slugify(data.slug);
-    await ensureUniqueSlug({ slug: next.slug, excludeId: id });
+    await ensureUniqueSlug({ slug: next.slug, excludeId: id }, db);
   }
 
   let publishedAt: Date | null | undefined;
   if (next.publishedAt) {
     publishedAt = new Date(next.publishedAt);
   } else if (next.publishedAt === null || next.status === "PUBLISHED") {
-    const current = await prisma.page.findUniqueOrThrow({
+    const current = await db.page.findUniqueOrThrow({
       where: { id, type, ...contentWriteWhere(actor) },
       select: { status: true, publishedAt: true },
     });
-    publishedAt = (next.status ?? current.status) === "PUBLISHED"
-      ? current.publishedAt ?? new Date()
-      : null;
+    publishedAt =
+      (next.status ?? current.status) === "PUBLISHED"
+        ? (current.publishedAt ?? new Date())
+        : null;
   }
 
-  return prisma.page.update({
+  return db.page.update({
     where: { id, type, ...contentWriteWhere(actor) },
     data: { ...next, publishedAt },
   });
@@ -157,6 +183,38 @@ export async function updatePage(id: string, data: PageUpdateInput, type: PageTy
  * Permanently delete a PAGE or POST record.
  * Cascade rules are handled by Prisma relations.
  */
-export async function deletePage(id: string, type: PageTypeLiteral, actor: ContentActor) {
-  await prisma.page.delete({ where: { id, type, ...contentWriteWhere(actor) } });
+export async function deletePage(
+  id: string,
+  type: PageTypeLiteral,
+  actor: ContentActor,
+) {
+  await prisma.page.delete({
+    where: { id, type, ...contentWriteWhere(actor) },
+  });
+}
+
+/** Persist the content aggregate and TAG links in one transaction. */
+export async function createPageWithTags(
+  input: PageCreateInput & { authorId: string },
+  tagIds: string[],
+) {
+  return prisma.$transaction(async (tx) => {
+    const page = await createPage(input, tx);
+    await setTagsForPage(page.id, tagIds, tx);
+    return page;
+  });
+}
+
+export async function updatePageWithTags(
+  id: string,
+  input: PageUpdateInput,
+  type: PageTypeLiteral,
+  actor: ContentActor,
+  tagIds?: string[],
+) {
+  return prisma.$transaction(async (tx) => {
+    const page = await updatePage(id, input, type, actor, tx);
+    if (tagIds !== undefined) await setTagsForPage(page.id, tagIds, tx);
+    return page;
+  });
 }

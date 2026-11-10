@@ -1,8 +1,11 @@
+import { readRichContent } from "@nextpress/shared/content";
+
 import { ok, bad, notfound, conflict, oops, forbid } from "@/lib/api";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
-import { ContentForbiddenError, ContentNotFoundError } from "@/lib/auth/content-access";
-import type { PageFormValues } from "@/lib/content/contracts";
-import { normalizeSlateValue } from "@/lib/content/editor";
+import {
+  ContentForbiddenError,
+  ContentNotFoundError,
+} from "@/lib/auth/content-access";
 import { getPageById, getTagsForPage } from "@/lib/repos";
 import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
 import {
@@ -14,20 +17,22 @@ import {
   updatePageService,
 } from "@/lib/services/page.server";
 
+import type { EditorialPage } from "@nextpress/shared/api-contracts";
+
 export const runtime = "nodejs";
 
 type RouteParams = { id: string };
 
 function mapPageToFormValues(
   page: NonNullable<Awaited<ReturnType<typeof getPageById>>>,
-  tags: Awaited<ReturnType<typeof getTagsForPage>>
-): PageFormValues {
+  tags: Awaited<ReturnType<typeof getTagsForPage>>,
+): EditorialPage {
   return {
     type: page.layout,
     status: page.status,
     slug: page.slug,
     title: page.title,
-    content: normalizeSlateValue(page.content),
+    content: readRichContent(page.content).blocks,
     tags: tags.map((t) => ({
       id: t.id,
       name: t.name,
@@ -53,10 +58,7 @@ type GetContext = {
 /**
  * GET /api/pages/[id]
  */
-export async function GET(
-  _req: Request,
-  { params }: GetContext
-) {
+export async function GET(_req: Request, { params }: GetContext) {
   try {
     const { id } = await params;
 
@@ -107,7 +109,7 @@ export const PUT = withAuth(
       return oops();
     }
   },
-  "content"
+  "content",
 );
 
 /**
@@ -129,5 +131,5 @@ export const DELETE = withAuth(
       return oops();
     }
   },
-  "content"
+  "content",
 );

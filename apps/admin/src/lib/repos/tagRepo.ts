@@ -8,7 +8,10 @@ export class TaxonomyScopeError extends Error {
   }
 }
 
-export async function validateTagIds(tagIds: string[], db: Pick<Prisma.TransactionClient, "taxonomy"> = prisma) {
+export async function validateTagIds(
+  tagIds: string[],
+  db: Pick<Prisma.TransactionClient, "taxonomy"> = prisma,
+) {
   const ids = [...new Set(tagIds)];
   if (!ids.length) return;
   const tags = await db.taxonomy.findMany({
@@ -27,7 +30,11 @@ export type TagDto = {
 /**
  * Internal helper to map a taxonomy record to a TagDto.
  */
-function mapTaxonomyToTagDto(t: { id: string; name: string; slug: string }): TagDto {
+function mapTaxonomyToTagDto(t: {
+  id: string;
+  name: string;
+  slug: string;
+}): TagDto {
   return {
     id: t.id,
     name: t.name,
@@ -71,7 +78,9 @@ export async function searchTagsRaw(query: string): Promise<TagDto[]> {
  * Find a tag by name using a case-insensitive comparison.
  * The name should already be trimmed in the service layer.
  */
-export async function findTagByNameInsensitive(name: string): Promise<TagDto | null> {
+export async function findTagByNameInsensitive(
+  name: string,
+): Promise<TagDto | null> {
   const existing = await prisma.taxonomy.findFirst({
     where: {
       type: "TAG",
@@ -99,7 +108,10 @@ export async function findTagBySlug(slug: string): Promise<TagDto | null> {
  * Create a new tag with the given name and slug.
  * The name and slug should be fully validated and normalized in the service layer.
  */
-export async function createTagRecord(name: string, slug: string): Promise<TagDto> {
+export async function createTagRecord(
+  name: string,
+  slug: string,
+): Promise<TagDto> {
   const created = await prisma.taxonomy.create({
     data: {
       type: "TAG",
@@ -123,7 +135,12 @@ export async function deleteTagRecord(id: string): Promise<TagDto | null> {
 
     return mapTaxonomyToTagDto(deleted);
   } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2025"
+    ) {
       return null;
     }
     throw error;
@@ -149,19 +166,27 @@ export async function getTagsForPage(pageId: string): Promise<TagDto[]> {
  */
 export async function setTagsForPage(
   pageId: string,
-  tagIds: string[]
+  tagIds: string[],
+  transaction?: Prisma.TransactionClient,
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  const replace = async (tx: Prisma.TransactionClient) => {
     await validateTagIds(tagIds, tx);
-    await tx.page.findUniqueOrThrow({ where: { id: pageId }, select: { id: true } });
-    await tx.pageOnTaxonomy.deleteMany({ where: { pageId, taxonomy: { type: "TAG" } } });
+    await tx.page.findUniqueOrThrow({
+      where: { id: pageId },
+      select: { id: true },
+    });
+    await tx.pageOnTaxonomy.deleteMany({
+      where: { pageId, taxonomy: { type: "TAG" } },
+    });
     if (tagIds.length) {
       await tx.pageOnTaxonomy.createMany({
         data: tagIds.map((taxonomyId) => ({ pageId, taxonomyId })),
         skipDuplicates: true,
       });
     }
-  });
+  };
+  if (transaction) await replace(transaction);
+  else await prisma.$transaction(replace);
 }
 
 /**
