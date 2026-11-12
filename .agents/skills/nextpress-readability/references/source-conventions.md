@@ -2,13 +2,39 @@
 
 - Imports: external and workspace packages first, app aliases second, relatives last, with one blank line between groups. Follow ESLint ordering/type-import policy. Preserve directives, side-effect import order and CSS cascade; do not blindly sort or delete potentially effectful imports.
 - State/hooks: group related state and refs, derived setup, effects, handlers and render where dependencies allow. Preserve hook execution order. Separate independent effects and meaningful stages without spacing every declaration.
-- Functions/methods: separate independent functions, function-valued declarations and methods with a blank line. Keep overloads together and comments attached. Distinguish validation, work, errors and final return where useful; related statements stay together.
-- Conditions: prefer guards and explicit branches over nested ternaries. Simple render conditionals are fine. Preserve evaluation order; avoid extraction purely to satisfy counts. Use braces for multiline conditions/bodies and when they clarify branch association.
+- Functions/methods: separate independent functions, function-valued declarations and methods with a blank line. Keep overloads together and comments attached. Prefer descriptive names and focused responsibilities; extract helpers only when they clarify meaningful work. Avoid ambiguous boolean arguments and unnecessary one-line helpers.
+- Control flow: always use braces for `if`, `else`, loops and similar statement bodies, including single-line guards. Prefer early returns; omit unnecessary `else` after an unconditional return. Avoid deeply nested conditional expressions; use explicit blocks for multi-step branches. Preserve evaluation order.
 - JSX: name handlers containing multiple state updates, storage or substantial branching. Trivial argument forwarding can stay inline. Keep semantic groups visible without spacer nodes or changing whitespace-sensitive text.
 - Cohesion: keep functions/components focused on a recognizable responsibility. Reuse owning-app primitives and colocate private logic. Small local extractions may clarify repeated work; avoid generic frameworks, extra providers, wrapper layers and speculative hooks.
-- Errors: keep validation, domain errors, transport failures and cleanup recognizable. Preserve safe messages/contracts and justified optional-storage handling or finally cleanup.
+- Types: use named aliases for repeated schema-derived types or complex component props. Preserve type-only import conventions, strict typing and boundary validation; avoid `any` and unnecessary assertions.
+- Errors: distinguish validation, transport and domain failures. Use operation-specific action labels and success/error messages; retain useful safe error context and optimistic concurrency handling. Do not silently swallow failures. Keep cleanup in `finally` when needed.
 - Formatting: accept root Oxfmt layout, retaining logical blank lines it permits. Do not fight it with ignore directives or manual alignment. Check second-pass stability when introducing conventions.
 - Boundaries: preserve App Router special files, Server/Client directives, server-only dependencies and authorization. Do not impose universal barrels or client directives to normalize structure.
+
+## Logical grouping
+
+For maintained JavaScript, TypeScript, JSX and TSX, separate distinct stages with
+blank lines: guards, state setup/updates, data preparation, requests, response
+validation, result processing, error handling and returns where separation helps.
+Keep tightly related statements together; do not space every declaration or setter.
+Always add a blank line before `try` when setup precedes it, and separate the
+`try/catch/finally` block from subsequent independent work.
+
+```tsx
+setBusy(true);
+setMessage("");
+
+try {
+  await saveRevision();
+} catch (error) {
+  handleError(error);
+} finally {
+  setBusy(false);
+}
+```
+
+Review grouping alongside Oxfmt and ESLint; formatting alone cannot infer intent.
+Apply these conventions to task-owned edits, without unrelated repository-wide rewrites.
 
 Passing mechanical checks does not prove meaningful naming, logical grouping, appropriate extraction or cohesive architecture. Review the complete task diff and report specific contextual exceptions with reasons.
 

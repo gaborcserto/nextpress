@@ -1,9 +1,9 @@
 import RevisionEditor from "@/components/admin/RevisionEditor";
 
-export default async function CompositionPage({
+export default async function RevisionsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  return <RevisionEditor pageId={(await params).id} />;
+  return <RevisionEditor kind="posts" pageId={(await params).id} />;
 }

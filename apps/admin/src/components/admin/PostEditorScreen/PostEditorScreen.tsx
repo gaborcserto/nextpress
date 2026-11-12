@@ -63,8 +63,8 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
   return (
     <>
       {isEdit && (
-        <Link className="btn" href={`/admin/posts/${postId}/composition`}>
-          Composition and working revisions
+        <Link className="btn" href={`/admin/posts/${postId}/revisions`}>
+          Working revisions
         </Link>
       )}
       <PostForm

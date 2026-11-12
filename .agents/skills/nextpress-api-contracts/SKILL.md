@@ -5,6 +5,8 @@ description: Change or review NextPress API contracts across Zod validation, Ope
 
 # API contracts
 
+Apply [NextPress readability](../nextpress-readability/SKILL.md) for request preparation, validation, asynchronous control flow and safe error context.
+
 Inspect the route, callers, validation schemas, OpenAPI generation, and shared exports before changing a contract. Admin APIs live in `apps/api`; do not move app-specific behavior into `packages/shared` without demonstrated cross-workspace use.
 
 - Treat body, path, query, and external values as untrusted. Reuse or extend the existing Zod schemas and route error helpers; avoid duplicate validation rules.

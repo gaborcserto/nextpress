@@ -5,7 +5,7 @@ description: Implement or review React UI in NextPress, including Next.js App Ro
 
 # React and Next.js development
 
-Apply [NextPress readability](../nextpress-readability/SKILL.md) for source edits. Name nontrivial JSX handlers, group related hooks/state and review component ownership without unrelated folder migrations. Preserve effect timing; do not swap layout effects for style.
+Apply [NextPress readability](../nextpress-readability/SKILL.md) for source edits. Name nontrivial JSX handlers, group related hooks/state and review component ownership without unrelated folder migrations. Preserve effect timing; do not swap layout effects for style. Review predictable state transitions and revision/record selection after requests; do not reset selection or add derived state/effects as a readability refactor. Keep complex JSX readable with focused extractions only when they help.
 
 Inspect the owning application and nearby components before choosing a pattern. `apps/web` and `apps/admin` are separate products with their own UI primitives and conventions; keep code in its owning workspace.
 

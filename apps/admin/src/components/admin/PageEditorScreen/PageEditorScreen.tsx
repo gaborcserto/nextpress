@@ -63,8 +63,8 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
   return (
     <>
       {isEdit && (
-        <Link className="btn" href={`/admin/pages/${id}/composition`}>
-          Composition and working revisions
+        <Link className="btn" href={`/admin/pages/${id}/revisions`}>
+          Working revisions
         </Link>
       )}
       <PageForm

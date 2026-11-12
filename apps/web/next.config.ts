@@ -13,7 +13,25 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*",
+        source: "/live-preview",
+        headers: webSecurityHeaders(process.env.NODE_ENV === "production")
+          .filter((header) => header.key !== "X-Frame-Options")
+          .map((header) =>
+            header.key === "Content-Security-Policy"
+              ? {
+                  ...header,
+                  value: header.value.replace(
+                    "frame-ancestors 'none'",
+                    process.env.PREVIEW_ADMIN_ORIGIN
+                      ? `frame-ancestors ${new URL(process.env.PREVIEW_ADMIN_ORIGIN).origin}`
+                      : "frame-ancestors 'none'",
+                  ),
+                }
+              : header,
+          ),
+      },
+      {
+        source: "/((?!live-preview$).*)",
         headers: webSecurityHeaders(process.env.NODE_ENV === "production"),
       },
     ];

@@ -1,14 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { webSecurityHeaders } from "./headers";
 import nextConfig from "../../../next.config";
 
 describe("public web HTTP security policy", () => {
-  it("applies its separate policy to all routes", async () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("limits the framing exception to the configured preview origin and route", async () => {
+    vi.stubEnv("PREVIEW_ADMIN_ORIGIN", "https://admin.example.test");
+    const routes = await nextConfig.headers?.();
+    const preview = routes?.find((route) => route.source === "/live-preview");
+    expect(
+      preview?.headers.find(
+        (header) => header.key === "Content-Security-Policy",
+      )?.value,
+    ).toContain("frame-ancestors https://admin.example.test");
+    expect(
+      preview?.headers.find((header) => header.key === "X-Frame-Options"),
+    ).toBeUndefined();
+    expect(
+      routes?.find((route) => route.source !== "/live-preview")?.headers,
+    ).toEqual(webSecurityHeaders(false));
     expect(nextConfig.poweredByHeader).toBe(false);
-    expect(await nextConfig.headers?.()).toEqual([
-      { source: "/:path*", headers: webSecurityHeaders(false) },
-    ]);
+  });
+
+  it("denies preview framing when no admin origin is configured", async () => {
+    vi.stubEnv("PREVIEW_ADMIN_ORIGIN", "");
+    const routes = await nextConfig.headers?.();
+    expect(
+      routes
+        ?.find((route) => route.source === "/live-preview")
+        ?.headers.find((header) => header.key === "Content-Security-Policy")
+        ?.value,
+    ).toContain("frame-ancestors 'none'");
   });
 
   it("limits sources to the current static frontend and denies framing", () => {

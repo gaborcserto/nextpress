@@ -54,7 +54,9 @@ export function adminContentSecurityPolicy(
     `img-src 'self' https:${production ? "" : " http:"}${allowDataImages ? " data:" : ""}`,
     "font-src 'self'",
     `connect-src 'self'${authOrigin}${production ? "" : " ws: wss:"}`,
-    "frame-src 'none'",
+    process.env.NEXT_PUBLIC_PREVIEW_ORIGIN
+      ? `frame-src ${new URL(process.env.NEXT_PUBLIC_PREVIEW_ORIGIN).origin}/live-preview`
+      : "frame-src 'none'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'none'",

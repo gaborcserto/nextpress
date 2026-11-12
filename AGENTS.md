@@ -71,7 +71,7 @@ The shared ESLint configuration includes Next.js Core Web Vitals and React acces
 
 ## Code quality
 
-Before creating or modifying maintained JS/JSX/MJS/CJS/TS/TSX/MTS/CTS source, explicitly read and apply [.agents/skills/nextpress-readability/SKILL.md](.agents/skills/nextpress-readability/SKILL.md), alongside relevant implementation/testing skills and verification. Discovery metadata alone does not apply a skill. Review all task-modified and new source against selected skills before delivery; passing static checks does not prove architectural readability.
+Before creating or modifying maintained JS/JSX/MJS/CJS/TS/TSX/MTS/CTS source, explicitly read and apply [.agents/skills/nextpress-readability/SKILL.md](.agents/skills/nextpress-readability/SKILL.md), alongside relevant implementation/testing skills and verification. Its [source conventions](.agents/skills/nextpress-readability/references/source-conventions.md) are the authoritative detailed coding standard; apply them to new and modified code. Discovery metadata alone does not apply a skill. Review all task-modified and new source against selected skills before delivery; passing static checks does not prove architectural readability.
 
 ESLint owns quality/imports, TypeScript owns types, and root Oxfmt owns layout. Use `npm run format:changed` on task-owned changes (add `-- --files path...` when unrelated user edits exist), then `npm run check:changed`. Include `-- --base <ref>` for committed branch changes. Detection failure must fail, never cause empty success or implicit full-repository formatting. Report readability exceptions and checks actually run.
 
@@ -123,5 +123,5 @@ Before completing work:
 - Check for duplicated or contradictory agent instructions.
 - Confirm no secrets, generated artifacts, unrelated application behavior, schema changes, migrations, tests, CI, Husky, or dependency upgrades were added unless explicitly requested.
 - Never bypass a failing check or hook. Do not use `--no-verify` to make a commit succeed.
-- Do not commit or push unless the user explicitly requests it.
+- Do not stage, commit or push unless the user explicitly requests it.
 - Summarize changed files, verification performed, and any remaining observation or follow-up.

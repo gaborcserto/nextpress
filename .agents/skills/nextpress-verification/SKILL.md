@@ -9,6 +9,8 @@ For maintained source edits read [readability](../nextpress-readability/SKILL.md
 
 Review all modified/new task files against selected skills and check formatting stability. Passing formatter/lint checks is not architectural review. Report scope, actual checks, exceptions and skipped checks.
 
+For small refactors, use focused lint, affected application typechecks and relevant existing tests; add tests only for changed behavior or a demonstrated regression. Avoid unrelated builds, audits and full suites. If changed-file detection includes unrelated work and broadens checks, run explicit targeted checks and report the scope exception.
+
 Read root and owning workspace scripts before selecting commands. Do not claim a check passed unless it ran successfully; report skipped checks and concrete environmental reasons.
 
 - For behavior changes, run focused tests in the owning workspace, then relevant lint and typecheck. Follow [NextPress testing](../nextpress-testing/SKILL.md) for test design.

@@ -5,7 +5,7 @@ description: Required when creating or modifying maintained JavaScript, TypeScri
 
 # Code readability
 
-Read [source conventions](references/source-conventions.md) before source edits. Preserve behavior and boundaries; review-only work does not authorize refactoring. Apply conventions during implementation and review all task-modified/new source before delivery.
+Read the authoritative [source conventions](references/source-conventions.md) before source edits, including logical grouping, braced control flow, named types and operation-specific asynchronous feedback. Preserve behavior and boundaries; review-only work does not authorize refactoring. Apply conventions during implementation and review all task-modified/new source before delivery.
 
 Apply the [import-path policy](references/source-conventions.md#import-paths-and-public-entry-points): prefer relative paths within a component/feature and explicit public module entry points across boundaries. Do not replace local imports with broad barrels or add barrels just to shorten paths. IDE import-shortening suggestions are optional hints; review cycles and Server/Client boundaries before accepting them.
 

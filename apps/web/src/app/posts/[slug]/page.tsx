@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContentArticle } from "@/components/ContentArticle";
 import { PageDocument } from "@/components/PageDocument";
 import { PostMetadata } from "@/components/public-content/PostMetadata";
-import { Container } from "@/components/public-ui/Container";
-import { RichContent } from "@/components/RichContent";
 import { getPublishedPost } from "@/lib/content/public-content.server";
 import { contentMetadata } from "@/lib/settings/seo";
 
@@ -32,13 +31,17 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!post) notFound();
 
   return (
-    <Container className={styles.page}>
-      <nav aria-label="Post navigation">
-        <Link href="/posts">All posts</Link>
-      </nav>
-      <article className={styles.article}>
-        <header className={styles.header}>
-          <h1>{post.title}</h1>
+    <ContentArticle
+      kind="posts"
+      title={post.title}
+      content={post.content}
+      navigation={
+        <nav aria-label="Post navigation">
+          <Link href="/posts">All posts</Link>
+        </nav>
+      }
+      intro={
+        <>
           <PostMetadata
             publishedAt={post.publishedAt}
             author={post.author}
@@ -47,10 +50,10 @@ export default async function PostPage({ params }: PostPageProps) {
           {post.summary ? (
             <p className={styles.summary}>{post.summary}</p>
           ) : null}
-        </header>
-        <RichContent content={post.content} />
-        {post.pageDocument && <PageDocument document={post.pageDocument} />}
-      </article>
-    </Container>
+        </>
+      }
+    >
+      {post.pageDocument && <PageDocument document={post.pageDocument} />}
+    </ContentArticle>
   );
 }

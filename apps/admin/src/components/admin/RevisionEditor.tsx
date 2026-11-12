@@ -1,170 +1,201 @@
 "use client";
 
 import { readRichContent } from "@nextpress/shared/content";
-import { MediaMetadataSchema } from "@nextpress/shared/media";
-import { PageDocumentSchema } from "@nextpress/shared/page-document";
 import {
   RevisionInputSchema,
   RevisionListSchema,
   RevisionRecordSchema,
 } from "@nextpress/shared/revisions";
 import { useCallback, useEffect, useState } from "react";
-import { z } from "zod";
 
 import { AdminPageLayout } from "@/ui/shell";
 
-import RevisionPreview from "./RevisionPreview";
+import LivePreview from "./LivePreview";
+
+import type { z } from "zod";
 
 type RevisionList = z.infer<typeof RevisionListSchema>;
-const mediaSchema = z.array(MediaMetadataSchema);
+type RevisionRecord = z.infer<typeof RevisionRecordSchema>;
+type RevisionEditorProps = { pageId: string; kind?: "pages" | "posts" };
+type RevisionAction = "save" | "restore" | "publish" | "unpublish" | "preview";
 
-export default function RevisionEditor({ pageId }: { pageId: string }) {
-  const [state, setState] = useState<RevisionList | null>(null);
-  const [selected, setSelected] = useState("");
+const revisionActions = {
+  save: {
+    label: "Save working revision",
+    success: "Working revision saved.",
+    error: "Unable to save the working revision",
+  },
+  restore: {
+    label: "Restore revision",
+    success: "Revision restored as a new draft.",
+    error: "Unable to restore the revision",
+  },
+  publish: {
+    label: "Publish revision",
+    success: "Revision published.",
+    error: "Unable to publish the revision",
+  },
+  unpublish: {
+    label: "Unpublish content",
+    success: "Content unpublished.",
+    error: "Unable to unpublish the content",
+  },
+  preview: {
+    label: "Preview revision",
+    success: "Revision preview loaded.",
+    error: "Unable to preview the revision",
+  },
+} satisfies Record<
+  RevisionAction,
+  { label: string; success: string; error: string }
+>;
+
+function buildRevisionInput(
+  revisions: RevisionList,
+  selectedRevisionId: string,
+  title: string,
+) {
+  const source =
+    revisions.revisions.find(
+      (revision) => revision.id === selectedRevisionId,
+    ) ?? revisions.current;
+
+  return RevisionInputSchema.parse({
+    slug: source.slug,
+    layout: source.layout,
+    expectedVersion: revisions.version,
+    title,
+    content: JSON.stringify(readRichContent(source.content)),
+    excerpt: JSON.stringify(readRichContent(source.excerpt)),
+    pageDocument: source.pageDocument ? JSON.parse(source.pageDocument) : null,
+  });
+}
+
+export default function RevisionEditor({
+  pageId,
+  kind = "pages",
+}: RevisionEditorProps) {
+  const [revisions, setRevisions] = useState<RevisionList | null>(null);
+  const [selectedRevisionId, setSelectedRevisionId] = useState("");
   const [title, setTitle] = useState("");
-  const [document, setDocument] = useState('{"version":1,"blocks":[]}');
   const [message, setMessage] = useState("Loading revisions...");
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState<z.infer<
-    typeof RevisionRecordSchema
-  > | null>(null);
-  const [media, setMedia] = useState<z.infer<typeof mediaSchema>>([]);
-  const [mediaId, setMediaId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<RevisionRecord | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/pages/${pageId}/revisions`, {
       cache: "no-store",
     });
 
-    if (!response.ok) throw new Error("Unable to load revisions");
-    const data = RevisionListSchema.parse(await response.json());
-    setState(data);
-    const latest = data.revisions[0] ?? data.current;
-    setSelected(data.revisions[0]?.id ?? "");
-    setTitle(latest.title);
-    setDocument(latest.pageDocument ?? '{"version":1,"blocks":[]}');
-    const assets = await fetch("/api/media", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Unable to load revisions");
+    }
 
-    if (!assets.ok) throw new Error("Unable to load media");
-    setMedia(mediaSchema.parse(await assets.json()));
+    const data = RevisionListSchema.parse(await response.json());
+    const latest = data.revisions[0] ?? data.current;
+
+    setRevisions(data);
+    setSelectedRevisionId(data.revisions[0]?.id ?? "");
+    setTitle(latest.title);
   }, [pageId]);
 
   useEffect(() => {
     void load()
       .then(() => setMessage(""))
-      .catch(() => setMessage("Unable to load revisions or media"));
+      .catch(() => setMessage("Unable to load revisions"));
   }, [load]);
 
-  async function perform(
-    action: "save" | "restore" | "publish" | "unpublish" | "preview" | "upload",
-  ) {
-    if (!state) return;
+  async function perform(action: RevisionAction) {
+    if (!revisions) {
+      return;
+    }
+
+    const feedback = revisionActions[action];
+
     setBusy(true);
     setMessage("");
+
     try {
       if (action === "preview") {
         const response = await fetch(
-          `/api/pages/${pageId}/revisions?revisionId=${encodeURIComponent(selected)}`,
+          `/api/pages/${pageId}/revisions?revisionId=${encodeURIComponent(selectedRevisionId)}`,
           { cache: "no-store" },
         );
 
-        if (!response.ok)
+        if (!response.ok) {
           throw new Error(
             "Preview unavailable; sign in again if your session expired",
           );
+        }
+
         setPreview(RevisionRecordSchema.parse(await response.json()));
+        setMessage(feedback.success);
 
         return;
       }
+
       let body: unknown;
-      let endpoint = `/api/pages/${pageId}/revisions`;
-      let method = action === "save" ? "POST" : "PATCH";
+      const endpoint = `/api/pages/${pageId}/revisions`;
+      const method = action === "save" ? "POST" : "PATCH";
 
       if (action === "save") {
-        const source =
-          state.revisions.find((revision) => revision.id === selected) ??
-          state.current;
-        body = RevisionInputSchema.parse({
-          slug: source.slug,
-          layout: source.layout,
-          expectedVersion: state.version,
-          title,
-          content: JSON.stringify(readRichContent(source.content)),
-          excerpt: JSON.stringify(readRichContent(source.excerpt)),
-          pageDocument: PageDocumentSchema.parse(JSON.parse(document)),
-        });
-      } else if (action === "upload") {
-        if (!file || file.size > 2_097_152)
-          throw new Error("Choose a PNG/JPEG image no larger than 2 MiB");
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        let binary = "";
+        body = buildRevisionInput(revisions, selectedRevisionId, title);
+      } else {
+        body = {
+          expectedVersion: revisions.version,
+          revisionId: selectedRevisionId,
+          action,
+        };
+      }
 
-        for (const byte of bytes) binary += String.fromCharCode(byte);
-        body = { data: btoa(binary), mime: file.type, alt: file.name };
-        endpoint = "/api/media";
-        method = "POST";
-      } else
-        body = { expectedVersion: state.version, revisionId: selected, action };
       const response = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(
           response.status === 409
             ? "Content changed or media is referenced. Reload before retrying."
-            : "Operation failed; check your input and session",
+            : "Check your input and session before retrying.",
         );
+      }
+
       await load();
       setPreview(null);
-      setMessage("Saved successfully");
+      setMessage(feedback.success);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Operation failed");
+      setMessage(
+        error instanceof Error
+          ? `${feedback.error}: ${error.message}`
+          : feedback.error,
+      );
     } finally {
       setBusy(false);
     }
   }
 
   function selectRevision(id: string) {
-    setSelected(id);
-    const revision = state?.revisions.find((item) => item.id === id);
+    const revision = revisions?.revisions.find((item) => item.id === id);
+
+    setSelectedRevisionId(id);
 
     if (revision) {
       setTitle(revision.title);
-      setDocument(revision.pageDocument ?? '{"version":1,"blocks":[]}');
     }
-    setPreview(null);
-  }
 
-  function insertImage() {
-    try {
-      const parsed = PageDocumentSchema.parse(JSON.parse(document));
-      parsed.blocks.push({
-        id: crypto.randomUUID(),
-        type: "image",
-        version: 1,
-        props: {
-          mediaId,
-          alt: media.find((item) => item.id === mediaId)?.alt ?? "",
-        },
-      });
-      setDocument(JSON.stringify(parsed, null, 2));
-    } catch {
-      setMessage("Fix the document JSON before inserting an image");
-    }
+    setPreview(null);
   }
 
   return (
     <AdminPageLayout
-      title="Composition and working revisions"
-      description="Save drafts independently from published content. Continue using the existing Slate editor for rich text."
+      title="Working revisions"
+      description="Save drafts independently from published content."
     >
       <p role="status">{message}</p>
-      <fieldset disabled={busy || !state}>
-        <legend>Working content and media</legend>
+      <fieldset disabled={busy || !revisions}>
+        <legend>Working revision</legend>
         <label htmlFor="revision-title">Working title</label>
         <input
           id="revision-title"
@@ -172,17 +203,9 @@ export default function RevisionEditor({ pageId }: { pageId: string }) {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <label htmlFor="revision-document">Page document JSON</label>
-        <textarea
-          id="revision-document"
-          className="textarea w-full"
-          rows={16}
-          value={document}
-          onChange={(event) => setDocument(event.target.value)}
-        />
         <button
           className="btn"
-          disabled={busy || !state}
+          disabled={busy || !revisions}
           onClick={() => void perform("save")}
         >
           Save working revision
@@ -191,11 +214,11 @@ export default function RevisionEditor({ pageId }: { pageId: string }) {
         <select
           id="revision-select"
           className="select"
-          value={selected}
+          value={selectedRevisionId}
           onChange={(event) => selectRevision(event.target.value)}
         >
           <option value="">Choose a revision</option>
-          {state?.revisions.map((revision) => (
+          {revisions?.revisions.map((revision) => (
             <option key={revision.id} value={revision.id}>
               {revision.workingVersion}: {revision.title}
             </option>
@@ -206,54 +229,16 @@ export default function RevisionEditor({ pageId }: { pageId: string }) {
             <button
               className="btn"
               key={action}
-              disabled={busy || !selected}
+              disabled={busy || !selectedRevisionId}
               onClick={() => void perform(action)}
             >
-              {action}
+              {revisionActions[action].label}
             </button>
           ),
         )}
-        <label htmlFor="media-file">Upload image</label>
-        <input
-          id="media-file"
-          type="file"
-          accept="image/png,image/jpeg"
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-        />
-        <button
-          className="btn"
-          disabled={busy || !file}
-          onClick={() => void perform("upload")}
-        >
-          Upload
-        </button>
-        <label htmlFor="media-select">Media</label>
-        <select
-          id="media-select"
-          value={mediaId}
-          onChange={(event) => setMediaId(event.target.value)}
-        >
-          <option value="">Choose an image</option>
-          {media.map((asset) => (
-            <option key={asset.id} value={asset.id}>
-              {asset.alt || asset.id}
-            </option>
-          ))}
-        </select>
-        <button
-          className="btn"
-          disabled={!mediaId || busy}
-          onClick={insertImage}
-        >
-          Insert image reference
-        </button>
       </fieldset>
       {preview && (
-        <RevisionPreview
-          title={preview.title}
-          content={preview.content}
-          pageDocument={preview.pageDocument}
-        />
+        <LivePreview kind={kind} key={preview.id} snapshot={preview} />
       )}
     </AdminPageLayout>
   );

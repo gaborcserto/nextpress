@@ -43,3 +43,16 @@ export const RevisionListSchema = z.object({
   current: RevisionSnapshotSchema,
   revisions: z.array(RevisionRecordSchema),
 });
+
+// Preview carries content only: no credentials, persistence commands or navigation.
+export const LivePreviewMessageSchema = z.strictObject({
+  type: z.literal("nextpress:preview"),
+  kind: z.enum(["pages", "posts"]).default("pages"),
+  session: z.string().uuid(),
+  snapshot: RevisionSnapshotSchema,
+});
+
+export const LivePreviewReadySchema = z.strictObject({
+  type: z.literal("nextpress:ready"),
+  session: z.string().uuid(),
+});

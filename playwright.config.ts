@@ -9,6 +9,8 @@ const environment = {
   BETTER_AUTH_URL: "http://localhost:49201",
   NEXT_PUBLIC_BETTER_AUTH_URL: "http://localhost:49201",
   NEXT_PUBLIC_ADMIN_URL: "http://localhost:49201",
+  NEXT_PUBLIC_PREVIEW_ORIGIN: "http://localhost:49200",
+  PREVIEW_ADMIN_ORIGIN: "http://localhost:49201",
   SITE_URL: "http://localhost:49200",
 };
 

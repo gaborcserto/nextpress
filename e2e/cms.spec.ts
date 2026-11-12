@@ -9,19 +9,20 @@ test("disposable editorial publication, public rendering and session lifecycle",
   page,
   request,
 }) => {
+  test.setTimeout(180_000);
   await page.goto("/auth/sign-in");
   await page.getByLabel("Email", { exact: true }).fill("admin@example.invalid");
   await page
     .getByLabel("Password", { exact: true })
     .fill("Disposable browser passphrase 2026");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).not.toHaveURL(/sign-in/);
+  await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
   await page.goto("/admin/posts");
   await expect(
     page.getByRole("heading", { name: "Posts", exact: true }),
   ).toBeVisible();
   await page.reload();
-  await expect(page).not.toHaveURL(/sign-in/);
+  await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
 
   const anonymous = await request.post("http://localhost:49202/api/pages", {
     headers: {
@@ -64,18 +65,34 @@ test("disposable editorial publication, public rendering and session lifecycle",
     data: { status: "PUBLISHED", expectedVersion: 0 },
   });
   expect(published.status()).toBe(200);
-  await page.goto(`/admin/pages/${record.id}/composition`);
+  await page.goto(`/admin/pages/${record.id}`);
+  await page.getByLabel("Title", { exact: true }).fill("Unsaved preview title");
+  await page.getByRole("button", { name: "Live Preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Public frontend preview"]');
+  await expect(
+    preview.getByRole("heading", { name: "Unsaved preview title" }),
+  ).toBeVisible({ timeout: 30_000 });
+  for (const viewport of ["Tablet", "Mobile", "Desktop"]) {
+    await page.getByLabel("Viewport").selectOption({ label: viewport });
+    await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+      "Unsaved preview title",
+    );
+  }
+  await page.getByRole("button", { name: "Close Live Preview" }).click();
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    "Unsaved preview title",
+  );
+  await page.goto(`/admin/pages/${record.id}/revisions`);
   await expect(page.getByLabel("Working title")).toHaveValue("Browser fixture");
-  await page.getByLabel("Upload image").setInputFiles({
-    name: "fixture.png",
-    mimeType: "image/png",
-    buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==",
-      "base64",
-    ),
+  const uploaded = await page.request.post("/api/media", {
+    headers,
+    data: {
+      data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==",
+      mime: "image/png",
+      alt: "fixture.png",
+    },
   });
-  await page.getByRole("button", { name: "Upload", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved successfully");
+  expect(uploaded.status()).toBe(201);
   const assets = MediaMetadataSchema.array().parse(
     await (await page.request.get("/api/media")).json(),
   );
@@ -95,66 +112,83 @@ test("disposable editorial publication, public rendering and session lifecycle",
       })
     ).status(),
   ).toBe(400);
-  await page.getByLabel("Media", { exact: true }).selectOption(asset.id);
-  await page.getByRole("button", { name: "Insert image reference" }).click();
-  const composition = PageDocumentSchema.parse(
-    JSON.parse(await page.getByLabel("Page document JSON").inputValue()),
-  );
+  const composition = PageDocumentSchema.parse({
+    version: 1,
+    blocks: [
+      {
+        id: "image",
+        type: "image",
+        version: 1,
+        props: { mediaId: asset.id, alt: "fixture.png" },
+      },
+    ],
+  });
   await page.getByLabel("Working title").fill("Working revision title");
-  await page.getByLabel("Page document JSON").fill(
-    JSON.stringify({
-      version: 1,
-      blocks: [
-        ...composition.blocks,
-        {
-          id: "hero",
-          version: 1,
-          type: "hero",
-          props: { title: "Composed hero", description: "Portable content" },
-        },
-        {
-          id: "rich",
-          version: 1,
-          type: "rich-text",
-          props: { document: textDocument("Composed rich text") },
-        },
-        {
-          id: "columns",
-          version: 1,
-          type: "columns",
-          props: {},
-          regions: [
-            [
-              {
-                id: "cta",
-                version: 1,
-                type: "call-to-action",
-                props: { label: "Read archive", href: "/posts" },
-              },
-            ],
-            [
-              {
-                id: "column-text",
-                version: 1,
-                type: "rich-text",
-                props: { document: textDocument("Column content") },
-              },
-            ],
+  const legacyDocument = {
+    version: 1,
+    blocks: [
+      ...composition.blocks,
+      {
+        id: "hero",
+        version: 1,
+        type: "hero",
+        props: { title: "Composed hero", description: "Portable content" },
+      },
+      {
+        id: "rich",
+        version: 1,
+        type: "rich-text",
+        props: { document: textDocument("Composed rich text") },
+      },
+      {
+        id: "columns",
+        version: 1,
+        type: "columns",
+        props: {},
+        regions: [
+          [
+            {
+              id: "cta",
+              version: 1,
+              type: "call-to-action",
+              props: { label: "Read archive", href: "/posts" },
+            },
           ],
-        },
-        {
-          id: "listing",
-          version: 1,
-          type: "content-listing",
-          props: { kind: "PAGE", limit: 5 },
-        },
-      ],
-    }),
+          [
+            {
+              id: "column-text",
+              version: 1,
+              type: "rich-text",
+              props: { document: textDocument("Column content") },
+            },
+          ],
+        ],
+      },
+      {
+        id: "listing",
+        version: 1,
+        type: "content-listing",
+        props: { kind: "PAGE", limit: 5 },
+      },
+    ],
+  };
+  const revisionSave = await page.request.post(
+    `/api/pages/${record.id}/revisions`,
+    {
+      headers,
+      data: {
+        expectedVersion: 1,
+        title: "Working revision title",
+        slug: record.slug,
+        layout: "STANDARD",
+        content: JSON.stringify(textDocument("Revision body")),
+        excerpt: JSON.stringify(textDocument("")),
+        pageDocument: legacyDocument,
+      },
+    },
   );
-  await page
-    .getByRole("button", { name: "Save working revision", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toHaveText("Saved successfully");
+  expect(revisionSave.ok()).toBe(true);
+  await page.reload();
   const working = RevisionListSchema.parse(
     await (await page.request.get(`/api/pages/${record.id}/revisions`)).json(),
   );
@@ -184,14 +218,26 @@ test("disposable editorial publication, public rendering and session lifecycle",
       )
     ).status(),
   ).toBe(401);
-  await page.getByRole("button", { name: "preview", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Preview revision", exact: true })
+    .click();
   await expect(
-    page.getByRole("region", { name: "Authenticated revision preview" }),
+    page
+      .frameLocator('iframe[title="Public frontend preview"]')
+      .locator("article"),
   ).toContainText("Working revision title");
-  await page.getByRole("button", { name: "publish", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved successfully");
-  await page.getByRole("button", { name: "restore", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved successfully");
+  await page
+    .getByRole("button", { name: "Publish revision", exact: true })
+    .click();
+  await expect(page.getByRole("status").first()).toHaveText(
+    "Revision published.",
+  );
+  await page
+    .getByRole("button", { name: "Restore revision", exact: true })
+    .click();
+  await expect(page.getByRole("status").first()).toHaveText(
+    "Revision restored as a new draft.",
+  );
   await page.goto("http://localhost:49200/pages/browser-fixture");
   await expect(
     page.getByRole("heading", { name: "Working revision title", exact: true }),

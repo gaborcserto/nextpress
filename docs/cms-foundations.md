@@ -73,10 +73,10 @@ before it can be enabled; this phase does not introduce runtime plugins.
 
 ## Revisions, concurrency and preview
 
-Use the Composition and working revisions link on existing page/post editors.
-The minimum editor provides a validated document JSON field, a working title,
-revision selection, restore/publish/unpublish actions and media selection. The
-existing Slate editor remains available. There is no drag-and-drop builder.
+Use Working revisions on existing page/post editors for history, exact revision
+preview, restore and publication operations. Content editing remains in the
+Slate editor. Live Preview opens a split view without saving or publishing.
+There are no JSON document or block insertion controls in the admin.
 
 Revision saves require `expectedVersion` and create immutable snapshots. A
 transaction advances the owning Page's working version only if it still matches;
@@ -90,8 +90,12 @@ snapshots remain stored and can be addressed by exact ID.
 Preview requires a current Better Auth session plus an exact revision ID and
 ownership/editor authorization. It is private and no-store. Invalid/expired
 sessions cannot preview; no bearer preview tokens or public filter overrides
-exist. The admin preview renders composition structure and text safely; listing
-blocks describe their query rather than presenting a full website preview.
+exist. Live Preview opens the public frontend in a restricted iframe. Configure
+`NEXT_PUBLIC_PREVIEW_ORIGIN` in admin and `PREVIEW_ADMIN_ORIGIN` in web.
+Content travels through origin/source-checked messages and expires after 15 minutes.
+Saved preview uses authenticated revisions; unsaved title and Slate content remain
+in memory. Legacy composition blocks and post metadata are not yet rendered in
+Live Preview; their published rendering remains supported.
 
 Editorial page/post PUT requests require `expectedVersion`, obtained from the
 editorial GET response's `workingVersion`. The repository compares and increments

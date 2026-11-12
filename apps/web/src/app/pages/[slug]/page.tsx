@@ -1,12 +1,9 @@
 import { notFound } from "next/navigation";
 
+import { ContentArticle } from "@/components/ContentArticle";
 import { PageDocument } from "@/components/PageDocument";
-import { Container } from "@/components/public-ui/Container";
-import { RichContent } from "@/components/RichContent";
 import { getPublishedPage } from "@/lib/content/public-content.server";
 import { contentMetadata } from "@/lib/settings/seo";
-
-import styles from "./page.module.css";
 
 import type { Metadata } from "next";
 
@@ -30,14 +27,8 @@ export default async function StaticPage({ params }: PageProps) {
   if (!page) notFound();
 
   return (
-    <Container className={styles.page}>
-      <article className={styles.article}>
-        <header className={styles.header}>
-          <h1>{page.title}</h1>
-        </header>
-        <RichContent content={page.content} />
-        {page.pageDocument && <PageDocument document={page.pageDocument} />}
-      </article>
-    </Container>
+    <ContentArticle title={page.title} content={page.content}>
+      {page.pageDocument && <PageDocument document={page.pageDocument} />}
+    </ContentArticle>
   );
 }

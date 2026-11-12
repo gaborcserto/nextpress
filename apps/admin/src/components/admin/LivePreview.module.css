@@ -1,0 +1,23 @@
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+.editor,
+.preview {
+  min-width: 0;
+}
+.preview {
+  overflow: auto;
+}
+@media (max-width: 1000px) {
+  .split {
+    display: block;
+  }
+  .split[data-preview="true"] > .editor {
+    display: none;
+  }
+  .split[data-preview="false"] > .preview {
+    display: none;
+  }
+}
