@@ -1,5 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/en/",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 import { BlogShell } from "./BlogShell";
 

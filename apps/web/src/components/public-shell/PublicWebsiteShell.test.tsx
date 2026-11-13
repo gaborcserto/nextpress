@@ -12,7 +12,10 @@ vi.mock("@/lib/content/public-content.server", () => ({
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
   getPublicSiteSettings,
 }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 import { PublicWebsiteShell } from "./PublicWebsiteShell";
 

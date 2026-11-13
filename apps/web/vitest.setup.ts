@@ -13,6 +13,19 @@ vi.stubGlobal(
   class {
     observe() {}
 
+    unobserve() {}
+
+    disconnect() {}
+  },
+);
+
+vi.stubGlobal(
+  "IntersectionObserver",
+  class {
+    observe() {}
+
+    unobserve() {}
+
     disconnect() {}
   },
 );

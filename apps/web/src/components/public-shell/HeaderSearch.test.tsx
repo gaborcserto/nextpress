@@ -26,6 +26,24 @@ it("opens, focuses, accepts typing and closes with Escape while restoring focus"
   expect(screen.getByRole("search", { hidden: true })).toHaveAttribute("inert");
 });
 
+it("clears the query with the keyboard accessible clear button", () => {
+  render(<HeaderSearch />);
+  fireEvent.click(screen.getByRole("button", { name: "Search" }));
+  const input = screen.getByRole("searchbox");
+
+  expect(
+    screen.queryByRole("button", { name: "Clear search" }),
+  ).not.toBeInTheDocument();
+  fireEvent.change(input, { target: { value: "editorial" } });
+  const clearButton = screen.getByRole("button", { name: "Clear search" });
+  expect(clearButton).toBeVisible();
+  clearButton.focus();
+  expect(clearButton).toHaveFocus();
+  fireEvent.click(clearButton);
+  expect(input).toHaveValue("");
+  expect(input).toHaveFocus();
+});
+
 it("dismisses outside and on focus leaving the control", () => {
   render(<HeaderSearch />);
   const trigger = screen.getByRole("button");

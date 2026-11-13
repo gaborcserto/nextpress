@@ -139,13 +139,6 @@ export function HeaderSearch() {
           maxLength={200}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && query) {
-              event.preventDefault();
-              event.stopPropagation();
-              setQuery("");
-            }
-          }}
         />
         {query && (
           <button
