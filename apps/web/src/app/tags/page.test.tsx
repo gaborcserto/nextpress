@@ -1,3 +1,4 @@
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -43,24 +44,24 @@ it("renders the public tag index with scoped pagination and working archive link
   expect(screen.getByRole("heading", { level: 1, name: "Tags" })).toBeVisible();
   expect(screen.getByRole("link", { name: tag.name })).toHaveAttribute(
     "href",
-    "/tags/outside-the-homepage",
+    "/en/tags/outside-the-homepage",
   );
   const navigation = within(
     screen.getByRole("navigation", { name: "Tag index pages" }),
   );
   expect(
     navigation.getByRole("link", { name: "Previous page" }),
-  ).toHaveAttribute("href", "/tags");
+  ).toHaveAttribute("href", "/en/tags");
   expect(navigation.getByRole("link", { name: "Next page" })).toHaveAttribute(
     "href",
-    "/tags?page=3",
+    "/en/tags?page=3",
   );
   expect(read).toHaveBeenCalledWith({ limit: 30, offset: 30 });
   const metadata = await generateMetadata({
     searchParams: Promise.resolve({ page: "2" }),
   });
   expect(metadata.alternates?.canonical?.toString()).toBe(
-    "http://localhost:49100/tags?page=2",
+    "http://localhost:49100/en/tags?page=2",
   );
 });
 it("shows a real empty state without pagination", async () => {
@@ -75,7 +76,7 @@ it("handles invalid pages, exhausted pages and upstream failures", async () => {
   read.mockResolvedValueOnce({ tags: [], hasMore: false });
   await expect(
     TagsPage({ searchParams: Promise.resolve({ page: "3" }) }),
-  ).rejects.toThrow("redirect:/tags");
+  ).rejects.toThrow("redirect:/en/tags");
   read.mockRejectedValueOnce(
     new Error("Public content is temporarily unavailable."),
   );

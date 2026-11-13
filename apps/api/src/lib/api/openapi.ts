@@ -1,5 +1,7 @@
 import { AppearanceSchema } from "@nextpress/shared";
 import {
+  PublicSearchQuerySchema,
+  PublicSearchResultSchema,
   ApiErrorSchema,
   TagSchema,
   TagWithUsageSchema,
@@ -849,6 +851,21 @@ paths["/api/admin/settings/appearance"] = {
     "Appearance",
   ),
 };
+
+const search = operation(
+  "publicSearch",
+  "Delivery and discovery",
+  "Search published posts and pages",
+  schema(PublicSearchResultSchema),
+  [400, 500],
+  "Uncached public search. Published-at or before now only. Ten results per page, up to page 100; 200-character query. Title matches rank first; newest and slug break ties. Taxonomies come only from published posts. Duplicate and unknown parameters rejected.",
+  "public",
+);
+search.parameters = Object.entries(PublicSearchQuerySchema.shape).map(
+  ([key, value]) =>
+    parameter(key, "query", schema(value), "Validated search parameter."),
+);
+paths["/api/public/search"] = { get: search };
 
 export const openApiDocument: OpenAPIV3.Document = {
   openapi: "3.0.3",

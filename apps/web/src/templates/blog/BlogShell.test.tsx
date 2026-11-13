@@ -32,7 +32,7 @@ describe("BlogShell", () => {
 
     expect(
       screen.getByRole("link", { name: "Example Publication" }),
-    ).toHaveAttribute("href", "/");
+    ).toHaveAttribute("href", "/en/");
     expect(
       within(screen.getByRole("contentinfo")).getByText("Example Publication"),
     ).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe("BlogShell", () => {
           name: "Home",
         },
       ),
-    ).toHaveAttribute("href", "/");
+    ).toHaveAttribute("href", "/en/");
   });
 
   it("keeps structural links and renders CMS header and footer links in their separate landmarks", () => {
@@ -63,25 +63,25 @@ describe("BlogShell", () => {
     const primary = within(screen.getByRole("navigation", { name: "Primary" }));
     expect(primary.getByRole("link", { name: "Home" })).toHaveAttribute(
       "href",
-      "/",
+      "/en/",
     );
     expect(primary.getByRole("link", { name: "Posts" })).toHaveAttribute(
       "href",
-      "/posts",
+      "/en/posts",
     );
     expect(primary.getByRole("link", { name: "About" })).toHaveAttribute(
       "href",
-      "/pages/about",
+      "/en/pages/about",
     );
     expect(primary.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
-      "/pages/contact",
+      "/en/pages/contact",
     );
     expect(
       within(screen.getByRole("navigation", { name: "Footer" })).getByRole(
         "link",
         { name: "Contact" },
       ),
-    ).toHaveAttribute("href", "/pages/contact");
+    ).toHaveAttribute("href", "/en/pages/contact");
   });
 });

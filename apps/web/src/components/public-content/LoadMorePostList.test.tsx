@@ -45,7 +45,7 @@ describe("LoadMorePostList", () => {
     );
 
     expect(html).toContain("First post");
-    expect(html).toContain('href="/posts?page=2"');
+    expect(html).toContain('href="/en/posts?page=2"');
     expect(html).toContain("Next page");
   });
 
@@ -70,7 +70,7 @@ describe("LoadMorePostList", () => {
 
     expect(
       await screen.findByRole("link", { name: "Second post" }),
-    ).toHaveAttribute("href", "/posts/second");
+    ).toHaveAttribute("href", "/en/posts/second");
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "Load more posts" }),
@@ -148,7 +148,7 @@ describe("LoadMorePostList", () => {
     ).toBeEnabled();
     expect(screen.getByRole("link", { name: "First post" })).toHaveAttribute(
       "href",
-      "/posts/first",
+      "/en/posts/first",
     );
 
     getNextPostBatch.mockResolvedValueOnce({
@@ -158,7 +158,7 @@ describe("LoadMorePostList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load more posts" }));
     expect(
       await screen.findByRole("link", { name: "Second post" }),
-    ).toHaveAttribute("href", "/posts/second");
+    ).toHaveAttribute("href", "/en/posts/second");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

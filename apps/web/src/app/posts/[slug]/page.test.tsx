@@ -1,3 +1,4 @@
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -72,7 +73,7 @@ describe("Public post detail", () => {
     );
     expect(screen.getByRole("link", { name: "All posts" })).toHaveAttribute(
       "href",
-      "/posts",
+      "/en/posts",
     );
   });
 
@@ -110,13 +111,13 @@ describe("Public post detail", () => {
       title: "A first story",
       description: "A useful introduction.",
       alternates: {
-        canonical: new URL("http://localhost:49100/posts/first-story"),
+        canonical: new URL("http://localhost:49100/en/posts/first-story"),
       },
       openGraph: {
         title: "A first story",
         description: "A useful introduction.",
         type: "website",
-        url: new URL("http://localhost:49100/posts/first-story"),
+        url: new URL("http://localhost:49100/en/posts/first-story"),
       },
     });
     getPublishedPost.mockResolvedValue(null);

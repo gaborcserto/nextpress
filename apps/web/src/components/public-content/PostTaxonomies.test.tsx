@@ -25,13 +25,13 @@ it.each([
   if (taxonomies.includes(category)) {
     expect(screen.getByRole("link", { name: category.name })).toHaveAttribute(
       "href",
-      "/categories/design",
+      "/en/categories/design",
     );
   }
   if (taxonomies.includes(tag)) {
     expect(screen.getByRole("link", { name: tag.name })).toHaveAttribute(
       "href",
-      "/tags/accessibility",
+      "/en/tags/accessibility",
     );
   }
 });
@@ -67,11 +67,11 @@ it.each([DefaultPostList, CompactPostList])(
     );
     expect(screen.getByRole("link", { name: category.name })).toHaveAttribute(
       "href",
-      "/categories/design",
+      "/en/categories/design",
     );
     expect(screen.getByRole("link", { name: tag.name })).toHaveAttribute(
       "href",
-      "/tags/accessibility",
+      "/en/tags/accessibility",
     );
   },
 );

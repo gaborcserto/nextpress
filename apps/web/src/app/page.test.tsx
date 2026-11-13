@@ -59,13 +59,13 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "A first story" })).toHaveAttribute(
       "href",
-      "/posts/first-story",
+      "/en/posts/first-story",
     );
     expect(screen.getByText("A useful introduction.")).toBeInTheDocument();
     expect(screen.getByText("By A. Writer")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Essays" })).toHaveAttribute(
       "href",
-      "/categories/essays",
+      "/en/categories/essays",
     );
     expect(screen.getByText("February 3, 2025")).toHaveAttribute(
       "datetime",
@@ -73,7 +73,7 @@ describe("Home", () => {
     );
     expect(screen.getByRole("link", { name: "All posts" })).toHaveAttribute(
       "href",
-      "/posts",
+      "/en/posts",
     );
   });
 

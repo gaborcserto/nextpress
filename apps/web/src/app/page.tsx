@@ -3,6 +3,7 @@ import {
   getPublishedPosts,
   getPublishedTags,
 } from "@/lib/content/public-content.server";
+import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
@@ -10,7 +11,12 @@ import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 export async function generateMetadata() {
   const settings = await getPublicSiteSettings();
 
-  return contentMetadata(settings.siteName, "/", settings.siteDescription);
+  return contentMetadata(
+    settings.siteName,
+    "/",
+    settings.siteDescription,
+    await getLocale(),
+  );
 }
 
 export default async function Home() {

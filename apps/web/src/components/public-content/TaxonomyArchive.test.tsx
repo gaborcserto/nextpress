@@ -1,3 +1,4 @@
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
@@ -57,15 +58,15 @@ it("reuses the editorial archive with scoped pagination and taxonomy links", asy
   ).toBeVisible();
   expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute(
     "href",
-    "/categories/design",
+    "/en/categories/design",
   );
   expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
     "href",
-    "/categories/design?page=3",
+    "/en/categories/design?page=3",
   );
   expect(screen.getByRole("link", { name: "Design" })).toHaveAttribute(
     "href",
-    "/categories/design",
+    "/en/categories/design",
   );
   expect(read).toHaveBeenCalledWith("CATEGORY", "design", 2, 2);
 });
@@ -73,7 +74,7 @@ it("canonicalizes each archive page and uses the real taxonomy name", async () =
   const metadata = await taxonomyArchiveMetadata(props("2"));
   expect(metadata.title).toBe("Category: Design");
   expect(metadata.alternates?.canonical?.toString()).toBe(
-    "http://localhost:49100/categories/design?page=2",
+    "http://localhost:49100/en/categories/design?page=2",
   );
 });
 it("renders an existing empty taxonomy without pagination", async () => {
@@ -89,7 +90,7 @@ it("returns 404 for unavailable taxonomies, redirects exhausted pages and propag
   await expect(TaxonomyArchive(props())).rejects.toThrow("not-found");
   read.mockResolvedValueOnce({ taxonomy, posts: [], hasMore: false });
   await expect(TaxonomyArchive(props("3"))).rejects.toThrow(
-    "redirect:/categories/design",
+    "redirect:/en/categories/design",
   );
   read.mockRejectedValueOnce(
     new Error("Public content is temporarily unavailable."),

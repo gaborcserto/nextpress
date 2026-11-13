@@ -39,7 +39,7 @@ for (const preset of ["classic", "modern", "minimal"]) {
       );
       expect(lead.getByRole("link", { name: "Newest story" })).toHaveAttribute(
         "href",
-        "/posts/story-0",
+        "/en/posts/story-0",
       );
       expect(
         recent.getAllByRole("heading").map((heading) => heading.textContent),
@@ -49,7 +49,7 @@ for (const preset of ["classic", "modern", "minimal"]) {
       ).toHaveLength(1);
       expect(screen.getByRole("link", { name: /All posts/ })).toHaveAttribute(
         "href",
-        "/posts",
+        "/en/posts",
       );
     });
     it.each([2, 4, 5])(
@@ -255,7 +255,7 @@ it("keeps shared tags after recent stories and the archive link", () => {
   const recent = screen.getByRole("region", { name: "Recent posts" });
   const archiveLink = within(recent).getByRole("link", { name: /All posts/ });
   const tags = screen.getByRole("region", { name: "Tags" });
-  expect(archiveLink).toHaveAttribute("href", "/posts");
+  expect(archiveLink).toHaveAttribute("href", "/en/posts");
   expect(
     archiveLink.compareDocumentPosition(tags) &
       Node.DOCUMENT_POSITION_FOLLOWING,
@@ -265,11 +265,11 @@ it("keeps shared tags after recent stories and the archive link", () => {
   );
   expect(within(tags).getByRole("link", { name: tag.name })).toHaveAttribute(
     "href",
-    "/tags/older-writing",
+    "/en/tags/older-writing",
   );
   expect(within(tags).getByRole("link", { name: "All tags" })).toHaveAttribute(
     "href",
-    "/tags",
+    "/en/tags",
   );
   expect(
     within(screen.getByRole("region", { name: "Latest post" })).getAllByText(

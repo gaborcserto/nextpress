@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   agentRules: false,
   distDir: process.env.NEXTPRESS_E2E === "1" ? ".next-e2e" : ".next",
   poweredByHeader: false,
+  skipTrailingSlashRedirect: true,
   output: "standalone",
   async headers() {
     return [

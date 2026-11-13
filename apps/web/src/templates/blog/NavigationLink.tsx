@@ -1,7 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import { LocaleLink as Link } from "@/lib/i18n/client";
+import { stripLocalePrefix } from "@/lib/i18n/routing";
 
 import type { ReactNode } from "react";
 
@@ -12,9 +14,12 @@ export function NavigationLink({
   href: string;
   children: ReactNode;
 }) {
-  const pathname = usePathname();
+  const currentPath = usePathname();
+  const pathname = currentPath ? stripLocalePrefix(currentPath) : currentPath;
+  const targetPath = stripLocalePrefix(href);
   const current =
-    pathname === href || (href === "/posts" && pathname?.startsWith("/posts/"));
+    pathname === targetPath ||
+    (targetPath === "/posts" && pathname?.startsWith("/posts/"));
 
   return (
     <Link href={href} aria-current={current ? "page" : undefined}>

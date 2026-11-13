@@ -1,6 +1,7 @@
 import { PostList } from "@/components/public-content/PostList";
 import { TagLinks } from "@/components/public-content/TagLinks";
 import { Container } from "@/components/public-ui/Container";
+import { UiText } from "@/lib/i18n/client";
 
 import { BlogEditorialLink } from "./BlogEditorialLink";
 import headingStyles from "./BlogHeading.module.css";
@@ -17,7 +18,9 @@ export function BlogHome({
 
   return (
     <Container className={styles.home} data-blog-home>
-      <h1 className={styles.pageTitle}>Latest from the publication</h1>
+      <h1 className={styles.pageTitle}>
+        <UiText id="posts.latestHeading" />
+      </h1>
       {latestPost ? (
         <section
           className={styles.lead}
@@ -28,12 +31,14 @@ export function BlogHome({
             className={`${headingStyles.heading} ${styles.sectionLabel}`}
             id="latest-title"
           >
-            Latest post
+            <UiText id="posts.latest" />
           </h2>
           <PostList posts={[latestPost]} variant={listVariant} />
         </section>
       ) : (
-        <p className={styles.empty}>There are no published posts yet.</p>
+        <p className={styles.empty}>
+          <UiText id="posts.empty" />
+        </p>
       )}
       <div className={styles.recent} data-blog-home-support>
         <section aria-labelledby="recent-title">
@@ -41,14 +46,14 @@ export function BlogHome({
             className={`${headingStyles.heading} ${styles.sectionLabel}`}
             id="recent-title"
           >
-            Recent posts
+            <UiText id="posts.recent" />
           </h2>
           {recentPosts.length > 0 ? (
             <PostList posts={recentPosts} variant={listVariant} />
           ) : null}
           <div className={styles.archiveLink}>
             <BlogEditorialLink href="/posts" arrow>
-              All posts
+              <UiText id="posts.all" />
             </BlogEditorialLink>
           </div>
         </section>
@@ -61,12 +66,14 @@ export function BlogHome({
               id="home-tags-title"
               className={`${headingStyles.heading} ${styles.sectionLabel}`}
             >
-              Tags
+              <UiText id="taxonomy.tags" />
             </h2>
             <TagLinks tags={tagBatch.tags} />
             {tagBatch.hasMore ? (
               <div className={styles.archiveLink}>
-                <BlogEditorialLink href="/tags">All tags</BlogEditorialLink>
+                <BlogEditorialLink href="/tags">
+                  <UiText id="taxonomy.allTags" />
+                </BlogEditorialLink>
               </div>
             ) : null}
           </section>

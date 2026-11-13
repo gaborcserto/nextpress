@@ -91,7 +91,7 @@ it.each([0, 1, 6])(
         .slice(0, 4)
         .map(({ title }) => title),
     );
-    expect(links[0]).toHaveAttribute("href", `/posts/story-${count - 1}`);
+    expect(links[0]).toHaveAttribute("href", `/en/posts/story-${count - 1}`);
     expect(
       screen.queryByRole("link", { name: "Current" }),
     ).not.toBeInTheDocument();
@@ -114,10 +114,10 @@ it("includes compact taxonomy links beneath additional article titles", () => {
   const section = within(screen.getByRole("region", { name: "More articles" }));
   expect(section.getByRole("link", { name: category.name })).toHaveAttribute(
     "href",
-    "/categories/design",
+    "/en/categories/design",
   );
   expect(section.getByRole("link", { name: tag.name })).toHaveAttribute(
     "href",
-    "/tags/long",
+    "/en/tags/long",
   );
 });

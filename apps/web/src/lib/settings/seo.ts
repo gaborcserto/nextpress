@@ -1,4 +1,8 @@
+import { localizedHref } from "@/lib/i18n/routing";
+
 import type { Metadata } from "next";
+
+import type { Locale } from "@/lib/i18n/messages";
 
 export function siteOrigin(): URL {
   const configured = process.env.SITE_URL;
@@ -24,8 +28,9 @@ export function contentMetadata(
   title: string,
   pathname: string,
   description?: string,
+  locale: Locale = "en",
 ): Metadata {
-  const url = new URL(pathname, siteOrigin());
+  const url = new URL(localizedHref(pathname, locale), siteOrigin());
 
   return {
     title,

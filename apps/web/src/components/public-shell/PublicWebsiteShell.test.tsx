@@ -36,7 +36,7 @@ it("keeps the configured header and footer around normal page content", async ()
 
   expect(
     screen.getByRole("link", { name: "Example Publication" }),
-  ).toHaveAttribute("href", "/");
+  ).toHaveAttribute("href", "/en/");
   expect(screen.getByRole("banner")).toBeInTheDocument();
   expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   expect(
@@ -44,12 +44,12 @@ it("keeps the configured header and footer around normal page content", async ()
       "link",
       { name: "About" },
     ),
-  ).toHaveAttribute("href", "/pages/about");
+  ).toHaveAttribute("href", "/en/pages/about");
   expect(
     within(screen.getByRole("navigation", { name: "Footer" })).getByRole(
       "link",
       { name: "Contact" },
     ),
-  ).toHaveAttribute("href", "/pages/contact");
+  ).toHaveAttribute("href", "/en/pages/contact");
   expect(screen.getByText("Normal page")).toBeInTheDocument();
 });

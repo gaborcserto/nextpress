@@ -17,7 +17,7 @@ describe("Public not-found state", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute(
       "href",
-      "/",
+      "/en/",
     );
     expect(screen.getAllByRole("link")).toHaveLength(1);
     expect(

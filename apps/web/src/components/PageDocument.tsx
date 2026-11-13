@@ -5,9 +5,9 @@ import {
   type PageDocument as Document,
 } from "@nextpress/shared/page-document";
 import Image from "next/image";
-import Link from "next/link";
 
 import { fetchPublic } from "@/lib/content/public-api.server";
+import { LocaleLink as Link } from "@/lib/i18n/client";
 
 import styles from "./PageDocument.module.css";
 import { RichContent } from "./RichContent";

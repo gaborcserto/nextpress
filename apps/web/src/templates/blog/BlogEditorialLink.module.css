@@ -11,17 +11,8 @@
   transition: color 180ms ease;
 }
 
-.arrow {
-  flex-shrink: 0;
-  transition: transform 180ms ease;
-}
-
 .link:is(:hover, :focus-visible) {
   color: var(--color-link-hover);
-}
-
-.link:is(:hover, :focus-visible) .arrow {
-  transform: translateX(3px);
 }
 
 .link:focus-visible {
@@ -31,8 +22,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .link,
-  .arrow {
+  .link {
     transition: none;
   }
 }

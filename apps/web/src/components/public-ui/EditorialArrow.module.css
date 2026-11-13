@@ -1,0 +1,20 @@
+.arrow {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  flex-shrink: 0;
+  transition: transform 180ms ease;
+}
+
+:where(a, button):is(:hover, :focus-visible) .arrow {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    transition: none;
+    transform: none;
+  }
+  :where(a, button):is(:hover, :focus-visible) .arrow {
+    transform: none;
+  }
+}

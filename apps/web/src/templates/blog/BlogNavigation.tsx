@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
+import { useMessages } from "@/lib/i18n/client";
+
 import styles from "./BlogNavigation.module.css";
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
@@ -22,6 +24,7 @@ declare global {
 }
 
 export function BlogNavigation({ children }: { children: ReactNode }) {
+  const text = useMessages();
   const pathname = usePathname();
   // SSR exposes the links as a meaningful fallback until enhancement runs.
   const [desktop, setDesktop] = useState(true);
@@ -146,6 +149,12 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
         pendingFocus.current = "link";
       }
 
+      if (
+        !query.matches &&
+        navigation.current?.contains(document.activeElement)
+      ) {
+        button.current?.focus();
+      }
       setDesktop(query.matches);
       setOpen(false);
     }
@@ -184,6 +193,9 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (navigation.current?.contains(document.activeElement)) {
+      button.current?.focus();
+    }
     setOpen(false);
   }
 
@@ -199,10 +211,19 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
         className={styles.toggle}
         type="button"
         hidden={desktop}
-        aria-label={open ? "Close navigation" : "Open navigation"}
+        aria-label={
+          open
+            ? text.accessibility.closeNavigation
+            : text.accessibility.openNavigation
+        }
         aria-expanded={open}
         aria-controls={id}
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (open && navigation.current?.contains(document.activeElement)) {
+            button.current?.focus();
+          }
+          setOpen(!open);
+        }}
       >
         <span className={styles.strokes} aria-hidden="true">
           <span />
@@ -214,7 +235,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
         ref={navigation}
         id={id}
         className={styles.panel}
-        aria-label="Primary"
+        aria-label={text.accessibility.primaryNavigation}
         inert={!desktop && !open}
         aria-hidden={!desktop && !open ? true : undefined}
         onClick={handleNavigation}

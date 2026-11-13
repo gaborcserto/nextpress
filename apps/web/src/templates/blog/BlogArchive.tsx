@@ -1,10 +1,9 @@
-import Link from "next/link";
-
 import { LoadMorePostList } from "@/components/public-content/LoadMorePostList";
 import postListStyles from "@/components/public-content/post-list.module.css";
 import { PostList } from "@/components/public-content/PostList";
 import { Container } from "@/components/public-ui/Container";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
+import { LocaleLink as Link, UiNav, UiText } from "@/lib/i18n/client";
 
 import styles from "./BlogArchive.module.css";
 import headingStyles from "./BlogHeading.module.css";
@@ -12,7 +11,7 @@ import headingStyles from "./BlogHeading.module.css";
 import type { ArchiveProps } from "../types";
 
 export function BlogArchive({
-  title = "Posts",
+  title,
   basePath = "/posts",
   posts,
   page,
@@ -31,7 +30,7 @@ export function BlogArchive({
           id="archive-title"
           className={`${headingStyles.heading} ${styles.pageHeading}`}
         >
-          {title}
+          {title ?? <UiText id="navigation.posts" />}
         </h1>
       </header>
       <section
@@ -40,7 +39,7 @@ export function BlogArchive({
         data-blog-posts-archive
       >
         <h2 className={styles.listHeading} id="archive-list-title">
-          Published articles
+          <UiText id="posts.published" />
         </h2>
         {listingMode === "LOAD_MORE" && posts.length > 0 ? (
           <LoadMorePostList
@@ -56,26 +55,29 @@ export function BlogArchive({
         )}
       </section>
       {showPagination ? (
-        <nav
+        <UiNav
           className={postListStyles.archiveNavigation}
-          aria-label="Post archive pages"
+          label="accessibility.postArchivePages"
         >
           {page > 1 ? (
             <Link href={page === 2 ? basePath : `${basePath}?page=${page - 1}`}>
-              Previous page
+              <UiText id="pagination.previous" />
             </Link>
           ) : (
             <span aria-hidden="true" />
           )}
           <p>
-            Page <span aria-current="page">{page}</span>
+            <UiText id="pagination.page" />{" "}
+            <span aria-current="page">{page}</span>
           </p>
           {hasMore && page < getMaxPostsPage(postsPerPage) ? (
-            <Link href={`${basePath}?page=${page + 1}`}>Next page</Link>
+            <Link href={`${basePath}?page=${page + 1}`}>
+              <UiText id="pagination.next" />
+            </Link>
           ) : (
             <span aria-hidden="true" />
           )}
-        </nav>
+        </UiNav>
       ) : null}
     </Container>
   );

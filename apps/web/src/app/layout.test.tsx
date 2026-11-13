@@ -1,8 +1,18 @@
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: () =>
+      request.savedMode === undefined
+        ? undefined
+        : { value: request.savedMode },
+  }),
+  headers: async () => new Headers(),
+}));
 import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublicSiteSettings } = vi.hoisted(() => ({
+const { getPublicSiteSettings, request } = vi.hoisted(() => ({
+  request: { savedMode: undefined as string | undefined },
   getPublicSiteSettings: vi.fn(),
 }));
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
@@ -17,6 +27,7 @@ import RootLayout, { generateMetadata } from "./layout";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  request.savedMode = undefined;
   getPublicSiteSettings.mockResolvedValue({
     siteName: "Example Publication",
     siteDescription: "Independent reporting.",
@@ -24,7 +35,7 @@ beforeEach(() => {
 });
 
 describe("public layout settings integration", () => {
-  it("server-renders the compiled default skin in light mode", async () => {
+  it("server-renders System when no valid site or visitor default exists", async () => {
     const markup = renderToStaticMarkup(
       await RootLayout({ children: <p>Page content</p> }),
     );
@@ -34,7 +45,7 @@ describe("public layout settings integration", () => {
     ).documentElement;
     expect(html.getAttribute("data-skin")).toBe("default");
     expect(html.getAttribute("data-scroll-behavior")).toBe("smooth");
-    expect(html.getAttribute("data-color-mode")).toBe("light");
+    expect(html.getAttribute("data-color-mode")).toBe("system");
     expect(html.hasAttribute("data-theme")).toBe(false);
   });
 
@@ -87,3 +98,50 @@ it.each(["light", "dark", "system"])(
     expect(markup).toContain('data-style-preset="classic"');
   },
 );
+
+it.each(["light", "dark", "system"])(
+  "SSR visitor %s overrides an explicit site default",
+  async (mode) => {
+    request.savedMode = mode;
+    getPublicSiteSettings.mockResolvedValue({
+      siteName: "Saved",
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "classic",
+        colorMode: "dark",
+      },
+    });
+    expect(
+      renderToStaticMarkup(await RootLayout({ children: <p>Content</p> })),
+    ).toContain(`data-color-mode="${mode}"`);
+  },
+);
+
+it("rejects invalid visitor preferences and falls back to the saved site mode", async () => {
+  request.savedMode = "invalid";
+  getPublicSiteSettings.mockResolvedValue({
+    siteName: "Saved",
+    appearance: {
+      websiteTemplate: "blog",
+      stylePreset: "classic",
+      colorMode: "dark",
+    },
+  });
+  expect(
+    renderToStaticMarkup(await RootLayout({ children: <p>Content</p> })),
+  ).toContain('data-color-mode="dark"');
+});
+
+it("uses System for an invalid site color mode without mutating site settings", async () => {
+  getPublicSiteSettings.mockResolvedValue({
+    siteName: "Saved",
+    appearance: {
+      websiteTemplate: "blog",
+      stylePreset: "classic",
+      colorMode: "obsolete",
+    },
+  });
+  expect(
+    renderToStaticMarkup(await RootLayout({ children: <p>Content</p> })),
+  ).toContain('data-color-mode="system"');
+});

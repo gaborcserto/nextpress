@@ -1,0 +1,134 @@
+﻿.search {
+  position: relative;
+  flex-shrink: 0;
+}
+.trigger {
+  display: grid;
+  place-items: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.search svg {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  flex-shrink: 0;
+}
+.trigger:is(:hover, :focus-visible) {
+  color: var(--color-link-hover);
+}
+.trigger:focus-visible,
+.field:focus-within {
+  outline: 1px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+.field {
+  position: absolute;
+  z-index: 15;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  inline-size: min(22rem, 55vi);
+  min-block-size: 2.75rem;
+  padding-inline: 0.75rem;
+  color: var(--color-text);
+  background: var(--blog-header-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  clip-path: inset(-4px 0 -8rem 100%);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    clip-path 240ms ease,
+    opacity 240ms ease,
+    visibility 0s 240ms;
+}
+.search[data-open="true"] .field {
+  clip-path: inset(-4px -4px -8rem -4px);
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.field input {
+  min-inline-size: 0;
+  inline-size: 100%;
+  min-block-size: 2.75rem;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1rem;
+}
+.field input::-webkit-search-cancel-button {
+  display: none;
+}
+.field input::-webkit-search-decoration {
+  display: none;
+}
+.field input::selection {
+  background: var(--color-selection);
+  color: var(--color-text-on-selection);
+}
+.field input:-webkit-autofill,
+.field input:autofill {
+  -webkit-text-fill-color: var(--color-text);
+}
+.clear {
+  display: grid;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  margin-inline-end: -0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.clear:is(:hover, :focus-visible) {
+  color: var(--color-link-hover);
+}
+.clear:focus-visible {
+  outline: 1px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+.clear svg {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+}
+.field input::placeholder {
+  color: var(--color-text-muted);
+}
+@media (width < 56rem) {
+  .search {
+    margin-block-start: 0.25rem;
+  }
+  .trigger {
+    display: none;
+  }
+  .search .field {
+    position: relative;
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 2.75rem;
+    padding-inline: 0.625rem;
+    visibility: visible;
+    opacity: 1;
+    clip-path: none;
+    transition: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    transition: none;
+  }
+}

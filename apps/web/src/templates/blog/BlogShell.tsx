@@ -1,7 +1,13 @@
-import Link from "next/link";
-
+import { HeaderSearch } from "@/components/public-shell/HeaderSearch";
+import { StickyHeader } from "@/components/public-shell/StickyHeader";
 import { Container } from "@/components/public-ui/Container";
 import { SkipLink } from "@/components/public-ui/SkipLink";
+import {
+  LocaleLink as Link,
+  VisitorControls,
+  UiNav,
+  UiText,
+} from "@/lib/i18n/client";
 
 import { BlogNavigation } from "./BlogNavigation";
 import styles from "./BlogShell.module.css";
@@ -26,7 +32,8 @@ export function BlogShell({
   return (
     <div className={styles.shell}>
       <SkipLink />
-      <header className={styles.header}>
+      <span className={styles.stickySentinel} aria-hidden="true" />
+      <StickyHeader className={styles.header}>
         <Container className={styles.headerContent}>
           <Link className={styles.siteIdentity} href="/" title={siteName}>
             <BlogWordmark siteName={siteName} />
@@ -34,10 +41,14 @@ export function BlogShell({
           <BlogNavigation>
             <ul className={styles.navigation}>
               <li>
-                <NavigationLink href="/">Home</NavigationLink>
+                <NavigationLink href="/">
+                  <UiText id="navigation.home" />
+                </NavigationLink>
               </li>
               <li>
-                <NavigationLink href="/posts">Posts</NavigationLink>
+                <NavigationLink href="/posts">
+                  <UiText id="navigation.posts" />
+                </NavigationLink>
               </li>
               {headerPages.map(({ slug, title }) => (
                 <li key={slug}>
@@ -47,9 +58,11 @@ export function BlogShell({
                 </li>
               ))}
             </ul>
+            <HeaderSearch />
+            <VisitorControls />
           </BlogNavigation>
         </Container>
-      </header>
+      </StickyHeader>
       <main className={styles.main} id="main-content" tabIndex={-1}>
         {children}
       </main>
@@ -59,7 +72,7 @@ export function BlogShell({
             <BlogWordmark siteName={siteName} />
           </p>
           {footerPages.length > 0 ? (
-            <nav aria-label="Footer">
+            <UiNav label="accessibility.footerNavigation">
               <ul className={styles.navigation}>
                 {footerPages.map(({ slug, title }) => (
                   <li key={slug}>
@@ -69,7 +82,7 @@ export function BlogShell({
                   </li>
                 ))}
               </ul>
-            </nav>
+            </UiNav>
           ) : null}
         </Container>
       </footer>

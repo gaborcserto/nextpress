@@ -9,7 +9,14 @@ export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = siteOrigin();
-  const entries: MetadataRoute.Sitemap = ["/", "/posts"].map((pathname) => ({
+  const entries: MetadataRoute.Sitemap = [
+    "/en/",
+    "/en/posts",
+    "/en/tags",
+    "/hu/",
+    "/hu/posts",
+    "/hu/tags",
+  ].map((pathname) => ({
     url: new URL(pathname, origin).href,
   }));
 
@@ -21,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entries.push(
       ...batch.items.map((item) => ({
         url: new URL(
-          `/${item.type === "POST" ? "posts" : "pages"}/${item.slug}`,
+          `/en/${item.type === "POST" ? "posts" : "pages"}/${item.slug}`,
           origin,
         ).href,
         lastModified: item.updatedAt,

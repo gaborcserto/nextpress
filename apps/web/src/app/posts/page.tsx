@@ -3,12 +3,27 @@ import { redirect } from "next/navigation";
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
 import { parsePostsPage } from "@/lib/content/post-archive";
 import { getPublishedPosts } from "@/lib/content/public-content.server";
+import { messages } from "@/lib/i18n/messages";
+import { localizedHref } from "@/lib/i18n/routing";
+import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
-export function generateMetadata() {
-  return contentMetadata("Posts", "/posts");
+export async function generateMetadata({ searchParams }: PostsPageProps) {
+  const [query, settings, locale] = await Promise.all([
+    searchParams,
+    getPublicSiteSettings(),
+    getLocale(),
+  ]);
+  const page = parsePostsPage(query.page, settings.postsPerPage);
+
+  return contentMetadata(
+    messages[locale].navigation.posts,
+    page > 1 ? `/posts?page=${page}` : "/posts",
+    undefined,
+    locale,
+  );
 }
 
 type PostsPageProps = {
@@ -25,7 +40,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   });
 
   if (page > 1 && posts.length === 0) {
-    redirect("/posts");
+    redirect(localizedHref("/posts", await getLocale()));
   }
 
   const appearance = resolveWebsiteAppearance(settings.appearance);

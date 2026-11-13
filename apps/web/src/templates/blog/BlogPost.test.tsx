@@ -26,7 +26,7 @@ it("matches the homepage All posts link with its shared arrow", () => {
 
   const link = screen.getByRole("link", { name: "All posts" });
 
-  expect(link).toHaveAttribute("href", "/posts");
+  expect(link).toHaveAttribute("href", "/en/posts");
   expect(link.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
 });
 
@@ -75,7 +75,7 @@ it("places assigned taxonomy links after authored article content", () => {
     </BlogPost>,
   );
   const link = screen.getByRole("link", { name: "News" });
-  expect(link).toHaveAttribute("href", "/tags/news");
+  expect(link).toHaveAttribute("href", "/en/tags/news");
   expect(
     screen.getByText("Authored page document").compareDocumentPosition(link) &
       Node.DOCUMENT_POSITION_FOLLOWING,

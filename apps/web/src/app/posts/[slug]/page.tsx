@@ -6,6 +6,7 @@ import {
   getPublishedPost,
   getPublishedPosts,
 } from "@/lib/content/public-content.server";
+import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
@@ -21,7 +22,12 @@ export async function generateMetadata({
   const post = await getPublishedPost(slug);
 
   return post
-    ? contentMetadata(post.title, `/posts/${post.slug}`, post.summary)
+    ? contentMetadata(
+        post.title,
+        `/posts/${post.slug}`,
+        post.summary,
+        await getLocale(),
+      )
     : {};
 }
 

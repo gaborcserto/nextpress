@@ -1,3 +1,4 @@
+import { UiNav, UiText } from "@/lib/i18n/client";
 import { BlogEditorialLink } from "@/templates/blog/BlogEditorialLink";
 
 import styles from "./not-found.module.css";
@@ -11,15 +12,20 @@ export default function NotFound() {
           <span className={styles.zero}>0</span>
           <span>4</span>
         </h1>
-        <p className={styles.message}>Page not found</p>
-        <p className={styles.description}>
-          The page you’re looking for isn’t here.
+        <p className={styles.message}>
+          <UiText id="errors.notFound" />
         </p>
-        <nav className={styles.navigation} aria-label="Recovery">
+        <p className={styles.description}>
+          <UiText id="errors.missingPage" />
+        </p>
+        <UiNav
+          className={styles.navigation}
+          label="accessibility.recoveryNavigation"
+        >
           <BlogEditorialLink href="/" arrow>
-            Back to home
+            <UiText id="navigation.backHome" />
           </BlogEditorialLink>
-        </nav>
+        </UiNav>
       </section>
     </main>
   );

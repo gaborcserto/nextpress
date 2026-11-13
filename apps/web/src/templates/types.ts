@@ -1,5 +1,10 @@
 import type { WebsiteTemplateId, StylePresetId } from "@nextpress/shared";
+import type {
+  PublicSearchQuerySchema,
+  PublicSearchResultSchema,
+} from "@nextpress/shared/api-contracts";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
+import type { z } from "zod";
 
 import type { PostListVariant } from "@/components/public-content/PostList";
 import type {
@@ -41,8 +46,14 @@ export type WebsiteTemplate = {
     Shell: ComponentType<ComponentProps<typeof BlogShell>>;
     Home: ComponentType<HomeProps>;
     Archive: ComponentType<ArchiveProps>;
+    Search: ComponentType<SearchProps>;
     Tags: ComponentType<TagIndexProps>;
     Post: ComponentType<PostProps>;
     Page: ComponentType<DetailProps>;
   };
+};
+
+export type SearchProps = {
+  query: z.infer<typeof PublicSearchQuerySchema>;
+  data: z.infer<typeof PublicSearchResultSchema>;
 };

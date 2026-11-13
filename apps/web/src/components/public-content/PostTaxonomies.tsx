@@ -1,7 +1,7 @@
 import { PublicTaxonomyParamsSchema } from "@nextpress/shared/api-contracts";
-import Link from "next/link";
 
 import { publicTaxonomyPath } from "@/lib/content/routes";
+import { LocaleLink as Link, UiText } from "@/lib/i18n/client";
 
 import styles from "./PostTaxonomies.module.css";
 import linkStyles from "./TaxonomyLink.module.css";
@@ -43,7 +43,15 @@ export function PostTaxonomies({
 
         return (
           <div key={type}>
-            <dt>{type === "CATEGORY" ? "Categories:" : "Tags:"}</dt>
+            <dt>
+              <UiText
+                id={
+                  type === "CATEGORY"
+                    ? "taxonomy.categoriesLabel"
+                    : "taxonomy.tagsLabel"
+                }
+              />
+            </dt>
             <dd>
               <ul>
                 {items.map(({ slug, name }) => (

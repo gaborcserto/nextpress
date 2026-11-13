@@ -1,3 +1,4 @@
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,7 +22,7 @@ vi.mock("@/components/public-shell/PublicWebsiteShell", () => ({
 vi.mock("@/app/posts/actions", () => ({ getNextPostBatch }));
 vi.mock("next/navigation", () => ({ redirect }));
 
-import PostsPage from "./page";
+import PostsPage, { generateMetadata } from "./page";
 
 import type { ReactNode } from "react";
 
@@ -54,7 +55,7 @@ describe("Posts archive", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "A first story" })).toHaveAttribute(
       "href",
-      "/posts/first-story",
+      "/en/posts/first-story",
     );
     expect(
       screen.getByRole("navigation", { name: "Post archive pages" }),
@@ -62,7 +63,7 @@ describe("Posts archive", () => {
     expect(screen.getByText("1")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
       "href",
-      "/posts?page=2",
+      "/en/posts?page=2",
     );
     expect(
       screen.queryByRole("link", { name: "Previous page" }),
@@ -77,11 +78,11 @@ describe("Posts archive", () => {
 
     expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute(
       "href",
-      "/posts",
+      "/en/posts",
     );
     expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
       "href",
-      "/posts?page=3",
+      "/en/posts?page=3",
     );
     expect(screen.getByText("2")).toHaveAttribute("aria-current", "page");
     expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 10 });
@@ -92,7 +93,7 @@ describe("Posts archive", () => {
 
     expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute(
       "href",
-      "/posts?page=2",
+      "/en/posts?page=2",
     );
     expect(
       screen.queryByRole("link", { name: "Next page" }),
@@ -141,7 +142,7 @@ describe("Posts archive", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
       "href",
-      "/posts?page=2",
+      "/en/posts?page=2",
     );
   });
 
@@ -213,8 +214,8 @@ describe("Posts archive", () => {
     getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
     await expect(
       PostsPage({ searchParams: Promise.resolve({ page: "9" }) }),
-    ).rejects.toThrow("redirect:/posts");
-    expect(redirect).toHaveBeenCalledWith("/posts");
+    ).rejects.toThrow("redirect:/en/posts");
+    expect(redirect).toHaveBeenCalledWith("/en/posts");
   });
 
   it.each(["0", "-1", "999999999999999999999"])(
@@ -223,5 +224,14 @@ describe("Posts archive", () => {
       await PostsPage({ searchParams: Promise.resolve({ page }) });
       expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 0 });
     },
+  );
+});
+
+it("uses a locale-prefixed pagination canonical without unrelated query parameters", async () => {
+  const metadata = await generateMetadata({
+    searchParams: Promise.resolve({ page: "2" }),
+  });
+  expect(metadata.alternates?.canonical?.toString()).toBe(
+    "http://localhost:49100/en/posts?page=2",
   );
 });

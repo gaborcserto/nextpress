@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { EditorialArrow } from "@/components/public-ui/EditorialArrow";
+import { LocaleLink as Link } from "@/lib/i18n/client";
 
 import styles from "./BlogEditorialLink.module.css";
 
@@ -16,22 +17,7 @@ export function BlogEditorialLink({
   return (
     <Link className={styles.link} href={href}>
       {children}
-      {arrow ? (
-        <svg
-          className={styles.arrow}
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <path
-            d="M4 12h16m-6-6 6 6-6 6"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          />
-        </svg>
-      ) : null}
+      {arrow ? <EditorialArrow /> : null}
     </Link>
   );
 }

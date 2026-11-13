@@ -6,6 +6,7 @@ import { BlogArchive } from "./blog/BlogArchive";
 import { BlogHome } from "./blog/BlogHome";
 import { BlogPage } from "./blog/BlogPage";
 import { BlogPost } from "./blog/BlogPost";
+import { BlogSearch } from "./blog/BlogSearch";
 import { BlogShell } from "./blog/BlogShell";
 import { BlogTags } from "./blog/BlogTags";
 
@@ -20,6 +21,7 @@ export const websiteTemplates = [
       Shell: BlogShell,
       Home: BlogHome,
       Archive: BlogArchive,
+      Search: BlogSearch,
       Tags: BlogTags,
       Post: BlogPost,
       Page: BlogPage,

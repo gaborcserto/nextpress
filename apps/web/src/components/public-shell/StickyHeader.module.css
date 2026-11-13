@@ -1,0 +1,11 @@
+.header[data-scrolled="true"] {
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .header {
+    transition: none;
+  }
+}
+.header {
+  transition: box-shadow 160ms ease;
+}

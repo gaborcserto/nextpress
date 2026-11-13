@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageDocument } from "@/components/PageDocument";
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
 import { getPublishedPage } from "@/lib/content/public-content.server";
+import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
@@ -18,7 +19,12 @@ export async function generateMetadata({
   const page = await getPublishedPage(slug);
 
   return page
-    ? contentMetadata(page.title, `/pages/${page.slug}`, page.summary)
+    ? contentMetadata(
+        page.title,
+        `/pages/${page.slug}`,
+        page.summary,
+        await getLocale(),
+      )
     : {};
 }
 

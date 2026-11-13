@@ -1,3 +1,4 @@
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -72,12 +73,14 @@ describe("Public static page", () => {
     ).resolves.toEqual({
       title: "About us",
       description: "A short introduction.",
-      alternates: { canonical: new URL("http://localhost:49100/pages/about") },
+      alternates: {
+        canonical: new URL("http://localhost:49100/en/pages/about"),
+      },
       openGraph: {
         title: "About us",
         description: "A short introduction.",
         type: "website",
-        url: new URL("http://localhost:49100/pages/about"),
+        url: new URL("http://localhost:49100/en/pages/about"),
       },
     });
     getPublishedPage.mockResolvedValue({ ...page, summary: "" });
@@ -85,11 +88,13 @@ describe("Public static page", () => {
       generateMetadata({ params: Promise.resolve({ slug: "about" }) }),
     ).resolves.toEqual({
       title: "About us",
-      alternates: { canonical: new URL("http://localhost:49100/pages/about") },
+      alternates: {
+        canonical: new URL("http://localhost:49100/en/pages/about"),
+      },
       openGraph: {
         title: "About us",
         type: "website",
-        url: new URL("http://localhost:49100/pages/about"),
+        url: new URL("http://localhost:49100/en/pages/about"),
       },
     });
   });

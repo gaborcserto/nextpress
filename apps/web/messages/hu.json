@@ -1,0 +1,91 @@
+{
+  "navigation": {
+    "home": "Főoldal",
+    "posts": "Bejegyzések",
+    "backHome": "Vissza a főoldalra"
+  },
+  "posts": {
+    "latest": "Legújabb bejegyzés",
+    "recent": "Friss bejegyzések",
+    "all": "Összes bejegyzés",
+    "moreArticles": "További cikkek",
+    "empty": "Még nincsenek közzétett bejegyzések.",
+    "published": "Közzétett cikkek",
+    "latestHeading": "Legfrissebb írásaink",
+    "loadMore": "További bejegyzések",
+    "loading": "Bejegyzések betöltése…",
+    "loadError": "Nem sikerült betölteni a bejegyzéseket. Próbáld újra.",
+    "by": "Szerző:",
+    "loadedOne": "{count} további bejegyzés betöltve. Oldal: {page}.",
+    "loadedMany": "{count} további bejegyzés betöltve. Oldal: {page}."
+  },
+  "taxonomy": {
+    "tags": "Címkék",
+    "allTags": "Összes címke",
+    "emptyTags": "Még nincsenek nyilvános címkék.",
+    "categoriesLabel": "Kategóriák:",
+    "tagsLabel": "Címkék:",
+    "category": "Kategória",
+    "tag": "Címke"
+  },
+  "errors": {
+    "notFound": "Az oldal nem található",
+    "missingPage": "A keresett oldal nem található.",
+    "loadTitle": "Az oldalt nem sikerült betölteni",
+    "loadHelp": "Próbáld újra, vagy látogass el a webhely másik oldalára.",
+    "retry": "Újra"
+  },
+  "accessibility": {
+    "openNavigation": "Menü megnyitása",
+    "closeNavigation": "Menü bezárása",
+    "primaryNavigation": "Fő navigáció",
+    "footerNavigation": "Lábléc",
+    "recoveryNavigation": "Visszatérés",
+    "postNavigation": "Bejegyzések navigációja",
+    "postArchivePages": "Bejegyzésarchívum lapozása",
+    "tagIndexPages": "Címkék lapozása",
+    "skipMain": "Ugrás a tartalomra"
+  },
+  "pagination": {
+    "previous": "Előző oldal",
+    "next": "Következő oldal",
+    "page": "Oldal"
+  },
+  "appearance": {
+    "light": "Világos",
+    "dark": "Sötét",
+    "system": "Rendszer",
+    "label": "Megjelenés",
+    "switchToDark": "Váltás sötét módra",
+    "switchToLight": "Váltás világos módra"
+  },
+  "language": {
+    "label": "Nyelv",
+    "english": "English",
+    "hungarian": "Magyar"
+  },
+  "search": {
+    "label": "Keresés",
+    "placeholder": "Cikkek keresése…",
+    "results": "Keresési találatok",
+    "count": "{count} találat",
+    "empty": "Adj meg egy keresőkifejezést cikkek és oldalak kereséséhez.",
+    "noResults": "Nincs találat.",
+    "clear": "Keresés törlése",
+    "type": "Tartalom típusa",
+    "all": "Mind",
+    "posts": "Bejegyzések",
+    "pages": "Oldalak",
+    "relevance": "Relevancia",
+    "newest": "Legújabb",
+    "filters": "Szűrők",
+    "category": "Kategória",
+    "tag": "Címke",
+    "sort": "Rendezés",
+    "apply": "Keresés",
+    "loading": "Keresés…",
+    "error": "A keresés nem tölthető be. Próbáld újra.",
+    "pagination": "Találati oldalak",
+    "countOne": "1 találat"
+  }
+}

@@ -276,3 +276,25 @@ export const ProviderDiscoverySchema = z.strictObject({
     z.enum(["apple", "discord", "facebook", "github", "google", "twitter"]),
   ),
 });
+
+export const PublicSearchQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(200)
+    .transform((value) => value.replace(/\s+/g, " "))
+    .default(""),
+  type: z.enum(["all", "posts", "pages"]).default("all"),
+  sort: z.enum(["relevance", "newest"]).default("relevance"),
+  category: ContentSlugSchema.optional(),
+  tag: ContentSlugSchema.optional(),
+  page: z.coerce.number().int().min(1).max(100).default(1),
+});
+
+export const PublicSearchResultSchema = z.object({
+  results: z
+    .array(PublicPostSummarySchema.extend({ type: z.enum(["POST", "PAGE"]) }))
+    .max(10),
+  total: z.number().int().nonnegative(),
+  taxonomies: z.array(PublicTaxonomySchema),
+});

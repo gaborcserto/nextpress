@@ -4,6 +4,7 @@ import { ContentArticle } from "@/components/ContentArticle";
 import styles from "@/components/ContentArticlePost.module.css";
 import { PostCover } from "@/components/public-content/PostCover";
 import { PostMetadata } from "@/components/public-content/PostMetadata";
+import { UiNav, UiText } from "@/lib/i18n/client";
 
 import { BlogEditorialLink } from "./BlogEditorialLink";
 import { BlogPostFooter } from "./BlogPostFooter";
@@ -27,11 +28,11 @@ export function BlogPost({
       title={post.title}
       content={post.content}
       navigation={
-        <nav aria-label="Post navigation">
+        <UiNav label="accessibility.postNavigation">
           <BlogEditorialLink href="/posts" arrow>
-            All posts
+            <UiText id="posts.all" />
           </BlogEditorialLink>
-        </nav>
+        </UiNav>
       }
       intro={
         <>

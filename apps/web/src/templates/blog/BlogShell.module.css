@@ -6,8 +6,20 @@
 }
 
 .header {
-  position: relative;
+  position: sticky;
+  z-index: 30;
+  inset-block-start: 0;
   border-bottom: 1px solid var(--color-border);
+  background: var(--blog-header-background);
+}
+
+.stickySentinel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  pointer-events: none;
 }
 
 .headerContent {
@@ -82,10 +94,10 @@
 .main {
   flex: 1;
   min-inline-size: 0;
+  scroll-margin-block-start: 6rem;
 }
 
 .footer {
-  border-top: 1px solid var(--color-border);
   background: var(--blog-footer-background);
   color: var(--blog-footer-text);
   padding-block: var(--blog-footer-padding);
@@ -112,10 +124,6 @@
 
 .footer a:focus-visible {
   outline-color: var(--blog-footer-focus);
-}
-
-:global([data-style-preset="classic"]) .header {
-  border-bottom: 3px double var(--color-border-strong);
 }
 
 :global([data-style-preset="minimal"]) .footer p {

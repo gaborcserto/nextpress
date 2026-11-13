@@ -1,0 +1,91 @@
+{
+  "navigation": {
+    "home": "Home",
+    "posts": "Posts",
+    "backHome": "Back to home"
+  },
+  "posts": {
+    "latest": "Latest post",
+    "recent": "Recent posts",
+    "all": "All posts",
+    "moreArticles": "More articles",
+    "empty": "There are no published posts yet.",
+    "published": "Published articles",
+    "latestHeading": "Latest from the publication",
+    "loadMore": "Load more posts",
+    "loading": "Loading posts…",
+    "loadError": "Could not load more posts. Please try again.",
+    "by": "By",
+    "loadedOne": "Loaded {count} more post. Page {page}.",
+    "loadedMany": "Loaded {count} more posts. Page {page}."
+  },
+  "taxonomy": {
+    "tags": "Tags",
+    "allTags": "All tags",
+    "emptyTags": "There are no published tags yet.",
+    "categoriesLabel": "Categories:",
+    "tagsLabel": "Tags:",
+    "category": "Category",
+    "tag": "Tag"
+  },
+  "errors": {
+    "notFound": "Page not found",
+    "missingPage": "The page you’re looking for isn’t here.",
+    "loadTitle": "This page could not be loaded",
+    "loadHelp": "Please try again, or continue to another part of the site.",
+    "retry": "Try again"
+  },
+  "accessibility": {
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
+    "primaryNavigation": "Primary",
+    "footerNavigation": "Footer",
+    "recoveryNavigation": "Recovery",
+    "postNavigation": "Post navigation",
+    "postArchivePages": "Post archive pages",
+    "tagIndexPages": "Tag index pages",
+    "skipMain": "Skip to main content"
+  },
+  "pagination": {
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page"
+  },
+  "appearance": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "label": "Appearance",
+    "switchToDark": "Switch to dark mode",
+    "switchToLight": "Switch to light mode"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "hungarian": "Magyar"
+  },
+  "search": {
+    "label": "Search",
+    "placeholder": "Search articles…",
+    "results": "Search results",
+    "count": "{count} results",
+    "empty": "Enter a search term to find articles and pages.",
+    "noResults": "No matching results.",
+    "clear": "Clear search",
+    "type": "Content type",
+    "all": "All",
+    "posts": "Posts",
+    "pages": "Pages",
+    "relevance": "Relevance",
+    "newest": "Newest",
+    "filters": "Filters",
+    "category": "Category",
+    "tag": "Tag",
+    "sort": "Sort",
+    "apply": "Search",
+    "loading": "Searching...",
+    "error": "Search could not be loaded. Please try again.",
+    "pagination": "Search result pages",
+    "countOne": "1 result"
+  }
+}

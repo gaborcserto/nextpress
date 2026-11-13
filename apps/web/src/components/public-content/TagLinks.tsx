@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { publicTaxonomyPath } from "@/lib/content/routes";
+import { LocaleLink as Link } from "@/lib/i18n/client";
 
 import styles from "./TagLinks.module.css";
 import linkStyles from "./TaxonomyLink.module.css";

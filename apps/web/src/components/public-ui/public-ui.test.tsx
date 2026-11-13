@@ -9,18 +9,26 @@ describe("public UI primitives", () => {
   it("keeps action links and buttons as their native elements", () => {
     render(
       <>
-        <ActionLink href="/posts">Read posts</ActionLink>
+        <ActionLink href="/en/posts">Read posts</ActionLink>
         <ActionButton type="submit">Save</ActionButton>
-      </>
+      </>,
     );
 
-    expect(screen.getByRole("link", { name: "Read posts" })).toHaveAttribute("href", "/posts");
-    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute("type", "submit");
+    expect(screen.getByRole("link", { name: "Read posts" })).toHaveAttribute(
+      "href",
+      "/en/posts",
+    );
+    expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute(
+      "type",
+      "submit",
+    );
   });
 
   it("provides a keyboard skip link to the public main content target", () => {
     render(<SkipLink />);
 
-    expect(screen.getByRole("link", { name: "Skip to main content" })).toHaveAttribute("href", "#main-content");
+    expect(
+      screen.getByRole("link", { name: "Skip to main content" }),
+    ).toHaveAttribute("href", "#main-content");
   });
 });

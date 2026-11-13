@@ -1,5 +1,6 @@
 import { CompactPostList } from "@/components/public-content/CompactPostList";
 import { PostTaxonomies } from "@/components/public-content/PostTaxonomies";
+import { UiText } from "@/lib/i18n/client";
 
 import headingStyles from "./BlogHeading.module.css";
 import styles from "./BlogPostFooter.module.css";
@@ -43,7 +44,7 @@ export function BlogPostFooter({
             className={`${headingStyles.heading} ${styles.sectionLabel}`}
             id="more-articles-title"
           >
-            More articles
+            <UiText id="posts.moreArticles" />
           </h2>
           <CompactPostList posts={articles} className={styles.articles} />
         </section>

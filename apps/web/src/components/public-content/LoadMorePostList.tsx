@@ -1,11 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { getNextPostBatch } from "@/app/posts/actions";
-import { ActionButton } from "@/components/public-ui/ActionButton";
+import { EditorialArrow } from "@/components/public-ui/EditorialArrow";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
+import {
+  LocaleLink as Link,
+  useLocale,
+  useMessages,
+  UiNav,
+  UiText,
+} from "@/lib/i18n/client";
+import { loadedMessage } from "@/lib/i18n/messages";
+import { localizedHref } from "@/lib/i18n/routing";
 
 import styles from "./post-list.module.css";
 import { type PostListVariant, PostList } from "./PostList";
@@ -25,6 +33,8 @@ export function LoadMorePostList({
   postsPerPage: number;
   variant: PostListVariant;
 }) {
+  const text = useMessages();
+  const locale = useLocale();
   const navigationRef = useRef<HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [posts, setPosts] = useState(initialPosts);
@@ -45,7 +55,7 @@ export function LoadMorePostList({
 
   const nextPage = page + 1;
   const canLoadMore = hasMore && nextPage <= getMaxPostsPage(postsPerPage);
-  const fallbackHref = `/posts?page=${nextPage}`;
+  const fallbackHref = localizedHref(`/posts?page=${nextPage}`, locale);
 
   const loadMore = async () => {
     if (loading || !canLoadMore) {
@@ -84,12 +94,10 @@ export function LoadMorePostList({
       }
       setHasMore(batch.hasMore);
       window.history.pushState(null, "", fallbackHref);
-      const noun = batch.posts.length === 1 ? "post" : "posts";
-      setMessage(
-        `Loaded ${batch.posts.length} more ${noun}. Page ${nextPage}.`,
-      );
+
+      setMessage(loadedMessage(locale, batch.posts.length, nextPage));
     } catch {
-      setError("Could not load more posts. Please try again.");
+      setError(text.posts.loadError);
     } finally {
       setLoading(false);
     }
@@ -99,38 +107,43 @@ export function LoadMorePostList({
     <>
       <PostList posts={posts} variant={variant} />
       {posts.length > 0 && (page > 1 || hasMore) ? (
-        <nav
+        <UiNav
           ref={navigationRef}
           tabIndex={-1}
           className={styles.archiveNavigation}
-          aria-label="Post archive pages"
+          label="accessibility.postArchivePages"
         >
           {page > 1 ? (
             <Link href={page === 2 ? "/posts" : `/posts?page=${page - 1}`}>
-              Previous page
+              <UiText id="pagination.previous" />
             </Link>
           ) : (
             <span aria-hidden="true" />
           )}
           <p>
-            Page <span aria-current="page">{page}</span>
+            <UiText id="pagination.page" />{" "}
+            <span aria-current="page">{page}</span>
           </p>
           {canLoadMore && !enhanced && (
-            <Link href={fallbackHref}>Next page</Link>
+            <Link href={fallbackHref}>
+              <UiText id="pagination.next" />
+            </Link>
           )}
           {canLoadMore && enhanced && (
-            <ActionButton
+            <button
+              className={styles.loadMoreAction}
               ref={buttonRef}
               type="button"
               disabled={loading}
               aria-busy={loading}
               onClick={() => void loadMore()}
             >
-              {loading ? "Loading posts…" : "Load more posts"}
-            </ActionButton>
+              {loading ? text.posts.loading : text.posts.loadMore}
+              <EditorialArrow />
+            </button>
           )}
           {!canLoadMore && <span aria-hidden="true" />}
-        </nav>
+        </UiNav>
       ) : null}
       {message ? (
         <p className={styles.batchStatus} role="status" aria-live="polite">

@@ -81,7 +81,7 @@ for (const listingMode of ["PAGINATION", "LOAD_MORE"] as const) {
           controls.getByRole("link", { name: "Previous page" }),
         ).toHaveAttribute(
           "href",
-          page === 2 ? "/posts" : `/posts?page=${page - 1}`,
+          page === 2 ? "/en/posts" : `/en/posts?page=${page - 1}`,
         );
       } else {
         expect(
@@ -96,7 +96,7 @@ for (const listingMode of ["PAGINATION", "LOAD_MORE"] as const) {
       } else if (hasMore) {
         expect(
           controls.getByRole("link", { name: "Next page" }),
-        ).toHaveAttribute("href", `/posts?page=${page + 1}`);
+        ).toHaveAttribute("href", `/en/posts?page=${page + 1}`);
       } else {
         expect(
           controls.queryByRole("link", { name: "Next page" }),

@@ -1,6 +1,10 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 
 import { publicAppearance } from "@/lib/appearance";
+import { LocaleProvider, PreferenceProvider } from "@/lib/i18n/client";
+import { isColorMode } from "@/lib/i18n/messages";
+import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { siteOrigin } from "@/lib/settings/seo";
 import { resolvePublicSkin, resolveColorMode } from "@/lib/skin";
@@ -43,18 +47,36 @@ export default async function RootLayout({
   const settings = await getPublicSiteSettings();
   const appearance = resolveWebsiteAppearance(settings.appearance);
   const skin = resolvePublicSkin(publicAppearance.theme);
+  const locale = await getLocale();
+  const savedMode = (await cookies()).get("np-color-mode")?.value;
+  let preference = settings.appearance?.colorMode;
+
+  if (!isColorMode(preference)) {
+    preference = "system";
+  }
+  if (isColorMode(savedMode)) {
+    preference = savedMode;
+  }
+
+  const mode = resolveColorMode(skin, preference);
 
   return (
     <html
-      lang="en"
+      lang={locale}
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable}`}
       data-website-template={appearance.websiteTemplate}
       data-style-preset={appearance.stylePreset}
       data-skin={skin.id}
-      data-color-mode={resolveColorMode(skin, appearance.colorMode)}
+      data-color-mode={mode}
     >
-      <body>{children}</body>
+      <body>
+        <LocaleProvider locale={locale}>
+          <PreferenceProvider mode={mode ?? "light"}>
+            {children}
+          </PreferenceProvider>
+        </LocaleProvider>
+      </body>
     </html>
   );
 }

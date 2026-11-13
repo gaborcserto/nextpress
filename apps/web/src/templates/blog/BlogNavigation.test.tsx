@@ -85,7 +85,7 @@ function Navigation() {
   return (
     <BlogNavigation>
       <NavigationLink href="/">Home</NavigationLink>
-      <NavigationLink href="/posts">Posts</NavigationLink>
+      <NavigationLink href="/en/posts">Posts</NavigationLink>
     </BlogNavigation>
   );
 }

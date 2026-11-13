@@ -10,6 +10,7 @@ it("registers Blog with all implemented presets", () => {
     "Shell",
     "Home",
     "Archive",
+    "Search",
     "Tags",
     "Post",
     "Page",

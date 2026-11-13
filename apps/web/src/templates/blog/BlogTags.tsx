@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import navigationStyles from "@/components/public-content/post-list.module.css";
 import { TagLinks } from "@/components/public-content/TagLinks";
 import { Container } from "@/components/public-ui/Container";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
+import { LocaleLink as Link, UiNav, UiText } from "@/lib/i18n/client";
 
 import styles from "./BlogArchive.module.css";
 import headingStyles from "./BlogHeading.module.css";
@@ -15,35 +14,40 @@ export function BlogTags({ tags, hasMore, page, tagsPerPage }: TagIndexProps) {
     <Container className={styles.archive}>
       <header className={styles.intro}>
         <h1 className={`${headingStyles.heading} ${styles.pageHeading}`}>
-          Tags
+          <UiText id="taxonomy.tags" />
         </h1>
       </header>
       {tags.length > 0 ? (
         <TagLinks tags={tags} />
       ) : (
-        <p>There are no published tags yet.</p>
+        <p>
+          <UiText id="taxonomy.emptyTags" />
+        </p>
       )}
       {tags.length > 0 && (page > 1 || hasMore) ? (
-        <nav
+        <UiNav
           className={navigationStyles.archiveNavigation}
-          aria-label="Tag index pages"
+          label="accessibility.tagIndexPages"
         >
           {page > 1 ? (
             <Link href={page === 2 ? "/tags" : `/tags?page=${page - 1}`}>
-              Previous page
+              <UiText id="pagination.previous" />
             </Link>
           ) : (
             <span aria-hidden="true" />
           )}
           <p>
-            Page <span aria-current="page">{page}</span>
+            <UiText id="pagination.page" />{" "}
+            <span aria-current="page">{page}</span>
           </p>
           {hasMore && page < getMaxPostsPage(tagsPerPage) ? (
-            <Link href={`/tags?page=${page + 1}`}>Next page</Link>
+            <Link href={`/tags?page=${page + 1}`}>
+              <UiText id="pagination.next" />
+            </Link>
           ) : (
             <span aria-hidden="true" />
           )}
-        </nav>
+        </UiNav>
       ) : null}
     </Container>
   );

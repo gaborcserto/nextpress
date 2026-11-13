@@ -12,7 +12,7 @@
   border: 0;
   border-radius: 0.25rem;
   color: var(--color-text);
-  background: var(--color-page);
+  background: transparent;
   cursor: pointer;
 }
 
@@ -26,9 +26,10 @@
     z-index: 10;
     inset-inline: 0;
     inset-block-start: 100%;
-    padding: 1rem var(--page-gutter);
-    background: var(--color-page);
+    padding: 0.5rem var(--page-gutter) 0.75rem;
+    background: var(--blog-header-background);
     border-block-end: 1px solid var(--color-border-strong);
+    border-inline-end: 1px solid var(--color-border);
     max-block-size: 70vh;
     max-block-size: 70dvh;
     overflow-y: auto;
@@ -36,17 +37,23 @@
 
   .panel ul {
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0;
   }
 
   .panel a {
     inline-size: 100%;
-    padding-block: 0.5rem;
+    padding-block: 0.25rem;
   }
 }
 
 .panel {
   position: relative;
+}
+
+@media (min-width: 56rem) {
+  .panel {
+    gap: var(--space-2);
+  }
 }
 
 .indicator {
@@ -94,24 +101,27 @@
   block-size: 1.5px;
   background: currentColor;
   transition:
-    transform 200ms ease,
-    opacity 200ms ease;
+    translate 110ms ease 110ms,
+    rotate 110ms ease,
+    opacity 110ms ease;
 }
 
 .strokes > span:nth-child(2) {
-  transform: translateY(7px);
+  translate: 0 7px;
 }
 .strokes > span:nth-child(3) {
-  transform: translateY(14px);
+  translate: 0 14px;
 }
 .toggle[aria-expanded="true"] .strokes > span:first-child {
-  transform: translateY(7px) rotate(45deg);
+  translate: 0 7px;
+  rotate: 45deg;
 }
 .toggle[aria-expanded="true"] .strokes > span:nth-child(2) {
   opacity: 0;
 }
 .toggle[aria-expanded="true"] .strokes > span:nth-child(3) {
-  transform: translateY(7px) rotate(-45deg);
+  translate: 0 7px;
+  rotate: -45deg;
 }
 
 @media (width < 56rem) {
@@ -132,6 +142,9 @@
   .disclosure[data-open="true"] .panel {
     transition-delay: 0s;
     visibility: visible;
+    box-shadow:
+      var(--shadow-raised),
+      3px 0 8px -6px var(--color-text-muted);
   }
 }
 
@@ -140,4 +153,15 @@
   .disclosure[data-mobile="true"] .panel {
     transition: none;
   }
+}
+
+.toggle[aria-expanded="true"] .strokes > span {
+  transition-delay: 0s, 110ms, 0s;
+}
+.toggle:is(:hover, :focus-visible) {
+  color: var(--color-link-hover);
+}
+.toggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }

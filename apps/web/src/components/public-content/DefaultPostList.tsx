@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { publicContentPath } from "@/lib/content/routes";
+import { LocaleLink as Link, UiText } from "@/lib/i18n/client";
 
 import styles from "./post-list.module.css";
 import { PostCover } from "./PostCover";
@@ -17,7 +16,11 @@ export function DefaultPostList({
   showTaxonomies?: boolean;
 }) {
   if (posts.length === 0) {
-    return <p className={styles.empty}>There are no published posts yet.</p>;
+    return (
+      <p className={styles.empty}>
+        <UiText id="posts.empty" />
+      </p>
+    );
   }
 
   return (

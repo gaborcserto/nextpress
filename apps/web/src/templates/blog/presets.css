@@ -10,7 +10,11 @@
   --blog-summary-size: 1.25rem;
   --blog-summary-leading: 1.7;
   --blog-footer-padding: 3rem;
-  --blog-footer-background: var(--color-page);
+  --blog-header-background: light-dark(
+    #faf9f6,
+    color-mix(in srgb, var(--color-page) 94%, white)
+  );
+  --blog-footer-background: light-dark(#f1f0ec, var(--color-surface-muted));
   --blog-footer-text: var(--color-text);
   --blog-footer-link: var(--color-link);
   --blog-footer-focus: var(--color-focus-ring);
@@ -42,10 +46,6 @@
   --blog-card-title-size: 1.65rem;
   --blog-prose-font: var(--font-body);
   --blog-footer-padding: clamp(4rem, 8vw, 7rem);
-  --blog-footer-background: #1d1c32;
-  --blog-footer-text: #f4f0e9;
-  --blog-footer-link: #f4f0e9;
-  --blog-footer-focus: #e8bc93;
   --color-page: #f4f0e9;
   --color-surface: #f4f0e9;
   --color-surface-muted: #e7dfd4;
@@ -79,7 +79,6 @@
   --blog-prose-leading: 1.85;
   --blog-section-spacing: clamp(3rem, 7vw, 5.5rem);
   --blog-footer-padding: 2rem;
-  --blog-footer-background: var(--color-page);
   --blog-card-padding: 2.25rem;
 }
 

@@ -8,7 +8,7 @@ import { NavigationLink } from "./NavigationLink";
 it("indicates the active posts section on article routes", () => {
   render(
     <>
-      <NavigationLink href="/posts">Posts</NavigationLink>
+      <NavigationLink href="/en/posts">Posts</NavigationLink>
       <NavigationLink href="/">Home</NavigationLink>
     </>,
   );

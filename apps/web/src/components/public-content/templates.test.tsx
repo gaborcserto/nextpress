@@ -31,7 +31,7 @@ it.each(["default", "compact"])(
     render(<Template posts={posts} />);
     expect(screen.getByRole("link", { name: "Hello" })).toHaveAttribute(
       "href",
-      "/posts/hello",
+      "/en/posts/hello",
     );
     if (id === "compact")
       expect(screen.queryByText("Preview text")).not.toBeInTheDocument();
