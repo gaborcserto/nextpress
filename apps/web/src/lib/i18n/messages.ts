@@ -1,5 +1,5 @@
-﻿import english from "../../../messages/en.json";
-import hungarian from "../../../messages/hu.json";
+import english from "../../../locales/en.json";
+import hungarian from "../../../locales/hu.json";
 
 export type Locale = "en" | "hu";
 export const defaultLocale = "en";
