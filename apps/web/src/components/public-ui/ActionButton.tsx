@@ -1,12 +1,13 @@
 import styles from "./public-ui.module.scss";
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 type ActionButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "className"
 > & {
   children: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
   className?: string;
 };
 

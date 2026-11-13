@@ -1,16 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublicSiteSettings, getPublicPageNavigation } = vi.hoisted(() => ({
+const { getPublicSiteSettings } = vi.hoisted(() => ({
   getPublicSiteSettings: vi.fn(),
-  getPublicPageNavigation: vi.fn(),
 }));
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
   getPublicSiteSettings,
-}));
-vi.mock("@/lib/content/public-content.server", () => ({
-  getPublicPageNavigation,
 }));
 vi.mock("next/font/google", () => ({
   Geist: () => ({ variable: "geist-sans" }),
@@ -24,10 +20,6 @@ beforeEach(() => {
   getPublicSiteSettings.mockResolvedValue({
     siteName: "Example Publication",
     siteDescription: "Independent reporting.",
-  });
-  getPublicPageNavigation.mockResolvedValue({
-    header: [{ slug: "about", title: "About" }],
-    footer: [{ slug: "contact", title: "Contact" }],
   });
 });
 
@@ -46,32 +38,14 @@ describe("public layout settings integration", () => {
     expect(html.hasAttribute("data-theme")).toBe(false);
   });
 
-  it("renders the configured identity in the shell around page content", async () => {
+  it("leaves route content outside the regular site shell", async () => {
     render(await RootLayout({ children: <p>Page content</p> }), {
       container: document,
     });
 
-    expect(
-      screen.getByRole("link", { name: "Example Publication" }),
-    ).toHaveAttribute("href", "/");
-    expect(
-      within(screen.getByRole("contentinfo")).getByText("Example Publication"),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("main")).getByText("Page content"),
-    ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("navigation", { name: "Primary" })).getByRole(
-        "link",
-        { name: "About" },
-      ),
-    ).toHaveAttribute("href", "/pages/about");
-    expect(
-      within(screen.getByRole("navigation", { name: "Footer" })).getByRole(
-        "link",
-        { name: "Contact" },
-      ),
-    ).toHaveAttribute("href", "/pages/contact");
+    expect(screen.getByText("Page content")).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
   it("uses the same public identity for the existing title and description metadata", async () => {
@@ -92,13 +66,24 @@ describe("public layout settings integration", () => {
       "private settings failure",
     );
   });
-
-  it("propagates navigation database failures to the root error boundary", async () => {
-    getPublicPageNavigation.mockRejectedValue(
-      new Error("private navigation failure"),
-    );
-    await expect(RootLayout({ children: <p>Page content</p> })).rejects.toThrow(
-      "private navigation failure",
-    );
-  });
 });
+
+it.each(["light", "dark", "system"])(
+  "SSR applies saved %s with validated template/preset selectors",
+  async (colorMode) => {
+    getPublicSiteSettings.mockResolvedValue({
+      siteName: "Saved",
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "classic",
+        colorMode,
+      },
+    });
+    const markup = renderToStaticMarkup(
+      await RootLayout({ children: <p>Content</p> }),
+    );
+    expect(markup).toContain(`data-color-mode="${colorMode}"`);
+    expect(markup).toContain('data-website-template="blog"');
+    expect(markup).toContain('data-style-preset="classic"');
+  },
+);

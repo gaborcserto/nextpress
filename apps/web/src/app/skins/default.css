@@ -1,4 +1,4 @@
-:root[data-skin="default"] {
+[data-skin="default"] {
   color-scheme: light;
 
   --color-page: #ffffff;
@@ -13,6 +13,12 @@
   --color-action: #171717;
   --color-action-hover: #383838;
   --color-text-on-action: #ffffff;
+  /* Planned Modern footer roles; aliases follow the active semantic mode. */
+  --color-surface-inverse: var(--color-action);
+  --color-text-inverse: var(--color-text-on-action);
+  --color-text-inverse-muted: var(--color-surface-muted);
+  --color-link-inverse: var(--color-text-on-action);
+  --color-focus-inverse: var(--color-text-on-action);
   --color-focus-ring: #1d5fd0;
   --color-error: #b42318;
   --color-success: #18794e;
@@ -31,7 +37,7 @@
   --filter-monochrome-image: none;
 }
 
-:root[data-skin="default"][data-color-mode="dark"] {
+[data-skin="default"][data-color-mode="dark"] {
   color-scheme: dark;
   --color-page: #171717;
   --color-surface: #202020;
@@ -58,7 +64,7 @@
 
 /* Only an explicitly selected system mode follows the OS preference. */
 @media (prefers-color-scheme: dark) {
-  :root[data-skin="default"][data-color-mode="system"] {
+  [data-skin="default"][data-color-mode="system"] {
     color-scheme: dark;
     --color-page: #171717;
     --color-surface: #202020;

@@ -1,7 +1,8 @@
-import pageStyles from "@/app/pages/[slug]/page.module.css";
-import postStyles from "@/app/posts/[slug]/page.module.css";
 import { Container } from "@/components/public-ui/Container";
 import { RichContent } from "@/components/RichContent";
+
+import pageStyles from "./ContentArticlePage.module.css";
+import postStyles from "./ContentArticlePost.module.css";
 
 import type { RichDocument } from "@nextpress/shared/content";
 import type { ReactNode } from "react";
@@ -31,7 +32,10 @@ export function ContentArticle({
           <h1>{title}</h1>
           {intro}
         </header>
-        <RichContent content={content} />
+        <RichContent
+          content={content}
+          className={kind === "posts" ? styles.content : undefined}
+        />
         {children}
       </article>
     </Container>

@@ -3,6 +3,7 @@ import "server-only";
 import { prisma, type Prisma } from "@nextpress/db";
 import {
   DEFAULT_POST_LISTING_MODE,
+  normalizeAppearance,
   PostListingModeSchema,
   normalizePostsPerPage,
 } from "@nextpress/shared";
@@ -13,6 +14,9 @@ import type { z } from "zod";
 type PublicSiteSettings = z.infer<typeof PublicSiteSettingsSchema>;
 
 const publicSiteSettingsSelect = {
+  websiteTemplate: true,
+  stylePreset: true,
+  colorMode: true,
   siteName: true,
   siteDescription: true,
   postListingMode: true,
@@ -29,6 +33,13 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
     settings?.postListingMode,
   );
   return {
+    appearance: normalizeAppearance(
+      settings && {
+        websiteTemplate: settings.websiteTemplate,
+        stylePreset: settings.stylePreset,
+        colorMode: settings.colorMode,
+      },
+    ),
     siteName: settings?.siteName.trim() || "NextPress",
     siteDescription:
       settings?.siteDescription?.trim() ||

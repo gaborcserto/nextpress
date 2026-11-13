@@ -80,13 +80,15 @@ function renderBlock(block: RichBlock): ReactNode {
 
 export function RichContent({
   content,
+  className,
 }: {
   content: RichDocument | string | null;
+  className?: string;
 }) {
   const document = parsePublicRichContent(content);
 
   return (
-    <div className={styles.prose}>
+    <div className={[styles.prose, className].filter(Boolean).join(" ")}>
       {document.blocks.map((block, index) => (
         <Fragment key={index}>{renderBlock(block)}</Fragment>
       ))}

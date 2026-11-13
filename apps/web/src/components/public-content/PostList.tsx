@@ -1,11 +1,19 @@
-import { publicAppearance } from "@/lib/appearance";
-
 import { resolvePostListTemplate } from "./templates";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
 
-export function PostList({ posts }: { posts: PublicPostSummary[] }) {
-  const Template = resolvePostListTemplate(publicAppearance.template).render;
+export type PostListVariant = "default" | "compact";
 
-  return <Template posts={posts} />;
+export function PostList({
+  posts,
+  variant,
+  showTaxonomies = true,
+}: {
+  posts: PublicPostSummary[];
+  variant: PostListVariant;
+  showTaxonomies?: boolean;
+}) {
+  const Template = resolvePostListTemplate(variant).render;
+
+  return <Template posts={posts} showTaxonomies={showTaxonomies} />;
 }

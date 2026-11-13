@@ -22,3 +22,36 @@ it("does not replace API outages with default settings", async () => {
   );
   await expect(getPublicSiteSettings()).rejects.toMatchObject({ status: 500 });
 });
+
+it("preserves obsolete identifiers for safe canonical resolution", async () => {
+  const settings = {
+    siteName: "Saved",
+    siteDescription: "",
+    postListingMode: "PAGINATION",
+    postsPerPage: 10,
+    appearance: {
+      websiteTemplate: "retired",
+      stylePreset: "obsolete",
+      colorMode: "dark",
+    },
+  };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(settings)));
+  expect(await getPublicSiteSettings()).toEqual(settings);
+});
+it("rejects malformed appearance instead of returning successful defaults", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      Response.json({
+        siteName: "Saved",
+        siteDescription: "",
+        postListingMode: "PAGINATION",
+        postsPerPage: 10,
+        appearance: { websiteTemplate: 5 },
+      }),
+    ),
+  );
+  await expect(getPublicSiteSettings()).rejects.toMatchObject({
+    code: "contract",
+  });
+});

@@ -1,0 +1,73 @@
+.home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  padding-block: var(--blog-section-spacing);
+}
+
+.pageTitle {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sectionLabel {
+  margin: 0 0 1.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lead .sectionLabel::before {
+  background: var(--blog-marker-warm);
+}
+
+.tagsSection .sectionLabel::before {
+  background: var(--blog-marker-tag);
+}
+
+.lead,
+.recent {
+  min-inline-size: 0;
+}
+
+.recent {
+  margin-block-start: 2.5rem;
+}
+
+.archiveLink {
+  margin-block-start: 1.75rem;
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 64rem) {
+  .home {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    column-gap: clamp(2rem, 4vw, 3.5rem);
+  }
+
+  .home .lead {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .home .recent {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+}
+
+.tagsSection {
+  margin-block-start: 2rem;
+}

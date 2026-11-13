@@ -29,6 +29,7 @@ vi.mock("better-auth/next-js", () => ({
 }));
 vi.mock("next/headers", () => ({ headers: requestHeaders }));
 
+import { PUT as putAppearance } from "@/app/api/admin/settings/appearance/route";
 import { POST as createUser } from "@/app/api/admin/users/create/route";
 import { POST as authRoute } from "@/app/api/auth/[...all]/route";
 import {
@@ -1530,4 +1531,39 @@ describe("configured authentication policy with real Better Auth", () => {
       }),
     ).toBe(false);
   });
+});
+
+it("protects appearance writes with real session, ADMIN, Origin and JSON gates", async () => {
+  const auth = await registeredAuth();
+  const { cookie } = await signIn(auth);
+  const appearance = {
+    websiteTemplate: "blog",
+    stylePreset: "classic",
+    colorMode: "dark",
+  };
+
+  const request = (requestOrigin = origin) =>
+    new Request(`${origin}/api/admin/settings/appearance`, {
+      method: "PUT",
+      headers: { origin: requestOrigin, "content-type": "application/json" },
+      body: JSON.stringify(appearance),
+    });
+  expect((await putAppearance(request(), { params: {} })).status).toBe(401);
+  requestHeaders.mockResolvedValue(new Headers({ cookie }));
+  prisma.user.findUnique.mockResolvedValue({
+    roleId: "editor-role",
+    role: { name: "EDITOR" },
+  });
+  expect((await putAppearance(request(), { params: {} })).status).toBe(403);
+  prisma.user.findUnique.mockResolvedValue({
+    roleId: "admin-role",
+    role: { name: "ADMIN" },
+  });
+  expect(
+    (await putAppearance(request("https://untrusted.test"), { params: {} }))
+      .status,
+  ).toBe(403);
+  expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
+  prisma.siteSettings.upsert.mockResolvedValue(appearance);
+  expect((await putAppearance(request(), { params: {} })).status).toBe(200);
 });

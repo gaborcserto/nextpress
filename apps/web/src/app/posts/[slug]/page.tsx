@@ -1,13 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ContentArticle } from "@/components/ContentArticle";
 import { PageDocument } from "@/components/PageDocument";
-import { PostMetadata } from "@/components/public-content/PostMetadata";
-import { getPublishedPost } from "@/lib/content/public-content.server";
+import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
+import {
+  getPublishedPost,
+  getPublishedPosts,
+} from "@/lib/content/public-content.server";
+import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
-
-import styles from "./page.module.css";
+import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
 import type { Metadata } from "next";
 
@@ -28,32 +29,22 @@ export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
   const post = await getPublishedPost(slug);
 
-  if (!post) notFound();
+  if (!post) {
+    notFound();
+  }
+
+  const [settings, additional] = await Promise.all([
+    getPublicSiteSettings(),
+    getPublishedPosts({ limit: 5 }),
+  ]);
+  const appearance = resolveWebsiteAppearance(settings.appearance);
+  const { Post } = appearance.views;
 
   return (
-    <ContentArticle
-      kind="posts"
-      title={post.title}
-      content={post.content}
-      navigation={
-        <nav aria-label="Post navigation">
-          <Link href="/posts">All posts</Link>
-        </nav>
-      }
-      intro={
-        <>
-          <PostMetadata
-            publishedAt={post.publishedAt}
-            author={post.author}
-            taxonomies={post.taxonomies}
-          />
-          {post.summary ? (
-            <p className={styles.summary}>{post.summary}</p>
-          ) : null}
-        </>
-      }
-    >
-      {post.pageDocument && <PageDocument document={post.pageDocument} />}
-    </ContentArticle>
+    <PublicWebsiteShell>
+      <Post content={post} additionalPosts={additional.posts}>
+        {post.pageDocument && <PageDocument document={post.pageDocument} />}
+      </Post>
+    </PublicWebsiteShell>
   );
 }

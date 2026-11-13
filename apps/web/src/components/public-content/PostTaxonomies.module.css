@@ -1,0 +1,32 @@
+.taxonomies {
+  grid-column: 1 / -1;
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.taxonomies > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+.taxonomies dt {
+  font-weight: 500;
+}
+.taxonomies dd {
+  margin: 0;
+  min-inline-size: 0;
+}
+.taxonomies ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.taxonomies li {
+  min-inline-size: 0;
+}

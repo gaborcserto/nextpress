@@ -355,7 +355,7 @@ describe("public published content boundary", () => {
         expect(args.skip).toBe(0);
         expect(args.take).toBe(2);
         expect(args.select).not.toHaveProperty("content");
-        expect(args.select).not.toHaveProperty("cover");
+        expect(args.select).toHaveProperty("cover.select.url", true);
         return [published, publishedNext, future, draft]
           .filter(
             (item) =>
@@ -369,20 +369,37 @@ describe("public published content boundary", () => {
               left.slug.localeCompare(right.slug),
           )
           .slice(args.skip, args.skip + args.take)
-          .map(({ slug, title, excerpt, publishedAt, author, taxonomies }) => ({
-            slug,
-            title,
-            excerpt,
-            publishedAt,
-            author,
-            taxonomies,
-          }));
+          .map(
+            ({
+              slug,
+              title,
+              excerpt,
+              publishedAt,
+              author,
+              taxonomies,
+              cover,
+            }) => ({
+              cover,
+              slug,
+              title,
+              excerpt,
+              publishedAt,
+              author,
+              taxonomies,
+            }),
+          );
       },
     );
 
     expect(await getPublishedPosts({ limit: 1 })).toEqual({
       posts: [
         {
+          cover: {
+            url: row.cover.url,
+            alt: row.cover.alt,
+            width: row.cover.width,
+            height: row.cover.height,
+          },
           slug: "published",
           title: "Published",
           summary: "A short summary",
@@ -445,4 +462,15 @@ describe("public published content boundary", () => {
       "Database unavailable",
     );
   });
+});
+
+it.each([
+  null,
+  { url: "https://private.test/image", mime: "image/png" },
+  { url: "//evil.test/image", mime: "image/png" },
+])("omits missing or unsafe summary covers %j", async (cover) => {
+  findMany.mockResolvedValue([{ ...row, cover }]);
+  const batch = await getPublishedPosts();
+  expect(batch.posts[0]?.cover).toBeNull();
+  expect(JSON.stringify(batch)).not.toContain("private-key");
 });

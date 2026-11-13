@@ -1,0 +1,37 @@
+.footer {
+  margin-block-start: 3rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.discovery {
+  margin-block-start: 2rem;
+}
+.discovery:first-child {
+  margin-block-start: 0;
+}
+.discovery h2 {
+  margin: 0 0 1.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.articles > li {
+  padding-block: 0.75rem;
+}
+
+.articles > li > h3 {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  font-weight: 400;
+}
+
+.articles > li > h3 a {
+  font-size: inherit;
+}
+
+.articles > li > time {
+  font-size: 0.75rem;
+}

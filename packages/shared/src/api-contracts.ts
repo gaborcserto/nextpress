@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { PublicAppearanceSchema } from "./appearance";
 import {
   ContentLayoutSchema,
   ContentSlugSchema,
@@ -164,33 +165,45 @@ export const ContentRecordSchema = z.object({
   createdAt: date,
   updatedAt: date,
 });
+export const PublicCoverSchema = z
+  .strictObject({
+    url: z.string().regex(/^\/(?!\/)/),
+    alt: z.string(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+  })
+  .nullable();
+
+export const PublicTaxonomySchema = z.strictObject({
+  type: z.enum(["TAG", "CATEGORY"]),
+  slug: z.string(),
+  name: z.string(),
+});
+export const PublicTaxonomyParamsSchema = z.strictObject({
+  type: z.enum(["TAG", "CATEGORY"]),
+  slug: z
+    .string()
+    .refine((slug) => slug === slug.trim())
+    .pipe(ContentSlugSchema),
+});
+
 const publicSummary = {
   slug: z.string(),
   title: z.string(),
   summary: z.string(),
   publishedAt: date,
   author: z.strictObject({ name: z.string() }).nullable(),
-  taxonomies: z.array(
-    z.strictObject({
-      type: z.enum(["TAG", "CATEGORY"]),
-      slug: z.string(),
-      name: z.string(),
-    }),
-  ),
+  taxonomies: z.array(PublicTaxonomySchema),
 };
-export const PublicPostSummarySchema = z.strictObject(publicSummary);
+export const PublicPostSummarySchema = z.strictObject({
+  ...publicSummary,
+  cover: PublicCoverSchema.optional(),
+});
 export const PublicContentSchema = z.strictObject({
   pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,
   content: RichDocumentSchema,
-  cover: z
-    .strictObject({
-      url: z.string().regex(/^\/(?!\/)/),
-      alt: z.string(),
-      width: z.number().int().nullable(),
-      height: z.number().int().nullable(),
-    })
-    .nullable(),
+  cover: PublicCoverSchema,
 });
 
 export const PublicContentIndexQuerySchema = z.object({
@@ -214,12 +227,27 @@ export const PublicPostBatchSchema = z.strictObject({
   posts: z.array(PublicPostSummarySchema),
   hasMore: z.boolean(),
 });
+export const PublicTaxonomyBatchSchema = PublicPostBatchSchema.extend({
+  taxonomy: PublicTaxonomySchema,
+});
+export const PublicTagBatchSchema = z.strictObject({
+  tags: z
+    .array(
+      PublicTaxonomySchema.extend({
+        type: z.literal("TAG"),
+        slug: PublicTaxonomyParamsSchema.shape.slug,
+      }),
+    )
+    .max(MAX_POSTS_PER_PAGE),
+  hasMore: z.boolean(),
+});
 const navigationItem = z.strictObject({ slug: z.string(), title: z.string() });
 export const PublicNavigationSchema = z.strictObject({
   header: z.array(navigationItem),
   footer: z.array(navigationItem),
 });
 export const PublicSiteSettingsSchema = z.strictObject({
+  appearance: PublicAppearanceSchema.optional(),
   siteName: z.string(),
   siteDescription: z.string(),
   postListingMode: PostListingModeSchema,

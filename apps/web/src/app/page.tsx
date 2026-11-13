@@ -1,12 +1,11 @@
-import Link from "next/link";
-
-import { PostList } from "@/components/public-content/PostList";
-import { Container } from "@/components/public-ui/Container";
-import { getPublishedPosts } from "@/lib/content/public-content.server";
+import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
+import {
+  getPublishedPosts,
+  getPublishedTags,
+} from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { contentMetadata } from "@/lib/settings/seo";
-
-import styles from "./page.module.css";
+import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
 export async function generateMetadata() {
   const settings = await getPublicSiteSettings();
@@ -15,24 +14,24 @@ export async function generateMetadata() {
 }
 
 export default async function Home() {
-  const [settings, latest] = await Promise.all([
+  const [settings, latest, tagBatch] = await Promise.all([
     getPublicSiteSettings(),
     getPublishedPosts({ limit: 5 }),
+    getPublishedTags({ limit: 12 }),
   ]);
 
+  const appearance = resolveWebsiteAppearance(settings.appearance);
+  const { Home } = appearance.views;
+
   return (
-    <Container className={styles.home}>
-      <section className={styles.intro} aria-labelledby="home-title">
-        <h1 id="home-title">{settings.siteName}</h1>
-        <p>{settings.siteDescription}</p>
-      </section>
-      <section className={styles.latest} aria-labelledby="latest-title">
-        <div className={styles.sectionHeading}>
-          <h2 id="latest-title">Latest posts</h2>
-          <Link href="/posts">All posts</Link>
-        </div>
-        <PostList posts={latest.posts} />
-      </section>
-    </Container>
+    <PublicWebsiteShell>
+      <Home
+        siteName={settings.siteName}
+        siteDescription={settings.siteDescription}
+        posts={latest.posts}
+        tagBatch={tagBatch}
+        listVariant={appearance.listVariant}
+      />
+    </PublicWebsiteShell>
   );
 }

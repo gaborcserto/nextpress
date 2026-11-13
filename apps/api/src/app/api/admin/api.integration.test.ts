@@ -5,7 +5,7 @@ const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } =
   vi.hoisted(() => ({
     authState: { role: "ADMIN" as "ADMIN" | "EDITOR" | null },
     prisma: {
-      siteSettings: { upsert: vi.fn() },
+      siteSettings: { upsert: vi.fn(), findUnique: vi.fn() },
       oAuthProvider: { upsert: vi.fn(), findMany: vi.fn() },
       user: {
         findUniqueOrThrow: vi.fn(),
@@ -25,6 +25,7 @@ const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } =
   }));
 
 vi.mock("@nextpress/db/src/client", () => ({ prisma }));
+vi.mock("@nextpress/db", () => ({ prisma }));
 
 vi.mock("bcryptjs", () => ({ default: { hash: bcryptHash } }));
 
@@ -74,6 +75,10 @@ vi.mock("@/lib/auth/auth-server", () => ({
     },
 }));
 
+import {
+  GET as getAppearance,
+  PUT as putAppearance,
+} from "./settings/appearance/route";
 import { GET as getSettings, PUT as putSettings } from "./settings/route";
 import { PATCH as updateUserRole } from "./users/[id]/role/route";
 import { DELETE as deleteUser } from "./users/[id]/route";
@@ -330,6 +335,11 @@ describe("admin API route integration", () => {
         ([value]) => value.where.provider === "google",
       );
       expect(googleCall?.[0].update).not.toHaveProperty("clientSecret");
+      for (const field of ["websiteTemplate", "stylePreset", "colorMode"]) {
+        expect(
+          prisma.siteSettings.upsert.mock.calls[0]?.[0].update,
+        ).not.toHaveProperty(field);
+      }
     });
 
     it.each([
@@ -541,5 +551,66 @@ describe("admin API route integration", () => {
       expect(response.status).toBe(404);
       expect(await json(response)).toEqual({ error: "User not found" });
     });
+  });
+});
+
+describe("appearance-only settings updates", () => {
+  const appearance = {
+    websiteTemplate: "blog",
+    stylePreset: "classic",
+    colorMode: "dark",
+  };
+  it.each([null, "EDITOR"] as const)("denies role %s", async (role) => {
+    authState.role = role;
+    expect(
+      (await putAppearance(request("PUT", appearance), { params: {} })).status,
+    ).toBe(role ? 403 : 401);
+    expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
+  });
+  it.each([
+    { websiteTemplate: "corporate" },
+    { stylePreset: "unavailable" },
+    { colorMode: "sepia" },
+    { defaultUserRole: "ADMIN" },
+  ])("rejects invalid writes %j", async (invalid) => {
+    const response = await putAppearance(
+      request("PUT", { ...appearance, ...invalid }),
+      { params: {} },
+    );
+    expect(response.status).toBe(400);
+    expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
+  });
+  it("writes only appearance without touching general, role or OAuth settings", async () => {
+    prisma.siteSettings.upsert.mockResolvedValue(appearance);
+    const response = await putAppearance(request("PUT", appearance), {
+      params: {},
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(appearance);
+    expect(prisma.siteSettings.upsert).toHaveBeenCalledWith({
+      where: { id: "default" },
+      create: { id: "default", ...appearance },
+      update: appearance,
+      select: { websiteTemplate: true, stylePreset: true, colorMode: true },
+    });
+    expect(prisma.oAuthProvider.upsert).not.toHaveBeenCalled();
+  });
+});
+
+it("reads only appearance through the administrative appearance operation", async () => {
+  prisma.siteSettings.findUnique.mockResolvedValue({
+    websiteTemplate: "blog",
+    stylePreset: "classic",
+    colorMode: "system",
+  });
+  const response = await getAppearance(request("GET"), { params: {} });
+  expect(await response.json()).toEqual({
+    websiteTemplate: "blog",
+    stylePreset: "classic",
+    colorMode: "system",
+  });
+  expect(prisma.siteSettings.findUnique).toHaveBeenCalledWith({
+    where: { id: "default" },
+    select: { websiteTemplate: true, stylePreset: true, colorMode: true },
   });
 });

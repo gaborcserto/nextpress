@@ -132,6 +132,9 @@ model SiteSettings {
   ogImageUrl      String? // default og:image
   postListingMode PostListingMode @default(PAGINATION)
   postsPerPage    Int             @default(10)
+  websiteTemplate String @default("blog")
+  stylePreset     String @default("classic")
+  colorMode       String @default("light")
 
   defaultUserRole String @default("SUBSCRIBER") // must match Role.name
 

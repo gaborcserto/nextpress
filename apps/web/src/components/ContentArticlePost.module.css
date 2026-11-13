@@ -1,0 +1,53 @@
+.page {
+  padding-block: var(--blog-section-spacing, var(--section-spacing));
+}
+
+.page > nav {
+  max-inline-size: var(--blog-reading-width, var(--prose-width));
+  margin-inline: auto;
+  font-size: 0.875rem;
+}
+
+.page > nav a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+}
+
+.article {
+  min-inline-size: 0;
+  max-inline-size: var(--blog-reading-width, var(--prose-width));
+  margin: 1.5rem auto 0;
+}
+
+.header {
+  padding-block-end: 2rem;
+  margin-block-end: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h1 {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.875rem, 4.5vw, var(--blog-article-title-size));
+  font-weight: var(--blog-display-weight, 600);
+  line-height: 1.08;
+  letter-spacing: var(--blog-display-tracking, -0.045em);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.summary {
+  margin-block: 1.5rem 0;
+  color: var(--color-text-muted);
+  font-size: var(--blog-summary-size);
+  line-height: var(--blog-summary-leading);
+}
+
+:global([data-style-preset="classic"]) .page > nav,
+:global([data-style-preset="classic"]) .article {
+  max-inline-size: none;
+}
+
+:global([data-style-preset="classic"]) .content {
+  max-inline-size: none;
+}

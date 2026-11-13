@@ -1,82 +1,130 @@
 .prose {
-  max-inline-size: var(--prose-width);
+  max-inline-size: min(70ch, var(--blog-reading-width, var(--prose-width)));
   min-inline-size: 0;
   color: var(--color-text);
-  font-family: var(--font-body);
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-relaxed);
+  font-family: var(--blog-prose-font, var(--font-body));
+  font-size: var(--blog-prose-size, 1.125rem);
+  line-height: var(--blog-prose-leading, 1.75);
   overflow-wrap: anywhere;
 }
 
-.prose :where(p, blockquote, ul, ol, pre, h2, h3, h4, h5, h6) {
+.prose :where(p, blockquote, ul, ol, pre, h1, h2, h3, h4, h5, h6) {
   margin: 0;
 }
 
-.prose > * + * {
-  margin-block-start: var(--space-6);
-}
-
-.prose :where(h2, h3, h4, h5, h6) {
+.prose :where(h1, h2, h3, h4, h5, h6) {
   font-family: var(--font-heading);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-tight);
+  line-height: 1.22;
+  letter-spacing: -0.025em;
 }
 
-.prose > :where(h2, h3, h4, h5, h6) {
-  margin-block-start: var(--space-8);
+.prose h1 {
+  font-size: clamp(1.875rem, 3vw, 2.75rem);
+}
+.prose h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+}
+.prose h3 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+.prose h4 {
+  font-size: 1.125rem;
+}
+.prose :where(h5, h6) {
+  font-size: 1rem;
 }
 
-.prose > :first-child {
-  margin-block-start: 0;
+/* Section openings have more space above than the text they introduce. */
+.prose > * + :where(h1, h2, h3, h4, h5, h6) {
+  margin-block-start: clamp(2rem, 4vw, 3rem);
 }
 
-.prose h2 { font-size: var(--font-size-2xl); }
-.prose h3 { font-size: var(--font-size-xl); }
-.prose h4 { font-size: var(--font-size-lg); }
-.prose :where(h5, h6) { font-size: var(--font-size-md); }
-.prose strong { font-weight: var(--font-weight-semibold); }
+.prose > :where(h1, h2, h3, h4, h5, h6) + :where(p, ul, ol, blockquote, pre) {
+  margin-block-start: 0.75rem;
+}
 
+.prose > :where(h1, h2, h3, h4, h5) + :where(h2, h3, h4, h5, h6) {
+  margin-block-start: 1.25rem;
+}
+
+.prose > :where(p, ul, ol, blockquote, pre) + p {
+  margin-block-start: 1.25em;
+}
+
+.prose > :where(p, ul, ol, pre, blockquote) + :where(ul, ol) {
+  margin-block-start: 1rem;
+}
+
+.prose > :where(p, ul, ol, pre, blockquote) + :where(blockquote, pre) {
+  margin-block-start: 1.75rem;
+}
+
+.prose strong {
+  font-weight: var(--font-weight-semibold);
+}
 .prose :where(p, li) {
   white-space: pre-wrap;
 }
-
 .prose :where(ul, ol) {
-  padding-inline-start: var(--space-8);
+  padding-inline-start: 1.5em;
 }
-
 .prose li + li {
-  margin-block-start: var(--space-2);
+  margin-block-start: 0.5em;
+}
+.prose li > :where(p, ul, ol) + :where(p, ul, ol) {
+  margin-block-start: 0.5em;
 }
 
 .prose blockquote {
-  padding-inline-start: var(--space-4);
-  border-inline-start: var(--space-1) solid var(--color-border-strong);
+  padding: 0.25rem 0 0.25rem 1.25rem;
+  border-inline-start: 3px solid var(--color-border-strong);
+  font-size: 1.05em;
+  font-style: italic;
+  line-height: 1.65;
+}
+
+.prose blockquote > * + * {
+  margin-block-start: 1em;
 }
 
 .prose code {
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: 0.875em;
+  padding: 0.125em 0.25em;
   background: var(--color-surface-muted);
   border-radius: var(--radius-control);
-  padding: var(--space-1);
+  box-decoration-break: clone;
 }
 
 .prose pre {
   max-inline-size: 100%;
   overflow-x: auto;
-  padding: var(--space-4);
+  padding: 1rem;
+  line-height: 1.6;
   background: var(--color-surface-muted);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
   white-space: pre;
+  overflow-wrap: normal;
 }
 
 .prose pre code {
   padding: 0;
   border-radius: 0;
 }
-
-.prose [data-align="left"] { text-align: left; }
-.prose [data-align="center"] { text-align: center; }
-.prose [data-align="right"] { text-align: right; }
-.prose [data-align="justify"] { text-align: justify; }
+.prose a {
+  text-underline-offset: 0.2em;
+}
+.prose [data-align="left"] {
+  text-align: left;
+}
+.prose [data-align="center"] {
+  text-align: center;
+}
+.prose [data-align="right"] {
+  text-align: right;
+}
+.prose [data-align="justify"] {
+  text-align: justify;
+}

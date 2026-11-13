@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getNextPostBatch } from "@/app/posts/actions";
 import { ActionButton } from "@/components/public-ui/ActionButton";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
 
 import styles from "./post-list.module.css";
-import { PostList } from "./PostList";
+import { type PostListVariant, PostList } from "./PostList";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
 
@@ -17,12 +17,16 @@ export function LoadMorePostList({
   page: initialPage,
   hasMore: initialHasMore,
   postsPerPage,
+  variant,
 }: {
   posts: PublicPostSummary[];
   page: number;
   hasMore: boolean;
   postsPerPage: number;
+  variant: PostListVariant;
 }) {
+  const navigationRef = useRef<HTMLElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [posts, setPosts] = useState(initialPosts);
   const [page, setPage] = useState(initialPage);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -44,10 +48,15 @@ export function LoadMorePostList({
   const fallbackHref = `/posts?page=${nextPage}`;
 
   const loadMore = async () => {
-    if (loading || !canLoadMore) return;
+    if (loading || !canLoadMore) {
+      return;
+    }
+    const startedWithButtonFocus = document.activeElement === buttonRef.current;
+
     setLoading(true);
     setError("");
     setMessage("");
+
     try {
       const batch = await getNextPostBatch(nextPage);
 
@@ -65,6 +74,14 @@ export function LoadMorePostList({
         ];
       });
       setPage(nextPage);
+      if (
+        (!batch.hasMore || nextPage >= getMaxPostsPage(postsPerPage)) &&
+        startedWithButtonFocus &&
+        (document.activeElement === buttonRef.current ||
+          document.activeElement === document.body)
+      ) {
+        navigationRef.current?.focus();
+      }
       setHasMore(batch.hasMore);
       window.history.pushState(null, "", fallbackHref);
       const noun = batch.posts.length === 1 ? "post" : "posts";
@@ -80,31 +97,41 @@ export function LoadMorePostList({
 
   return (
     <>
-      <PostList posts={posts} />
-      <nav className={styles.archiveNavigation} aria-label="Post archive pages">
-        {page > 1 ? (
-          <Link href={page === 2 ? "/posts" : `/posts?page=${page - 1}`}>
-            Previous page
-          </Link>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-        <p>
-          Page <span aria-current="page">{page}</span>
-        </p>
-        {canLoadMore && !enhanced && <Link href={fallbackHref}>Next page</Link>}
-        {canLoadMore && enhanced && (
-          <ActionButton
-            type="button"
-            disabled={loading}
-            aria-busy={loading}
-            onClick={() => void loadMore()}
-          >
-            {loading ? "Loading posts…" : "Load more posts"}
-          </ActionButton>
-        )}
-        {!canLoadMore && <span aria-hidden="true" />}
-      </nav>
+      <PostList posts={posts} variant={variant} />
+      {posts.length > 0 && (page > 1 || hasMore) ? (
+        <nav
+          ref={navigationRef}
+          tabIndex={-1}
+          className={styles.archiveNavigation}
+          aria-label="Post archive pages"
+        >
+          {page > 1 ? (
+            <Link href={page === 2 ? "/posts" : `/posts?page=${page - 1}`}>
+              Previous page
+            </Link>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+          <p>
+            Page <span aria-current="page">{page}</span>
+          </p>
+          {canLoadMore && !enhanced && (
+            <Link href={fallbackHref}>Next page</Link>
+          )}
+          {canLoadMore && enhanced && (
+            <ActionButton
+              ref={buttonRef}
+              type="button"
+              disabled={loading}
+              aria-busy={loading}
+              onClick={() => void loadMore()}
+            >
+              {loading ? "Loading posts…" : "Load more posts"}
+            </ActionButton>
+          )}
+          {!canLoadMore && <span aria-hidden="true" />}
+        </nav>
+      ) : null}
       {message ? (
         <p className={styles.batchStatus} role="status" aria-live="polite">
           {message}

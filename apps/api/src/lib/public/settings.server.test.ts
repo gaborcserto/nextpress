@@ -33,10 +33,18 @@ describe("public site settings boundary", () => {
       siteDescription: "Independent reporting.",
       postListingMode: "LOAD_MORE",
       postsPerPage: 25,
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "classic",
+        colorMode: "light",
+      },
     });
     expect(findUnique).toHaveBeenCalledWith({
       where: { id: "default" },
       select: {
+        websiteTemplate: true,
+        stylePreset: true,
+        colorMode: true,
         siteName: true,
         siteDescription: true,
         postListingMode: true,
@@ -75,6 +83,11 @@ describe("public site settings boundary", () => {
         siteDescription: "A publication powered by NextPress.",
         postListingMode: "PAGINATION",
         postsPerPage: 10,
+        appearance: {
+          websiteTemplate: "blog",
+          stylePreset: "classic",
+          colorMode: "light",
+        },
       });
     },
   );
@@ -92,6 +105,11 @@ describe("public site settings boundary", () => {
       siteDescription: "A publication powered by NextPress.",
       postListingMode: "PAGINATION",
       postsPerPage: 10,
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "classic",
+        colorMode: "light",
+      },
     });
   });
 
@@ -106,6 +124,11 @@ describe("public site settings boundary", () => {
       siteDescription: "A publication powered by NextPress.",
       postListingMode: "PAGINATION",
       postsPerPage: 10,
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "classic",
+        colorMode: "light",
+      },
     });
   });
 
@@ -116,3 +139,26 @@ describe("public site settings boundary", () => {
     await expect(getPublicSiteSettings()).rejects.toBe(failure);
   });
 });
+
+it.each([
+  [
+    { websiteTemplate: "retired", stylePreset: "modern", colorMode: "dark" },
+    { websiteTemplate: "blog", stylePreset: "classic", colorMode: "dark" },
+  ],
+  [
+    { websiteTemplate: "blog", stylePreset: "obsolete", colorMode: "obsolete" },
+    { websiteTemplate: "blog", stylePreset: "classic", colorMode: "light" },
+  ],
+])(
+  "normalizes persisted obsolete identifiers without exposing other fields",
+  async (stored, appearance) => {
+    findUnique.mockResolvedValue({
+      siteName: "Saved",
+      ...stored,
+      clientSecret: "secret",
+    });
+    const settings = await getPublicSiteSettings();
+    expect(settings.appearance).toEqual(appearance);
+    expect(settings).not.toHaveProperty("clientSecret");
+  },
+);

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicApiError } from "./public-api.server";
 import {
   getPublishedPage,
+  getPublishedTaxonomyPosts,
+  getPublishedTags,
   getPublishedPost,
   getPublishedPosts,
   getPublicPageNavigation,
@@ -124,4 +126,63 @@ describe("public HTTP content", () => {
     request.mockResolvedValue(Response.json({ header: [], footer: [] }));
     expect(await getPublicPageNavigation()).toEqual({ header: [], footer: [] });
   });
+});
+it.each([
+  { type: "PRIVATE", slug: "internal", name: "Hidden" },
+  { type: "TAG", slug: "tag", name: "Tag", internalId: "secret" },
+  { type: "CATEGORY", slug: "category", name: 42 },
+])(
+  "rejects invalid or internal taxonomy data %j at the public boundary",
+  async (taxonomy) => {
+    request.mockResolvedValue(
+      Response.json({ ...post, taxonomies: [taxonomy] }),
+    );
+    await expect(getPublishedPost("hello")).rejects.toMatchObject({
+      code: "contract",
+    });
+  },
+);
+
+it("validates taxonomy responses and rejects invalid slugs before fetching", async () => {
+  expect(await getPublishedTaxonomyPosts("TAG", "../bad", 2, 0)).toBeNull();
+  expect(request).not.toHaveBeenCalled();
+  const batch = {
+    taxonomy: { type: "TAG", slug: "news", name: "News" },
+    posts: [],
+    hasMore: false,
+  };
+  request.mockResolvedValueOnce(Response.json(batch));
+  expect(await getPublishedTaxonomyPosts("TAG", "news", 2, 0)).toEqual(batch);
+  expect(request.mock.lastCall?.[0]).toContain(
+    "taxonomies/TAG/news?limit=2&offset=0",
+  );
+  request.mockResolvedValueOnce(
+    Response.json({
+      ...batch,
+      taxonomy: { ...batch.taxonomy, id: "internal" },
+    }),
+  );
+  await expect(
+    getPublishedTaxonomyPosts("TAG", "news", 2, 0),
+  ).rejects.toMatchObject({ code: "contract" });
+});
+
+it("bounds the global public tag request and validates its contract", async () => {
+  request.mockResolvedValueOnce(
+    Response.json({
+      tags: [{ type: "TAG", slug: "news", name: "News" }],
+      hasMore: false,
+    }),
+  );
+  expect(
+    await getPublishedTags({ limit: 100, offset: 1_000_000 }),
+  ).toMatchObject({ tags: [{ slug: "news" }] });
+  expect(request.mock.lastCall?.[0]).toContain("tags?limit=50&offset=100000");
+  request.mockResolvedValueOnce(
+    Response.json({
+      tags: [{ type: "TAG", slug: "../bad", name: "Bad" }],
+      hasMore: false,
+    }),
+  );
+  await expect(getPublishedTags()).rejects.toMatchObject({ code: "contract" });
 });

@@ -1,0 +1,24 @@
+.page {
+  padding-block: var(--blog-section-spacing, var(--section-spacing));
+}
+
+.article {
+  min-inline-size: 0;
+  max-inline-size: var(--blog-reading-width, var(--prose-width));
+  margin-inline: auto;
+}
+
+.header {
+  padding-block-end: 2rem;
+  margin-block-end: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.875rem, 4.5vw, var(--blog-article-title-size));
+  font-weight: var(--blog-display-weight, 600);
+  line-height: 1.08;
+  letter-spacing: var(--blog-display-tracking, -0.045em);
+  overflow-wrap: anywhere;
+}

@@ -1,15 +1,15 @@
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { PublicShell } from "@/components/public-shell/PublicShell";
 import { publicAppearance } from "@/lib/appearance";
-import { getPublicPageNavigation } from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { siteOrigin } from "@/lib/settings/seo";
 import { resolvePublicSkin, resolveColorMode } from "@/lib/skin";
+import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
 import type { Metadata } from "next";
 import "./globals.css";
 import "./skins/default.css";
+import "../templates/blog/presets.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,10 +40,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [settings, navigation] = await Promise.all([
-    getPublicSiteSettings(),
-    getPublicPageNavigation(),
-  ]);
+  const settings = await getPublicSiteSettings();
+  const appearance = resolveWebsiteAppearance(settings.appearance);
   const skin = resolvePublicSkin(publicAppearance.theme);
 
   return (
@@ -51,18 +49,12 @@ export default async function RootLayout({
       lang="en"
       data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable}`}
+      data-website-template={appearance.websiteTemplate}
+      data-style-preset={appearance.stylePreset}
       data-skin={skin.id}
-      data-color-mode={resolveColorMode(skin, publicAppearance.colorMode)}
+      data-color-mode={resolveColorMode(skin, appearance.colorMode)}
     >
-      <body>
-        <PublicShell
-          siteName={settings.siteName}
-          headerPages={navigation.header}
-          footerPages={navigation.footer}
-        >
-          {children}
-        </PublicShell>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

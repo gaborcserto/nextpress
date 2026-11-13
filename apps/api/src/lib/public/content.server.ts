@@ -6,6 +6,7 @@ import {
   MAX_POSTS_OFFSET,
   MAX_POSTS_PER_PAGE,
 } from "@nextpress/shared";
+import { PublicTaxonomyParamsSchema } from "@nextpress/shared/api-contracts";
 import { ContentSlugSchema, richContentText } from "@nextpress/shared/content";
 import { readPageDocument } from "@nextpress/shared/page-document";
 
@@ -16,6 +17,8 @@ import type {
   PublicNavigationSchema,
   PublicPostSummarySchema,
   PublicPostBatchSchema,
+  PublicTaxonomyBatchSchema,
+  PublicTagBatchSchema,
 } from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
 
@@ -44,6 +47,7 @@ const publicPostSummarySelect = {
   taxonomies: {
     select: { taxonomy: { select: { type: true, slug: true, name: true } } },
   },
+  cover: publicContentSelect.cover,
 } satisfies Prisma.PageSelect;
 
 type PublicContentRow = Prisma.PageGetPayload<{
@@ -71,9 +75,26 @@ type PublicPageNavigation = z.infer<typeof PublicNavigationSchema>;
 type PublicPostSummary = z.infer<typeof PublicPostSummarySchema>;
 type PublicPostBatch = z.infer<typeof PublicPostBatchSchema>;
 
+function projectPublicCover(
+  cover: PublicContentRow["cover"],
+): PublicContent["cover"] {
+  return cover &&
+    cover.mime.startsWith("image/") &&
+    /^\/(?!\/)/.test(cover.url) &&
+    // Rejecting control characters is intentional at this untrusted URL boundary.
+    // eslint-disable-next-line no-control-regex
+    !/[\\\u0000-\u0020]/.test(cover.url)
+    ? {
+        url: cover.url,
+        alt: cover.alt ?? "",
+        width: cover.width,
+        height: cover.height,
+      }
+    : null;
+}
+
 function projectPublicContent(row: PublicContentRow): PublicContent {
   if (!row.publishedAt) throw new Error("Missing publication time");
-  const cover = row.cover;
   const document = row.pageDocument ? readPageDocument(row.pageDocument) : null;
   return {
     ...(row.pageDocument
@@ -90,21 +111,7 @@ function projectPublicContent(row: PublicContentRow): PublicContent {
       slug: taxonomy.slug,
       name: taxonomy.name,
     })),
-    // Current public CSP allows same-origin images only. Storage keys and uploader details stay private.
-    cover:
-      cover &&
-      cover.mime.startsWith("image/") &&
-      /^\/(?!\/)/.test(cover.url) &&
-      // Rejecting control characters is intentional at this untrusted URL boundary.
-      // eslint-disable-next-line no-control-regex
-      !/[\\\u0000-\u0020]/.test(cover.url)
-        ? {
-            url: cover.url,
-            alt: cover.alt ?? "",
-            width: cover.width,
-            height: cover.height,
-          }
-        : null,
+    cover: projectPublicCover(row.cover),
   };
 }
 
@@ -113,6 +120,7 @@ function projectPublicPostSummary(
 ): PublicPostSummary {
   if (!row.publishedAt) throw new Error("Missing publication time");
   return {
+    cover: projectPublicCover(row.cover),
     slug: row.slug,
     title: row.title,
     summary: richContentText(parsePublicRichContent(row.excerpt)),
@@ -197,7 +205,12 @@ export async function getPublicPageNavigation(): Promise<PublicPageNavigation> {
 export async function getPublishedPosts({
   limit = DEFAULT_POSTS_PER_PAGE,
   offset = 0,
-}: { limit?: number; offset?: number } = {}): Promise<PublicPostBatch> {
+  taxonomy,
+}: {
+  limit?: number;
+  offset?: number;
+  taxonomy?: z.infer<typeof PublicTaxonomyParamsSchema>;
+} = {}): Promise<PublicPostBatch> {
   const boundedLimit = Number.isFinite(limit)
     ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
     : DEFAULT_POSTS_PER_PAGE;
@@ -206,6 +219,13 @@ export async function getPublishedPosts({
     : 0;
   const rows = await prisma.page.findMany({
     where: {
+      ...(taxonomy
+        ? {
+            taxonomies: {
+              some: { taxonomy: { type: taxonomy.type, slug: taxonomy.slug } },
+            },
+          }
+        : {}),
       type: "POST",
       status: "PUBLISHED",
       publishedAt: { not: null, lte: new Date() },
@@ -219,5 +239,74 @@ export async function getPublishedPosts({
   return {
     posts: rows.slice(0, boundedLimit).map(projectPublicPostSummary),
     hasMore,
+  };
+}
+
+export async function getPublishedTaxonomyPosts(
+  params: z.infer<typeof PublicTaxonomyParamsSchema>,
+  pagination: { limit: number; offset: number },
+): Promise<z.infer<typeof PublicTaxonomyBatchSchema> | null> {
+  const parsed = PublicTaxonomyParamsSchema.safeParse(params);
+
+  if (!parsed.success) {
+    return null;
+  }
+
+  const taxonomy = await prisma.taxonomy.findFirst({
+    where: { type: parsed.data.type, slug: parsed.data.slug },
+    select: { type: true, slug: true, name: true },
+  });
+
+  if (!taxonomy) {
+    return null;
+  }
+
+  const batch = await getPublishedPosts({
+    ...pagination,
+    taxonomy: parsed.data,
+  });
+
+  return {
+    taxonomy: { type: taxonomy.type, slug: taxonomy.slug, name: taxonomy.name },
+    ...batch,
+  };
+}
+
+export async function getPublishedTags({
+  limit = DEFAULT_POSTS_PER_PAGE,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}): Promise<
+  z.infer<typeof PublicTagBatchSchema>
+> {
+  const boundedLimit = Number.isFinite(limit)
+    ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
+    : DEFAULT_POSTS_PER_PAGE;
+  const skip = Number.isFinite(offset)
+    ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
+    : 0;
+  const rows = await prisma.taxonomy.findMany({
+    where: {
+      type: "TAG",
+      pages: {
+        some: {
+          page: {
+            type: "POST",
+            status: "PUBLISHED",
+            publishedAt: { not: null, lte: new Date() },
+          },
+        },
+      },
+    },
+    orderBy: { slug: "asc" },
+    take: boundedLimit + 1,
+    skip,
+    select: { type: true, slug: true, name: true },
+  });
+
+  return {
+    tags: rows
+      .slice(0, boundedLimit)
+      .map(({ slug, name }) => ({ type: "TAG", slug, name })),
+    hasMore: rows.length > boundedLimit,
   };
 }

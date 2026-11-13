@@ -1,0 +1,50 @@
+.page {
+  box-sizing: border-box;
+  display: grid;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  place-items: center;
+  padding: clamp(0.75rem, 5vh, 4rem) var(--page-gutter);
+  background: var(--color-page);
+}
+
+.content {
+  inline-size: min(100%, 38rem);
+  text-align: center;
+}
+
+.code {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--blog-prose-font, Georgia, "Times New Roman", serif);
+  font-size: clamp(8rem, 26vw, 16rem);
+  font-weight: 400;
+  letter-spacing: -0.075em;
+  line-height: 0.82;
+}
+
+.zero {
+  color: var(--blog-marker-warm);
+}
+
+.message {
+  margin: clamp(1.75rem, 5vh, 3rem) 0 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.description {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 2rem;
+  margin-block-start: 2rem;
+}

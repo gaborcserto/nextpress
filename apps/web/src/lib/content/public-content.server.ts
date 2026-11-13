@@ -7,6 +7,9 @@ import {
 } from "@nextpress/shared";
 import {
   PublicContentSchema,
+  PublicTaxonomyParamsSchema,
+  PublicTaxonomyBatchSchema,
+  PublicTagBatchSchema,
   PublicNavigationSchema,
   PublicPostBatchSchema,
   type PublicPostSummarySchema,
@@ -65,5 +68,45 @@ export async function getPublishedPosts({
   return await fetchPublic(
     `posts?limit=${boundedLimit}&offset=${skip}`,
     PublicPostBatchSchema,
+  );
+}
+
+export const getPublishedTaxonomyPosts = cache(
+  async (
+    type: "CATEGORY" | "TAG",
+    slug: string,
+    limit: number,
+    offset: number,
+  ) => {
+    const params = PublicTaxonomyParamsSchema.safeParse({ type, slug });
+
+    if (!params.success) {
+      return null;
+    }
+
+    return fetchPublic(
+      `taxonomies/${type}/${encodeURIComponent(params.data.slug)}?limit=${limit}&offset=${offset}`,
+      PublicTaxonomyBatchSchema,
+      true,
+    );
+  },
+);
+
+export type PublicTagBatch = z.infer<typeof PublicTagBatchSchema>;
+
+export async function getPublishedTags({
+  limit = DEFAULT_POSTS_PER_PAGE,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}): Promise<PublicTagBatch> {
+  const boundedLimit = Number.isFinite(limit)
+    ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
+    : DEFAULT_POSTS_PER_PAGE;
+  const skip = Number.isFinite(offset)
+    ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
+    : 0;
+
+  return fetchPublic(
+    `tags?limit=${boundedLimit}&offset=${skip}`,
+    PublicTagBatchSchema,
   );
 }

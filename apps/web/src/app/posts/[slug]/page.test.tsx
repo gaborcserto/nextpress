@@ -1,17 +1,35 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublishedPost, notFound } = vi.hoisted(() => ({
+const { getPublishedPost, getPublishedPosts, notFound } = vi.hoisted(() => ({
   getPublishedPost: vi.fn(),
+  getPublishedPosts: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("not-found");
   }),
 }));
 
-vi.mock("@/lib/content/public-content.server", () => ({ getPublishedPost }));
+vi.mock("@/lib/content/public-content.server", () => ({
+  getPublishedPost,
+  getPublishedPosts,
+}));
+vi.mock("@/lib/settings/public-site-settings.server", () => ({
+  getPublicSiteSettings: vi.fn().mockResolvedValue({
+    appearance: {
+      websiteTemplate: "blog",
+      stylePreset: "classic",
+      colorMode: "dark",
+    },
+  }),
+}));
+vi.mock("@/components/public-shell/PublicWebsiteShell", () => ({
+  PublicWebsiteShell: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock("next/navigation", () => ({ notFound }));
 
 import PostPage, { generateMetadata } from "./page";
+
+import type { ReactNode } from "react";
 
 const post = {
   slug: "first-story",
@@ -32,6 +50,7 @@ const post = {
 beforeEach(() => {
   vi.clearAllMocks();
   getPublishedPost.mockResolvedValue(post);
+  getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
 });
 
 describe("Public post detail", () => {
@@ -105,4 +124,14 @@ describe("Public post detail", () => {
       generateMetadata({ params: Promise.resolve({ slug: "missing" }) }),
     ).resolves.toEqual({});
   });
+});
+
+it("requests one bounded discovery batch and propagates upstream failures", async () => {
+  getPublishedPosts.mockRejectedValue(
+    new Error("Public content is temporarily unavailable."),
+  );
+  await expect(
+    PostPage({ params: Promise.resolve({ slug: post.slug }) }),
+  ).rejects.toThrow("temporarily unavailable");
+  expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 5 });
 });

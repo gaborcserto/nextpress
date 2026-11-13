@@ -9,9 +9,23 @@ const { getPublishedPage, notFound } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/content/public-content.server", () => ({ getPublishedPage }));
+vi.mock("@/lib/settings/public-site-settings.server", () => ({
+  getPublicSiteSettings: vi.fn().mockResolvedValue({
+    appearance: {
+      websiteTemplate: "blog",
+      stylePreset: "classic",
+      colorMode: "dark",
+    },
+  }),
+}));
+vi.mock("@/components/public-shell/PublicWebsiteShell", () => ({
+  PublicWebsiteShell: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock("next/navigation", () => ({ notFound }));
 
 import StaticPage, { generateMetadata } from "./page";
+
+import type { ReactNode } from "react";
 
 const page = {
   slug: "about",

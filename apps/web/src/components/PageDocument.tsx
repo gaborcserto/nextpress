@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import { fetchPublic } from "@/lib/content/public-api.server";
 
+import styles from "./PageDocument.module.css";
 import { RichContent } from "./RichContent";
 
 export const PAGE_RENDERER_CAPABILITIES = PAGE_DOCUMENT_CAPABILITIES;
@@ -19,7 +20,7 @@ async function Block({ block }: { block: PageBlock }) {
       return <RichContent content={block.props.document} />;
     case "hero":
       return (
-        <section>
+        <section className={styles.hero}>
           <h2>{block.props.title}</h2>
           <p>{block.props.description}</p>
           {block.props.mediaId && (
@@ -46,7 +47,11 @@ async function Block({ block }: { block: PageBlock }) {
         />
       );
     case "call-to-action":
-      return <Link href={block.props.href}>{block.props.label}</Link>;
+      return (
+        <Link className={styles.action} href={block.props.href}>
+          {block.props.label}
+        </Link>
+      );
     case "columns":
       return (
         <div
@@ -97,5 +102,11 @@ async function Block({ block }: { block: PageBlock }) {
 }
 
 export function PageDocument({ document }: { document: Document }) {
-  return document.blocks.map((block) => <Block key={block.id} block={block} />);
+  return (
+    <div className={styles.document}>
+      {document.blocks.map((block) => (
+        <Block key={block.id} block={block} />
+      ))}
+    </div>
+  );
 }

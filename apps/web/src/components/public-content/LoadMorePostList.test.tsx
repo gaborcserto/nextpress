@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,12 +14,20 @@ vi.mock("@/app/posts/actions", () => ({ getNextPostBatch }));
 import { LoadMorePostList } from "./LoadMorePostList";
 
 const firstPost = {
-  slug: "first", title: "First post", summary: "First summary",
-  publishedAt: "2026-01-01T00:00:00.000Z", author: null, taxonomies: [],
+  slug: "first",
+  title: "First post",
+  summary: "First summary",
+  publishedAt: "2026-01-01T00:00:00.000Z",
+  author: null,
+  taxonomies: [],
 };
 const secondPost = {
-  slug: "second", title: "Second post", summary: "Second summary",
-  publishedAt: "2026-01-02T00:00:00.000Z", author: null, taxonomies: [],
+  slug: "second",
+  title: "Second post",
+  summary: "Second summary",
+  publishedAt: "2026-01-02T00:00:00.000Z",
+  author: null,
+  taxonomies: [],
 };
 
 beforeEach(() => vi.clearAllMocks());
@@ -21,7 +35,13 @@ beforeEach(() => vi.clearAllMocks());
 describe("LoadMorePostList", () => {
   it("server-renders its initial content and a working page link fallback", () => {
     const html = renderToStaticMarkup(
-      <LoadMorePostList posts={[firstPost]} page={1} hasMore postsPerPage={10} />,
+      <LoadMorePostList
+        variant="default"
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
     );
 
     expect(html).toContain("First post");
@@ -30,48 +50,179 @@ describe("LoadMorePostList", () => {
   });
 
   it("appends only the next server batch and stops when it is final", async () => {
-    getNextPostBatch.mockResolvedValueOnce({ posts: [secondPost], hasMore: false });
-    render(<LoadMorePostList posts={[firstPost]} page={1} hasMore postsPerPage={10} />);
+    getNextPostBatch.mockResolvedValueOnce({
+      posts: [secondPost],
+      hasMore: false,
+    });
+    render(
+      <LoadMorePostList
+        variant="default"
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
+    );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Load more posts" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Load more posts" }),
+    );
 
-    expect(await screen.findByRole("link", { name: "Second post" })).toHaveAttribute("href", "/posts/second");
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Load more posts" })).not.toBeInTheDocument());
-    expect(screen.getByText("Loaded 1 more post. Page 2.")).toHaveAttribute("role", "status");
+    expect(
+      await screen.findByRole("link", { name: "Second post" }),
+    ).toHaveAttribute("href", "/posts/second");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Load more posts" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Loaded 1 more post. Page 2.")).toHaveAttribute(
+      "role",
+      "status",
+    );
     expect(getNextPostBatch).toHaveBeenCalledWith(2);
     expect(window.location.search).toBe("?page=2");
   });
 
   it("exposes the pending request state while loading the next page", async () => {
-    let resolveBatch: (batch: { posts: typeof secondPost[]; hasMore: boolean }) => void = () => {};
-    getNextPostBatch.mockReturnValueOnce(new Promise((resolve) => { resolveBatch = resolve; }));
-    render(<LoadMorePostList posts={[firstPost]} page={1} hasMore postsPerPage={10} />);
+    let resolveBatch: (batch: {
+      posts: (typeof secondPost)[];
+      hasMore: boolean;
+    }) => void = () => {};
+    getNextPostBatch.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveBatch = resolve;
+      }),
+    );
+    render(
+      <LoadMorePostList
+        variant="default"
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
+    );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Load more posts" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Load more posts" }),
+    );
 
-    const loadingButton = screen.getByRole("button", { name: "Loading posts…" });
+    const loadingButton = screen.getByRole("button", {
+      name: "Loading posts…",
+    });
     expect(loadingButton).toBeDisabled();
     expect(loadingButton).toHaveAttribute("aria-busy", "true");
     expect(getNextPostBatch).toHaveBeenCalledTimes(1);
     expect(getNextPostBatch).toHaveBeenCalledWith(2);
 
-    await act(async () => resolveBatch({ posts: [secondPost], hasMore: false }));
-    expect(await screen.findByRole("link", { name: "Second post" })).toBeInTheDocument();
+    await act(async () =>
+      resolveBatch({ posts: [secondPost], hasMore: false }),
+    );
+    expect(
+      await screen.findByRole("link", { name: "Second post" }),
+    ).toBeInTheDocument();
   });
 
   it("keeps the bounded control available and reports recoverable action errors", async () => {
     getNextPostBatch.mockRejectedValueOnce(new Error("private failure"));
-    render(<LoadMorePostList posts={[firstPost]} page={1} hasMore postsPerPage={10} />);
+    render(
+      <LoadMorePostList
+        variant="default"
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
+    );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Load more posts" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Load more posts" }),
+    );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load more posts. Please try again.");
-    expect(screen.getByRole("button", { name: "Load more posts" })).toBeEnabled();
-    expect(screen.getByRole("link", { name: "First post" })).toHaveAttribute("href", "/posts/first");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not load more posts. Please try again.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Load more posts" }),
+    ).toBeEnabled();
+    expect(screen.getByRole("link", { name: "First post" })).toHaveAttribute(
+      "href",
+      "/posts/first",
+    );
 
-    getNextPostBatch.mockResolvedValueOnce({ posts: [secondPost], hasMore: false });
+    getNextPostBatch.mockResolvedValueOnce({
+      posts: [secondPost],
+      hasMore: false,
+    });
     fireEvent.click(screen.getByRole("button", { name: "Load more posts" }));
-    expect(await screen.findByRole("link", { name: "Second post" })).toHaveAttribute("href", "/posts/second");
+    expect(
+      await screen.findByRole("link", { name: "Second post" }),
+    ).toHaveAttribute("href", "/posts/second");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+});
+
+it.each(["default", "compact"] as const)(
+  "keeps %s consistent across SSR and appended batches",
+  async (variant) => {
+    const html = renderToStaticMarkup(
+      <LoadMorePostList
+        variant={variant}
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
+    );
+    expect(html.includes("First summary")).toBe(variant === "default");
+    getNextPostBatch.mockResolvedValueOnce({
+      posts: [secondPost],
+      hasMore: false,
+    });
+    render(
+      <LoadMorePostList
+        variant={variant}
+        posts={[firstPost]}
+        page={1}
+        hasMore
+        postsPerPage={10}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Load more posts" }),
+    );
+    expect(
+      await screen.findByRole("link", { name: "Second post" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("First summary") !== null).toBe(
+      variant === "default",
+    );
+    expect(screen.queryByText("Second summary") !== null).toBe(
+      variant === "default",
+    );
+  },
+);
+
+it("hands focus to archive navigation only when the focused final-load control disappears", async () => {
+  getNextPostBatch.mockResolvedValue({ posts: [secondPost], hasMore: false });
+  render(
+    <LoadMorePostList
+      posts={[firstPost]}
+      variant="default"
+      page={1}
+      hasMore
+      postsPerPage={10}
+    />,
+  );
+  const button = await screen.findByRole("button", { name: "Load more posts" });
+  button.focus();
+  fireEvent.click(button);
+  await waitFor(() =>
+    expect(screen.queryByRole("button")).not.toBeInTheDocument(),
+  );
+  expect(
+    screen.getByRole("navigation", { name: "Post archive pages" }),
+  ).toHaveFocus();
+  expect(screen.getByRole("status")).toHaveTextContent("Loaded 1 more post");
 });

@@ -1,3 +1,4 @@
+import { AppearanceSchema } from "@nextpress/shared";
 import {
   ApiErrorSchema,
   TagSchema,
@@ -7,6 +8,9 @@ import {
   EditorialPageSchema,
   EditorialPostSchema,
   PublicContentSchema,
+  PublicTaxonomyBatchSchema,
+  PublicTagBatchSchema,
+  PublicTaxonomyParamsSchema,
   PublicPostBatchSchema,
   PublicNavigationSchema,
   PublicSiteSettingsSchema,
@@ -175,9 +179,13 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   PageDetail: schema(z.object({ item: EditorialPageSchema })),
   PostDetail: schema(z.object({ item: EditorialPostSchema })),
   PublicContent: schema(PublicContentSchema),
+  // Summary cover is optional for consumer-first rollout; contains public URL/alt/dimensions only.
   PublicPostBatch: schema(PublicPostBatchSchema),
+  PublicTaxonomyBatch: schema(PublicTaxonomyBatchSchema),
+  PublicTagBatch: schema(PublicTagBatchSchema),
   PublicNavigation: schema(PublicNavigationSchema),
   PublicSiteSettings: schema(PublicSiteSettingsSchema),
+  Appearance: schema(AppearanceSchema),
   SessionDiscovery: schema(SessionDiscoverySchema),
   ProviderDiscovery: schema(ProviderDiscoverySchema),
   UserCreate: object(
@@ -512,6 +520,45 @@ for (const [path, result, operationId] of [
     );
   paths[`/api/${path}`] = { get: read };
 }
+const publishedTags = operation(
+  "publicTags",
+  "Delivery and discovery",
+  "Tags assigned to publicly published posts",
+  ref("PublicTagBatch"),
+  [400, 500],
+  "Cookie-independent, uncached delivery. Only TAG definitions assigned to POST/PUBLISHED records with a non-null publication time at or before now are listed. Unique tags ordered by slug, bounded limit-plus-one pagination. Duplicate, unknown and malformed query parameters are rejected. No draft-only, scheduled-only, unassigned or page-only tags.",
+  "public",
+);
+publishedTags.parameters = Object.entries(PublicPaginationSchema.shape).map(
+  ([key, value]) =>
+    parameter(key, "query", schema(value), "Single bounded decimal integer."),
+);
+paths["/api/public/tags"] = { get: publishedTags };
+
+const taxonomyArchive = operation(
+  "publicTaxonomyPosts",
+  "Delivery and discovery",
+  "Published posts assigned to a category or tag",
+  ref("PublicTaxonomyBatch"),
+  [400, 404, 500],
+  "Cookie-independent, uncached delivery. Taxonomy definitions have no privacy state. Only POST/PUBLISHED records with non-null publication time at or before now are included. Missing or invalid type/slug returns 404; existing empty definitions return an empty batch. Bounded newest-first pagination; duplicate or unknown query parameters rejected.",
+  "public",
+);
+taxonomyArchive.parameters = [
+  ...Object.entries(PublicTaxonomyParamsSchema.shape).map(([key, value]) =>
+    parameter(
+      key,
+      "path",
+      schema(value),
+      "Taxonomy type (CATEGORY or TAG) and canonical slug.",
+    ),
+  ),
+  ...Object.entries(PublicPaginationSchema.shape).map(([key, value]) =>
+    parameter(key, "query", schema(value), "Single bounded decimal integer."),
+  ),
+];
+paths["/api/public/taxonomies/{type}/{slug}"] = { get: taxonomyArchive };
+
 for (const [path, kind, detail] of [
   ["pages", "Page", "PageDetail"],
   ["post", "Post", "PostDetail"],
@@ -778,6 +825,28 @@ paths["/api/admin/settings"] = {
     "ADMIN only. Listing mode is PAGINATION or LOAD_MORE and postsPerPage is an integer from 1 to 50. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json.",
     "protected",
     "SettingsUpdate",
+  ),
+};
+
+paths["/api/admin/settings/appearance"] = {
+  get: operation(
+    "readAppearance",
+    "Settings",
+    "Read website appearance",
+    ref("Appearance"),
+    [401, 403, 500],
+    "ADMIN only. Normalizes obsolete stored identifiers.",
+    "protected",
+  ),
+  put: operation(
+    "updateAppearance",
+    "Settings",
+    "Update website appearance",
+    ref("Appearance"),
+    [400, ...mutationCodes, 500],
+    "ADMIN only. Strict template/preset/mode validation. Appearance fields only; preserves general, role and OAuth settings. Requires trusted Origin and application/json; settings mutation rate limit applies.",
+    "protected",
+    "Appearance",
   ),
 };
 

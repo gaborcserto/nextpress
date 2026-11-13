@@ -6,6 +6,7 @@ import {
   EditorialPostSchema,
   ApiErrorSchema,
   PublicContentSchema,
+  PublicPostSummarySchema,
 } from "./api-contracts";
 import { readRichContent, serializeRichContent } from "./content";
 describe("portable CMS contracts", () => {
@@ -59,4 +60,51 @@ describe("portable CMS contracts", () => {
       error: "Unauthorized",
     });
   });
+});
+
+describe("summary cover compatibility", () => {
+  const summary = {
+    slug: "post",
+    title: "Title",
+    summary: "",
+    publishedAt: "2026-01-01T00:00:00Z",
+    author: null,
+    taxonomies: [],
+  };
+  it.each([
+    undefined,
+    null,
+    { url: "/media/public-cover", alt: "Landscape", width: 800, height: 600 },
+  ])("accepts old and expanded responses %j", (cover) => {
+    expect(
+      PublicPostSummarySchema.safeParse({
+        ...summary,
+        ...(cover === undefined ? {} : { cover }),
+      }).success,
+    ).toBe(true);
+  });
+  it("rejects private fields and external cover URLs", () => {
+    for (const cover of [
+      { url: "https://external.test/a", alt: "", width: 1, height: 1 },
+      { url: "/media/a", alt: "", width: 1, height: 1, key: "secret" },
+    ]) {
+      expect(
+        PublicPostSummarySchema.safeParse({ ...summary, cover }).success,
+      ).toBe(false);
+    }
+  });
+});
+it("requires a consumer-first rollout because old strict consumers reject cover", () => {
+  const oldConsumer = PublicPostSummarySchema.omit({ cover: true });
+  const expanded = {
+    slug: "post",
+    title: "Title",
+    summary: "",
+    publishedAt: "2026-01-01T00:00:00Z",
+    author: null,
+    taxonomies: [],
+    cover: null,
+  };
+  expect(PublicPostSummarySchema.safeParse(expanded).success).toBe(true);
+  expect(oldConsumer.safeParse(expanded).success).toBe(false);
 });
