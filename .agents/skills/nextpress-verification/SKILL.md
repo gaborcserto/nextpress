@@ -18,3 +18,4 @@ Read root and owning workspace scripts before selecting commands. Do not claim a
 - For agent resources or repository configuration, validate local links, scripts, workflow syntax, and `git diff --check` as applicable.
 - Broader root checks include `npm test`, `npm run coverage`, `npm run lint`, `npm run typecheck`, and `npm run build`; choose those required by scope rather than running unrelated costly checks automatically.
 - Review `git status` and the complete diff. Preserve unrelated changes and report exact commands and outcomes.
+  For shared tooling or policy changes, also run `npm run format:check`, `npm run lint:readability` and `npm run check:changed:test`. See root AGENTS.md for index versus working-tree semantics and required failure recovery. Rerun final verification after corrections; do not count steps after a failed command as executed.

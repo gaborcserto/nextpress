@@ -34,7 +34,9 @@ export async function GET(req: Request) {
     return ok(tags);
   } catch (err) {
     if (err instanceof ContentForbiddenError) return forbid();
+
     if (err instanceof ContentNotFoundError) return notfound();
+
     if (err instanceof TaxonomyScopeError) return bad(err.message);
     console.error("GET /api/tags/link failed");
 
@@ -42,7 +44,7 @@ export async function GET(req: Request) {
       return bad(err.message);
     }
 
-    return oops();
+    return oops(err);
   }
 }
 
@@ -83,7 +85,9 @@ export const PUT = withAuth(
       return ok({ ok: true });
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
+
       if (err instanceof ContentNotFoundError) return notfound();
+
       if (err instanceof TaxonomyScopeError) return bad(err.message);
       console.error("PUT /api/tags/link failed");
 
@@ -91,7 +95,7 @@ export const PUT = withAuth(
         return bad(err.message);
       }
 
-      return oops();
+      return oops(err);
     }
   },
   "taxonomy",

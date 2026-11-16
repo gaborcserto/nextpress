@@ -207,12 +207,15 @@ export function canonicalEditorialJson(value: unknown): string {
   ) {
     return JSON.stringify(value);
   }
+
   if (typeof value === "number" && Number.isFinite(value)) {
     return JSON.stringify(value);
   }
+
   if (Array.isArray(value)) {
     return `[${Array.from(value, canonicalEditorialJson).join(",")}]`;
   }
+
   if (
     typeof value === "object" &&
     Object.getPrototypeOf(value) === Object.prototype

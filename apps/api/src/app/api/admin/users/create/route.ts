@@ -36,6 +36,7 @@ export const POST = withAuth(
     if (!isRecord(input) || typeof input.email !== "string") {
       return bad("Email is required");
     }
+
     if (
       input.name !== undefined &&
       input.name !== null &&
@@ -43,9 +44,11 @@ export const POST = withAuth(
     ) {
       return bad("Invalid name");
     }
+
     if (input.password !== undefined && typeof input.password !== "string") {
       return bad("Invalid password");
     }
+
     if (input.role !== undefined && !isRole(input.role))
       return bad("Invalid role");
 
@@ -57,6 +60,7 @@ export const POST = withAuth(
     if (typeof input.name === "string" && input.name.length > 200) {
       return bad("Name must not exceed 200 characters");
     }
+
     if (input.password !== undefined) {
       const parsedPassword = passwordSchema.safeParse(input.password);
 
@@ -121,7 +125,7 @@ export const POST = withAuth(
         return tooManyRequests(1);
       console.error("POST /api/admin/users/create failed");
 
-      return oops();
+      return oops(error);
     }
   },
   "users",

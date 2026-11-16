@@ -55,9 +55,60 @@ export function conflict(msg = "Conflict"): NextResponse<ErrorBody> {
 /**
  * 500 Internal Server Error.
  */
-export function oops(): NextResponse<ErrorBody> {
+export function oops(error?: unknown): NextResponse<ErrorBody> {
+  const kind = databaseConflictKind(error);
+
+  if (kind === "maintenance") {
+    return conflict("Content maintenance conflict; retry after maintenance");
+  }
+
+  if (kind === "reference") {
+    return conflict("Content is retained by references");
+  }
+
   return NextResponse.json<ErrorBody>(
     { error: "Unexpected error" },
     { status: 500 },
   );
+}
+
+/** Prisma adapters wrap PostgreSQL diagnostics differently; only known guard codes are exposed. */
+function databaseConflictKind(
+  error: unknown,
+  depth = 0,
+): "maintenance" | "reference" | null {
+  if (depth > 5 || typeof error !== "object" || error === null) {
+    return null;
+  }
+
+  for (const [key, value] of Object.entries(error)) {
+    if (
+      ["code", "originalCode", "sqlState"].includes(key) &&
+      typeof value === "string"
+    ) {
+      if (["P5501", "P5502", "P5503"].includes(value)) {
+        return "maintenance";
+      }
+
+      if (["P2003", "23001", "23503"].includes(value)) {
+        return "reference";
+      }
+    }
+
+    if (["meta", "cause", "driverAdapterError"].includes(key)) {
+      const kind = databaseConflictKind(value, depth + 1);
+
+      if (kind) {
+        return kind;
+      }
+    }
+  }
+
+  const held =
+    error instanceof Error &&
+    /\b(BACKFILL_WRITER_HELD|BACKFILL_COORDINATION_UNAVAILABLE|EDITORIAL_WRITER_OWNED)\b/.test(
+      error.message,
+    );
+
+  return held ? "maintenance" : null;
 }

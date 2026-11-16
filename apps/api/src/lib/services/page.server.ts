@@ -59,6 +59,7 @@ export async function updatePageService(
       { path: "type", message: "Content type cannot be changed" },
     ]);
   }
+
   if (parsed.tagIds) await validateTagIds(parsed.tagIds);
 
   const { tagIds, ...pageData } = parsed;

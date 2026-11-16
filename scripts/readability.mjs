@@ -43,7 +43,9 @@ export function inspectFiles(
     try {
       const gaps = boundaries(text, file);
       violations += gaps.length;
+
       if (gaps.length) filesWithViolations++;
+
       if (write && gaps.length) writeFileSync(absolute, format(text, file));
       else if (verbose)
         for (const gap of gaps) {

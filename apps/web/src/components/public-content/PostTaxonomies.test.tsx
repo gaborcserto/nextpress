@@ -22,12 +22,14 @@ it.each([
   expect(screen.queryAllByRole("link")).toHaveLength(
     new Set(taxonomies.map((item) => item.slug)).size,
   );
+
   if (taxonomies.includes(category)) {
     expect(screen.getByRole("link", { name: category.name })).toHaveAttribute(
       "href",
       "/en/categories/design",
     );
   }
+
   if (taxonomies.includes(tag)) {
     expect(screen.getByRole("link", { name: tag.name })).toHaveAttribute(
       "href",

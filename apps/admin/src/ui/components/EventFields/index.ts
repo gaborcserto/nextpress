@@ -1,3 +1,3 @@
-export { default as EventFields } from "./EventFields"
+export { default as EventFields } from "./EventFields";
 
-export type { EventFieldsProps } from "./EventFields.types"
+export type { EventFieldsProps } from "./EventFields.types";

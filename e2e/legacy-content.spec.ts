@@ -87,6 +87,7 @@ test("upgraded legacy pages and posts open and save without composition or revis
     ).json();
     expect(after.item).toMatchObject({ title, workingVersion: 1 });
     expect(after.item.content).toEqual(before.item.content);
+
     if (kind === "posts")
       expect(after.item.excerpt).toEqual(before.item.excerpt);
     expect(

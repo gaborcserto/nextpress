@@ -24,7 +24,7 @@ export default function Checkbox({
       className={cx(
         "cursor-pointer flex items-center gap-2",
         disabled && "opacity-60 cursor-not-allowed",
-        className
+        className,
       )}
     >
       <input

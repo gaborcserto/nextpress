@@ -107,11 +107,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check changed-file formatting
+      - name: Check repository formatting
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
-        run: npm run format:check:changed -- --ci
+        run: npm run format:check
 
       - name: Test changed-file selection
         run: npm run check:changed:test
@@ -154,7 +154,7 @@ jobs:
           TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}
         run: |
           read -r -a filters <<< "$TURBO_FILTERS"
-          npx turbo run lint typecheck test:coverage build "${filters[@]}"
+          npx turbo run lint typecheck test:coverage build --force "${filters[@]}"
 
   quality-gates:
     name: Quality Gates

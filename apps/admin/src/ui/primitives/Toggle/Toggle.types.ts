@@ -62,5 +62,8 @@ export type ToggleProps = Omit<
    * Change handler, ergonomic form.
    * (Still passes through original event in second arg.)
    */
-  onChangeAction?: (checked: boolean, event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeAction?: (
+    checked: boolean,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => void;
 };

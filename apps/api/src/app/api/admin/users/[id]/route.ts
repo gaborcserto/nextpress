@@ -30,6 +30,7 @@ export const DELETE = withAuth(
     } catch (e) {
       if (e instanceof LastAdministratorError)
         return conflict("At least one administrator is required");
+
       if (
         typeof e === "object" &&
         e !== null &&
@@ -39,7 +40,7 @@ export const DELETE = withAuth(
         return notfound("User not found");
       console.error("DELETE /api/admin/users/:id failed");
 
-      return oops();
+      return oops(e);
     }
   },
   "users",

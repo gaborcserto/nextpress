@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       return bad(err.message); // 400 by default
     }
 
-    return oops();
+    return oops(err);
   }
 }
 
@@ -70,7 +70,7 @@ export const POST = withAuth(
         return bad(err.message); // 400
       }
 
-      return oops();
+      return oops(err);
     }
   },
   "taxonomy",
@@ -102,7 +102,7 @@ export const DELETE = withAuth(
         return notfound(err.message); // 404 helper
       }
 
-      return oops();
+      return oops(err);
     }
   },
   "taxonomy",

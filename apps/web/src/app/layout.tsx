@@ -54,6 +54,7 @@ export default async function RootLayout({
   if (!isColorMode(preference)) {
     preference = "system";
   }
+
   if (isColorMode(savedMode)) {
     preference = savedMode;
   }

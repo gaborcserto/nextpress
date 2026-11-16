@@ -61,6 +61,7 @@ export function resolveColorMode(
       if (preference === "light" || preference === "dark") {
         return preference;
       }
+
       if (preference === "system" && capability.supportsSystem) {
         return "system";
       }

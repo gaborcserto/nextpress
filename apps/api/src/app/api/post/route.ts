@@ -34,17 +34,20 @@ export const POST = withAuth(
       return ok(created, 201);
     } catch (err) {
       if (err instanceof ContentForbiddenError) return forbid();
+
       if (err instanceof TaxonomyScopeError) return bad(err.message);
+
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
       }
+
       if (err instanceof PageConflictError) {
         return conflict(err.message);
       }
 
       console.error("POST /api/post failed");
 
-      return oops();
+      return oops(err);
     }
   },
   "create-content",

@@ -31,6 +31,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+
     if (submissionLock.current || done) return;
     setFieldErrors({});
     setFormError(null);

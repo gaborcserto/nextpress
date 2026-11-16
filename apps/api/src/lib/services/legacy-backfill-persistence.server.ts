@@ -38,6 +38,7 @@ export async function persistFencedLegacyPage(
 
           return "existing";
         }
+
         if (plan.issues.length || issues.includes("SLUG_CONFLICT")) {
           throw new BackfillConflictError("UNRESOLVED_SOURCE");
         }
@@ -94,13 +95,16 @@ export async function persistFencedLegacyPage(
       ) {
         throw error;
       }
+
       if (typeof error === "object" && error !== null && "code" in error) {
         if (error.code === "P2003") {
           throw new BackfillConflictError("REFERENCE_INTEGRITY_CONFLICT");
         }
+
         if (error.code === "P2002") {
           throw new BackfillConflictError("EXISTING_TARGET_CONFLICT");
         }
+
         if (error.code === "P2034") {
           throw new BackfillConflictError(
             "BACKFILL_TRANSACTION_RETRY_REQUIRED",

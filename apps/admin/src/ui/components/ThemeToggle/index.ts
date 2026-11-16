@@ -1,3 +1,3 @@
 export { default as ThemeToggle } from "./ThemeToggle";
 
-export type { ThemeToggleProps } from "./ThemeToggle.types"
+export type { ThemeToggleProps } from "./ThemeToggle.types";

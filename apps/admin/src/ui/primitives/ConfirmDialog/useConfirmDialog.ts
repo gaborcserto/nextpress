@@ -47,6 +47,7 @@ export function useConfirmDialog<TPayload = unknown>() {
 
     try {
       await action(payload);
+
       if (mounted.current) {
         setOpen(false);
         setPayload(null);
@@ -61,6 +62,7 @@ export function useConfirmDialog<TPayload = unknown>() {
       }
     } finally {
       busy.current = false;
+
       if (mounted.current) {
         setPending(false);
       }

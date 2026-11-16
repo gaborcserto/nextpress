@@ -53,6 +53,7 @@ export function ConfirmDialog({
 
       return;
     }
+
     if (event.key !== "Tab") return;
 
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(

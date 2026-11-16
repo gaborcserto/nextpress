@@ -45,6 +45,7 @@ export async function verifyCredentialPassword({
   password: string;
 }) {
   if (password.length > MAX_PASSWORD_LENGTH) return false;
+
   if (/^\$2[aby]\$/.test(hash)) {
     // Legacy bcrypt cannot distinguish suffixes beyond 72 bytes. These accounts
     // need a new credential when the original password exceeded that boundary.

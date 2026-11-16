@@ -41,7 +41,7 @@ export const POST = withAuth(
       )
         return bad("Invalid image upload");
 
-      return oops();
+      return oops(error);
     }
   },
   "create-content",

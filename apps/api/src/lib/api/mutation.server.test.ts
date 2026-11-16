@@ -24,6 +24,7 @@ function request(
   const headers = new Headers();
 
   if (origin !== null) headers.set("origin", origin);
+
   if (contentType !== null) headers.set("content-type", contentType);
 
   return new Request("http://attacker.invalid/api/test", {

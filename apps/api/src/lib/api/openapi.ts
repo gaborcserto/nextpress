@@ -242,7 +242,7 @@ const errors: Record<number, string> = {
   401: "Session missing or role disallowed (both currently return 401).",
   403: "Untrusted mutation Origin or content ownership restriction.",
   404: "Resource missing or hidden by content read scope.",
-  409: "Resource conflict, stale revision, referenced media, or last-administrator protection.",
+  409: "Resource conflict, stale revision, referenced media, writer maintenance, or last-administrator protection.",
   413: "Request body exceeds 5,000,000 bytes.",
   415: "Mutation Content-Type must be application/json.",
   429: "Application mutation rate limit reached.",
@@ -283,6 +283,7 @@ function operation(
       code === 500 && ["listPages", "listPosts"].includes(operationId)
         ? { description: errors[code] }
         : response(errors[code], ref("Error"));
+
     if (code === 429)
       responses[code].headers = {
         "Retry-After": { description: "Seconds until retry.", schema: integer },
@@ -385,7 +386,7 @@ const paths: OpenAPIV3.PathsObject = {
       "Media",
       "Upload validated PNG or JPEG",
       ref("MediaMetadata"),
-      [400, ...mutationCodes, 500],
+      [400, ...mutationCodes, 409, 500],
       "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Signature and full decoder validation; normalized to PNG. No client paths or filenames accepted. ADMIN/EDITOR/AUTHOR only.",
       "protected",
       "MediaUpload",
@@ -510,6 +511,7 @@ for (const [path, result, operationId] of [
     read.parameters = [
       parameter("slug", "path", string, "Canonical content slug."),
     ];
+
   if (path === "public/posts")
     read.parameters = Object.entries(PublicPaginationSchema.shape).map(
       ([key, value]) =>
@@ -628,7 +630,7 @@ for (const [path, kind, detail] of [
       "Content",
       `Delete ${kind.toLowerCase()}`,
       ref("Success"),
-      [...mutationCodes, 404, 500],
+      [...mutationCodes, 404, 409, 500],
       "ADMIN or EDITOR. Requires trusted Origin; bodyless DELETE needs no Content-Type.",
       "protected",
     ),
@@ -658,7 +660,7 @@ paths["/api/tags"] = {
     "Tags",
     "Create or reuse a tag",
     ref("Tag"),
-    [400, ...mutationCodes, 500],
+    [400, ...mutationCodes, 409, 500],
     "ADMIN, EDITOR or AUTHOR. Existing case-insensitive name is reused with status 201.",
     "protected",
     "TagCreate",
@@ -670,7 +672,7 @@ paths["/api/tags"] = {
       "Tags",
       "Delete a tag",
       ref("DeletedTag"),
-      [400, ...mutationCodes, 404, 500],
+      [400, ...mutationCodes, 404, 409, 500],
       "ADMIN or EDITOR. Requires trusted Origin.",
       "protected",
     ),
@@ -709,7 +711,7 @@ paths["/api/tags/link"] = {
     "Tags",
     "Replace assigned tags",
     ref("Success"),
-    [400, ...mutationCodes, 404, 500],
+    [400, ...mutationCodes, 404, 409, 500],
     writeScope,
     "protected",
     "TagLinks",
@@ -740,7 +742,7 @@ paths["/api/admin/tags/{id}"] = {
     "Tags",
     "Delete a tag from administration",
     ref("DeletedTag"),
-    [400, ...mutationCodes, 404, 500],
+    [400, ...mutationCodes, 404, 409, 500],
     "ADMIN or EDITOR. Requires trusted Origin.",
     "protected",
   ),

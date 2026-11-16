@@ -93,3 +93,75 @@ test("keeps value hooks and unidentifiable factory calls grouped", () => {
     assert.equal(format(code), code);
   }
 });
+
+test("separates every sibling if after statements, preserving comments and expressions", () => {
+  for (const [input, expected] of [
+    [
+      "const parsed = schema.safeParse(input);\nif (!parsed.success) fail();",
+      "const parsed = schema.safeParse(input);\n\nif (!parsed.success) fail();",
+    ],
+    ["save();\nif (ready) run();", "save();\n\nif (ready) run();"],
+    ["save(); if (ready) run();", "save();\n\nif (ready) run();"],
+    [
+      "if (first) run();\nif (second) run();",
+      "if (first) run();\n\nif (second) run();",
+    ],
+    [
+      "function f() {\n  if (outer) {\n    save();\n    if (ready) run();\n  }\n}",
+      "function f() {\n  if (outer) {\n    save();\n\n    if (ready) run();\n  }\n}",
+    ],
+    [
+      "const value = load(\n  input,\n);\nif (value) run();",
+      "const value = load(\n  input,\n);\n\nif (value) run();",
+    ],
+    [
+      "save();\n// guard explanation\nif (ready) run();",
+      "save();\n\n// guard explanation\nif (ready) run();",
+    ],
+    [
+      "save(); // result explanation\nif (ready) run();",
+      "save(); // result explanation\n\nif (ready) run();",
+    ],
+    [
+      "save(); /* trailing */\n// guard explanation\nif (ready) run();",
+      "save(); /* trailing */\n\n// guard explanation\nif (ready) run();",
+    ],
+    [
+      "save();\n/* explanation\n\n   continued */\nif (ready) run();",
+      "save();\n\n/* explanation\n\n   continued */\nif (ready) run();",
+    ],
+    ["save();\r\nif (ready) run();", "save();\r\n\r\nif (ready) run();"],
+    [
+      "switch (kind) { case 1: save();\nif (ready) run(); }",
+      "switch (kind) { case 1: save();\n\nif (ready) run(); }",
+    ],
+  ]) {
+    assert.equal(boundaries(input).length, 1, input);
+    assert.equal(format(input), expected, input);
+    assert.equal(boundaries(expected).length, 0, expected);
+    assert.equal(format(expected), expected);
+    assert.equal(format(input).replace(/\s/g, ""), input.replace(/\s/g, ""));
+  }
+});
+
+test("preserves first guards, existing blank lines, else if and non-statement text", () => {
+  for (const code of [
+    "if (ready) run();",
+    "function f() {\n  if (ready) run();\n}",
+    "if (outer) {\n  if (inner) run();\n} else if (other) {\n  if (last) run();\n}",
+    "save();\n\nif (ready) run();",
+    "save();\n\n\nif (ready) run();",
+    "save();\n\n// attached comment\nif (ready) run();",
+    "save();\n// attached comment\n\nif (ready) run();",
+    "const text = 'if (ready) run();';\nconst other = `if (other)`;",
+    "// if (ready) run();\nconst value = 1;",
+    "const view = <div>if (ready) run();</div>;",
+    "const view = <div>{ready ? <span>if</span> : null}</div>;",
+    "if (\n  ready &&\n  other\n) run();",
+    "if (outer)\n  if (inner) run();\n  else if (other) run();",
+    "function f() {\n  // first guard\n  if (ready) run();\n}",
+  ]) {
+    assert.equal(boundaries(code).length, 0, code);
+    assert.equal(format(code), code);
+  }
+});

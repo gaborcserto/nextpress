@@ -21,6 +21,7 @@ export function reportFormatterOutput(result, { log, verbose = false }) {
     .trimEnd();
 
   if (output) log(output);
+
   if (result.stderr) log(result.stderr.trimEnd());
 }
 
@@ -29,7 +30,8 @@ export function formatFiles(
   { cwd, write = false, log, verbose = false } = {},
 ) {
   const selected = [...new Set(files)].filter((file) => {
-    if (!/\.(?:[cm]?[jt]sx?|css|scss|jsonc?|ya?ml)$/.test(file)) return false;
+    if (!/\.(?:[cm]?[jt]sx?|css|scss|jsonc?|ya?ml|mdx?|html)$/.test(file))
+      return false;
     try {
       return statSync(path.resolve(cwd, file)).isFile();
     } catch (error) {
@@ -54,31 +56,43 @@ export function formatFiles(
     );
   }
   // Without paths the CLI targets cwd. Never allow that implicit full write.
-  for (let offset = 0; offset < selected.length; offset += 20) {
-    const result = spawnSync(
-      process.execPath,
-      [
-        formatter,
-        "--config",
-        path.join(cwd, ".oxfmtrc.json"),
-        "--disable-nested-config",
-        write ? "--write" : "--check",
-        ...selected
-          .slice(offset, offset + 20)
-          .map((file) => path.resolve(cwd, file)),
-      ],
-      log
-        ? { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
-        : { cwd, stdio: "inherit" },
-    );
+  let failureStatus;
 
-    if (log) reportFormatterOutput(result, { log, verbose });
-    if (result.error) throw result.error;
-    if (result.status !== 0)
-      throw new Error(
-        `Formatting ${write ? "write" : "check"} failed (${result.status}).`,
+  for (let offset = 0; offset < selected.length; offset += 20) {
+    // Oxfmt 0.78 can expose secondary wrapping on its first pass. Write twice,
+    // then require stability; never report a successful write that fails check.
+    for (const mode of write
+      ? ["--write", "--write", "--check"]
+      : ["--check"]) {
+      const result = spawnSync(
+        process.execPath,
+        [
+          formatter,
+          "--config",
+          path.join(cwd, ".oxfmtrc.json"),
+          "--disable-nested-config",
+          mode,
+          ...selected
+            .slice(offset, offset + 20)
+            .map((file) => path.resolve(cwd, file)),
+        ],
+        log
+          ? { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }
+          : { cwd, stdio: "inherit" },
       );
+
+      if (log) reportFormatterOutput(result, { log, verbose });
+
+      if (result.error) throw result.error;
+
+      if (result.status !== 0) failureStatus = result.status ?? 1;
+    }
   }
+
+  if (failureStatus !== undefined)
+    throw new Error(
+      `Formatting ${write ? "write" : "check"} failed (${failureStatus}).`,
+    );
 
   return selected;
 }

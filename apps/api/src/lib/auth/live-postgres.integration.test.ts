@@ -91,6 +91,7 @@ describe.skipIf(!testDatabaseUrl)(
 
     afterAll(async () => {
       vi.unstubAllEnvs();
+
       if (!prisma) {
         return;
       }

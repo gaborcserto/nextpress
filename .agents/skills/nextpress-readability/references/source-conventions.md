@@ -16,6 +16,12 @@
 For maintained JavaScript, TypeScript, JSX and TSX, separate distinct stages with
 blank lines: guards, state setup/updates, data preparation, requests, response
 validation, result processing, error handling and returns where separation helps.
+Every `if` following another statement in the same block needs a blank line,
+including after expressions and other guards. Keep leading comments attached to
+the guard and trailing comments attached to the previous statement. First guards
+and `else if` do not need extra spacing. The authoritative readability checker
+enforces this rule.
+
 Keep tightly related statements together; do not space every declaration or setter.
 Always add a blank line before `try` when setup precedes it, and separate the
 `try/catch/finally` block from subsequent independent work.

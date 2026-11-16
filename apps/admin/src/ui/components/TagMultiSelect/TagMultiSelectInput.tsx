@@ -13,7 +13,7 @@ export const TagMultiSelectInput = forwardRef<
   TagMultiSelectInputProps
 >(function TagMultiSelectInput(
   { value, onChange, onKeyDown, placeholder, className, ...rest },
-  ref
+  ref,
 ) {
   return (
     <input

@@ -31,6 +31,7 @@ export class RateLimiter {
 
       return null;
     }
+
     if (this.entries.size >= this.maxEntries) {
       // Fail closed for new identities. Key rotation must not erase a cooldown.
       const firstExpiry = Math.min(

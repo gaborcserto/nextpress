@@ -4,9 +4,7 @@ import type { FormGrid12Props, FieldProps, Span } from "./FormGrid.types";
 
 export function FormGrid12({ children }: FormGrid12Props) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-      {children}
-    </div>
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">{children}</div>
   );
 }
 
@@ -28,7 +26,13 @@ const spanClass = (span: Span) =>
     } as const
   )[span] ?? "md:col-span-12";
 
-export function Field({ label, htmlFor, children, hint, span = 12 }: FieldProps) {
+export function Field({
+  label,
+  htmlFor,
+  children,
+  hint,
+  span = 12,
+}: FieldProps) {
   return (
     <div className={`form-control ${spanClass(span)}`}>
       {label && (

@@ -51,18 +51,21 @@ export default function SlateEditor({
               {children}
             </h2>
           );
+
         if (level === 3)
           return (
             <h3 {...attributes} style={style}>
               {children}
             </h3>
           );
+
         if (level === 4)
           return (
             <h4 {...attributes} style={style}>
               {children}
             </h4>
           );
+
         if (level === 5)
           return (
             <h5 {...attributes} style={style}>
@@ -120,9 +123,13 @@ export default function SlateEditor({
     let out = children;
 
     if (leaf.bold) out = <strong>{out}</strong>;
+
     if (leaf.italic) out = <em>{out}</em>;
+
     if (leaf.underline) out = <u>{out}</u>;
+
     if (leaf.strikethrough) out = <s>{out}</s>;
+
     if (leaf.code)
       out = (
         <code className="px-1 rounded bg-base-200 border border-base-300">

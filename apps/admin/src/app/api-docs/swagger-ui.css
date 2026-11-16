@@ -72,7 +72,12 @@
 }
 
 /* Keep Swagger's method backgrounds and override its more-specific dark text color. */
-:root[data-theme] .api-docs .swagger-ui .opblock .opblock-summary .opblock-summary-method {
+:root[data-theme]
+  .api-docs
+  .swagger-ui
+  .opblock
+  .opblock-summary
+  .opblock-summary-method {
   color: #fff;
 }
 

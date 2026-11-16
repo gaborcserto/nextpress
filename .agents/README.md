@@ -8,9 +8,11 @@
 - **Skills:** `skills/` contains technical guidance for recurring work that depends on NextPress-specific tooling or patterns.
 - **Workflows:** `workflows/` contains short procedures for safely carrying out a class of repository work.
 - **Specialized agents:** none. Current review needs are covered without separate role prompts.
-- **Provider integration:** Codex discovers `.agents/skills`; root `CLAUDE.md` imports canonical `AGENTS.md`. Claude explicitly reads selected repository skill bodies; no duplicated provider skill trees.
+- **Provider integration:** Codex exposes repository skills when discovery is available; activation is not guaranteed; root `CLAUDE.md` imports canonical `AGENTS.md`. Claude explicitly reads selected repository skill bodies; no duplicated provider skill trees.
 
 ## Available resources
+
+- `skills/frontend-design/SKILL.md`: use for public frontend visual implementation, responsive layouts and visual review.
 
 - `skills/nextpress-react/SKILL.md`: use for React and Next.js App Router changes, including Server/Client Components.
 - `skills/nextpress-performance/SKILL.md`: use when investigating or changing React rendering and performance.

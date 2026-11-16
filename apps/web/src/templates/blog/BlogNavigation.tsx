@@ -86,6 +86,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
         previous.viewportWidth === window.innerWidth &&
         previous.panelWidth === bounds.width;
       line.dataset.animate = "false";
+
       if (shouldSlide) {
         const targetWidth = `${target.width}px`;
         const targetTransform = `translate(${target.left - bounds.left}px, ${target.bottom - bounds.top}px)`;
@@ -145,6 +146,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
       ) {
         pendingFocus.current = "toggle";
       }
+
       if (query.matches && document.activeElement === button.current) {
         pendingFocus.current = "link";
       }
@@ -171,6 +173,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
     if (pendingFocus.current === "toggle") {
       button.current?.focus();
     }
+
     if (pendingFocus.current === "link") {
       navigation.current?.querySelector("a")?.focus();
     }

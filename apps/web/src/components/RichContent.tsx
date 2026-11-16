@@ -16,9 +16,13 @@ function renderText(leaf: RichText): ReactNode {
   let text: ReactNode = leaf.text;
 
   if (leaf.code) text = <code>{text}</code>;
+
   if (leaf.bold) text = <strong>{text}</strong>;
+
   if (leaf.italic) text = <em>{text}</em>;
+
   if (leaf.underline) text = <u>{text}</u>;
+
   if (leaf.strikethrough) text = <s>{text}</s>;
 
   return text;

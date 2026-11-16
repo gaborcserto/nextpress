@@ -8,7 +8,5 @@ export default function ResetPasswordPage() {
   const sp = useSearchParams();
   const token = sp.get("token") ?? "";
 
-  return (
-    <ResetPasswordForm token={token} />
-  );
+  return <ResetPasswordForm token={token} />;
 }

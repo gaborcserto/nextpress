@@ -31,6 +31,7 @@ async function ensureDevelopmentContent() {
         `Development seed taxonomy ID is already owned: ${taxonomy.id}`,
       );
     }
+
     if (slugOwner && slugOwner.id !== taxonomy.id) {
       throw new Error(
         `Development seed taxonomy slug is already owned: ${taxonomy.slug}`,
@@ -58,6 +59,7 @@ async function ensureDevelopmentContent() {
         `Development seed content ID is already owned: ${page.id}`,
       );
     }
+
     if (slugOwner && slugOwner.id !== page.id) {
       throw new Error(
         `Development seed content slug is already owned: ${page.slug}`,

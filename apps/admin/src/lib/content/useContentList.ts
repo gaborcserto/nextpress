@@ -41,6 +41,7 @@ export function useContentList(endpoint: string) {
     (nextPage: number) => {
       const next = new URLSearchParams(query);
       next.delete("page");
+
       if (nextPage > 1) {
         next.set("page", String(nextPage));
       }

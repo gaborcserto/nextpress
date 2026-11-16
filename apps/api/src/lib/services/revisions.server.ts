@@ -118,6 +118,7 @@ export async function revisionAction(
     });
 
     if (!revision) throw new ContentNotFoundError();
+
     if (
       revision.pageDocument &&
       !readPageDocument(revision.pageDocument).supported
@@ -151,6 +152,7 @@ export async function revisionAction(
         },
       });
     }
+
     if (parsed.action === "unpublish")
       return tx.page.update({
         where: { id: pageId },

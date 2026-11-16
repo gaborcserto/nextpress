@@ -55,6 +55,7 @@ export async function fetchPublic<T>(
     });
 
     if (response.status === 404 && missingAllowed) return null;
+
     if (!response.ok) throw new PublicApiError(response.status, "upstream");
     const body: unknown = await response.json();
     const parsed = schema.safeParse(body);

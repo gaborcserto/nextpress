@@ -9,6 +9,7 @@ export default async function AdminTaxonomyRoute() {
   if (!session?.user?.id) {
     redirect("/auth/sign-in?callbackUrl=%2Fadmin%2Ftaxonomy");
   }
+
   if (!hasAnyRole(session.user.role, ["ADMIN", "EDITOR", "AUTHOR"])) {
     return <div role="alert">You do not have permission to manage tags.</div>;
   }

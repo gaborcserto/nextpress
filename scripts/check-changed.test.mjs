@@ -27,9 +27,7 @@ test("CI installs dependencies before formatting and keeps detection dependency-
     .split("  validate:")[1]
     .split("  quality-gates:")[0];
   const install = validation.indexOf("run: npm ci");
-  const format = validation.indexOf(
-    "run: npm run format:check:changed -- --ci",
-  );
+  const format = validation.indexOf("run: npm run format:check");
   assert.ok(install !== -1 && format > install);
 });
 
@@ -128,9 +126,9 @@ for (const file of [
     assert.equal(selectChanges([file]).mode, "full"));
 }
 
-test("empty and Markdown-only local changes need no tasks", () => {
+test("empty changes need no tasks; Markdown still receives validation", () => {
   assert.equal(selectChanges([]).mode, "none");
-  assert.equal(selectChanges(["README.md", "apps/web/README.md"]).mode, "none");
+  assert.equal(selectChanges(["README.md", "apps/web/README.md"]).mode, "full");
 });
 
 for (const file of [
@@ -193,8 +191,11 @@ test("base selection includes committed branch work alongside local changes", ()
 
   const runGit = (...args) => {
     calls.push(args);
+
     if (args[0] === "merge-base") return "ancestor\n";
+
     if (args.includes("ancestor")) return "apps/admin/committed.ts\0";
+
     if (args.includes("--cached")) return "apps/web/staged.ts\0";
 
     return "";

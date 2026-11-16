@@ -104,6 +104,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
 
       return;
     }
+
     if (destination.current) {
       return;
     }
@@ -157,6 +158,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
       }
       event.preventDefault();
       event.stopPropagation();
+
       if (destination.current) {
         return;
       }

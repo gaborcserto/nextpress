@@ -106,14 +106,12 @@ export async function createTagService(rawName: string): Promise<TagDto> {
     if (!found) break;
     slug = `${slugBase}-${++counter}`;
   }
+
   if (counter > 10)
     throw new ValidationError("Unable to create tag with this name");
 
   // 4) Create and return tag
-  return unwrapResult(
-    await tryCatch(createTagRecord(name, slug)),
-    () => new Error("Failed to create tag"),
-  );
+  return createTagRecord(name, slug);
 }
 
 /**

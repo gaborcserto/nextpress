@@ -172,18 +172,23 @@ export const PUT = withAuth(
     }
 
     if (!isSettingsPayload(body)) return bad("Invalid settings payload");
+
     if (!body.siteName.trim() || body.siteName.length > 200) {
       return bad("Site name is required and must not exceed 200 characters");
     }
+
     if (body.siteDescription.length > 1000) {
       return bad("Site description must not exceed 1000 characters");
     }
+
     if (!PostsPerPageSchema.safeParse(body.postsPerPage).success) {
       return bad("Posts per page must be an integer between 1 and 50");
     }
+
     if (body.siteUrl.length > 2000 || body.ogImageUrl.length > 2000) {
       return bad("Site URL and OG image URL must not exceed 2000 characters");
     }
+
     if (!validOptionalUrl(body.siteUrl) || !validOptionalUrl(body.ogImageUrl)) {
       return bad("Site URL and OG image URL must be valid HTTP(S) URLs");
     }

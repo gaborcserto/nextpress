@@ -32,10 +32,7 @@ type AdminPageColumnsProps = {
   children: ReactNode;
 };
 
-export function AdminPageColumns({
-  sidebar,
-  children,
-}: AdminPageColumnsProps) {
+export function AdminPageColumns({ sidebar, children }: AdminPageColumnsProps) {
   return (
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
       <aside className="space-y-6 lg:col-span-4">{sidebar}</aside>

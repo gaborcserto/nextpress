@@ -95,6 +95,7 @@ export default function AppShell({
 
       return;
     }
+
     if (wasDrawerOpenRef.current) {
       if (isDesktop) {
         // The background is no longer inert after the closed state commits.

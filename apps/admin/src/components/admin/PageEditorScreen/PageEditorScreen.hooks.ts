@@ -52,6 +52,7 @@ export function usePageEditor(id?: string) {
     if (savingRef.current) {
       return false;
     }
+
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
 

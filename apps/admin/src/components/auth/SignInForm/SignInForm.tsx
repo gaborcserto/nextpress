@@ -90,6 +90,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+
     if (submissionLock.current) return;
     setErr(null);
     setFieldErrors({});
@@ -151,6 +152,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   const handleRememberEmailChange = (checked: boolean) => {
     setRememberEmail(checked);
+
     if (!checked) {
       try {
         window.localStorage.removeItem(rememberedEmailKey);

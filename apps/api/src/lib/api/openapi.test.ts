@@ -83,6 +83,22 @@ describe("OpenAPI contract", () => {
     );
   });
 
+  it("documents maintenance conflicts on legacy writer endpoints", () => {
+    for (const [path, method] of [
+      ["/api/pages/{id}", "delete"],
+      ["/api/post/{id}", "delete"],
+      ["/api/tags", "post"],
+      ["/api/tags", "delete"],
+      ["/api/tags/link", "put"],
+      ["/api/admin/tags/{id}", "delete"],
+      ["/api/media", "post"],
+    ] as const) {
+      expect(openApiDocument.paths[path]?.[method]?.responses).toHaveProperty(
+        "409",
+      );
+    }
+  });
+
   it("documents the allowlisted listing mode and bounded post batch size", () => {
     const properties = openApiDocument.components?.schemas?.SettingsUpdate;
     expect(properties).toMatchObject({

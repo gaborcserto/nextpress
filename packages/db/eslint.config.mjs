@@ -2,9 +2,9 @@ import config from "@nextpress/eslint-config/base";
 
 const dbConfig = [
   {
-    ignores: ["generated/**"]
+    ignores: ["generated/**"],
   },
-  ...config
+  ...config,
 ];
 
 export default dbConfig;

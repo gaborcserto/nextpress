@@ -11,7 +11,7 @@ export function useInput({ id, value, type, onChange }: UseInputArgs) {
   const inputId = id || generatedId;
 
   const [internalValue, setInternalValue] = useState(
-    (value as string | undefined) ?? ""
+    (value as string | undefined) ?? "",
   );
 
   const isControlled = value !== undefined;
@@ -19,7 +19,11 @@ export function useInput({ id, value, type, onChange }: UseInputArgs) {
 
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = (type ?? "text") === "password";
-  const actualType = isPassword ? (showPassword ? "text" : "password") : type ?? "text";
+  const actualType = isPassword
+    ? showPassword
+      ? "text"
+      : "password"
+    : (type ?? "text");
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!isControlled) {

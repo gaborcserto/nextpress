@@ -23,6 +23,7 @@ export function ForgotPasswordForm() {
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+
     if (submissionLock.current || sent) return;
 
     const parsed = forgotPasswordSchema.safeParse({ email });

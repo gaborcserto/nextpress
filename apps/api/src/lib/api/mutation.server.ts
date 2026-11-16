@@ -23,6 +23,7 @@ export async function readBoundedMutationRequest(
 
     if (done) break;
     size += value.byteLength;
+
     if (size > maxBytes) {
       await reader.cancel();
 
@@ -61,6 +62,7 @@ export function requireTrustedMutation(
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return null;
 
   const origin = req.headers.get("origin");
+
   // Compare serialized origins, not URL prefixes or client-controlled Host /
   // forwarded headers. Missing Origin has no browser or server exception.
   if (!origin || !getTrustedOrigins().includes(origin))

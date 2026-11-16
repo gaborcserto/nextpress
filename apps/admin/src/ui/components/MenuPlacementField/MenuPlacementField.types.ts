@@ -3,6 +3,6 @@ export type MenuPlacementFieldProps = {
   inFooter: boolean;
   onChangeAction: (
     key: "inHeaderMenu" | "inFooterMenu",
-    value: boolean
+    value: boolean,
   ) => void;
 };

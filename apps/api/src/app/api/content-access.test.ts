@@ -225,6 +225,7 @@ beforeEach(() => {
         throw Object.assign(new Error("Record not found"), { code: "P2025" });
       const { workingVersion, ...fields } = data;
       Object.assign(item, fields);
+
       if (workingVersion) item.workingVersion += workingVersion.increment;
 
       return item;
@@ -413,6 +414,7 @@ describe.each(routes)(
             )
           ).status,
         ).toBe(404);
+
         if (type === "PAGE") {
           const parents = await (
             await listPages(request("GET", undefined, "?select=parent"))
@@ -560,6 +562,27 @@ describe.each(routes)(
         "First",
       );
     });
+
+    it.each(["P5501", "P5502", "P5503"])(
+      "returns a sanitized maintenance conflict for %s",
+      async (code) => {
+        role = "AUTHOR";
+        prisma.page.update.mockRejectedValueOnce({
+          meta: { driverAdapterError: { cause: { originalCode: code } } },
+        });
+        const response = await update(
+          request("PUT", { expectedVersion: 0, title: "Held edit" }),
+          context(`${prefix}-draft`),
+        );
+        expect(response.status).toBe(409);
+        expect(await response.json()).toEqual({
+          error: "Content maintenance conflict; retry after maintenance",
+        });
+        expect(
+          records.find((item) => item.id === `${prefix}-draft`)?.title,
+        ).not.toBe("Held edit");
+      },
+    );
 
     it("allows owner editing, publishing, and unpublishing without clearing omitted tags", async () => {
       role = "AUTHOR";
@@ -1161,6 +1184,7 @@ describe.each(routes)(
       );
       const created = await (await read(request(), context("created"))).json();
       expect(created.item.content).toEqual(blocks);
+
       if (type === "PAGE")
         expect(created.item).toMatchObject({
           type: "CONTACT",
@@ -1184,6 +1208,7 @@ describe.each(routes)(
       ).toBe(200);
       const result = await (await read(request(), context("created"))).json();
       expect(result.item.content).toEqual(edited);
+
       if (type === "POST") expect(result.item.excerpt).toEqual(blocks);
     });
 

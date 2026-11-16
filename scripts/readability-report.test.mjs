@@ -187,3 +187,23 @@ test("default diagnostics are concise, verbose is detailed, and neither check wr
   assert.match(detailed.stdout, /many.ts:3: readability\/spacing/);
   assert.equal(readFileSync(file, "utf8"), source);
 });
+
+test("CLI rejects a missing blank before if and accepts the corrected fixture", (t) => {
+  const cwd = fixture(t);
+  const file = path.join(cwd, "guard.ts");
+  writeFileSync(file, "save();\nif (ready) run();\n");
+
+  const run = (...options) =>
+    spawnSync(process.execPath, [runner, ...options, "--files", "guard.ts"], {
+      cwd,
+      encoding: "utf8",
+    });
+  const invalid = run("--verbose");
+  assert.equal(invalid.status, 1);
+  assert.match(invalid.stdout, /guard.ts:2: readability\/spacing/);
+  assert.equal(run("--write").status, 0);
+  assert.equal(readFileSync(file, "utf8"), "save();\n\nif (ready) run();\n");
+  const valid = run();
+  assert.equal(valid.status, 0);
+  assert.match(valid.stdout, /0 readability violations/);
+});

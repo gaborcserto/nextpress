@@ -95,6 +95,7 @@ export function TagMultiSelect({
   const handleKeyDown = async (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && trimmedQuery) {
       event.preventDefault();
+
       if (loading || searchError || creatingRef.current) return;
 
       if (selectableOptions.length > 0) {

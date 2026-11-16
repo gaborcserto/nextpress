@@ -75,6 +75,7 @@ function npm(args: string[]) {
     }
     throw new Error(`Verification command failed: npm ${args.join(" ")}`);
   }
+
   if (tests) {
     const counts = z
       .object({
@@ -178,6 +179,7 @@ async function verifyFamily(family: "content" | "security") {
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
+
   if (!ready) {
     throw new Error("Disposable cluster did not start");
   }
@@ -261,6 +263,7 @@ async function verifyFamily(family: "content" | "security") {
       mode: 0o600,
     });
     evidenceCreated = true;
+
     if (family === "content") {
       await verifyEditorialMigration(prisma);
     }
@@ -271,6 +274,7 @@ async function verifyFamily(family: "content" | "security") {
       database,
       `INSERT INTO "Role" (id,name) VALUES ('b04-admin','ADMIN'),('b04-editor','EDITOR'),('b04-author','AUTHOR'),('b04-subscriber','SUBSCRIBER') ON CONFLICT DO NOTHING;`,
     );
+
     if (family === "content") {
       npm([
         "--workspace",
@@ -308,6 +312,7 @@ async function verifyFamily(family: "content" | "security") {
     verifyDockerTarget(manifest);
     docker("rm", "--force", container);
     docker("network", "rm", network);
+
     if (evidenceCreated) {
       unlinkSync(disposableManifestPath);
     }

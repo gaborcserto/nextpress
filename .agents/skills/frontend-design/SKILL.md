@@ -32,6 +32,6 @@ Scale verification to risk. For visual or interaction changes, cover relevant de
 
 ## Activation examples
 
-Use for: “Refine the public navigation on mobile”; “Review this screenshot for spacing and contrast”; “Investigate why the Blog header shifts between presets”; “Make the search dialog keyboard accessible.”
+Use for: "Refine the public navigation on mobile"; "Review this screenshot for spacing and contrast"; "Investigate why the Blog header shifts between presets"; "Make the search dialog keyboard accessible."
 
-Do not use for: “Add an API endpoint”; “Change a Prisma index”; “Update a backend billing rule.”
+Do not use for: "Add an API endpoint"; "Change a Prisma index"; "Update a backend billing rule."

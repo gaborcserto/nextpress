@@ -24,6 +24,7 @@ function run(command, args, options = {}) {
   });
 
   if (result.error) throw result.error;
+
   if (result.status !== 0)
     throw new Error(`${command} failed (${result.status})`);
 }
@@ -134,6 +135,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
       ["../../node_modules/prisma/build/index.js", "migrate", "deploy"],
       { cwd: "packages/db", env: isolated },
     );
+
     if (database.startsWith("nextpress_security")) {
       run("docker", [
         "exec",
@@ -186,6 +188,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
     "node_modules/tsx/dist/cli.mjs",
     "apps/api/scripts/bootstrap-admin.ts",
   ]);
+
   if (process.env.NEXTPRESS_E2E_WEB_PRODUCTION === "1") {
     const artifact = path.resolve(".notes", "e2e-builds", name);
     run(process.execPath, ["scripts/package-app.mjs", "web", artifact]);

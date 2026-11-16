@@ -17,10 +17,14 @@ import {
 
 function failure(error: unknown) {
   if (error instanceof ZodError) return bad("Invalid revision request");
+
   if (error instanceof ContentForbiddenError) return forbid();
+
   if (error instanceof ContentNotFoundError) return notfound();
+
   if (error instanceof RevisionConflictError)
     return conflict("Content changed; reload before saving");
+
   if (
     typeof error === "object" &&
     error !== null &&
@@ -29,7 +33,7 @@ function failure(error: unknown) {
   )
     return conflict("Slug already exists");
 
-  return oops();
+  return oops(error);
 }
 
 export const GET = withAuth(

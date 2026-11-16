@@ -133,6 +133,7 @@ test("staged runner uses owning configs across React, server, shared and root fi
     ".",
     "apps/admin",
     "apps/web",
+    "apps/api",
     "packages/shared",
     "packages/db",
   ];
@@ -166,6 +167,7 @@ test("staged runner uses owning configs across React, server, shared and root fi
     "apps/admin/src/components/example file.tsx",
     "apps/admin/src/lib/example.ts",
     "apps/web/src/components/example.tsx",
+    "apps/api/src/example.ts",
     "packages/shared/src/example.ts",
     "scripts/example.mjs",
     "packages/db/generated/client.ts",
@@ -251,6 +253,12 @@ test("formatter supports required languages and preserves directives, import ord
       '"use server";\nexport async function action(){return {ok:true}}\n',
     "test.jsx": "export const X=()=> <div>hello</div>\n",
     "test.js": "export const x={a:1}\n",
+    "test.mts": "export const x={a:1}\n",
+    "test.cts": "export const x={a:1}\n",
+    "config.jsonc": '{// comment\n"x":1}\n',
+    "doc.md": "# Heading\n\ntext   \n",
+    "doc.mdx": "# Heading\n\ntext   \n",
+    "index.html": "<div><span>Text</span></div>",
     "test.mjs": "export const x={a:1}\n",
     "test.cjs": "module.exports={x:1}\n",
     "test.css": ".x{color:red;margin:0 1px}\n",
@@ -266,16 +274,20 @@ test("formatter supports required languages and preserves directives, import ord
     const twice = await format(file, once.code, config);
     assert.equal(twice.code, once.code, file);
     assert.ok(!once.code.includes("\r"), file);
+
     if (source.startsWith('"use '))
       assert.ok(once.code.startsWith(source.split("\n")[0]));
+
     if (file === "page.tsx") {
       assert.ok(once.code.indexOf('from "z"') < once.code.indexOf('from "a"'));
       assert.ok(once.code.includes("Hello world"));
     }
+
     if (file === "layout.tsx")
       assert.ok(
         once.code.indexOf('"./z.css"') < once.code.indexOf('"./a.css"'),
       );
+
     if (file === "package.json")
       assert.ok(once.code.indexOf('"version"') < once.code.indexOf('"name"'));
   }
@@ -285,6 +297,7 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
   for (const workspace of [
     "apps/admin",
     "apps/web",
+    "apps/api",
     "packages/shared",
     "packages/db",
     ".",
@@ -299,6 +312,7 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
         : "export const value: any = 1;\nconst unused = 1;\n";
     const [result] = await eslint.lintText(source, { filePath: file });
     assert.ok(result.errorCount > 0, workspace);
+
     if (workspace !== ".") {
       assert.equal(effective.rules["import/order"][0], 2);
       assert.equal(effective.rules["import/no-duplicates"][0], 2);
@@ -308,8 +322,10 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
       );
       assert.equal(valid.errorCount, 0, workspace);
     }
+
     if (workspace.startsWith("apps/"))
       assert.equal(effective.rules["react-hooks/exhaustive-deps"][0], 2);
+
     if (workspace === "apps/web" || workspace === "packages/shared")
       assert.equal(effective.rules["no-restricted-imports"][0], 2);
   }
@@ -570,6 +586,9 @@ test("local and CI entry points reject committed format drift and base writes le
       env: { ...process.env, BASE_SHA: base, HEAD_SHA: "HEAD" },
       encoding: "utf8",
     });
+  const full = run("--format-check", "--full");
+  assert.notEqual(full.status, 0);
+  assert.match(full.stdout, /untouched\.ts/);
   assert.notEqual(run("--format-check", "--base", base).status, 0);
   assert.notEqual(run("--format-check", "--ci").status, 0);
   assert.equal(run("--format", "--base", base).status, 0);
@@ -677,8 +696,8 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   assert.equal(success.status, 0, successOutput);
   assert.ok(!successOutput.includes("\u001b["));
   const plainOutput = stripVTControlCharacters(successOutput);
-  assert.match(plainOutput, /tests 8/);
-  assert.match(plainOutput, /pass 8/);
+  assert.match(plainOutput, /tests 10/);
+  assert.match(plainOutput, /pass 10/);
   assert.match(plainOutput, /fail 0/);
   assert.equal(
     (
@@ -686,7 +705,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
         /^\u2714 (?:separates|preserves|keeps|rejects) .+ \(.+\)$/gm,
       ) ?? []
     ).length,
-    8,
+    10,
   );
   assert.match(
     plainOutput,
@@ -750,9 +769,10 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   const colorOutput = colored.stdout + colored.stderr;
   assert.equal(colored.status, 0, stripVTControlCharacters(colorOutput));
   assert.ok(colorOutput.includes("\u001b[32m\u2714 separates function values"));
-  assert.ok(colorOutput.includes("\u001b[34m\u2139 tests 8"));
-  assert.ok(colorOutput.includes("\u001b[34m\u2139 pass 8"));
-  const violation = "export function first() {}\nexport function second() {}\n";
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 tests 10"));
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 pass 10"));
+  const violation =
+    "export const ready = true;\nif (ready) console.log(ready);\n";
   writeFileSync(file, violation + "\n// original\n");
   git("add", "file with spaces.mjs");
   writeFileSync(file, violation + "\n// unrelated unstaged note\n");
@@ -773,7 +793,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     stripVTControlCharacters(
       readabilityFailure.stdout + readabilityFailure.stderr,
     ),
-    /pass 8/,
+    /pass 10/,
   );
   assert.doesNotMatch(
     readabilityFailure.stdout + readabilityFailure.stderr,
@@ -841,7 +861,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   );
   assert.equal(batched.status, 0, batchedOutput);
   assert.equal(
-    (batchedOutput.match(/tests 8/g) ?? []).length,
+    (batchedOutput.match(/tests 10/g) ?? []).length,
     1,
     batchedOutput,
   );
@@ -914,7 +934,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   );
   assert.notEqual(rejectedBatch.status, 0);
   assert.equal(
-    (rejectedOutput.match(/tests 8/g) ?? []).length,
+    (rejectedOutput.match(/tests 10/g) ?? []).length,
     1,
     rejectedOutput,
   );
@@ -996,4 +1016,72 @@ test("staged formatter output hides only successful timing lines and retains dia
     /write failed/,
   );
   assert.match(errors.join("\n"), /bad.ts/);
+});
+
+test("owning lint configs reject incorrect import ordering", async () => {
+  for (const workspace of [
+    ".",
+    "apps/api",
+    "apps/admin",
+    "apps/web",
+    "packages/db",
+    "packages/shared",
+  ]) {
+    const eslint = new ESLint({ cwd: path.join(root, workspace) });
+    const filePath =
+      workspace === "." ? "scripts/fixture.mjs" : "src/fixture.ts";
+    const [invalid] = await eslint.lintText(
+      'import z from "z";\nimport a from "a";\n\nexport { z, a };\n',
+      { filePath },
+    );
+    assert.ok(
+      invalid.messages.some((message) => message.ruleId === "import/order"),
+      workspace,
+    );
+    const [valid] = await eslint.lintText(
+      'import a from "a";\nimport z from "z";\n\nexport { a, z };\n',
+      { filePath },
+    );
+    assert.equal(valid.errorCount, 0, workspace);
+  }
+});
+
+test("formatter checks Markdown and typed module extensions rather than skipping them", (t) => {
+  const cwd = fixture(t);
+
+  for (const file of [
+    "fixture.md",
+    "fixture.mdx",
+    "fixture.mts",
+    "fixture.cts",
+    "fixture.jsonc",
+    "fixture.html",
+  ]) {
+    const source =
+      file.endsWith("md") || file.endsWith("mdx")
+        ? "# Heading\n\ntext   \n"
+        : file.endsWith("jsonc")
+          ? '{"x":1}\n'
+          : file.endsWith("html")
+            ? "<div><span>Text</span></div>"
+            : "export const x={a:1}\n";
+    writeFileSync(path.join(cwd, file), source);
+    assert.throws(() => formatFiles([file], { cwd }), /check failed/, file);
+    formatFiles([file], { cwd, write: true });
+    formatFiles([file], { cwd });
+  }
+});
+
+test("formatter writes stabilize nested mock calls before reporting success", (t) => {
+  const cwd = fixture(t);
+  const file = "fixture.ts";
+  writeFileSync(
+    path.join(cwd, file),
+    'describe("Breadcrumbs", () => {\n  it("shows title", async () => {\n    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ item: { title } }) }));\n  });\n});\n',
+  );
+  formatFiles([file], { cwd, write: true });
+  const once = readFileSync(path.join(cwd, file), "utf8");
+  formatFiles([file], { cwd });
+  formatFiles([file], { cwd, write: true });
+  assert.equal(readFileSync(path.join(cwd, file), "utf8"), once);
 });

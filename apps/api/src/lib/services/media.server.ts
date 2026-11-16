@@ -68,6 +68,7 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
   } catch {
     throw new MediaValidationError();
   }
+
   if (normalized.length > 8_388_608 || !dimensions.width || !dimensions.height)
     throw new MediaValidationError();
   const key = `${randomUUID()}.png`;
@@ -166,6 +167,7 @@ export async function deleteMedia(id: string, actor: ContentActor) {
 
     if (references || revisions) throw new MediaReferencedError();
     await tx.media.delete({ where: { id } });
+
     // Removing metadata first fails closed if file removal requires operator retry.
     if (media.key) await mediaStorage.remove(media.key);
   });

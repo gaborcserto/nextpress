@@ -28,12 +28,14 @@ function translationIssues(
     if (typeof candidate !== "string" || !candidate.trim()) {
       return [`Invalid message: ${path}`];
     }
+
     if (placeholders(reference) !== placeholders(candidate)) {
       return [`Mismatched placeholders: ${path}`];
     }
 
     return [];
   }
+
   if (!isRecord(reference) || !isRecord(candidate)) {
     return [`Mismatched structure: ${path}`];
   }

@@ -1,2 +1,5 @@
 export { default } from "./SignInFormOAuthRow";
-export type { SignInFormOAuthRowProps, Provider } from "./SignInFormOAuthRow.types";
+export type {
+  SignInFormOAuthRowProps,
+  Provider,
+} from "./SignInFormOAuthRow.types";

@@ -7,6 +7,7 @@ export function safeImageUrl(value: string): string | null {
   try {
     if (value.startsWith("/")) {
       const path = decodeURIComponent(value.split(/[?#]/, 1)[0]);
+
       // Rejecting control characters is intentional at this untrusted URL boundary.
       // eslint-disable-next-line no-control-regex
       if (path.startsWith("//") || /[\u0000-\u001f\u007f\\%?#]/.test(path))
@@ -17,6 +18,7 @@ export function safeImageUrl(value: string): string | null {
 
       return url.pathname + url.search + url.hash;
     }
+
     // Require an explicit absolute HTTP(S) URL; never turn bare data into a host.
     if (!/^https?:\/\//i.test(value)) return null;
     const url = new URL(value);

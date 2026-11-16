@@ -85,6 +85,7 @@ export function PreferenceChoice({
       setOpen(false);
       trigger.current?.focus();
     }
+
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       setOpen(true);
@@ -112,6 +113,7 @@ export function PreferenceChoice({
       if (event.key === "Home") {
         next = 0;
       }
+
       if (event.key === "End") {
         next = items.length - 1;
       }

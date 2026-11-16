@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "./Dropdown";
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "./Dropdown";
 
 describe("Dropdown", () => {
   it("opens to the first action, supports arrow keys, and returns focus after Escape", () => {

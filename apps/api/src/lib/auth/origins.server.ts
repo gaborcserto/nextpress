@@ -39,6 +39,7 @@ function applicationOrigin(value: string): string {
   ) {
     throw new Error("Invalid authentication application URL");
   }
+
   if (
     process.env.NODE_ENV === "production" &&
     (url.protocol !== "https:" ||

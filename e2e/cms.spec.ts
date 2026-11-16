@@ -98,6 +98,7 @@ test("disposable editorial publication, public rendering and session lifecycle",
   );
   const asset = assets[0];
   expect(asset).toBeDefined();
+
   if (!asset) throw new Error("Missing uploaded fixture");
   expect(
     (

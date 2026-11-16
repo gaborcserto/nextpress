@@ -70,6 +70,7 @@ function scan(folder) {
       // Its real target is scanned through the ordinary directory traversal.
       continue;
     }
+
     if (entry.isDirectory()) {
       scan(file);
       continue;
@@ -89,6 +90,7 @@ function scan(folder) {
 }
 
 scan(artifactRoot);
+
 if (violations.length) {
   console.error(
     `Artifact secret check failed in ${violations.length} files. Values are redacted.`,

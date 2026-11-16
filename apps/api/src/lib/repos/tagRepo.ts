@@ -181,6 +181,7 @@ export async function setTagsForPage(
     await tx.pageOnTaxonomy.deleteMany({
       where: { pageId, taxonomy: { type: "TAG" } },
     });
+
     if (tagIds.length) {
       await tx.pageOnTaxonomy.createMany({
         data: tagIds.map((taxonomyId) => ({ pageId, taxonomyId })),

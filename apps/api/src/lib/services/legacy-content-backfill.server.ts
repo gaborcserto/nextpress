@@ -100,6 +100,7 @@ export function mapEditorialReferenceEdges(
   if (fields.listingTaxonomyId) {
     listingIds.add(fields.listingTaxonomyId);
   }
+
   if (fields.parentId) {
     if (targets.pageIds.has(fields.parentId)) {
       edges.pages.push({
@@ -219,6 +220,7 @@ export function mapLegacyRevisionHistory(
       targets,
     );
     issues.push(...references.issues);
+
     if (source.authorId && !targets.userIds.has(source.authorId)) {
       issues.push("MISSING_AUTHOR");
     }
@@ -417,9 +419,11 @@ export async function planLegacyPage(db: BackfillClient, pageId: string) {
   } catch {
     throw new BackfillConflictError("UNSUPPORTED_CURRENT_SNAPSHOT");
   }
+
   if (page.status === "PUBLISHED" && !page.publishedAt) {
     issues.push("MISSING_PUBLICATION_TIMESTAMP");
   }
+
   if (page.authorId && !targets.userIds.has(page.authorId)) {
     issues.push("MISSING_AUTHOR");
   }
@@ -645,6 +649,7 @@ async function reconcileLegacySnapshot(db: Prisma.TransactionClient) {
       if (result.issues.length) {
         state = result.populated ? "conflict" : "required";
       }
+
       if (result.plan.issues.length && !result.populated) {
         state = "held";
       }

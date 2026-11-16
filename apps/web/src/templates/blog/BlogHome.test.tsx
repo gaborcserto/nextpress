@@ -99,6 +99,7 @@ for (const preset of ["classic", "modern", "minimal"]) {
         expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
           "Latest from the publication",
         );
+
         if (count === 0) {
           expect(
             screen.getByText("There are no published posts yet."),
@@ -212,6 +213,7 @@ it("orders latest and recent post taxonomy after each available excerpt", () => 
     expect(
       title.compareDocumentPosition(date) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+
     if (excerpt) {
       const summary = entry.getByText(excerpt);
       expect(

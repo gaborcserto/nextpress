@@ -23,6 +23,7 @@ describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
     await verifyDisposableDatabase(expectedName, candidate);
     db = candidate;
     administer = (await import("./user-administration.server")).administerUser;
+
     if (await db.user.count({ where: { role: { name: "ADMIN" } } })) {
       throw new Error(
         "Concurrency test requires a disposable database without administrators",

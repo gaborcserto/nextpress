@@ -8,9 +8,17 @@ import { fieldErrorsFromIssues } from "./utils/fieldErrors";
 
 describe("authentication form validation", () => {
   it("validates email while allowing existing short passwords at sign-in", () => {
-    expect(signInSchema.safeParse({ email: "user@example.com", password: "secret" }).success).toBe(true);
-    expect(signInSchema.safeParse({ email: "invalid", password: "secret" }).success).toBe(false);
-    expect(signInSchema.safeParse({ email: "user@example.com", password: "short" }).success).toBe(true);
+    expect(
+      signInSchema.safeParse({ email: "user@example.com", password: "secret" })
+        .success,
+    ).toBe(true);
+    expect(
+      signInSchema.safeParse({ email: "invalid", password: "secret" }).success,
+    ).toBe(false);
+    expect(
+      signInSchema.safeParse({ email: "user@example.com", password: "short" })
+        .success,
+    ).toBe(true);
   });
 
   it("allows an omitted or empty display name during sign-up", () => {
@@ -18,20 +26,24 @@ describe("authentication form validation", () => {
       signUpSchema.safeParse({
         email: "user@example.com",
         password: "a long passphrase",
-      }).success
+      }).success,
     ).toBe(true);
     expect(
       signUpSchema.safeParse({
         name: "A",
         email: "user@example.com",
         password: "a long passphrase",
-      }).success
+      }).success,
     ).toBe(false);
   });
 
   it("validates forgot-password email input", () => {
-    expect(forgotPasswordSchema.safeParse({ email: "user@example.com" }).success).toBe(true);
-    expect(forgotPasswordSchema.safeParse({ email: "not-an-email" }).success).toBe(false);
+    expect(
+      forgotPasswordSchema.safeParse({ email: "user@example.com" }).success,
+    ).toBe(true);
+    expect(
+      forgotPasswordSchema.safeParse({ email: "not-an-email" }).success,
+    ).toBe(false);
   });
 
   it("requires matching reset passwords and a non-empty token", () => {
@@ -40,14 +52,14 @@ describe("authentication form validation", () => {
         token: "token",
         password: "a long passphrase",
         confirm: "a long passphrase",
-      }).success
+      }).success,
     ).toBe(true);
     expect(
       resetPasswordSchema.safeParse({
         token: "",
         password: "a long passphrase",
         confirm: "different",
-      }).success
+      }).success,
     ).toBe(false);
   });
 

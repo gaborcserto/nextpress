@@ -1468,6 +1468,7 @@ describe("configured authentication policy with real Better Auth", () => {
         providerAccountId: "bootstrap-admin",
         password: storedHash,
       });
+
       if (originalHash) expect(storedHash).toBe(originalHash);
       expect(
         (await call("/sign-in/email", { email, password: configuredPassword }))

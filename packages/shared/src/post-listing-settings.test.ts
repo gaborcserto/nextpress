@@ -13,7 +13,9 @@ describe("post listing settings", () => {
   it("allows only the supported public listing modes", () => {
     expect(PostListingModeSchema.parse("PAGINATION")).toBe("PAGINATION");
     expect(PostListingModeSchema.parse("LOAD_MORE")).toBe("LOAD_MORE");
-    expect(PostListingModeSchema.safeParse("INFINITE_SCROLL").success).toBe(false);
+    expect(PostListingModeSchema.safeParse("INFINITE_SCROLL").success).toBe(
+      false,
+    );
   });
 
   it("bounds integer batch sizes and normalizes invalid stored values", () => {

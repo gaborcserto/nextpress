@@ -87,6 +87,7 @@ export default function SettingsScreen() {
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     if (!credentialForm.current || saving) return;
     const credentials = readCredentialUpdates(
       credentialForm.current,

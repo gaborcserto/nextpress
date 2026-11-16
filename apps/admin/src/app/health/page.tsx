@@ -5,7 +5,9 @@ export const metadata = { title: "Health | NextPress Admin" };
 const environments = ["development", "production", "test"] as const;
 
 function safeValue(value: string | undefined, allowed: readonly string[]) {
-  return value && allowed.some((candidate) => candidate === value) ? value : "Unknown";
+  return value && allowed.some((candidate) => candidate === value)
+    ? value
+    : "Unknown";
 }
 
 export default function HealthPage() {

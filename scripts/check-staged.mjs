@@ -44,6 +44,7 @@ export async function checkStaged(
 
       for (const file of group)
         if (!(await eslint.isPathIgnored(file))) selected.push(file);
+
       if (!selected.length) continue;
       const results = await eslint.lintFiles(selected);
       const formatter = await eslint.loadFormatter("stylish");

@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 
 async function handler(request: Request) {
   const path = new URL(request.url).pathname;
+
   // Before parsing or loading provider configuration, including malformed requests.
   if (
     /^\/api\/auth\/(sign-in\/|sign-up\/|callback\/|link-social|change-password|verify-password)/.test(

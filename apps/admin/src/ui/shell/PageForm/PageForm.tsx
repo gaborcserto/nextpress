@@ -105,6 +105,7 @@ export default function PageForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     if (submitting) {
       return;
     }
@@ -113,9 +114,11 @@ export default function PageForm({
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
     };
     setFieldErrors(errors);
+
     if (Object.keys(errors).length) {
       return;
     }
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
     }

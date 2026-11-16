@@ -11,7 +11,10 @@ export function DataListSurface({ children }: { children: ReactNode }) {
 export function DataListLoading({ label }: { label: string }) {
   return (
     <DataListSurface>
-      <div className="flex min-h-48 items-center justify-center gap-2" role="status">
+      <div
+        className="flex min-h-48 items-center justify-center gap-2"
+        role="status"
+      >
         <span className="loading loading-spinner" aria-hidden="true" />
         <span>Loading {label}…</span>
       </div>

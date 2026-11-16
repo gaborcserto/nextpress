@@ -1,7 +1,7 @@
 import {
   TOAST_POSITIONS,
   type ToastPosition,
-  type ToastType
+  type ToastType,
 } from "@/ui/utils";
 
 export const POSITIONS = TOAST_POSITIONS;
@@ -12,7 +12,6 @@ export type ActiveToast = {
   desc?: string;
   type: ToastType;
   position: ToastPosition;
-  isIn: boolean;   // true = active/entering, false = exiting
+  isIn: boolean; // true = active/entering, false = exiting
   timeout: number; // ms
 };
-

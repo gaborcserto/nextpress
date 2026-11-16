@@ -20,7 +20,7 @@ export async function GET(
       (await getSessionWithRole())?.user,
     );
   } catch (error) {
-    return error instanceof ContentNotFoundError ? notfound() : oops();
+    return error instanceof ContentNotFoundError ? notfound() : oops(error);
   }
 }
 
@@ -40,11 +40,13 @@ export const DELETE = withAuth(
       return ok({ ok: true });
     } catch (error) {
       if (error instanceof ContentNotFoundError) return notfound();
+
       if (error instanceof MediaReferencedError)
         return conflict("Media is referenced by content or revisions");
+
       if (error instanceof ContentForbiddenError) return forbid();
 
-      return oops();
+      return oops(error);
     }
   },
   "create-content",

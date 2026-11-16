@@ -78,6 +78,7 @@ export default function TagsField({
   const setTags = async (next: TagValue[]) => {
     if (savingRef.current) return;
     setError(null);
+
     // Update local state (or delegate to controlled parent)
     if (!isControlled) setInternalTags(next);
 

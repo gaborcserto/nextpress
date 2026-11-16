@@ -35,7 +35,6 @@
   --noise: 0;
 }
 
-
 @plugin "daisyui/theme" {
   name: "dark";
   default: false;
@@ -75,7 +74,8 @@
   themes: false;
 }
 
-html, body {
+html,
+body {
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -103,29 +103,31 @@ html, body {
 }
 
 @keyframes admin-spinner {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 :root[data-skin="default"] {
-	--radius-surface: 0.75rem;
-	--radius-control: 0.375rem;
-	--shadow-topbar: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --radius-surface: 0.75rem;
+  --radius-control: 0.375rem;
+  --shadow-topbar: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 :root {
-	/* Both themes disable noise; avoid DaisyUI's unused data-URL image request. */
-	--fx-noise: none;
-	--surface-bg: white;
-	--surface-border: rgba(0,0,0,.2);
-	--text-muted: rgb(75 85 99);         /* gray.600 */
-	--accent-solid: rgb(37 99 235);      /* blue.600 */
-	--accent-soft: rgb(239 246 255);     /* blue.50 */
+  /* Both themes disable noise; avoid DaisyUI's unused data-URL image request. */
+  --fx-noise: none;
+  --surface-bg: white;
+  --surface-border: rgba(0, 0, 0, 0.2);
+  --text-muted: rgb(75 85 99); /* gray.600 */
+  --accent-solid: rgb(37 99 235); /* blue.600 */
+  --accent-soft: rgb(239 246 255); /* blue.50 */
 }
 
 :root[data-theme="dark"] {
-	--surface-bg: rgb(31 41 55);         /* gray.800 */
-	--surface-border: rgba(255,255,255,.3);
-	--text-muted: rgb(156 163 175);      /* gray.400 */
-	--accent-solid: rgb(147 197 253);    /* blue.300 */
-	--accent-soft: rgba(255,255,255,.10);
+  --surface-bg: rgb(31 41 55); /* gray.800 */
+  --surface-border: rgba(255, 255, 255, 0.3);
+  --text-muted: rgb(156 163 175); /* gray.400 */
+  --accent-solid: rgb(147 197 253); /* blue.300 */
+  --accent-soft: rgba(255, 255, 255, 0.1);
 }

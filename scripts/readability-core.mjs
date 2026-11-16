@@ -73,6 +73,59 @@ function boundaries(text, filename = "fixture.tsx") {
     );
   }
 
+  function ifBoundary(previous, node) {
+    const end = node.getStart(source);
+    const scanner = ts.createScanner(
+      ts.ScriptTarget.Latest,
+      false,
+      ts.LanguageVariant.Standard,
+      text,
+      undefined,
+      previous.end,
+      end - previous.end,
+    );
+    const whitespace = [];
+    let start = previous.end;
+    let attachedComment;
+
+    while (scanner.scan() !== ts.SyntaxKind.EndOfFileToken) {
+      const kind = scanner.getToken();
+
+      if (
+        kind !== ts.SyntaxKind.SingleLineCommentTrivia &&
+        kind !== ts.SyntaxKind.MultiLineCommentTrivia
+      ) {
+        continue;
+      }
+      const commentStart = scanner.getTokenPos();
+      const gap = { start, end: commentStart };
+      whitespace.push(gap);
+
+      // Keep trailing comments with the previous statement and leading comments
+      // with the guard. Never treat a blank line inside a comment as spacing.
+      if (
+        !attachedComment &&
+        source.getLineAndCharacterOfPosition(commentStart).line >
+          source.getLineAndCharacterOfPosition(previous.end).line
+      ) {
+        attachedComment = gap;
+      }
+      start = scanner.getTextPos();
+    }
+    const beforeIf = { start, end };
+    whitespace.push(beforeIf);
+
+    if (
+      whitespace.some((gap) =>
+        /\n[^\S\r\n]*\r?\n/.test(text.slice(gap.start, gap.end)),
+      )
+    ) {
+      return;
+    }
+
+    return attachedComment ?? beforeIf;
+  }
+
   function inspect(nodes) {
     nodes.forEach((node, index) => {
       if (!index) {
@@ -80,6 +133,16 @@ function boundaries(text, filename = "fixture.tsx") {
       }
 
       const previous = nodes[index - 1];
+
+      if (ts.isIfStatement(node)) {
+        const gap = ifBoundary(previous, node);
+
+        if (gap) {
+          gaps.push(gap);
+        }
+
+        return;
+      }
 
       if (
         ts.isFunctionDeclaration(node) &&
@@ -110,8 +173,7 @@ function boundaries(text, filename = "fixture.tsx") {
         ts.isConstructorDeclaration(node) ||
         ts.isReturnStatement(node) ||
         (ts.isVariableStatement(previous) &&
-          (ts.isIfStatement(node) ||
-            ts.isTryStatement(node) ||
+          (ts.isTryStatement(node) ||
             ts.isIterationStatement(node, false) ||
             ts.isSwitchStatement(node)));
 
@@ -122,6 +184,7 @@ function boundaries(text, filename = "fixture.tsx") {
       const start = previous.end;
       const end = node.getStart(source);
       const gap = text.slice(start, end);
+
       // Comments and same-line statements need contextual review. Never move them.
       if (!/^\s*$/.test(gap) || !gap.includes("\n")) {
         return;
@@ -160,7 +223,11 @@ function format(text, filename) {
     .reduce((result, gap) => {
       const whitespace = result.slice(gap.start, gap.end);
       const newline = whitespace.includes("\r\n") ? "\r\n" : "\n";
-      const indent = whitespace.slice(whitespace.lastIndexOf("\n") + 1);
+      const indent = whitespace.includes("\n")
+        ? whitespace.slice(whitespace.lastIndexOf("\n") + 1)
+        : result
+            .slice(result.lastIndexOf("\n", gap.start - 1) + 1)
+            .match(/^[\t ]*/)[0];
 
       return (
         result.slice(0, gap.start) +

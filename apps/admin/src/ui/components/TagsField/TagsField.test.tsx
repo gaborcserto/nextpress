@@ -9,7 +9,7 @@ vi.mock("@/ui/components/TagMultiSelect", () => ({
   TagMultiSelect: ({
     onChangeAction,
   }: {
-    onChangeAction: (tags: typeof selectedTag[]) => void;
+    onChangeAction: (tags: (typeof selectedTag)[]) => void;
   }) => (
     <button type="button" onClick={() => onChangeAction([selectedTag])}>
       Select tag
@@ -21,18 +21,28 @@ describe("TagsField", () => {
   it("rolls back selection and reports persistence failures", async () => {
     const existingTag = { id: "tag-1", name: "Existing", slug: "existing" };
     const onChange = vi.fn();
-    render(<TagsField
-      entityId="post-1"
-      value={[existingTag]}
-      onChangeAction={onChange}
-      loadOptionsAction={async () => []}
-      createTagAction={vi.fn()}
-      loadEntityTagsAction={async () => [existingTag]}
-      updateEntityTagsAction={async () => { throw new Error("offline"); }}
-    />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Select tag" })).not.toBeDisabled());
+    render(
+      <TagsField
+        entityId="post-1"
+        value={[existingTag]}
+        onChangeAction={onChange}
+        loadOptionsAction={async () => []}
+        createTagAction={vi.fn()}
+        loadEntityTagsAction={async () => [existingTag]}
+        updateEntityTagsAction={async () => {
+          throw new Error("offline");
+        }}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Select tag" }),
+      ).not.toBeDisabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Select tag" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Unable to save tags.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unable to save tags.",
+    );
     expect(onChange).toHaveBeenLastCalledWith([existingTag]);
   });
 

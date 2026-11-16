@@ -18,19 +18,24 @@ describe("admin API client", () => {
       ),
     );
 
-    await expect(jsonFetcher<{ value: number }>("/api/value")).resolves.toEqual({
-      value: 42,
-    });
+    await expect(jsonFetcher<{ value: number }>("/api/value")).resolves.toEqual(
+      {
+        value: 42,
+      },
+    );
   });
 
   it("uses the API error field and preserves the response status", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: "You cannot delete this user." }), {
-          status: 409,
-          headers: { "Content-Type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify({ error: "You cannot delete this user." }),
+          {
+            status: 409,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
       ),
     );
 

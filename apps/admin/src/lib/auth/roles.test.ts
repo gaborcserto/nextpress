@@ -15,6 +15,6 @@ describe("roles", () => {
     "rejects invalid role state %s",
     (value) => {
       expect(isRole(value)).toBe(false);
-    }
+    },
   );
 });

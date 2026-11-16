@@ -36,16 +36,11 @@ export function AuthShell({
   return (
     <div className="h-dvh overflow-y-auto grid items-center-safe justify-items-center px-4 py-6 bg-linear-to-br from-base-200 to-base-300">
       {asForm ? (
-        <form
-          onSubmit={onSubmitAction}
-          className={cardClass}
-        >
+        <form onSubmit={onSubmitAction} className={cardClass}>
           {inner}
         </form>
       ) : (
-        <div className={cardClass}>
-          {inner}
-        </div>
+        <div className={cardClass}>{inner}</div>
       )}
     </div>
   );

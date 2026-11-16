@@ -11,7 +11,10 @@ export default function ProfileScreen() {
   if (isPending) {
     return (
       <Box bare>
-        <div className="p-6 animate-pulse space-y-3" aria-label="Loading profile">
+        <div
+          className="p-6 animate-pulse space-y-3"
+          aria-label="Loading profile"
+        >
           <div className="h-8 w-2/3 bg-base-300 rounded" />
           <div className="h-40 bg-base-300 rounded" />
         </div>
@@ -23,7 +26,10 @@ export default function ProfileScreen() {
   const name = user?.name || "Unnamed user";
 
   return (
-    <AdminPageLayout title="Profile" description="Review your current account details.">
+    <AdminPageLayout
+      title="Profile"
+      description="Review your current account details."
+    >
       <Alert
         status="info"
         message="Profile editing and account management are not available in the admin yet. Your account details continue to be managed by the configured sign-in provider."

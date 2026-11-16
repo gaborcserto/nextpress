@@ -1,3 +1,3 @@
-export { default as PageTypeField } from "./PageTypeField"
+export { default as PageTypeField } from "./PageTypeField";
 
-export type { PageTypeFieldProps } from "./PageTypeField.types"
+export type { PageTypeFieldProps } from "./PageTypeField.types";

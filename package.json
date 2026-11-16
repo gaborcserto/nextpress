@@ -41,7 +41,8 @@
     "format:changed": "node scripts/check-changed.mjs --format",
     "format:check:changed": "node scripts/check-changed.mjs --format-check",
     "dev:api": "npm --workspace api run dev",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs",
+    "format:check": "node scripts/check-changed.mjs --format-check --full"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

@@ -51,6 +51,7 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
         message: "Name is too long",
       });
     }
+
     if (typeof input.image === "string" && input.image.length > 2048) {
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_INPUT",
@@ -60,6 +61,7 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
   }
 
   const normalized = { ...input };
+
   // The caller cannot opt out: Better Auth revokes all old sessions and issues
   // a fresh current session when this supported flag is true.
   if (ctx.path === "/change-password") normalized.revokeOtherSessions = true;

@@ -109,6 +109,7 @@ export const SerializedRichContentSchema = z
 /** Read compatibility only: old Slate arrays and plain text/HTML are never executed as HTML. */
 export function readRichContent(value: string | null): RichDocument {
   if (!value) return textDocument();
+
   if (value.length > 1_000_000)
     throw new Error("Invalid rich-content document");
   const trimmed = value.trimStart();

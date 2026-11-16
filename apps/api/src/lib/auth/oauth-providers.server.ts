@@ -99,10 +99,15 @@ export function buildSocialProviders(
     };
 
     if (provider === "apple") providers.apple = config;
+
     if (provider === "discord") providers.discord = config;
+
     if (provider === "facebook") providers.facebook = config;
+
     if (provider === "github") providers.github = config;
+
     if (provider === "google") providers.google = config;
+
     if (provider === "twitter") providers.twitter = config;
   }
 

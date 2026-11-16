@@ -33,7 +33,9 @@ describe("ProfileScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Profile editing and account management are not available",
     );
-    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /save/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /delete account/i }),
     ).not.toBeInTheDocument();

@@ -8,20 +8,20 @@ import { Box } from "../Box";
  */
 export default function SkeletonBox() {
   return (
-      <Box className="space-y-4">
-        {/* Title skeleton */}
-        <div className="skeleton h-10 w-2/3" />
+    <Box className="space-y-4">
+      {/* Title skeleton */}
+      <div className="skeleton h-10 w-2/3" />
 
-        {/* Content lines */}
-        <div className="space-y-2">
-          {[...Array(8)].map((_, i) => (
-              <div
-                  key={i}
-                  className="skeleton h-4"
-                  style={{ width: `${100 - i * 10}%` }}
-              />
-          ))}
-        </div>
-      </Box>
+      {/* Content lines */}
+      <div className="space-y-2">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="skeleton h-4"
+            style={{ width: `${100 - i * 10}%` }}
+          />
+        ))}
+      </div>
+    </Box>
   );
 }

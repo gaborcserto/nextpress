@@ -4,7 +4,9 @@ import { emailSchema, passwordSchema } from "./auth-policy";
 
 describe("shared credential policy", () => {
   it("normalizes email without removing plus addressing", () => {
-    expect(emailSchema.parse(" User+tag@Example.com ")).toBe("user+tag@example.com");
+    expect(emailSchema.parse(" User+tag@Example.com ")).toBe(
+      "user+tag@example.com",
+    );
     expect(emailSchema.safeParse("bad-address").success).toBe(false);
     expect(emailSchema.safeParse("user @example.com").success).toBe(false);
   });
@@ -18,6 +20,8 @@ describe("shared credential policy", () => {
     expect(passwordSchema.safeParse("😀".repeat(15)).success).toBe(true);
     expect(passwordSchema.safeParse("😀".repeat(65)).success).toBe(false);
     expect(passwordSchema.safeParse("\uD800".repeat(15)).success).toBe(false);
-    expect(passwordSchema.parse("  a long passphrase  ")).toBe("  a long passphrase  ");
+    expect(passwordSchema.parse("  a long passphrase  ")).toBe(
+      "  a long passphrase  ",
+    );
   });
 });

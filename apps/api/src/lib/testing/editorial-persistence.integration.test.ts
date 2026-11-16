@@ -79,6 +79,7 @@ describe.skipIf(!url)(
       if (client) {
         await client.end();
       }
+
       if (db) {
         await db.$disconnect();
       }

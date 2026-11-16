@@ -8,6 +8,7 @@ export function selectChanges(
       mode: "full",
       reason: "Full verification requested or change detection unavailable.",
     };
+
   if (!files.length)
     return { mode: emptyIsFull ? "full" : "none", reason: "No changed files." };
   const directories = new Set();
@@ -22,7 +23,6 @@ export function selectChanges(
         mode: "full",
         reason: "Agent instructions or resources changed.",
       };
-    if (file.endsWith(".md")) continue;
     const directory =
       /^(apps\/(?:web|admin|api)|packages\/(?:db|shared|eslint-config))\//.exec(
         file,

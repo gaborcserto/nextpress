@@ -9,10 +9,25 @@ describe("compiled skin resolution", () => {
   });
 
   it.each([
-    undefined, null, "", "unknown", "removed-skin", "Default", " default ",
-    "../skins/custom.css", "__proto__", "constructor", 0, false, {},
-    { id: "default" }, ["default"],
-  ])("uses the compiled default for an unavailable or malformed identity %j", (identity) => {
-    expect(resolveSkin(identity)).toBe(defaultSkin);
-  });
+    undefined,
+    null,
+    "",
+    "unknown",
+    "removed-skin",
+    "Default",
+    " default ",
+    "../skins/custom.css",
+    "__proto__",
+    "constructor",
+    0,
+    false,
+    {},
+    { id: "default" },
+    ["default"],
+  ])(
+    "uses the compiled default for an unavailable or malformed identity %j",
+    (identity) => {
+      expect(resolveSkin(identity)).toBe(defaultSkin);
+    },
+  );
 });

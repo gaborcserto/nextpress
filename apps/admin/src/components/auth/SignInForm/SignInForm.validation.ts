@@ -1,4 +1,7 @@
-import { emailSchema, MAX_PASSWORD_LENGTH } from "@nextpress/shared/auth-policy";
+import {
+  emailSchema,
+  MAX_PASSWORD_LENGTH,
+} from "@nextpress/shared/auth-policy";
 import { z } from "zod";
 
 /**

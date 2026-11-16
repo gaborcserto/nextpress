@@ -53,6 +53,7 @@ function main() {
 
   if (baseIndex !== -1) {
     base = args[baseIndex + 1];
+
     if (!base || base.startsWith("--"))
       throw new Error("--base requires a revision");
     args.splice(baseIndex, 2);
@@ -61,6 +62,7 @@ function main() {
   const explicitFiles = filesIndex === -1 ? null : args.splice(filesIndex + 1);
 
   if (filesIndex !== -1) args.splice(filesIndex, 1);
+
   if (
     args.some(
       (arg) => !["--full", "--ci", "--format", "--format-check"].includes(arg),
@@ -76,9 +78,12 @@ function main() {
 
   if (write && args.includes("--format-check"))
     throw new Error("Choose one formatting mode");
+
   if (ci && base) throw new Error("CI uses BASE_SHA/HEAD_SHA, not --base");
+
   if (write && (ci || args.includes("--full")))
     throw new Error("Formatting writes cannot use --ci or --full");
+
   if (explicitFiles && (!formatOnly || ci || !explicitFiles.length))
     throw new Error(
       "--files requires a local format mode and at least one path",
@@ -104,9 +109,22 @@ function main() {
       );
       selection = selectChanges(files, { emptyIsFull: true });
     } else {
-      files = explicitFiles ?? localChanges(git, base);
+      files =
+        explicitFiles ??
+        (args.includes("--full")
+          ? paths(
+              git(
+                "ls-files",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "-z",
+              ),
+            )
+          : localChanges(git, base));
       selection = selectChanges(files, { full: args.includes("--full") });
     }
+
     if (
       selection.mode === "affected" &&
       selection.directories.some(
@@ -132,6 +150,7 @@ function main() {
     selection = selectChanges([], { full: true });
   }
   console.log(`[check:changed] ${selection.mode}: ${selection.reason}`);
+
   if (ci && !formatOnly) {
     const filter = turboFilters(selection).join(" ");
     appendFileSync(
@@ -142,6 +161,7 @@ function main() {
     return;
   }
   formatFiles(files, { cwd: root, write });
+
   if (formatOnly || selection.mode === "none") return;
   const npmCli = process.env.npm_execpath;
 
@@ -159,6 +179,7 @@ function main() {
     });
 
     if (check.error) throw check.error;
+
     if (check.status !== 0) {
       process.exitCode = check.status ?? 1;
 
@@ -178,6 +199,7 @@ function main() {
       "lint",
       "typecheck",
       "test",
+      "--force",
       ...filters,
     ],
     { cwd: root, stdio: "inherit" },

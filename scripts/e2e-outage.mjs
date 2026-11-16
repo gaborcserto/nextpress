@@ -65,9 +65,11 @@ try {
         }
         assert.ok(response, `Isolated ${app} never responded`);
         assert.equal(response.status, app === "admin" ? 502 : 500);
+
         if (app === "admin")
           assert.deepEqual(await response.json(), { error: "API unavailable" });
         else assert.match(diagnostics, /public\.upstream\.failed/);
+
         if (scenario === "timeout")
           assert.ok(Date.now() - startedAt >= (app === "admin" ? 29000 : 9000));
         console.log(

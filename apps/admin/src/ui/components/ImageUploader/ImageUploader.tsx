@@ -53,12 +53,14 @@ export default function ImageUploader({
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+
     if (unavailable) return;
     void handleFiles(event.dataTransfer.files);
   };
 
   const onDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+
     if (unavailable) return;
     setDragOver(true);
   };

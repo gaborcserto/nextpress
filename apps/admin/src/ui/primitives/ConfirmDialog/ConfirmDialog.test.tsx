@@ -11,12 +11,20 @@ describe("ConfirmDialog", () => {
     trigger.focus();
     const onCancelAction = vi.fn();
     const view = render(
-      <ConfirmDialog open title="Delete user?" onConfirmAction={vi.fn()} onCancelAction={onCancelAction}>
+      <ConfirmDialog
+        open
+        title="Delete user?"
+        onConfirmAction={vi.fn()}
+        onCancelAction={onCancelAction}
+      >
         This action cannot be undone.
       </ConfirmDialog>,
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Delete user?", description: "This action cannot be undone." });
+    const dialog = screen.getByRole("dialog", {
+      name: "Delete user?",
+      description: "This action cannot be undone.",
+    });
     const cancel = screen.getByRole("button", { name: "Cancel" });
     expect(cancel).toHaveFocus();
     expect(dialog).toHaveAttribute("aria-modal", "true");
@@ -24,14 +32,20 @@ describe("ConfirmDialog", () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(onCancelAction).toHaveBeenCalledOnce();
     view.rerender(
-      <ConfirmDialog open={false} onConfirmAction={vi.fn()} onCancelAction={onCancelAction} />,
+      <ConfirmDialog
+        open={false}
+        onConfirmAction={vi.fn()}
+        onCancelAction={onCancelAction}
+      />,
     );
     expect(trigger).toHaveFocus();
     trigger.remove();
   });
 
   it("keeps Tab navigation inside the dialog", () => {
-    render(<ConfirmDialog open onConfirmAction={vi.fn()} onCancelAction={vi.fn()} />);
+    render(
+      <ConfirmDialog open onConfirmAction={vi.fn()} onCancelAction={vi.fn()} />,
+    );
     const confirm = screen.getByRole("button", { name: "Confirm" });
     confirm.focus();
     fireEvent.keyDown(confirm, { key: "Tab" });
@@ -46,7 +60,13 @@ describe("ConfirmDialog", () => {
     const onConfirmAction = vi.fn();
     const onCancelAction = vi.fn();
     const view = render(
-      <ConfirmDialog open title="Delete user?" loading onConfirmAction={onConfirmAction} onCancelAction={onCancelAction} />,
+      <ConfirmDialog
+        open
+        title="Delete user?"
+        loading
+        onConfirmAction={onConfirmAction}
+        onCancelAction={onCancelAction}
+      />,
     );
 
     const dialog = screen.getByRole("dialog", { name: "Delete user?" });
@@ -64,7 +84,11 @@ describe("ConfirmDialog", () => {
     expect(trigger).not.toHaveFocus();
 
     view.rerender(
-      <ConfirmDialog open={false} onConfirmAction={onConfirmAction} onCancelAction={onCancelAction} />,
+      <ConfirmDialog
+        open={false}
+        onConfirmAction={onConfirmAction}
+        onCancelAction={onCancelAction}
+      />,
     );
     expect(trigger).toHaveFocus();
     trigger.remove();

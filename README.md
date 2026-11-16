@@ -13,14 +13,14 @@ NextPress is a PostgreSQL-backed headless CMS with separate API, administration,
 
 The repository uses TypeScript, Next.js, React, Better Auth, Prisma, PostgreSQL, Zod, npm workspaces, and Turborepo.
 
-| Path | Purpose |
-| --- | --- |
-| `apps/api` | Authentication, API routes, validation, and database access |
-| `apps/admin` | Authenticated CMS interface |
-| `apps/web` | Public website |
-| `packages/db` | Prisma schema, migrations, and database client |
-| `packages/shared` | Shared contracts and content types |
-| `packages/eslint-config` | Shared application lint configuration |
+| Path                     | Purpose                                                     |
+| ------------------------ | ----------------------------------------------------------- |
+| `apps/api`               | Authentication, API routes, validation, and database access |
+| `apps/admin`             | Authenticated CMS interface                                 |
+| `apps/web`               | Public website                                              |
+| `packages/db`            | Prisma schema, migrations, and database client              |
+| `packages/shared`        | Shared contracts and content types                          |
+| `packages/eslint-config` | Shared application lint configuration                       |
 
 ## Getting started
 

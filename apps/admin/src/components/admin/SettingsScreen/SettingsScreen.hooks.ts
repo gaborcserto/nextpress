@@ -68,6 +68,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
       if (request.current !== requestId) {
         return;
       }
+
       if (!loadedRef.current) {
         setForm(normalizeSettingsForm(data, fallbackRole));
         loadedRef.current = true;

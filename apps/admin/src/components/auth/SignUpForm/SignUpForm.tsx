@@ -54,6 +54,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+
     if (submissionLock.current) return;
     setFieldErrors({});
     setFormError(null);

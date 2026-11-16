@@ -84,6 +84,7 @@ export function LoadMorePostList({
         ];
       });
       setPage(nextPage);
+
       if (
         (!batch.hasMore || nextPage >= getMaxPostsPage(postsPerPage)) &&
         startedWithButtonFocus &&

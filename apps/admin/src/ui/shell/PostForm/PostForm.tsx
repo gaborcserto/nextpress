@@ -102,6 +102,7 @@ export default function PostForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     if (submitting) {
       return;
     }
@@ -110,9 +111,11 @@ export default function PostForm({
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
     };
     setFieldErrors(errors);
+
     if (Object.keys(errors).length) {
       return;
     }
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
     }

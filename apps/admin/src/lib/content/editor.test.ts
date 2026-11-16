@@ -13,9 +13,9 @@ describe("editor content helpers", () => {
     expect(buildInitialForm({ title: "Hello World", slug: "" }).slug).toBe(
       "hello-world",
     );
-    expect(buildInitialForm({ title: "Hello World", slug: "custom" }).slug).toBe(
-      "custom",
-    );
+    expect(
+      buildInitialForm({ title: "Hello World", slug: "custom" }).slug,
+    ).toBe("custom");
   });
 
   it("extracts only non-empty string entity IDs", () => {
@@ -25,13 +25,21 @@ describe("editor content helpers", () => {
   });
 
   it("reads legacy strings as literal text and rejects malformed Slate", () => {
-    expect(normalizeSlateValue(null)).toEqual([{ type: "paragraph", children: [{ text: "" }] }]);
-    expect(normalizeSlateValue("  Hello  ")).toEqual([{ type: "paragraph", children: [{ text: "  Hello  " }] }]);
-    expect(() => normalizeSlateValue([{ type: "paragraph", children: [] }])).toThrow();
+    expect(normalizeSlateValue(null)).toEqual([
+      { type: "paragraph", children: [{ text: "" }] },
+    ]);
+    expect(normalizeSlateValue("  Hello  ")).toEqual([
+      { type: "paragraph", children: [{ text: "  Hello  " }] },
+    ]);
+    expect(() =>
+      normalizeSlateValue([{ type: "paragraph", children: [] }]),
+    ).toThrow();
   });
 
   it("serializes and reopens formatted content without JSON appearing as text", () => {
-    const blocks = [{ type: "paragraph" as const, children: [{ text: "Hello", bold: true }] }];
+    const blocks = [
+      { type: "paragraph" as const, children: [{ text: "Hello", bold: true }] },
+    ];
     expect(normalizeSlateValue(slateToString(blocks))).toEqual(blocks);
     expect(JSON.parse(slateToString(blocks))).toEqual({ version: 1, blocks });
   });

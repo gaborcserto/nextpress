@@ -20,6 +20,7 @@ const originalAnimate = Object.getOwnPropertyDescriptor(
 
 afterEach(() => {
   vi.restoreAllMocks();
+
   if (originalAnimate) {
     Object.defineProperty(HTMLElement.prototype, "animate", originalAnimate);
   } else {

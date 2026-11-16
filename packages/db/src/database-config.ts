@@ -12,6 +12,7 @@ export function getDatabaseConnectionString(
   } catch {
     throw new Error("DATABASE_URL must be a valid PostgreSQL URL");
   }
+
   if (!["postgres:", "postgresql:"].includes(url.protocol) || !url.hostname) {
     throw new Error("DATABASE_URL must be a valid PostgreSQL URL");
   }

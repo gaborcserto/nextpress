@@ -149,5 +149,11 @@
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$", "packages/db/.env"]
     }
-  }
+  },
+  "globalDependencies": [
+    "packages/eslint-config/**",
+    "eslint.config.mjs",
+    ".oxfmtrc.json",
+    "tsconfig.base.json"
+  ]
 }

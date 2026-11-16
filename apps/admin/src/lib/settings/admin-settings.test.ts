@@ -21,8 +21,12 @@ describe("admin settings contracts", () => {
   });
 
   it("uses safe defaults when stored listing settings are missing or invalid", () => {
-    expect(normalizeSettingsForm({ postListingMode: "UNKNOWN", postsPerPage: 500 }, "SUBSCRIBER"))
-      .toMatchObject({ postListingMode: "PAGINATION", postsPerPage: 10 });
+    expect(
+      normalizeSettingsForm(
+        { postListingMode: "UNKNOWN", postsPerPage: 500 },
+        "SUBSCRIBER",
+      ),
+    ).toMatchObject({ postListingMode: "PAGINATION", postsPerPage: 10 });
   });
 
   it("adds only explicitly entered provider secrets to the payload", () => {
@@ -66,9 +70,17 @@ describe("admin settings contracts", () => {
   });
 
   it("does not build a settings payload with an out-of-range batch size", () => {
-    const form = normalizeSettingsForm({
-      siteName: "NextPress", postListingMode: "PAGINATION", postsPerPage: 10, oauthProviders: [],
-    }, "SUBSCRIBER");
-    expect(() => buildSettingsPayload({ ...form, postsPerPage: 51 }, {})).toThrow();
+    const form = normalizeSettingsForm(
+      {
+        siteName: "NextPress",
+        postListingMode: "PAGINATION",
+        postsPerPage: 10,
+        oauthProviders: [],
+      },
+      "SUBSCRIBER",
+    );
+    expect(() =>
+      buildSettingsPayload({ ...form, postsPerPage: 51 }, {}),
+    ).toThrow();
   });
 });

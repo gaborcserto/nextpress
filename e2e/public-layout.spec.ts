@@ -78,6 +78,7 @@ for (const width of [320, 393, 768, 1440]) {
     page.on("console", (message) => {
       if (/\[Fast Refresh\]|\[HMR\]/.test(message.text()))
         developmentMessages.push(message.text());
+
       if (["warning", "error"].includes(message.type()))
         warnings.push(message.text());
     });
@@ -85,6 +86,7 @@ for (const width of [320, 393, 768, 1440]) {
     page.on("response", (response) => {
       if (response.url().includes("/_next/static/")) {
         chunks.push({ url: response.url(), status: response.status() });
+
         if (response.status() >= 400) resourceFailures.push(response.url());
       }
     });
@@ -183,6 +185,7 @@ for (const width of [320, 393, 768, 1440]) {
       warnings.filter((message) => message.includes("data-scroll-behavior")),
     ).toEqual([]);
     expect(chunks.length).toBeGreaterThan(0);
+
     if (process.env.NEXTPRESS_E2E_WEB_PRODUCTION === "1")
       expect(developmentMessages).toEqual([]);
     const observations = testInfo.outputPath("resource-observations.json");

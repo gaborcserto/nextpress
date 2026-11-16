@@ -72,6 +72,7 @@ export function Dropdown({
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (!wrapperRef.current) return;
+
       if (!wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
@@ -172,10 +173,14 @@ export function DropdownMenu({
 
     if (event.key === "ArrowDown")
       nextIndex = index < items.length - 1 ? index + 1 : 0;
+
     if (event.key === "ArrowUp")
       nextIndex = index > 0 ? index - 1 : items.length - 1;
+
     if (event.key === "Home") nextIndex = 0;
+
     if (event.key === "End") nextIndex = items.length - 1;
+
     if (nextIndex !== undefined) {
       event.preventDefault();
       items[nextIndex]?.focus();

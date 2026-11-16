@@ -34,6 +34,7 @@ export function contentReadWhere(
 
 export function contentWriteWhere(actor: ContentActor) {
   if (isEditor(actor)) return {};
+
   if (actor.role === "AUTHOR") return { authorId: actor.id };
   throw new ContentForbiddenError();
 }
@@ -50,6 +51,7 @@ export async function requireContentWrite(
   const item = await prisma.page.findUnique({ where: { id } });
 
   if (!item || (type && item.type !== type)) throw new ContentNotFoundError();
+
   if (scope.authorId && item.authorId !== scope.authorId)
     throw new ContentForbiddenError();
 

@@ -11,7 +11,9 @@ describe("Input rounding", () => {
     );
 
     rerender(<Input aria-label="Title" rounded="lg" />);
-    expect(screen.getByRole("textbox", { name: "Title" })).toHaveClass("rounded-lg");
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveClass(
+      "rounded-lg",
+    );
     expect(screen.getByRole("textbox", { name: "Title" })).not.toHaveClass(
       "rounded-[var(--radius-control)]",
     );

@@ -49,6 +49,7 @@ export const PATCH = withAuth(
     } catch (e) {
       if (e instanceof LastAdministratorError)
         return conflict("At least one administrator is required");
+
       if (
         typeof e === "object" &&
         e !== null &&
@@ -58,7 +59,7 @@ export const PATCH = withAuth(
         return notfound("User not found");
       console.error("PATCH /api/admin/users/:id/role failed");
 
-      return oops();
+      return oops(e);
     }
   },
   "users",

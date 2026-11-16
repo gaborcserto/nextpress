@@ -45,9 +45,11 @@ it.each([
     );
     expect(screen.queryByText("Categories:") !== null).toBe(hasCategories);
     expect(screen.queryByText("Tags:") !== null).toBe(hasTags);
+
     if (hasCategories) {
       expect(screen.getAllByText(category.name)).toHaveLength(1);
     }
+
     if (hasTags) {
       expect(screen.getAllByText(tag.name)).toHaveLength(1);
     }
@@ -75,6 +77,7 @@ it.each([0, 1, 6])(
         additionalPosts={[post, ...posts, ...posts]}
       />,
     );
+
     if (count === 0) {
       expect(screen.queryByRole("region")).not.toBeInTheDocument();
       expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
