@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchPostList } from "./postListFetcher";
+import { fetchPostList, PostListResponseError } from "./postListFetcher";
 
 const valid = {
   items: [
@@ -44,6 +44,29 @@ describe("post list response boundary", () => {
     );
     await expect(fetchPostList("/api/post")).rejects.toThrow(
       "Invalid post list response",
+    );
+  });
+
+  it.each([
+    ["missing title", { ...valid.items[0], title: undefined }],
+    ["missing updatedAt", { ...valid.items[0], updatedAt: undefined }],
+    ["missing excerpt", { ...valid.items[0], excerpt: undefined }],
+    ["wrong field type", { ...valid.items[0], title: 42 }],
+    ["invalid type", { ...valid.items[0], type: "ARTICLE" }],
+    ["invalid status", { ...valid.items[0], status: "UNKNOWN" }],
+    ["invalid datetime", { ...valid.items[0], updatedAt: "2026-11-16" }],
+  ])("rejects an item with %s", async (_label, item) => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ ...valid, items: [item] })),
+        ),
+    );
+
+    await expect(fetchPostList("/api/post")).rejects.toBeInstanceOf(
+      PostListResponseError,
     );
   });
 

@@ -24,6 +24,7 @@ const MAX_PAGE = 10_000;
 export function useContentList(
   endpoint: string,
   fetcher: (url: string) => Promise<ContentListResponse> = jsonFetcher,
+  shouldRetryOnError?: (error: Error) => boolean,
 ) {
   const params = useSearchParams();
   const pathname = usePathname();
@@ -59,6 +60,7 @@ export function useContentList(
   const { data, error, isLoading, isValidating, mutate } =
     useSWR<ContentListResponse>(`${endpoint}?page=${page}`, fetcher, {
       keepPreviousData: false,
+      ...(shouldRetryOnError && { shouldRetryOnError }),
     });
   const lastPage = data ? Math.max(1, Math.min(data.pages, MAX_PAGE)) : page;
   const correcting = Boolean(data && page > lastPage);

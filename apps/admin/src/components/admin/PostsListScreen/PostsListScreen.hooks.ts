@@ -6,13 +6,17 @@ import { apiFetch } from "@/lib/api";
 import { useContentList } from "@/lib/content/useContentList";
 import { showToast } from "@/ui/utils";
 
-import { fetchPostList } from "./postListFetcher";
+import { fetchPostList, PostListResponseError } from "./postListFetcher";
+
+function shouldRetryPostList(error: Error) {
+  return !(error instanceof PostListResponseError);
+}
 
 /**
  * Load paginated list of posts from /api/post.
  */
 export function usePostsList() {
-  return useContentList("/api/post", fetchPostList);
+  return useContentList("/api/post", fetchPostList, shouldRetryPostList);
 }
 
 /**
