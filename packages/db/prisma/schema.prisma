@@ -558,3 +558,11 @@ model ContentEditLeaseEvent {
   @@unique([actorKey, operationId])
   @@index([pageId, occurredAt, id])
 }
+
+// Database triggers coordinate legacy writers, including old clients and direct SQL.
+model LegacyBackfillFence {
+  id         Int       @id
+  generation BigInt    @default(autoincrement())
+  owner      String?   @db.Uuid
+  expiresAt  DateTime? @db.Timestamptz(3)
+}

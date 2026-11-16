@@ -242,6 +242,9 @@ async function verifyFamily(family: "content" | "security") {
       ? "NEXTPRESS_CONTENT_TEST_DATABASE_URL"
       : "NEXTPRESS_SECURITY_TEST_DATABASE_URL";
   process.env[optIn] = url;
+  process.env.NEXTPRESS_BACKFILL_DATABASE_NAME = manifest.database;
+  process.env.NEXTPRESS_BACKFILL_CLUSTER_ID = manifest.cluster;
+  process.env.NEXTPRESS_BACKFILL_DATABASE_ROLE = "b04_runtime";
   // This process imports the singleton only once; families run in separate processes.
   const { prisma } = await import("@nextpress/db/src/client");
   let evidenceCreated = false;
@@ -278,6 +281,8 @@ async function verifyFamily(family: "content" | "security") {
         "src/lib/auth/user-administration.integration.test.ts",
         "src/lib/testing/postgres-feasibility.integration.test.ts",
         "src/lib/testing/editorial-persistence.integration.test.ts",
+        "src/lib/testing/legacy-backfill.integration.test.ts",
+        "src/lib/testing/legacy-backfill-fence.integration.test.ts",
         "--maxWorkers=1",
       ]);
     } else {

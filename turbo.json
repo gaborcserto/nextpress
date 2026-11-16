@@ -2,6 +2,9 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "NEXTPRESS_E2E",
+    "NEXTPRESS_BACKFILL_DATABASE_NAME",
+    "NEXTPRESS_BACKFILL_CLUSTER_ID",
+    "NEXTPRESS_BACKFILL_DATABASE_ROLE",
     "MEDIA_STORAGE_ROOT",
     "SITE_URL",
     "NEXT_PUBLIC_PREVIEW_ORIGIN",

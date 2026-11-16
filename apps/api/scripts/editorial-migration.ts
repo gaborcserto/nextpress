@@ -26,7 +26,7 @@ export async function verifyEditorialMigration(db: typeof prisma) {
   const migrations = resolve(temporary, "migrations");
   mkdirSync(migrations);
   const names = readdirSync(source)
-    .filter((name) => name !== migrationName && name !== "migration_lock.toml")
+    .filter((name) => name < migrationName && name !== "migration_lock.toml")
     .sort();
   assert.equal(names.length, 11);
   cpSync(
@@ -192,6 +192,11 @@ try {
     data: { title: "Legacy update still works" },
   });
   assert.equal(await db.contentRevision.count(), 0);
+  const coordination = "20261116140000_legacy_backfill_coordination";
+  cpSync(resolve(source, coordination), resolve(migrations, coordination), {
+    recursive: true,
+  });
+  cli(["migrate", "deploy"]);
   cli([
     "migrate",
     "diff",
