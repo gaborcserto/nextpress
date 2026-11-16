@@ -5,6 +5,7 @@ import {
   contentWriteWhere,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { resolvePublicationDate } from "@/lib/publication";
 import { ContentVersionConflictError, slugify } from "@/lib/utils";
 
 import { setTagsForPage } from "./tagRepo";
@@ -134,11 +135,7 @@ export async function createPage(
       layout: input.layout,
       inHeaderMenu: input.inHeaderMenu,
       inFooterMenu: input.inFooterMenu,
-      publishedAt: input.publishedAt
-        ? new Date(input.publishedAt)
-        : input.status === "PUBLISHED"
-          ? new Date()
-          : null,
+      publishedAt: resolvePublicationDate(null, input),
       authorId: input.authorId ?? null,
     },
   });
@@ -162,20 +159,11 @@ export async function updatePage(
     await ensureUniqueSlug({ slug: next.slug, excludeId: id }, db);
   }
 
-  let publishedAt: Date | null | undefined;
-
-  if (next.publishedAt) {
-    publishedAt = new Date(next.publishedAt);
-  } else if (next.publishedAt === null || next.status === "PUBLISHED") {
-    const current = await db.page.findUniqueOrThrow({
-      where: { id, type, ...contentWriteWhere(actor) },
-      select: { status: true, publishedAt: true },
-    });
-    publishedAt =
-      (next.status ?? current.status) === "PUBLISHED"
-        ? (current.publishedAt ?? new Date())
-        : null;
-  }
+  const current = await db.page.findUniqueOrThrow({
+    where: { id, type, ...contentWriteWhere(actor) },
+    select: { status: true, publishedAt: true },
+  });
+  const publishedAt = resolvePublicationDate(current, next);
 
   return db.page.update({
     where: {

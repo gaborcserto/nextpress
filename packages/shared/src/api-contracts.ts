@@ -104,6 +104,7 @@ export const EditorialPostSchema = z.object({
 });
 export const EditorialPageSchema = z.object({
   ...editorialFields,
+  publishedAt: date.nullable(),
   type: ContentLayoutSchema,
   parentId: nullableString,
   inHeaderMenu: z.boolean(),

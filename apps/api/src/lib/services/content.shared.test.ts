@@ -8,9 +8,22 @@ import {
   runWithContentConflictHandling,
   validateCreateBody,
   validateUpdateBody,
+  validatePublicationFields,
 } from "./content.shared";
 
 describe("content service validation", () => {
+  it("rejects publication of historical content with an invalid public identity", () => {
+    expect(() =>
+      validatePublicationFields({ title: "   ", slug: "valid" }),
+    ).toThrow(PageValidationError);
+    expect(() =>
+      validatePublicationFields({ title: "Title", slug: "" }),
+    ).toThrow(PageValidationError);
+    expect(() =>
+      validatePublicationFields({ title: "Title", slug: "valid" }),
+    ).not.toThrow();
+  });
+
   it("returns parsed create data with schema defaults", () => {
     expect(
       validateCreateBody({

@@ -202,7 +202,8 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
         onCancelAction={stay}
         onConfirmAction={leave}
       >
-        Your unsaved changes will be lost. Tags already saved are not undone.
+        Your unsaved changes will be lost.
+        {persistedTags && " Tags already saved are not undone."}
       </ConfirmDialog>
     ),
   };

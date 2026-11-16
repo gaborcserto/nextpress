@@ -67,9 +67,15 @@ export function usePageEditor(id?: string) {
 
         return false;
       }
+      // An unchanged blank date is not an explicit request to reset publication time.
+      const submittedValues = { ...values };
+
+      if (data && values.publishedAt === data.item.publishedAt) {
+        delete submittedValues.publishedAt;
+      }
       const { ok, status } =
         id && data
-          ? await updatePageApi(id, values, data.item.workingVersion)
+          ? await updatePageApi(id, submittedValues, data.item.workingVersion)
           : await createPageApi(values);
 
       if (!ok) {

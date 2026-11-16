@@ -33,7 +33,9 @@ export function postValuesToDto(values: PostFormValues): PostDto {
     excerpt: slateToString(values.excerpt),
     content: slateToString(values.content),
     tagIds,
-    publishedAt: values.publishedAt ?? null,
+    ...(values.publishedAt !== undefined
+      ? { publishedAt: values.publishedAt }
+      : {}),
   };
 }
 

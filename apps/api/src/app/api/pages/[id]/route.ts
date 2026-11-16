@@ -31,6 +31,7 @@ function mapPageToFormValues(
     workingVersion: page.workingVersion,
     type: page.layout,
     status: page.status,
+    publishedAt: page.publishedAt?.toISOString() ?? null,
     slug: page.slug,
     title: page.title,
     content: readRichContent(page.content).blocks,

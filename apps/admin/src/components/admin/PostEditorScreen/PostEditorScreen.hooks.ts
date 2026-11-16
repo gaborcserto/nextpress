@@ -67,9 +67,19 @@ export function usePostEditor(postId?: string) {
 
         return false;
       }
+      // An unchanged blank date is not an explicit request to reset publication time.
+      const submittedValues = { ...values };
+
+      if (data && values.publishedAt === data.item.publishedAt) {
+        delete submittedValues.publishedAt;
+      }
       const { ok, status } =
         postId && data
-          ? await updatePostApi(postId, values, data.item.workingVersion)
+          ? await updatePostApi(
+              postId,
+              submittedValues,
+              data.item.workingVersion,
+            )
           : await createPostApi(values);
 
       if (!ok) {

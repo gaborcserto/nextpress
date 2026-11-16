@@ -49,8 +49,6 @@ export default function PostForm({
   imageUploadAction,
   loadTagOptionsAction,
   createTagAction,
-  loadEntityTagsAction,
-  updateEntityTagsAction,
   sidebarTitle,
   sidebarSubtitle,
 }: PostFormProps) {
@@ -70,7 +68,7 @@ export default function PostForm({
 
   // Track if slug was manually edited:
   // true only if initial.slug differs from auto-generated slug
-  const unsaved = useUnsavedChanges(form, Boolean(getEntityId(initial)));
+  const unsaved = useUnsavedChanges(form, false);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(() => {
     if (!initial.title || !initial.slug) return false;
@@ -78,6 +76,8 @@ export default function PostForm({
 
     return initial.slug !== autoSlug;
   });
+  const [hasSaved, setHasSaved] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     slug?: string;
@@ -116,12 +116,26 @@ export default function PostForm({
       return;
     }
 
+    setSaveFailed(false);
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
+      setHasSaved(true);
+    } else {
+      setSaveFailed(true);
     }
   };
 
   const entityId = getEntityId(initial);
+  let saveStatus = hasSaved ? "Saved" : "No unsaved changes";
+
+  if (submitting) {
+    saveStatus = "Saving...";
+  } else if (saveFailed) {
+    saveStatus = "Save failed. Your edits are retained. Retry saving.";
+  } else if (unsaved.dirty) {
+    saveStatus = "Unsaved changes";
+  }
 
   return (
     <LivePreview
@@ -142,18 +156,15 @@ export default function PostForm({
                 <>
                   <Section title="Tags" desc="Organize your post with tags.">
                     <p className="text-sm mb-3">
-                      Tags on existing content save immediately. Cancel does not
-                      undo them.
+                      Tag assignments save with the form. Cancel discards
+                      unsaved assignments.
                     </p>
                     <TagsField
-                      entityId={entityId}
                       value={form.tags}
                       onChangeAction={(tags) => setField("tags", tags)}
                       loadOptionsAction={loadTagOptionsAction}
                       createTagAction={createTagAction}
-                      loadEntityTagsAction={loadEntityTagsAction}
-                      updateEntityTagsAction={updateEntityTagsAction}
-                      persist={Boolean(entityId)}
+                      persist={false}
                     />
                   </Section>
                 </>
@@ -220,7 +231,7 @@ export default function PostForm({
                   <Field
                     label="Publish date"
                     htmlFor="post-published-at"
-                    hint="Leave empty to publish immediately when status is PUBLISHED."
+                    hint="Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
                     span={4}
                   >
                     <Input
@@ -272,7 +283,15 @@ export default function PostForm({
                 />
               </Section>
 
+              <p className="text-sm">
+                Saving Published content updates public content when its publish
+                date is due. Choose Draft and save to withdraw it. Autosave is
+                unavailable; use Save to persist changes.
+              </p>
               <StickyWrapper>
+                <p role="status" aria-live="polite">
+                  {saveStatus}
+                </p>
                 <Button
                   type="button"
                   variant="ghost"

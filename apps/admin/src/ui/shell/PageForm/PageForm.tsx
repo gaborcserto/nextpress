@@ -7,6 +7,7 @@ import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
+  publicationDateToLocal,
 } from "@/lib/content/editor";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
@@ -50,8 +51,6 @@ export default function PageForm({
   submitLabel = "Save",
   loadTagOptionsAction,
   createTagAction,
-  loadEntityTagsAction,
-  updateEntityTagsAction,
   sidebarTitle,
   sidebarSubtitle,
 }: PageFormProps) {
@@ -65,9 +64,11 @@ export default function PageForm({
     };
   });
 
-  const unsaved = useUnsavedChanges(form, Boolean(getEntityId(initial)));
+  const unsaved = useUnsavedChanges(form, false);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
+  const [hasSaved, setHasSaved] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
     slug?: string;
@@ -118,12 +119,26 @@ export default function PageForm({
       return;
     }
 
+    setSaveFailed(false);
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
+      setHasSaved(true);
+    } else {
+      setSaveFailed(true);
     }
   };
 
   const entityId = getEntityId(initial);
+  let saveStatus = hasSaved ? "Saved" : "No unsaved changes";
+
+  if (submitting) {
+    saveStatus = "Saving...";
+  } else if (saveFailed) {
+    saveStatus = "Save failed. Your edits are retained. Retry saving.";
+  } else if (unsaved.dirty) {
+    saveStatus = "Unsaved changes";
+  }
 
   return (
     <LivePreview id={entityId} savedContent={initial} values={form}>
@@ -139,18 +154,15 @@ export default function PageForm({
                 <>
                   <Section title="Tags" desc="Categorize page with tags.">
                     <p className="text-sm mb-3">
-                      Tags on existing content save immediately. Cancel does not
-                      undo them.
+                      Tag assignments save with the form. Cancel discards
+                      unsaved assignments.
                     </p>
                     <TagsField
-                      entityId={entityId}
                       value={form.tags}
                       onChangeAction={(tags) => setField("tags", tags)}
                       loadOptionsAction={loadTagOptionsAction}
                       createTagAction={createTagAction}
-                      loadEntityTagsAction={loadEntityTagsAction}
-                      updateEntityTagsAction={updateEntityTagsAction}
-                      persist={Boolean(entityId)}
+                      persist={false}
                     />
                   </Section>
 
@@ -237,6 +249,29 @@ export default function PageForm({
                   </Field>
 
                   <Field
+                    label="Publish date"
+                    htmlFor="page-published-at"
+                    hint="Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                    span={4}
+                  >
+                    <Input
+                      id="page-published-at"
+                      type="datetime-local"
+                      step="0.001"
+                      fullWidth
+                      value={publicationDateToLocal(form.publishedAt) ?? ""}
+                      onChange={(event) =>
+                        setField(
+                          "publishedAt",
+                          event.target.value
+                            ? new Date(event.target.value).toISOString()
+                            : null,
+                        )
+                      }
+                    />
+                  </Field>
+
+                  <Field
                     label="Layout"
                     htmlFor="page-type"
                     hint="Only Standard is available for new pages. Existing layouts are preserved."
@@ -302,7 +337,15 @@ export default function PageForm({
                 />
               </Section>
 
+              <p className="text-sm">
+                Saving Published content updates public content when its publish
+                date is due. Choose Draft and save to withdraw it. Autosave is
+                unavailable; use Save to persist changes.
+              </p>
               <StickyWrapper>
+                <p role="status" aria-live="polite">
+                  {saveStatus}
+                </p>
                 <Button
                   type="button"
                   variant="ghost"

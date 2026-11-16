@@ -24,7 +24,22 @@ vi.mock("@/ui/components", async () => ({
     .default,
   RedirectField: () => null,
   SlateEditor: () => null,
-  TagsField: () => null,
+  TagsField: ({
+    onChangeAction,
+    persist,
+  }: {
+    onChangeAction: (
+      tags: { id: string; name: string; slug: string }[],
+    ) => void;
+    persist: boolean;
+  }) => (
+    <button
+      type="button"
+      onClick={() => onChangeAction([{ id: "tag", name: "Tag", slug: "tag" }])}
+    >
+      {persist ? "Assign immediately" : "Assign on save"}
+    </button>
+  ),
 }));
 
 const initial: PageFormValues = {
@@ -39,7 +54,10 @@ const initial: PageFormValues = {
   inFooterMenu: false,
 };
 
-function renderPage(values: PageFormValues, save = vi.fn(async () => true)) {
+function renderPage(
+  values: PageFormValues,
+  save: (values: PageFormValues) => Promise<boolean> = vi.fn(async () => true),
+) {
   return render(
     <PageForm
       initial={values}
@@ -53,6 +71,56 @@ function renderPage(values: PageFormValues, save = vi.fn(async () => true)) {
 }
 
 describe("PageForm", () => {
+  it("retains failed edits and retries tags through the same form save", async () => {
+    const save = vi
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    renderPage({ ...initial, title: "Existing", slug: "existing" }, save);
+    fireEvent.click(screen.getByRole("button", { name: "Assign on save" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Save" })),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Save failed");
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        tags: [{ id: "tag", name: "Tag", slug: "tag" }],
+      }),
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Save" })),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Saved");
+  });
+
+  it("round-trips a scheduled Page date through an unrelated edit", async () => {
+    const publishedAt = "2026-12-01T12:30:00.000Z";
+    const save = vi.fn(async (_values: PageFormValues) => true);
+    renderPage(
+      {
+        ...initial,
+        status: "PUBLISHED",
+        title: "Scheduled",
+        slug: "scheduled",
+        publishedAt,
+      },
+      save,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Edited schedule" },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Save" })),
+    );
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ publishedAt, status: "PUBLISHED" }),
+    );
+    expect(
+      pageValuesToDto(save.mock.calls[0]?.[0] ?? initial).publishedAt,
+    ).toBe(publishedAt);
+  });
+
   it("offers only Standard for new pages", () => {
     renderPage(initial);
     expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(

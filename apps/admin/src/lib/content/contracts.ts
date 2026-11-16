@@ -29,6 +29,7 @@ export type PageStatus = "DRAFT" | "PUBLISHED";
 export type ListingKind = "POSTS" | "PRODUCTS" | "EVENTS";
 
 export type PageFormValues = {
+  publishedAt?: string | null;
   type: PageType;
   status: PageStatus;
   slug: string;

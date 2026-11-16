@@ -10,6 +10,7 @@ import { validateTagIds } from "@/lib/repos/tagRepo";
 import {
   validateCreateBody,
   validateUpdateBody,
+  validatePublicationFields,
   runWithContentConflictHandling,
   PageValidationError,
 } from "./content.shared";
@@ -51,13 +52,20 @@ export async function updatePageService(
   rawBody: unknown,
   actor: ContentActor,
 ) {
-  await requireContentWrite(id, actor, "PAGE");
+  const current = await requireContentWrite(id, actor, "PAGE");
   const parsed = validateUpdateBody(rawBody);
 
   if (parsed.type && parsed.type !== "PAGE") {
     throw new PageValidationError([
       { path: "type", message: "Content type cannot be changed" },
     ]);
+  }
+
+  if (parsed.status === "PUBLISHED") {
+    validatePublicationFields({
+      title: parsed.title ?? current.title,
+      slug: parsed.slug ?? current.slug,
+    });
   }
 
   if (parsed.tagIds) await validateTagIds(parsed.tagIds);

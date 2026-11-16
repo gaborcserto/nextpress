@@ -18,6 +18,9 @@ export function pageValuesToDto(values: PageFormValues): PageDto {
     type: "PAGE",
     layout: values.type,
     status: values.status,
+    ...(values.publishedAt !== undefined
+      ? { publishedAt: values.publishedAt }
+      : {}),
     slug: values.slug,
     title: values.title,
     content: slateToString(values.content),

@@ -16,6 +16,8 @@ import {
   ContentNotFoundError,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { resolvePublicationDate } from "@/lib/publication";
+import { PublicationFieldsSchema } from "@/lib/validation/page";
 
 export class RevisionConflictError extends Error {}
 
@@ -109,7 +111,7 @@ export async function revisionAction(
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(71520261111::bigint)`;
     const current = await tx.page.findFirst({
       where: { id: pageId, ...scope },
-      select: { updatedAt: true },
+      select: { updatedAt: true, status: true, publishedAt: true },
     });
 
     if (!current) throw new ContentNotFoundError();
@@ -124,6 +126,11 @@ export async function revisionAction(
       !readPageDocument(revision.pageDocument).supported
     )
       throw new RevisionConflictError();
+
+    if (parsed.action === "publish") {
+      PublicationFieldsSchema.parse(revision);
+    }
+
     const changed = await tx.page.updateMany({
       where: { id: pageId, ...scope, workingVersion: parsed.expectedVersion },
       data: { workingVersion: { increment: 1 }, updatedAt: current.updatedAt },
@@ -161,7 +168,11 @@ export async function revisionAction(
 
     return tx.page.update({
       where: { id: pageId },
-      data: { ...snapshot, status: "PUBLISHED", publishedAt: new Date() },
+      data: {
+        ...snapshot,
+        status: "PUBLISHED",
+        publishedAt: resolvePublicationDate(current, { status: "PUBLISHED" }),
+      },
     });
   });
 }

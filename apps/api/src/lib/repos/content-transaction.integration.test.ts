@@ -42,6 +42,107 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     await db.$disconnect();
   });
   it.each(["PAGE", "POST"] as const)(
+    "%s reloads a draft, schedule, live save and withdrawal",
+    async (type) => {
+      const user = await db.user.create({
+        data: { name: "Lifecycle verification" },
+      });
+      const publishedAt = new Date("2099-01-01T00:00:00.000Z");
+
+      try {
+        const page = await create(
+          {
+            type,
+            status: "DRAFT",
+            slug: `${slug}-lifecycle-${type.toLowerCase()}`,
+            title: "Draft",
+            content: "",
+            excerpt: "",
+            authorId: user.id,
+          },
+          [],
+        );
+        expect(page.publishedAt).toBeNull();
+        await update(
+          page.id,
+          {
+            expectedVersion: 0,
+            status: "PUBLISHED",
+            publishedAt: publishedAt.toISOString(),
+          },
+          type,
+          actor,
+        );
+        await update(
+          page.id,
+          { expectedVersion: 1, title: "Scheduled edit" },
+          type,
+          actor,
+        );
+        const scheduled = await db.page.findUniqueOrThrow({
+          where: { id: page.id },
+        });
+        expect(scheduled.publishedAt).toEqual(publishedAt);
+        expect(scheduled.status).toBe("PUBLISHED");
+        expect(
+          await db.page.count({
+            where: {
+              id: page.id,
+              status: "PUBLISHED",
+              publishedAt: { lte: new Date() },
+            },
+          }),
+        ).toBe(0);
+        await expect(
+          update(
+            page.id,
+            { expectedVersion: 1, title: "Stale edit" },
+            type,
+            actor,
+          ),
+        ).rejects.toThrow();
+        await update(
+          page.id,
+          { expectedVersion: 2, publishedAt: null },
+          type,
+          actor,
+        );
+        const live = await db.page.findUniqueOrThrow({
+          where: { id: page.id },
+        });
+        expect(live.publishedAt).not.toBeNull();
+        expect(
+          await db.page.count({
+            where: {
+              id: page.id,
+              status: "PUBLISHED",
+              publishedAt: { lte: new Date() },
+            },
+          }),
+        ).toBe(1);
+        await update(
+          page.id,
+          { expectedVersion: 3, status: "DRAFT" },
+          type,
+          actor,
+        );
+        const withdrawn = await db.page.findUniqueOrThrow({
+          where: { id: page.id },
+        });
+        expect(withdrawn.publishedAt).toEqual(live.publishedAt);
+        expect(withdrawn.status).toBe("DRAFT");
+        expect(withdrawn.title).toBe("Scheduled edit");
+        expect(
+          await db.page.count({ where: { id: page.id, status: "PUBLISHED" } }),
+        ).toBe(0);
+      } finally {
+        await db.page.deleteMany({ where: { authorId: user.id } });
+        await db.user.delete({ where: { id: user.id } });
+      }
+    },
+  );
+
+  it.each(["PAGE", "POST"] as const)(
     "%s commits links and rolls back create/update after link failure",
     async (type) => {
       const slug = `transaction-${suffix}-${type.toLowerCase()}`;

@@ -1,5 +1,10 @@
 import { PageSchema, PageUpdateSchema } from "@nextpress/shared/api-contracts";
 export { PageSchema, PageUpdateSchema };
+
+export const PublicationFieldsSchema = PageSchema.pick({
+  title: true,
+  slug: true,
+});
 export type {
   PageCreateInput,
   PageUpdateInput,

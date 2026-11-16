@@ -609,7 +609,7 @@ describe.each(routes)(
         data: {
           title: "Own edit",
           status: "DRAFT",
-          publishedAt: undefined,
+          publishedAt: expect.any(Date),
           workingVersion: { increment: 1 },
         },
       });

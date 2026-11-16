@@ -2,6 +2,7 @@ import { ContentVersionConflictError, isSlugConflictError } from "@/lib/utils";
 import {
   PageSchema,
   PageUpdateSchema,
+  PublicationFieldsSchema,
   zodIssues,
   type ValidationIssue,
 } from "@/lib/validation";
@@ -66,5 +67,21 @@ export async function runWithContentConflictHandling<T>(
       throw new PageConflictError();
     }
     throw err;
+  }
+}
+
+/** Validate the merged public identity when a partial update explicitly publishes. */
+export function validatePublicationFields(fields: {
+  title: string;
+  slug: string;
+}) {
+  const result = PublicationFieldsSchema.safeParse(fields);
+
+  if (!result.success) {
+    throw new PageValidationError(
+      zodIssues(result.error) ?? [
+        { path: null, message: "Invalid publication fields" },
+      ],
+    );
   }
 }
