@@ -7,9 +7,11 @@ import { expect, it, vi } from "vitest";
 import { disposableDatabaseName } from "./disposable-database";
 import {
   readDisposableManifest,
+  disposableDockerContext,
   verifyConnectedIdentity,
   verifyDockerEvidence,
   verifyLocalDocker,
+  verifyProvisioningCleanup,
   type DisposableManifest,
 } from "./docker-database";
 
@@ -17,7 +19,7 @@ vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 
 it("pins Docker inspection to the local context despite environment overrides", () => {
   const execute = vi.mocked(execFileSync);
-  execute.mockReturnValue("npipe:////./pipe/dockerDesktopLinuxEngine");
+  execute.mockReturnValue(disposableDockerContext().endpoint);
   vi.stubEnv("DOCKER_HOST", "tcp://remote.invalid:2375");
   vi.stubEnv("DOCKER_CONTEXT", "remote");
 
@@ -27,7 +29,7 @@ it("pins Docker inspection to the local context despite environment overrides", 
       "docker",
       [
         "--context",
-        "desktop-linux",
+        disposableDockerContext().name,
         "context",
         "inspect",
         "--format",
@@ -214,5 +216,41 @@ it("rejects shared networks, volumes and wildcard publications", () => {
       ],
       volume.network,
     ),
+  ).toThrow();
+});
+
+it("pins supported Docker contexts to local endpoints and rejects other platforms", () => {
+  expect(disposableDockerContext("linux")).toEqual({
+    name: "default",
+    endpoint: "unix:///var/run/docker.sock",
+  });
+  expect(disposableDockerContext("win32")).toEqual({
+    name: "desktop-linux",
+    endpoint: "npipe:////./pipe/dockerDesktopLinuxEngine",
+  });
+  expect(() => disposableDockerContext("darwin")).toThrow();
+});
+
+it("cleans only owned provisioning resources even when startup fails", () => {
+  const target = evidence();
+  target.container[0]!.State.Running = false;
+  expect(() =>
+    verifyProvisioningCleanup(manifest, target.container, target.network),
+  ).not.toThrow();
+  expect(() =>
+    verifyDockerEvidence(manifest, target.container, target.network),
+  ).toThrow();
+  for (const field of ["container", "network", "image", "run"] as const) {
+    expect(() =>
+      verifyProvisioningCleanup(
+        { ...manifest, [field]: "unowned" },
+        target.container,
+        target.network,
+      ),
+    ).toThrow();
+  }
+  target.network[0]!.Containers.other = {};
+  expect(() =>
+    verifyProvisioningCleanup(manifest, target.container, target.network),
   ).toThrow();
 });

@@ -6,19 +6,26 @@ import { z } from "zod";
 import { disposableDatabaseName } from "../src/lib/testing/disposable-database";
 import {
   disposableManifestPath,
+  disposableDockerContext,
+  verifyDockerEvidence,
   verifyDisposableDatabase,
   verifyDockerTarget,
   verifyLocalDocker,
+  verifyProvisioningCleanup,
   type DisposableManifest,
 } from "../src/lib/testing/docker-database";
 
 function docker(...args: string[]) {
   try {
-    return execFileSync("docker", ["--context", "desktop-linux", ...args], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 30000,
-    }).trim();
+    return execFileSync(
+      "docker",
+      ["--context", disposableDockerContext().name, ...args],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 30000,
+      },
+    ).trim();
   } catch {
     throw new Error(
       "Docker verification command failed (credential output suppressed)",
@@ -39,6 +46,39 @@ function npm(args: string[]) {
   });
 
   if (result.status !== 0) {
+    if (tests && result.stdout) {
+      const report = z
+        .object({
+          testResults: z.array(
+            z.object({
+              assertionResults: z.array(
+                z.object({
+                  fullName: z.string(),
+                  status: z.string(),
+                  failureMessages: z.array(z.string()),
+                }),
+              ),
+            }),
+          ),
+        })
+        .parse(JSON.parse(result.stdout));
+
+      for (const suite of report.testResults) {
+        for (const test of suite.assertionResults) {
+          if (test.status === "failed") {
+            console.error(
+              test.fullName,
+              test.failureMessages
+                .join("\n")
+                .replace(
+                  /postgres(?:ql)?:\/\/[^\s]+/g,
+                  "[redacted database URL]",
+                ),
+            );
+          }
+        }
+      }
+    }
     throw new Error(`Verification command failed: npm ${args.join(" ")}`);
   }
 
@@ -66,7 +106,7 @@ function sql(container: string, database: string, statement: string) {
       "docker",
       [
         "--context",
-        "desktop-linux",
+        disposableDockerContext().name,
         "exec",
         "-i",
         container,
@@ -91,6 +131,31 @@ function sql(container: string, database: string, statement: string) {
   }
 }
 
+function removeNetwork(network: string, run: string) {
+  const [ownedNetwork] = z
+    .array(
+      z.object({
+        Id: z.string(),
+        Labels: z.record(z.string(), z.string()),
+        Containers: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .length(1)
+    .parse(JSON.parse(docker("network", "inspect", network)));
+
+  if (
+    !ownedNetwork ||
+    ownedNetwork.Id !== network ||
+    ownedNetwork.Labels["nextpress.disposable"] !== run ||
+    Object.keys(ownedNetwork.Containers).length
+  ) {
+    throw new Error(
+      "Refusing cleanup of an unowned or shared disposable network",
+    );
+  }
+  docker("network", "rm", network);
+}
+
 async function verifyFamily(family: "content" | "security") {
   verifyLocalDocker();
   const run = randomBytes(6).toString("hex");
@@ -99,8 +164,10 @@ async function verifyFamily(family: "content" | "security") {
   const password = randomBytes(32).toString("hex");
   const nonce = randomBytes(32).toString("hex");
   const port = family === "content" ? 55432 : 55433;
-  const image =
-    "sha256:194f5f2a900a5775ecff2129be107adc7c1ce98b89ac00ca0bed141310b7e6cd";
+  const reference =
+    "postgres@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8";
+  docker("pull", reference);
+  const image = docker("image", "inspect", reference, "--format", "{{.Id}}");
   const network = docker(
     "network",
     "create",
@@ -111,83 +178,96 @@ async function verifyFamily(family: "content" | "security") {
     `nextpress.disposable=${run}`,
     networkName,
   );
-  const container = docker(
-    "run",
-    "--detach",
-    "--name",
-    `nextpress-b04-disposable-${run}`,
-    "--label",
-    `nextpress.disposable=${run}`,
-    "--network",
-    networkName,
-    "--publish",
-    `127.0.0.1:${port}:5432`,
-    "--tmpfs",
-    "/var/lib/postgresql:rw",
-    "--env",
-    `POSTGRES_PASSWORD=${password}`,
-    "--env",
-    "POSTGRES_USER=b04_provisioner",
-    "--env",
-    `POSTGRES_DB=${database}`,
-    image,
-  );
-  let ready = false;
+  let container: string | undefined;
+  let manifest: DisposableManifest | undefined;
+  let clusterVerified = false;
+  let evidenceCreated = false;
 
-  for (let attempt = 0; attempt < 60; attempt++) {
-    try {
-      if (sql(container, database, "SELECT 1") === "1") {
-        ready = true;
-        break;
-      }
-    } catch {
-      // Initialization has a bounded readiness deadline; no database mutation is retried.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  if (!ready) {
-    throw new Error("Disposable cluster did not start");
-  }
-  const endpoints = z
-    .record(z.string(), z.object({ IPAddress: z.string() }))
-    .parse(
-      JSON.parse(
-        docker(
-          "inspect",
-          container,
-          "--format",
-          "{{json .NetworkSettings.Networks}}",
-        ),
-      ),
+  try {
+    container = docker(
+      "create",
+      "--name",
+      `nextpress-b04-disposable-${run}`,
+      "--label",
+      `nextpress.disposable=${run}`,
+      "--network",
+      networkName,
+      "--publish",
+      `127.0.0.1:${port}:5432`,
+      "--tmpfs",
+      "/var/lib/postgresql:rw",
+      "--env",
+      `POSTGRES_PASSWORD=${password}`,
+      "--env",
+      "POSTGRES_USER=b04_provisioner",
+      "--env",
+      `POSTGRES_DB=${database}`,
+      image,
     );
-  const address = Object.values(endpoints)[0]?.IPAddress;
+    docker("start", container);
+    const endpoints = z
+      .record(z.string(), z.object({ IPAddress: z.string() }))
+      .parse(
+        JSON.parse(
+          docker(
+            "inspect",
+            container,
+            "--format",
+            "{{json .NetworkSettings.Networks}}",
+          ),
+        ),
+      );
+    const address = Object.values(endpoints)[0]?.IPAddress;
 
-  if (!address) {
-    throw new Error("Missing disposable endpoint");
-  }
-  const manifest: DisposableManifest = {
-    run,
-    container,
-    image,
-    network,
-    address,
-    port,
-    database,
-    cluster: sql(
+    if (!address) {
+      throw new Error("Missing disposable endpoint");
+    }
+    manifest = {
+      run,
+      container,
+      image,
+      network,
+      address,
+      port,
+      database,
+      cluster: "0",
+      nonce,
+    };
+    verifyDockerEvidence(
+      manifest,
+      JSON.parse(docker("inspect", container)),
+      JSON.parse(docker("network", "inspect", network)),
+    );
+    let ready = false;
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+      try {
+        if (sql(container, database, "SELECT 1") === "1") {
+          ready = true;
+          break;
+        }
+      } catch {
+        // Initialization has a bounded readiness deadline; no database mutation is retried.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    if (!ready) {
+      throw new Error("Disposable cluster did not start");
+    }
+    manifest.cluster = sql(
       container,
       database,
       "SELECT system_identifier FROM pg_control_system()",
-    ),
-    nonce,
-  };
-  verifyDockerTarget(manifest);
+    );
+    verifyDockerTarget(manifest);
+    clusterVerified = true;
 
-  // First mutations occur only on the newly created, independently inspected cluster.
-  sql(
-    container,
-    database,
-    `
+    // First mutations occur only on the newly created, independently inspected cluster.
+    sql(
+      container,
+      database,
+      `
     CREATE ROLE b04_runtime LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
     REVOKE ALL ON DATABASE postgres, template0, template1 FROM PUBLIC;
     REVOKE ALL ON DATABASE ${database} FROM PUBLIC;
@@ -200,74 +280,88 @@ async function verifyFamily(family: "content" | "security") {
     GRANT SELECT ON b04_identity.marker TO b04_runtime;
     GRANT EXECUTE ON FUNCTION pg_control_system() TO b04_runtime;
   `,
-  );
-  const url = `postgresql://b04_runtime:${password}@127.0.0.1:${port}/${database}`;
-  process.env.DATABASE_URL = url;
-  delete process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
-  delete process.env.NEXTPRESS_SECURITY_TEST_DATABASE_URL;
-  const optIn =
-    family === "content"
-      ? "NEXTPRESS_CONTENT_TEST_DATABASE_URL"
-      : "NEXTPRESS_SECURITY_TEST_DATABASE_URL";
-  process.env[optIn] = url;
-  // This process imports the singleton only once; families run in separate processes.
-  const { prisma } = await import("@nextpress/db/src/client");
-  let evidenceCreated = false;
-
-  try {
-    await verifyDisposableDatabase(
-      disposableDatabaseName(url, url, family),
-      prisma,
-      manifest,
     );
-    // Exclusive creation prevents overwriting evidence owned by another run.
-    writeFileSync(disposableManifestPath, JSON.stringify(manifest), {
-      flag: "wx",
-      mode: 0o600,
-    });
-    evidenceCreated = true;
-    npm(["--workspace", "@nextpress/db", "run", "prisma:deploy"]);
-    await verifyDisposableDatabase(database, prisma, manifest);
-    sql(
-      container,
-      database,
-      `INSERT INTO "Role" (id,name) VALUES ('b04-admin','ADMIN'),('b04-editor','EDITOR'),('b04-author','AUTHOR'),('b04-subscriber','SUBSCRIBER') ON CONFLICT DO NOTHING;`,
-    );
+    const url = `postgresql://b04_runtime:${password}@127.0.0.1:${port}/${database}`;
+    process.env.DATABASE_URL = url;
+    delete process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
+    delete process.env.NEXTPRESS_SECURITY_TEST_DATABASE_URL;
+    const optIn =
+      family === "content"
+        ? "NEXTPRESS_CONTENT_TEST_DATABASE_URL"
+        : "NEXTPRESS_SECURITY_TEST_DATABASE_URL";
+    process.env[optIn] = url;
+    // This process imports the singleton only once; families run in separate processes.
+    const { prisma } = await import("@nextpress/db/src/client");
 
-    if (family === "content") {
-      npm([
-        "--workspace",
-        "api",
-        "test",
-        "--",
-        "src/lib/repos/content-transaction.integration.test.ts",
-        "src/lib/auth/user-administration.integration.test.ts",
-        "src/lib/testing/postgres-feasibility.integration.test.ts",
-        "--maxWorkers=1",
-      ]);
-    } else {
-      npm([
-        "--workspace",
-        "api",
-        "test",
-        "--",
-        "src/lib/auth/live-postgres.integration.test.ts",
-        "--maxWorkers=1",
-      ]);
+    try {
+      await verifyDisposableDatabase(
+        disposableDatabaseName(url, url, family),
+        prisma,
+        manifest,
+      );
+      // Exclusive creation prevents overwriting evidence owned by another run.
+      writeFileSync(disposableManifestPath, JSON.stringify(manifest), {
+        flag: "wx",
+        mode: 0o600,
+      });
+      evidenceCreated = true;
+      npm(["--workspace", "@nextpress/db", "run", "prisma:deploy"]);
+      await verifyDisposableDatabase(database, prisma, manifest);
+      sql(
+        container,
+        database,
+        `INSERT INTO "Role" (id,name) VALUES ('b04-admin','ADMIN'),('b04-editor','EDITOR'),('b04-author','AUTHOR'),('b04-subscriber','SUBSCRIBER') ON CONFLICT DO NOTHING;`,
+      );
+
+      if (family === "content") {
+        npm([
+          "--workspace",
+          "api",
+          "test",
+          "--",
+          "src/lib/repos/content-transaction.integration.test.ts",
+          "src/lib/auth/user-administration.integration.test.ts",
+          "src/lib/testing/postgres-feasibility.integration.test.ts",
+          "--maxWorkers=1",
+        ]);
+      } else {
+        npm([
+          "--workspace",
+          "api",
+          "test",
+          "--",
+          "src/lib/auth/live-postgres.integration.test.ts",
+          "--maxWorkers=1",
+        ]);
+      }
+      await verifyDisposableDatabase(database, prisma, manifest);
+      console.log(
+        "Cleanup inventory",
+        await prisma.user.count(),
+        await prisma.page.count(),
+        await prisma.taxonomy.count(),
+      );
+    } finally {
+      await prisma.$disconnect();
     }
-    await verifyDisposableDatabase(database, prisma, manifest);
-    console.log(
-      "Cleanup inventory",
-      await prisma.user.count(),
-      await prisma.page.count(),
-      await prisma.taxonomy.count(),
-    );
   } finally {
-    await prisma.$disconnect();
-    // Identity failure deliberately leaves the target for investigation instead of deleting it.
-    verifyDockerTarget(manifest);
-    docker("rm", "--force", container);
-    docker("network", "rm", network);
+    // Destruction requires the same evidence as provisioning. An identity
+    // mismatch deliberately leaves resources for investigation.
+    verifyLocalDocker();
+
+    if (container) {
+      if (clusterVerified && manifest) {
+        verifyDockerTarget(manifest);
+      } else {
+        verifyProvisioningCleanup(
+          { run, container, network, image, port },
+          JSON.parse(docker("inspect", container)),
+          JSON.parse(docker("network", "inspect", network)),
+        );
+      }
+      docker("rm", "--force", container);
+    }
+    removeNetwork(network, run);
 
     if (evidenceCreated) {
       unlinkSync(disposableManifestPath);

@@ -99,14 +99,33 @@ const inspectionSchema = z
   )
   .length(1);
 
+export function disposableDockerContext(platform = process.platform) {
+  if (platform === "win32") {
+    return {
+      name: "desktop-linux",
+      endpoint: "npipe:////./pipe/dockerDesktopLinuxEngine",
+    };
+  }
+
+  if (platform === "linux") {
+    return { name: "default", endpoint: "unix:///var/run/docker.sock" };
+  }
+
+  throw new Error("Unsupported disposable Docker platform");
+}
+
 function docker(...args: string[]) {
   // Never include environment or credentials in diagnostics.
   try {
-    return execFileSync("docker", ["--context", "desktop-linux", ...args], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 10000,
-    }).trim();
+    return execFileSync(
+      "docker",
+      ["--context", disposableDockerContext().name, ...args],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 10000,
+      },
+    ).trim();
   } catch {
     throw new Error("Disposable Docker identity inspection failed");
   }
@@ -170,6 +189,65 @@ export function verifyDockerEvidence(
   }
 }
 
+// Before PostgreSQL starts, cluster/SQL evidence cannot exist. Cleanup can only
+// target exact IDs returned by this run's create commands, never discovered peers.
+export function verifyProvisioningCleanup(
+  expected: Pick<
+    DisposableManifest,
+    "run" | "container" | "network" | "image" | "port"
+  >,
+  raw: unknown,
+  networkRaw: unknown,
+) {
+  const [container] = inspectionSchema.parse(raw);
+  const [network] = z
+    .array(
+      z.object({
+        Id: z.string(),
+        Driver: z.string(),
+        Scope: z.string(),
+        Internal: z.boolean(),
+        Labels: z.record(z.string(), z.string()),
+        Containers: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .length(1)
+    .parse(networkRaw);
+  const bindings = container?.HostConfig.PortBindings["5432/tcp"];
+
+  if (
+    !container ||
+    !network ||
+    container.Id !== expected.container ||
+    container.Image !== expected.image ||
+    container.Config.Labels["nextpress.disposable"] !== expected.run ||
+    container.HostConfig.Privileged ||
+    container.HostConfig.NetworkMode !== `nextpress-b04-${expected.run}` ||
+    Object.values(container.NetworkSettings.Networks).length !== 1 ||
+    Object.values(container.NetworkSettings.Networks).some(
+      (endpoint) =>
+        endpoint.NetworkID !== "" && endpoint.NetworkID !== expected.network,
+    ) ||
+    Object.keys(container.HostConfig.Tmpfs).join() !== "/var/lib/postgresql" ||
+    container.Mounts.some(
+      (mount) =>
+        mount.Type !== "tmpfs" || mount.Destination !== "/var/lib/postgresql",
+    ) ||
+    Object.keys(container.HostConfig.PortBindings).join() !== "5432/tcp" ||
+    bindings?.length !== 1 ||
+    bindings[0]?.HostIp !== "127.0.0.1" ||
+    bindings[0]?.HostPort !== String(expected.port) ||
+    network.Id !== expected.network ||
+    network.Driver !== "bridge" ||
+    network.Scope !== "local" ||
+    network.Internal ||
+    network.Labels["nextpress.disposable"] !== expected.run ||
+    Object.keys(network.Containers).some((id) => id !== expected.container)
+  ) {
+    throw new Error("Refusing cleanup of unowned provisioning resources");
+  }
+}
+
 export function verifyLocalDocker() {
   const context = docker(
     "context",
@@ -178,9 +256,9 @@ export function verifyLocalDocker() {
     "{{.Endpoints.docker.Host}}",
   );
 
-  if (context !== "npipe:////./pipe/dockerDesktopLinuxEngine") {
+  if (context !== disposableDockerContext().endpoint) {
     throw new Error(
-      "Only the independently inspected local Docker Desktop daemon is allowed",
+      "Only the independently inspected local Docker daemon is allowed",
     );
   }
 }

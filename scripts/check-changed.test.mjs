@@ -361,3 +361,20 @@ test("API changes select the API workspace without dependency installation", () 
     ["apps/api"],
   );
 });
+
+test("CI database integrations use the ownership-verifying runner in the API cwd", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+
+  for (const family of ["content", "security"]) {
+    assert.ok(
+      workflow.includes(
+        `working-directory: apps/api\n        run: npx tsx scripts/b04-postgres.ts ${family}`,
+      ),
+    );
+  }
+  assert.ok(!workflow.includes("createdb"));
+  assert.ok(!workflow.includes("bootstrap:admin"));
+});
