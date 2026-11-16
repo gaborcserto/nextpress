@@ -13,10 +13,9 @@ export default function PagesListScreen() {
     title: p.title,
     slug: p.slug,
     status: p.status,
-    dateLabel:
-      p.status === "PUBLISHED"
-        ? `Published: ${new Date(p.updatedAt).toLocaleString()}`
-        : `Last modified: ${new Date(p.updatedAt).toLocaleString()}`,
+    dateLabel: p.updatedAt
+      ? `Last modified: ${new Date(p.updatedAt).toLocaleString()}`
+      : undefined,
   }));
 
   return (

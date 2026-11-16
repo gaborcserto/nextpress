@@ -50,6 +50,7 @@ describe("post list response boundary", () => {
   it.each([
     ["missing title", { ...valid.items[0], title: undefined }],
     ["missing updatedAt", { ...valid.items[0], updatedAt: undefined }],
+    ["null updatedAt", { ...valid.items[0], updatedAt: null }],
     ["missing excerpt", { ...valid.items[0], excerpt: undefined }],
     ["wrong field type", { ...valid.items[0], title: 42 }],
     ["invalid type", { ...valid.items[0], type: "ARTICLE" }],

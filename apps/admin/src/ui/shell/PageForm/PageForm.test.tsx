@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { ContentLayoutSchema } from "@nextpress/shared/content";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { pageValuesToDto } from "@/lib/services/page.client";
@@ -19,7 +20,8 @@ vi.mock("@/ui/components", async () => ({
   ).default,
   ListingFields: () => null,
   MenuPlacementField: () => null,
-  PageTypeField: () => null,
+  PageTypeField: (await import("@/ui/components/PageTypeField/PageTypeField"))
+    .default,
   RedirectField: () => null,
   SlateEditor: () => null,
   TagsField: () => null,
@@ -37,7 +39,99 @@ const initial: PageFormValues = {
   inFooterMenu: false,
 };
 
+function renderPage(values: PageFormValues, save = vi.fn(async () => true)) {
+  return render(
+    <PageForm
+      initial={values}
+      onSubmitAction={save}
+      loadTagOptionsAction={async () => []}
+      createTagAction={async (name) => ({ id: name, name, slug: name })}
+      loadEntityTagsAction={async () => []}
+      updateEntityTagsAction={async () => undefined}
+    />,
+  );
+}
+
 describe("PageForm", () => {
+  it("offers only Standard for new pages", () => {
+    renderPage(initial);
+    expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
+      "STANDARD",
+    );
+    expect(
+      within(screen.getByRole("combobox", { name: "Layout" })).getAllByRole(
+        "option",
+      ),
+    ).toHaveLength(2);
+    expect(screen.getByRole("option", { name: "Standard Page" })).toBeEnabled();
+    expect(
+      screen.queryByRole("option", { name: /Listing/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("allows an explicit change from an existing layout to Standard", () => {
+    renderPage({ ...initial, type: "LISTING" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Layout" }), {
+      target: { value: "STANDARD" },
+    });
+    expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
+      "STANDARD",
+    );
+    expect(
+      screen.queryByRole("option", { name: /Listing/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(
+    ContentLayoutSchema.options.filter((layout) => layout !== "STANDARD"),
+  )(
+    "preserves existing %s layout and specialized fields on unrelated edits",
+    async (type) => {
+      const legacy = {
+        ...initial,
+        id: "legacy-page",
+        type,
+        title: "Historical page",
+        slug: "historical-page",
+        parentId: "parent-1",
+        listingKind: "EVENTS" as const,
+        listingTaxonomyId: "taxonomy-1",
+        eventStart: "2026-12-01T12:00:00.000Z",
+        eventEnd: "2026-12-01T14:00:00.000Z",
+        eventLocation: "Main hall",
+        registrationUrl: "https://example.com/register",
+        redirectTo: "/historical-target",
+      };
+      const save = vi.fn(async () => true);
+      renderPage(legacy, save);
+      expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
+        type,
+      );
+      expect(screen.getByRole("option", { name: /existing/ })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText("Title"), {
+        target: { value: "Edited title" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      });
+      expect(save).toHaveBeenCalledWith({ ...legacy, title: "Edited title" });
+      const dto = pageValuesToDto({ ...legacy, title: "Edited title" });
+      expect(dto.layout).toBe(type);
+      for (const field of [
+        "parentId",
+        "listingKind",
+        "listingTaxonomyId",
+        "eventStart",
+        "eventEnd",
+        "eventLocation",
+        "registrationUrl",
+        "redirectTo",
+      ]) {
+        expect(dto).not.toHaveProperty(field);
+      }
+    },
+  );
+
   it.each([false, true])(
     "retains unsaved input on failed save and resets only on success (%s)",
     async (accepted) => {

@@ -83,6 +83,81 @@ describe.each([
     );
   }
 
+  it.each([
+    { status: "DRAFT", publishedAt: null },
+    { status: "PUBLISHED", publishedAt: "2020-01-01T00:00:00.000Z" },
+    { status: "PUBLISHED", publishedAt: "2099-01-01T00:00:00.000Z" },
+    { status: "PUBLISHED", publishedAt: undefined },
+  ])(
+    "labels updatedAt honestly for $status with publication date $publishedAt",
+    async ({ status, publishedAt }) => {
+      const updatedAt = "2026-11-16T12:34:56.000Z";
+      fetcher.mockResolvedValue({
+        items: [
+          {
+            id: "item-1",
+            type: name === "Posts" ? "POST" : "PAGE",
+            title: "Example",
+            slug: "example",
+            status,
+            excerpt: null,
+            updatedAt,
+            publishedAt,
+          },
+        ],
+        page: 1,
+        limit: 50,
+        total: 1,
+        pages: 1,
+      });
+      setup();
+      expect(
+        await screen.findByText(
+          `Last modified: ${new Date(updatedAt).toLocaleString()}`,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Published:/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Scheduled/i)).not.toBeInTheDocument();
+    },
+  );
+
+  it.each([null, undefined])(
+    "does not invent a timestamp when updatedAt is %s",
+    async (updatedAt) => {
+      fetcher.mockResolvedValue({
+        items: [
+          {
+            id: "item-1",
+            type: name === "Posts" ? "POST" : "PAGE",
+            title: "Example",
+            slug: "example",
+            status: "PUBLISHED",
+            excerpt: null,
+            updatedAt,
+          },
+        ],
+        page: 1,
+        limit: 50,
+        total: 1,
+        pages: 1,
+      });
+      setup();
+
+      if (name === "Posts") {
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+          "Unable to load posts",
+        );
+      } else {
+        expect(
+          await screen.findByRole("cell", { name: "\u2014" }),
+        ).toBeInTheDocument();
+      }
+      expect(
+        screen.queryByText(/Published:|Last modified:|Invalid Date/),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it("renders API metadata, boundaries and forward navigation", async () => {
     setup();
 

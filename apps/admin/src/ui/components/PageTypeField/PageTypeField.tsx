@@ -30,7 +30,16 @@ export default function PageTypeField({
       id={id}
       fullWidth
       value={value}
-      options={PAGE_TYPE_OPTIONS}
+      options={PAGE_TYPE_OPTIONS.filter(
+        (option) => option.value === "STANDARD" || option.value === value,
+      ).map((option) => ({
+        ...option,
+        label:
+          option.value === "STANDARD"
+            ? option.label
+            : `${option.label} (existing)`,
+        disabled: option.value !== "STANDARD",
+      }))}
       placeholder="– select page type –"
       onChangeAction={(val) => onChange(val as PageType)}
     />

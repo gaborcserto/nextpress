@@ -239,7 +239,7 @@ export default function PageForm({
                   <Field
                     label="Layout"
                     htmlFor="page-type"
-                    hint="Template behavior is not available yet."
+                    hint="Only Standard is available for new pages. Existing layouts are preserved."
                     span={4}
                   >
                     <PageTypeField
