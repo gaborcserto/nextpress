@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./auth-policy": "./src/utils/auth-policy.ts",
+    "./slugify": "./src/utils/slugify.ts",
     "./content": "./src/content.ts",
     "./page-document": "./src/page-document.ts",
     "./revisions": "./src/revisions.ts",

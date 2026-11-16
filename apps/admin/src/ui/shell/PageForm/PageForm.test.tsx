@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { pageValuesToDto } from "@/lib/services/page.client";
+
 import PageForm from "./PageForm";
 
 import type { PageFormValues } from "@/lib/content/contracts";
@@ -9,10 +11,12 @@ const { submitAction } = vi.hoisted(() => ({ submitAction: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-vi.mock("@/ui/components", () => ({
+vi.mock("@/ui/components", async () => ({
   EMPTY_SLATE_VALUE: [{ type: "paragraph", children: [{ text: "" }] }],
   EventFields: () => null,
-  HierarchyField: () => null,
+  HierarchyField: (
+    await import("@/ui/components/HierarchyField/HierarchyField")
+  ).default,
   ListingFields: () => null,
   MenuPlacementField: () => null,
   PageTypeField: () => null,
@@ -63,6 +67,56 @@ describe("PageForm", () => {
       const event = new Event("beforeunload", { cancelable: true });
       window.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(!accepted);
+    },
+  );
+
+  it.each([null, "parent-1"])(
+    "preserves parent %s without requesting hierarchy choices",
+    async (parentId) => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      const save = vi.fn(async (values: PageFormValues) => {
+        expect(values.parentId).toBe(parentId);
+        expect(pageValuesToDto(values)).not.toHaveProperty("parentId");
+
+        return true;
+      });
+      render(
+        <PageForm
+          initial={{ ...initial, parentId }}
+          onSubmitAction={save}
+          loadTagOptionsAction={async () => []}
+          createTagAction={async (name) => ({ id: name, name, slug: name })}
+          loadEntityTagsAction={async () => []}
+          updateEntityTagsAction={async () => undefined}
+        />,
+      );
+      expect(
+        screen.getByText(
+          parentId
+            ? "A parent page is assigned."
+            : "No parent page is assigned.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("combobox", { name: "Parent page" }),
+      ).not.toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Title"), {
+        target: { value: "Updated page" },
+      });
+      await act(async () => {
+        fireEvent.submit(
+          screen.getByRole("button", { name: "Save" }).closest("form")!,
+        );
+      });
+      expect(save).toHaveBeenCalledOnce();
+      expect(fetchSpy).not.toHaveBeenCalledWith(
+        "/api/pages?select=parent",
+        expect.anything(),
+      );
+      expect(
+        fetchSpy.mock.calls.some(([url]) => url === "/api/pages?select=parent"),
+      ).toBe(false);
+      fetchSpy.mockRestore();
     },
   );
 

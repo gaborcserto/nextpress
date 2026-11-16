@@ -13,7 +13,6 @@ import { slugify } from "@/lib/utils";
 import {
   EventFields,
   EMPTY_SLATE_VALUE,
-  HierarchyField,
   ListingFields,
   MenuPlacementField,
   PageTypeField,
@@ -159,12 +158,11 @@ export default function PageForm({
                     title="Hierarchy"
                     desc="Parent selection is not available yet. Existing relationships are preserved."
                   >
-                    <fieldset disabled>
-                      <HierarchyField
-                        parentId={form.parentId}
-                        onChangeAction={(value) => setField("parentId", value)}
-                      />
-                    </fieldset>
+                    <p className="text-sm">
+                      {form.parentId
+                        ? "A parent page is assigned."
+                        : "No parent page is assigned."}
+                    </p>
                   </Section>
 
                   <Section
