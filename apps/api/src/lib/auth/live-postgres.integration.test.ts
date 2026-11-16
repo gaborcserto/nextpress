@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { disposableDatabaseName } from "../testing/disposable-database";
+import { verifyDisposableDatabase } from "../testing/docker-database";
+
 const origin = "http://localhost:49101";
 const password = "phase 13.10.1 integration passphrase";
 const testDatabaseUrl = process.env.NEXTPRESS_SECURITY_TEST_DATABASE_URL;
@@ -61,23 +64,14 @@ describe.skipIf(!testDatabaseUrl)(
 
       if (!configuredTestDatabaseUrl)
         throw new Error("Missing isolated integration database URL");
-      const actualUrl = new URL(process.env.DATABASE_URL ?? "");
-      const requestedUrl = new URL(configuredTestDatabaseUrl);
-      const databaseName = requestedUrl.pathname.slice(1);
-
-      if (
-        actualUrl.toString() !== requestedUrl.toString() ||
-        !["localhost", "127.0.0.1"].includes(requestedUrl.hostname) ||
-        !(
-          databaseName === "cms" ||
-          databaseName.startsWith("nextpress_security_verify_")
-        )
-      ) {
-        throw new Error(
-          "Set both database URLs to the same local cms or nextpress_security_verify_* database",
-        );
-      }
-      prisma = (await import("@nextpress/db/src/client")).prisma;
+      const expectedName = disposableDatabaseName(
+        configuredTestDatabaseUrl,
+        process.env.DATABASE_URL,
+        "security",
+      );
+      const candidate = (await import("@nextpress/db/src/client")).prisma;
+      await verifyDisposableDatabase(expectedName, candidate);
+      prisma = candidate;
       ({ getAuth, getUserRole } = await import("./auth-server"));
       vi.stubEnv("BETTER_AUTH_URL", origin);
       vi.stubEnv(
@@ -97,7 +91,17 @@ describe.skipIf(!testDatabaseUrl)(
 
     afterAll(async () => {
       vi.unstubAllEnvs();
-      if (!prisma) return;
+      if (!prisma) {
+        return;
+      }
+      await verifyDisposableDatabase(
+        disposableDatabaseName(
+          testDatabaseUrl,
+          process.env.DATABASE_URL,
+          "security",
+        ),
+        prisma,
+      );
       try {
         await prisma.page.deleteMany({
           where: { slug: { in: [pageSlug, invalidPageSlug] } },

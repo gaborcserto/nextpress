@@ -1,7 +1,12 @@
 // @vitest-environment node
+
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { disposableDatabaseName } from "../testing/disposable-database";
+import { verifyDisposableDatabase } from "../testing/docker-database";
+
 const testUrl = process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
 let db: typeof import("@nextpress/db/src/client").prisma;
 let create: typeof import("./pageRepo").createPageWithTags;
@@ -11,22 +16,25 @@ const slug = `transaction-${suffix}`;
 const actor = { id: "unused", role: "ADMIN" as const };
 describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
   beforeAll(async () => {
-    const url = new URL(testUrl ?? "");
-
-    if (
-      testUrl !== process.env.DATABASE_URL ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      !url.pathname.startsWith("/nextpress_phase1_verify")
-    )
-      throw new Error(
-        "Use matching URLs for a disposable local nextpress_phase1_verify* database only",
-      );
-    db = (await import("@nextpress/db/src/client")).prisma;
+    const expectedName = disposableDatabaseName(
+      testUrl,
+      process.env.DATABASE_URL,
+      "content",
+    );
+    const candidate = (await import("@nextpress/db/src/client")).prisma;
+    await verifyDisposableDatabase(expectedName, candidate);
+    db = candidate;
     ({ createPageWithTags: create, updatePageWithTags: update } =
       await import("./pageRepo"));
   });
   afterAll(async () => {
-    if (!db) return;
+    if (!db) {
+      return;
+    }
+    await verifyDisposableDatabase(
+      disposableDatabaseName(testUrl, process.env.DATABASE_URL, "content"),
+      db,
+    );
     await db.$executeRaw`DROP TRIGGER IF EXISTS phase1_fail_links ON "PageOnTaxonomy"`;
     await db.$executeRaw`DROP FUNCTION IF EXISTS phase1_fail_links()`;
     await db.page.deleteMany({ where: { slug: { startsWith: slug } } });

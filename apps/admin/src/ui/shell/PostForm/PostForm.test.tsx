@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import PostForm from "./PostForm";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 vi.mock("@/ui/components", () => ({
   EMPTY_SLATE_VALUE: [{ type: "paragraph", children: [{ text: "" }] }],
   PostIntroFields: () => null,

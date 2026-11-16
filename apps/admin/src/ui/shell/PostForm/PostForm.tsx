@@ -9,6 +9,7 @@ import {
   normalizeSlateValue,
   publicationDateToLocal,
 } from "@/lib/content/editor";
+import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
 import {
   EMPTY_SLATE_VALUE,
@@ -55,7 +56,7 @@ export default function PostForm({
 }: PostFormProps) {
   /**
    * Init state:
-   *  - If slug is empty AND title exists → generate slug on mount
+   *  - If slug is empty AND title exists â†’ generate slug on mount
    */
   const [form, setForm] = useState<PostFormValues>(() => {
     const built = buildInitialForm(initial);
@@ -69,6 +70,8 @@ export default function PostForm({
 
   // Track if slug was manually edited:
   // true only if initial.slug differs from auto-generated slug
+  const unsaved = useUnsavedChanges(form, Boolean(getEntityId(initial)));
+
   const [slugEdited, setSlugEdited] = useState<boolean>(() => {
     if (!initial.title || !initial.slug) return false;
     const autoSlug = slugify(initial.title);
@@ -97,16 +100,22 @@ export default function PostForm({
     }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting) {
+      return;
+    }
     const errors = {
       ...(form.title.trim() ? {} : { title: "Title is required." }),
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
     };
     setFieldErrors(errors);
-    if (Object.keys(errors).length) return;
-    onSubmitAction(form);
+    if (Object.keys(errors).length) {
+      return;
+    }
+    if ((await onSubmitAction(form)) === true) {
+      unsaved.markSaved();
+    }
   };
 
   const entityId = getEntityId(initial);
@@ -118,6 +127,7 @@ export default function PostForm({
       savedContent={initial}
       values={form}
     >
+      {unsaved.dialog}
       <form onSubmit={handleSubmit}>
         <AdminPageLayout
           title={sidebarTitle ?? "Post"}
@@ -128,6 +138,10 @@ export default function PostForm({
               sidebar={
                 <>
                   <Section title="Tags" desc="Organize your post with tags.">
+                    <p className="text-sm mb-3">
+                      Tags on existing content save immediately. Cancel does not
+                      undo them.
+                    </p>
                     <TagsField
                       entityId={entityId}
                       value={form.tags}
@@ -260,7 +274,9 @@ export default function PostForm({
                   type="button"
                   variant="ghost"
                   color="neutral"
-                  onClick={() => history.back()}
+                  onClick={() =>
+                    unsaved.requestNavigation(() => history.back())
+                  }
                 >
                   Cancel
                 </Button>

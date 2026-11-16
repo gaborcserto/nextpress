@@ -273,3 +273,35 @@ test("direct mutation requests reject hostile origins even with an authenticated
   });
   expect(response.status()).toBe(403);
 });
+
+test("unsaved editors keep safe dialog actions usable at supported viewport widths", async ({
+  page,
+}) => {
+  for (const kind of ["pages", "posts"]) {
+    await page.goto(`/admin/${kind}/new`);
+    await page
+      .getByRole("textbox", { name: /^Title/ })
+      .fill("Unsaved viewport fixture");
+    for (const width of [320, 375, 390, 768, 1024, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
+      const dialog = page.getByRole("dialog", {
+        name: "Discard unsaved changes?",
+      });
+      await expect(dialog).toBeVisible();
+      const stay = dialog.getByRole("button", { name: "Stay and edit" });
+      await expect(stay).toBeFocused();
+      const box = await dialog.locator(".modal-box").boundingBox();
+      expect(box).not.toBeNull();
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+      await page.keyboard.press("Escape");
+      await expect(dialog).not.toBeVisible();
+      await expect(page.getByRole("textbox", { name: /^Title/ })).toHaveValue(
+        "Unsaved viewport fixture",
+      );
+    }
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Discard and leave" }).click();
+  }
+});

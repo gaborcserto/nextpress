@@ -8,7 +8,7 @@ import type {
 
 export type PageFormProps = {
   initial: PageFormValues;
-  onSubmitAction: (values: PageFormValues) => Promise<void> | void;
+  onSubmitAction: (values: PageFormValues) => Promise<boolean> | boolean;
   submitting?: boolean;
   submitLabel?: string;
 

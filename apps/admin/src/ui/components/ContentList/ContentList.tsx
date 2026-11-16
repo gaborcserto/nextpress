@@ -9,12 +9,15 @@ import {
 } from "@/ui/components/DataList";
 import {
   Alert,
+  Button,
   IconButton,
   LinkIconButton,
   ConfirmDialog,
   useConfirmDialog,
 } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import ContentListPagination from "./ContentListPagination";
 
 import type { ContentListProps } from "./ContentList.types";
 
@@ -34,6 +37,8 @@ export default function ContentList({
   items,
   isLoading = false,
   error,
+  pagination,
+  onRetryAction,
   deletingId,
   onDeleteAction,
   showAuthor = false,
@@ -51,9 +56,10 @@ export default function ContentList({
   const askDelete = (id: string, title: string) => confirm.show({ id, title });
 
   const confirmDelete = () => {
-    if (!confirm.payload || !onDeleteAction) return;
-    onDeleteAction(confirm.payload.id);
-    confirm.hide();
+    if (!onDeleteAction) {
+      return;
+    }
+    void confirm.run(({ id }) => onDeleteAction(id));
   };
 
   return (
@@ -71,7 +77,10 @@ export default function ContentList({
       }
     >
       {error ? (
-        <Alert status="error" message={error} />
+        <div className="space-y-3">
+          <Alert status="error" message={error} />
+          {onRetryAction && <Button onClick={onRetryAction}>Retry</Button>}
+        </div>
       ) : isLoading ? (
         <DataListLoading label={heading.toLowerCase()} />
       ) : (
@@ -159,12 +168,17 @@ export default function ContentList({
         </DataListSurface>
       )}
 
+      {pagination && (
+        <ContentListPagination heading={heading} pagination={pagination} />
+      )}
+
       <ConfirmDialog
         open={confirm.open}
+        error={confirm.error}
         title="Delete item?"
         confirmLabel="Delete"
         confirmColor="error"
-        loading={!!deletingId && deletingId === confirm.payload?.id}
+        loading={confirm.pending}
         onCancelAction={confirm.hide}
         onConfirmAction={confirmDelete}
       >

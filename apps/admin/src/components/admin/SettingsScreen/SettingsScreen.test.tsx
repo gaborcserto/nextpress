@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { normalizeSettingsForm } from "@/lib/settings/admin-settings";
@@ -11,6 +11,24 @@ const { useSettingsScreen } = vi.hoisted(() => ({
 vi.mock("./SettingsScreen.hooks", () => ({ useSettingsScreen }));
 
 describe("SettingsScreen", () => {
+  it("shows retry instead of a writable form after load failure", () => {
+    const retry = vi.fn();
+    useSettingsScreen.mockReturnValue({
+      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
+      loaded: false,
+      loading: false,
+      loadError: "Unable to load settings.",
+      retry,
+    });
+    render(<SettingsScreen />);
+    expect(
+      screen.queryByRole("button", { name: "Save settings" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Site name")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
   it("names provider controls and disables them during save", () => {
     useSettingsScreen.mockReturnValue({
       form: normalizeSettingsForm(
@@ -29,6 +47,7 @@ describe("SettingsScreen", () => {
         "SUBSCRIBER",
       ),
       setForm: vi.fn(),
+      loaded: true,
       loading: false,
       saving: true,
       error: null,
@@ -48,6 +67,7 @@ describe("SettingsScreen", () => {
     useSettingsScreen.mockReturnValue({
       form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
       setForm: vi.fn(),
+      loaded: true,
       loading: false,
       saving: false,
       error: null,
@@ -76,6 +96,7 @@ describe("SettingsScreen", () => {
     useSettingsScreen.mockReturnValue({
       form,
       setForm: vi.fn(),
+      loaded: true,
       loading: false,
       saving: false,
       error: null,

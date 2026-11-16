@@ -15,6 +15,7 @@ export type ConfirmDialogProps = {
     "primary" | "error" | "success" | "warning" | "neutral"
   >;
   loading?: boolean;
+  error?: string | null;
   disableClose?: boolean;
 
   onConfirmAction: () => void;

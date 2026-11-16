@@ -68,6 +68,7 @@ export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
         </Link>
       )}
       <PostForm
+        key={postId ?? "new"}
         initial={item}
         submitting={saving}
         submitLabel={submitLabel}

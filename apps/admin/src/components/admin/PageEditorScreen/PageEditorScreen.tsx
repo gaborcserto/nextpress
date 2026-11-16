@@ -68,6 +68,7 @@ export default function PageEditorScreen({ id }: PageEditorScreenProps) {
         </Link>
       )}
       <PageForm
+        key={id ?? "new"}
         initial={item}
         submitting={saving}
         submitLabel={submitLabel}

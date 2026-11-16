@@ -1,3 +1,5 @@
+import type { ContentPagination } from "@/lib/content/useContentList";
+
 export type ContentListItem = {
   id: string;
   title: string;
@@ -25,10 +27,12 @@ export type ContentListProps = {
   /** Loading flag while data is being fetched */
   isLoading?: boolean;
   error?: string;
+  pagination?: ContentPagination;
+  onRetryAction?: () => void;
   /** Id of the item currently being deleted (for loading spinner) */
   deletingId?: string | null;
   /** Optional delete handler. If omitted, the delete button is hidden. */
-  onDeleteAction?: (id: string) => void;
+  onDeleteAction?: (id: string) => Promise<void>;
 
   /** Whether to render the Author column */
   showAuthor?: boolean;

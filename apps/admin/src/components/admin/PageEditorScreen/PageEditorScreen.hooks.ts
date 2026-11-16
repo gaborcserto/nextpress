@@ -48,13 +48,14 @@ export function usePageEditor(id?: string) {
     : EMPTY_INITIAL;
   const notFound = isEdit && !isLoading && !data?.item;
 
-  // Note: returns Promise<void> to match PageForm onSubmitAction type
-  const handleSubmit = async (values: PageFormValues): Promise<void> => {
-    if (savingRef.current) return;
+  const handleSubmit = async (values: PageFormValues): Promise<boolean> => {
+    if (savingRef.current) {
+      return false;
+    }
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
 
-      return;
+      return false;
     }
 
     savingRef.current = true;
@@ -63,7 +64,7 @@ export function usePageEditor(id?: string) {
       if (id && data?.item.workingVersion === undefined) {
         showToast("Reload the editor before saving.", "warning");
 
-        return;
+        return false;
       }
       const { ok, status } =
         id && data
@@ -77,14 +78,14 @@ export function usePageEditor(id?: string) {
             "warning",
           );
 
-          return;
+          return false;
         }
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
         );
 
-        return;
+        return false;
       }
 
       showToast(isEdit ? "Page updated." : "Page created.", "success");
@@ -98,11 +99,15 @@ export function usePageEditor(id?: string) {
       } else {
         router.push("/admin/pages");
       }
+
+      return true;
     } catch {
       showToast(
         `Unable to ${isEdit ? "update" : "create"} page. Please try again.`,
         "error",
       );
+
+      return false;
     } finally {
       savingRef.current = false;
       setSaving(false);

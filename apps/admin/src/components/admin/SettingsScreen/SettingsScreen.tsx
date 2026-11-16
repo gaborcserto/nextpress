@@ -69,8 +69,17 @@ function readCredentialUpdates(
 
 export default function SettingsScreen() {
   const credentialForm = useRef<HTMLFormElement>(null);
-  const { form, setForm, loading, saving, error, save } =
-    useSettingsScreen("SUBSCRIBER");
+  const {
+    form,
+    setForm,
+    loading,
+    saving,
+    error,
+    save,
+    loaded,
+    loadError,
+    retry,
+  } = useSettingsScreen("SUBSCRIBER");
   const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage)
     .success
     ? undefined
@@ -90,12 +99,24 @@ export default function SettingsScreen() {
     }
   };
 
-  if (loading) {
+  if (loading && !loaded) {
     return (
       <div className="flex items-center gap-2" role="status">
         <span className="loading loading-spinner" />
         <span>Loading…</span>
       </div>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <AdminPageLayout title="Settings">
+        <Alert
+          message={loadError ?? "Settings have not loaded."}
+          status="error"
+        />
+        <Button onClick={() => void retry()}>Retry</Button>
+      </AdminPageLayout>
     );
   }
 
@@ -105,6 +126,12 @@ export default function SettingsScreen() {
       onSubmit={(event) => void saveSettings(event)}
       className="space-y-6"
     >
+      <Alert message={loadError} status="error" />
+      {loadError && (
+        <Button loading={loading} onClick={() => void retry()}>
+          Retry loading settings
+        </Button>
+      )}
       <Alert message={error} status="error" />
       <AdminPageLayout
         title="Settings"

@@ -1,3 +1,5 @@
+import type { ContentListResponse } from "@/lib/content/useContentList";
+
 export type PageListItem = {
   id: string;
   type: "PAGE" | "POST";
@@ -8,6 +10,4 @@ export type PageListItem = {
   updatedAt: string;
 };
 
-export type PageListResponse = {
-  items: PageListItem[];
-};
+export type PageListResponse = ContentListResponse;

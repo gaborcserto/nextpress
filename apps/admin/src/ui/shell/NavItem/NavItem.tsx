@@ -23,7 +23,7 @@ export default function NavItem({
   onClickAction?: () => void;
 }) {
   const baseCls =
-      "block h-10 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring focus-visible:ring-primary/30";
+    "block h-10 px-3 rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring focus-visible:ring-primary/30";
   const idleCls = "hover:bg-base-200";
   const activeCls = "bg-primary/10 text-primary hover:bg-primary/15";
 
@@ -31,38 +31,40 @@ export default function NavItem({
   const wrapperCls = `${baseCls} ${sizeCls} ${active ? activeCls : idleCls}`;
 
   return (
-      <Link
-        href={href}
-        onClick={onClickAction}
-        className={wrapperCls}
-        aria-current={active ? "page" : undefined}
+    <Link
+      href={href}
+      onClick={onClickAction}
+      className={wrapperCls}
+      aria-current={active ? "page" : undefined}
+    >
+      <div
+        className={[
+          "h-full flex items-center",
+          collapsed ? "justify-center gap-0" : "justify-start gap-3",
+        ].join(" ")}
       >
-        <div
-          className={[
-            "h-full flex items-center",
-            collapsed ? "justify-center gap-0" : "justify-start gap-3",
-          ].join(" ")}
-        >
-          <span className={active ? "text-primary shrink-0" : "shrink-0"}>
-            <IconAction size={20} />
-          </span>
+        <span className={active ? "text-primary shrink-0" : "shrink-0"}>
+          <IconAction size={20} aria-hidden="true" />
+        </span>
 
-          <AnimatePresence initial={false}>
-            {!collapsed && (
-              <MotionSpan
-                key={label}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.15 }}
-                className="truncate leading-none"
-                suppressHydrationWarning
-              >
-                {label}
-              </MotionSpan>
-            )}
-          </AnimatePresence>
-        </div>
-      </Link>
+        <span className="sr-only">{label}</span>
+        <AnimatePresence initial={false}>
+          {!collapsed && (
+            <MotionSpan
+              key={label}
+              aria-hidden="true"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.15 }}
+              className="truncate leading-none"
+              suppressHydrationWarning
+            >
+              {label}
+            </MotionSpan>
+          )}
+        </AnimatePresence>
+      </div>
+    </Link>
   );
 }

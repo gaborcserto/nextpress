@@ -44,7 +44,6 @@ export default function TaxonomyScreen() {
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const deletingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const confirm = useConfirmDialog<ConfirmPayload>();
@@ -119,25 +118,20 @@ export default function TaxonomyScreen() {
     confirm.show({ id: t.id, name: t.name, usedCount: t.usedCount });
   };
 
-  const onConfirmDelete = async () => {
-    if (!confirm.payload || deletingRef.current) return;
-    deletingRef.current = true;
+  const onConfirmDelete = () => {
+    void confirm.run(async ({ id }) => {
+      setDeletingId(id);
 
-    const { id } = confirm.payload;
-    setDeletingId(id);
-    setError(null);
-
-    try {
-      await deleteTagAdminAction(id);
-      setItems((prev) => prev.filter((x) => x.id !== id));
-      confirm.hide();
-      showToast("Tag deleted.", "success");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete tag.");
-    } finally {
-      deletingRef.current = false;
-      setDeletingId(null);
-    }
+      try {
+        await deleteTagAdminAction(id);
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        showToast("Tag deleted.", "success");
+      } catch {
+        throw new Error("Unable to delete tag. Please try again.");
+      } finally {
+        setDeletingId(null);
+      }
+    });
   };
 
   return (
@@ -271,10 +265,11 @@ export default function TaxonomyScreen() {
 
       <ConfirmDialog
         open={confirm.open}
+        error={confirm.error}
         title="Delete tag?"
         confirmLabel="Delete"
         confirmColor="error"
-        loading={!!deletingId && deletingId === confirm.payload?.id}
+        loading={confirm.pending}
         onCancelAction={confirm.hide}
         onConfirmAction={onConfirmDelete}
       >

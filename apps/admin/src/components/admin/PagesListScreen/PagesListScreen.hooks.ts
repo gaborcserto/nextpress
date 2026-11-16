@@ -1,20 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import useSWR from "swr";
 
-import { apiFetch, jsonFetcher } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { useContentList } from "@/lib/content/useContentList";
 import { showToast } from "@/ui/utils";
 
-import type { PageListResponse } from "./PagesListScreen.types";
-
 export function usePagesList() {
-  const { data, error, isLoading, mutate } = useSWR<PageListResponse>(
-    "/api/pages",
-    jsonFetcher,
-  );
-
-  return { items: data?.items ?? [], error, isLoading, mutate };
+  return useContentList("/api/pages");
 }
 
 export function useDeletePage(onDeleted?: () => void) {
@@ -23,24 +16,23 @@ export function useDeletePage(onDeleted?: () => void) {
 
   const deletePage = useCallback(
     async (id: string) => {
-      if (deletingRef.current) return;
+      if (deletingRef.current) {
+        return;
+      }
       deletingRef.current = true;
       setDeletingId(id);
 
       try {
         const res = await apiFetch(`/api/pages/${id}`, { method: "DELETE" });
-        const text = await res.text().catch(() => "");
 
         if (!res.ok) {
-          showToast(text || `Request failed: ${res.status}`, "error");
-
-          return;
+          throw new Error("Unable to delete page. Please try again.");
         }
 
         showToast("Deleted.", "success");
         await onDeleted?.();
       } catch {
-        showToast("Unable to delete page. Please try again.", "error");
+        throw new Error("Unable to delete page. Please try again.");
       } finally {
         deletingRef.current = false;
         setDeletingId(null);

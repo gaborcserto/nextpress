@@ -150,11 +150,10 @@ export function useUsersScreen() {
       await jsonFetcher(`/api/admin/users/${userId}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       showToast("User deleted.", "success");
-    } catch (caught) {
-      const message =
-        caught instanceof Error ? caught.message : "Failed to delete user.";
-      await load();
-      setError(message);
+    } catch {
+      throw new Error(
+        "Unable to delete user. You may not have permission, or this may be the last administrator.",
+      );
     } finally {
       deletingRef.current = null;
       setDeletingId(null);

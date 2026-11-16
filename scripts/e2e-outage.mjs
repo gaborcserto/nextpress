@@ -55,7 +55,7 @@ try {
             throw new Error(`Isolated ${app} failed to start`);
           try {
             response = await fetch(
-              `http://localhost:${port}${app === "admin" ? "/api/health" : "/"}`,
+              `http://localhost:${port}${app === "admin" ? "/api/health" : "/en/"}`,
               { redirect: "manual", signal: AbortSignal.timeout(45_000) },
             );
             break;

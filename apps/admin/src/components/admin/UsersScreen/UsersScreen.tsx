@@ -84,10 +84,8 @@ export default function UsersScreen() {
     });
   };
 
-  const confirmDelete = async () => {
-    if (!confirm.payload) return;
-    await deleteUser(confirm.payload.id);
-    confirm.hide();
+  const confirmDelete = () => {
+    void confirm.run(({ id }) => deleteUser(id));
   };
 
   return (
@@ -342,10 +340,11 @@ export default function UsersScreen() {
 
       <ConfirmDialog
         open={confirm.open}
+        error={confirm.error}
         title="Delete user?"
         confirmLabel="Delete"
         confirmColor="error"
-        loading={!!deletingId && deletingId === confirm.payload?.id}
+        loading={confirm.pending}
         onCancelAction={confirm.hide}
         onConfirmAction={confirmDelete}
       >

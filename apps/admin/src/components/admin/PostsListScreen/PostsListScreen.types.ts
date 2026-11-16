@@ -1,3 +1,5 @@
+import type { ContentListResponse } from "@/lib/content/useContentList";
+
 export type PostListItem = {
   id: string;
   type: "POST";
@@ -9,6 +11,4 @@ export type PostListItem = {
   // You can extend with authorName, categories, tags later if API returns them
 };
 
-export type PostListResponse = {
-  items: PostListItem[];
-};
+export type PostListResponse = ContentListResponse;

@@ -15,7 +15,8 @@
     "./api-contracts": "./src/api-contracts.ts",
     "./roles": "./src/roles.ts",
     "./oauth-providers": "./src/oauth-providers.ts",
-    "./settings-contracts": "./src/settings-contracts.ts"
+    "./settings-contracts": "./src/settings-contracts.ts",
+    "./editorial-contracts": "./src/editorial-contracts.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

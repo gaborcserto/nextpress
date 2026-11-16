@@ -8,6 +8,7 @@ import {
   getEntityId,
   normalizeSlateValue,
 } from "@/lib/content/editor";
+import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
 import {
   EventFields,
@@ -65,6 +66,8 @@ export default function PageForm({
     };
   });
 
+  const unsaved = useUnsavedChanges(form, Boolean(getEntityId(initial)));
+
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
@@ -100,22 +103,29 @@ export default function PageForm({
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting) {
+      return;
+    }
     const errors = {
       ...(form.title.trim() ? {} : { title: "Title is required." }),
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
     };
     setFieldErrors(errors);
-    if (Object.keys(errors).length) return;
-    onSubmitAction(form);
+    if (Object.keys(errors).length) {
+      return;
+    }
+    if ((await onSubmitAction(form)) === true) {
+      unsaved.markSaved();
+    }
   };
 
   const entityId = getEntityId(initial);
 
   return (
     <LivePreview id={entityId} savedContent={initial} values={form}>
+      {unsaved.dialog}
       <form onSubmit={handleSubmit}>
         <AdminPageLayout
           title={sidebarTitle ?? "Page"}
@@ -126,6 +136,10 @@ export default function PageForm({
               sidebar={
                 <>
                   <Section title="Tags" desc="Categorize page with tags.">
+                    <p className="text-sm mb-3">
+                      Tags on existing content save immediately. Cancel does not
+                      undo them.
+                    </p>
                     <TagsField
                       entityId={entityId}
                       value={form.tags}
@@ -292,7 +306,9 @@ export default function PageForm({
                   type="button"
                   variant="ghost"
                   color="neutral"
-                  onClick={() => history.back()}
+                  onClick={() =>
+                    unsaved.requestNavigation(() => history.back())
+                  }
                 >
                   Cancel
                 </Button>

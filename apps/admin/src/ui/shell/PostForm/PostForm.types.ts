@@ -11,7 +11,7 @@ export type { PostFormValues, PostStatus } from "@/lib/content/contracts";
 
 export type PostFormProps = {
   initial: PostFormValues;
-  onSubmitAction: (values: PostFormValues) => Promise<void> | void;
+  onSubmitAction: (values: PostFormValues) => Promise<boolean> | boolean;
   submitting?: boolean;
   submitLabel?: string;
 

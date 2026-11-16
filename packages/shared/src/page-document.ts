@@ -8,7 +8,7 @@ const reference = z
   .max(128)
   .regex(/^[a-zA-Z0-9_-]+$/);
 const label = z.string().max(500);
-const destination = z
+export const PageDestinationSchema = z
   .string()
   .max(2048)
   .refine((value) => {
@@ -46,7 +46,7 @@ export const PageLeafBlockSchema = z.discriminatedUnion("type", [
   z.strictObject({
     ...identity,
     type: z.literal("call-to-action"),
-    props: z.strictObject({ label: label.min(1), href: destination }),
+    props: z.strictObject({ label: label.min(1), href: PageDestinationSchema }),
   }),
   z.strictObject({
     ...identity,

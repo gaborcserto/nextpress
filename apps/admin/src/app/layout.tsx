@@ -23,7 +23,7 @@ export default async function RootLayout({
   const theme = normalizeThemeCookie(cookieStore.get("theme")?.value);
 
   return (
-    <html lang="hu" data-skin={skin.id} data-theme={theme}>
+    <html lang="en" data-skin={skin.id} data-theme={theme}>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
         <ToastHost />

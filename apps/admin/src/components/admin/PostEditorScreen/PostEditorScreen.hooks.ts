@@ -48,12 +48,14 @@ export function usePostEditor(postId?: string) {
 
   const notFound = isEdit && !isLoading && !data?.item;
 
-  const handleSubmit = async (values: PostFormValues): Promise<void> => {
-    if (savingRef.current) return;
+  const handleSubmit = async (values: PostFormValues): Promise<boolean> => {
+    if (savingRef.current) {
+      return false;
+    }
     if (!values.title || !values.slug) {
       showToast("Title and slug are required.", "warning");
 
-      return;
+      return false;
     }
 
     savingRef.current = true;
@@ -62,7 +64,7 @@ export function usePostEditor(postId?: string) {
       if (postId && data?.item.workingVersion === undefined) {
         showToast("Reload the editor before saving.", "warning");
 
-        return;
+        return false;
       }
       const { ok, status } =
         postId && data
@@ -76,14 +78,14 @@ export function usePostEditor(postId?: string) {
             "warning",
           );
 
-          return;
+          return false;
         }
         showToast(
           `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
           "error",
         );
 
-        return;
+        return false;
       }
 
       showToast(isEdit ? "Post updated." : "Post created.", "success");
@@ -97,11 +99,15 @@ export function usePostEditor(postId?: string) {
       } else {
         router.push("/admin/posts");
       }
+
+      return true;
     } catch {
       showToast(
         `Unable to ${isEdit ? "update" : "create"} post. Please try again.`,
         "error",
       );
+
+      return false;
     } finally {
       savingRef.current = false;
       setSaving(false);

@@ -5,7 +5,7 @@ import { ContentList, type ContentListItem } from "@/ui/components";
 import { usePostsList, useDeletePost } from "./PostsListScreen.hooks";
 
 export default function PostsListScreen() {
-  const { items, error, isLoading, mutate } = usePostsList();
+  const { items, error, isLoading, mutate, pagination } = usePostsList();
   const { deletingId, deletePost } = useDeletePost(async () => mutate());
 
   const mapped: ContentListItem[] = items.map((p) => ({
@@ -28,6 +28,8 @@ export default function PostsListScreen() {
       items={mapped}
       isLoading={isLoading}
       error={error ? "Unable to load posts. Please try again." : undefined}
+      pagination={pagination}
+      onRetryAction={() => void mutate()}
       deletingId={deletingId}
       onDeleteAction={deletePost}
     />

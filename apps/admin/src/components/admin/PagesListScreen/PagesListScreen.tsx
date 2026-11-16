@@ -5,7 +5,7 @@ import { ContentList, type ContentListItem } from "@/ui/components";
 import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 
 export default function PagesListScreen() {
-  const { items, error, isLoading, mutate } = usePagesList();
+  const { items, error, isLoading, mutate, pagination } = usePagesList();
   const { deletingId, deletePage } = useDeletePage(async () => mutate());
 
   const mapped: ContentListItem[] = items.map((p) => ({
@@ -28,6 +28,8 @@ export default function PagesListScreen() {
       items={mapped}
       isLoading={isLoading}
       error={error ? "Unable to load pages. Please try again." : undefined}
+      pagination={pagination}
+      onRetryAction={() => void mutate()}
       deletingId={deletingId}
       onDeleteAction={deletePage}
     />

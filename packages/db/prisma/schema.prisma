@@ -72,27 +72,32 @@ model User {
   Media     Media[]
   revisions PageRevision[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                         DateTime                  @default(now())
+  updatedAt                         DateTime                  @updatedAt
+  back_ContentDraft_user            ContentDraft[]            @relation("ContentDraft_user")
+  back_ContentRevision_user         ContentRevision[]         @relation("ContentRevision_user")
+  back_ContentPublication_user      ContentPublication[]      @relation("ContentPublication_user")
+  back_ContentScheduledRelease_user ContentScheduledRelease[] @relation("ContentScheduledRelease_user")
+  back_ContentEditLease_user        ContentEditLease[]        @relation("ContentEditLease_user")
 }
 
 model Account {
-  id                String    @id @default(cuid())
-  userId            String
-  type              String?
-  provider          String
-  providerAccountId String
-  refresh_token     String?
+  id                       String    @id @default(cuid())
+  userId                   String
+  type                     String?
+  provider                 String
+  providerAccountId        String
+  refresh_token            String?
   refresh_token_expires_at DateTime?
-  access_token      String?
-  expires_at        DateTime?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  password          String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  access_token             String?
+  expires_at               DateTime?
+  token_type               String?
+  scope                    String?
+  id_token                 String?
+  session_state            String?
+  password                 String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -125,16 +130,16 @@ model Verification {
 
 // ---------- CMS Settings ---------
 model SiteSettings {
-  id              String  @id @default("default")
-  siteName        String  @default("NextPress")
+  id              String          @id @default("default")
+  siteName        String          @default("NextPress")
   siteDescription String? // meta description
   siteUrl         String? // canonical base url
   ogImageUrl      String? // default og:image
   postListingMode PostListingMode @default(PAGINATION)
   postsPerPage    Int             @default(10)
-  websiteTemplate String @default("blog")
-  stylePreset     String @default("classic")
-  colorMode       String @default("light")
+  websiteTemplate String          @default("blog")
+  stylePreset     String          @default("classic")
+  colorMode       String          @default("light")
 
   defaultUserRole String @default("SUBSCRIBER") // must match Role.name
 
@@ -161,15 +166,15 @@ model OAuthProvider {
 
 // ---------- CMS Content ----------
 model Page {
-  id      String        @id @default(cuid())
-  type    PageType
-  status  PublishStatus @default(DRAFT)
-  slug    String        @unique
-  title   String
-  excerpt String?
-  content String // Serialized RichDocument; legacy HTML is read as literal text.
-  pageDocument String?
-  workingVersion Int @default(0)
+  id             String        @id @default(cuid())
+  type           PageType
+  status         PublishStatus @default(DRAFT)
+  slug           String        @unique
+  title          String
+  excerpt        String?
+  content        String // Serialized RichDocument; legacy HTML is read as literal text.
+  pageDocument   String?
+  workingVersion Int           @default(0)
 
   // Layout / template (corresponds to PageForm.type)
   layout PageLayout @default(STANDARD)
@@ -221,8 +226,14 @@ model Page {
   // Revision history
   revisions PageRevision[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                                DateTime                       @default(now())
+  updatedAt                                DateTime                       @updatedAt
+  back_ContentEditorialState_page          ContentEditorialState?         @relation("ContentEditorialState_page")
+  back_ContentRevision_page                ContentRevision[]              @relation("ContentRevision_page")
+  back_ContentLegacyRevisionImport_page    ContentLegacyRevisionImport[]  @relation("ContentLegacyRevisionImport_page")
+  back_ContentMigrationCheckpoint_page     ContentMigrationCheckpoint?    @relation("ContentMigrationCheckpoint_page")
+  back_ContentEditLease_page               ContentEditLease?              @relation("ContentEditLease_page")
+  back_ContentRevisionPageReference_target ContentRevisionPageReference[] @relation("ContentRevisionPageReference_target")
 }
 
 model Media {
@@ -238,8 +249,9 @@ model Media {
 
   createdAt DateTime @default(now())
 
-  PageMedia PageMedia[]
-  Page      Page[]
+  PageMedia                        PageMedia[]
+  Page                             Page[]
+  back_ContentRevisionMedia_target ContentRevisionMedia[] @relation("ContentRevisionMedia_target")
 }
 
 model Taxonomy {
@@ -248,8 +260,9 @@ model Taxonomy {
   slug String       @unique
   name String
 
-  pages PageOnTaxonomy[]
-  Page  Page[]
+  pages                               PageOnTaxonomy[]
+  Page                                Page[]
+  back_ContentRevisionTaxonomy_target ContentRevisionTaxonomy[] @relation("ContentRevisionTaxonomy_target")
 }
 
 model PageOnTaxonomy {
@@ -281,19 +294,267 @@ model PageRevision {
   authorId String?
   author   User?   @relation(fields: [authorId], references: [id])
 
-  title       String
-  slug        String
-  excerpt     String?
-  content     String
-  pageDocument String?
-  workingVersion Int @default(0)
-  layout      PageLayout
-  status      PublishStatus
-  publishedAt DateTime?
+  title          String
+  slug           String
+  excerpt        String?
+  content        String
+  pageDocument   String?
+  workingVersion Int           @default(0)
+  layout         PageLayout
+  status         PublishStatus
+  publishedAt    DateTime?
 
   note String?
 
-  createdAt DateTime @default(now())
+  createdAt                               DateTime                     @default(now())
+  back_ContentLegacyRevisionImport_legacy ContentLegacyRevisionImport? @relation("ContentLegacyRevisionImport_legacy")
 
   @@index([pageId, createdAt])
+}
+
+model ContentEditorialState {
+  pageId                             String                   @id
+  contentVersion                     Int
+  nextRevisionNumber                 Int
+  visibility                         String
+  liveRevisionId                     String?
+  initialRevisionId                  String?
+  lastPublishedAt                    DateTime?                @db.Timestamptz(3)
+  enrollmentState                    String
+  enrollmentEpoch                    Int
+  enrolledAt                         DateTime?                @db.Timestamptz(3)
+  updatedAt                          DateTime                 @db.Timestamptz(3)
+  page                               Page                     @relation("ContentEditorialState_page", fields: [pageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ref_liveRevisionId                 ContentRevision?         @relation("ContentEditorialState_ref_liveRevisionId", fields: [pageId, liveRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  ref_initialRevisionId              ContentRevision?         @relation("ContentEditorialState_ref_initialRevisionId", fields: [pageId, initialRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  back_ContentDraft_state            ContentDraft?            @relation("ContentDraft_state")
+  back_ContentPublication_state      ContentPublication[]     @relation("ContentPublication_state")
+  back_ContentScheduledRelease_state ContentScheduledRelease? @relation("ContentScheduledRelease_state")
+  back_ContentSlugReservation_state  ContentSlugReservation[] @relation("ContentSlugReservation_state")
+
+  @@index([enrollmentState, pageId])
+}
+
+model ContentDraft {
+  pageId             String   @id
+  draftVersion       Int
+  baseContentVersion Int
+  revisionId         String
+  updatedById        String?
+  updatedAt          DateTime @db.Timestamptz(3)
+
+  state          ContentEditorialState @relation("ContentDraft_state", fields: [pageId], references: [pageId], onDelete: Restrict, onUpdate: NoAction)
+  ref_revisionId ContentRevision       @relation("ContentDraft_ref_revisionId", fields: [pageId, revisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  user           User?                 @relation("ContentDraft_user", fields: [updatedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+}
+
+model ContentRevision {
+  id                                                      String                         @id @default(cuid())
+  pageId                                                  String
+  number                                                  Int
+  schemaVersion                                           Int
+  aggregate                                               Json?                          @db.JsonB
+  rawSource                                               String?
+  coverage                                                Json                           @db.JsonB
+  aggregateHash                                           String                         @db.Char(64)
+  actorId                                                 String?
+  createdAt                                               DateTime                       @db.Timestamptz(3)
+  sourceRevisionId                                        String?
+  baseRevisionId                                          String?
+  provenance                                              Json?                          @db.JsonB
+  reason                                                  String
+  page                                                    Page                           @relation("ContentRevision_page", fields: [pageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ref_sourceRevisionId                                    ContentRevision?               @relation("ContentRevision_ref_sourceRevisionId", fields: [pageId, sourceRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  ref_baseRevisionId                                      ContentRevision?               @relation("ContentRevision_ref_baseRevisionId", fields: [pageId, baseRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  user                                                    User?                          @relation("ContentRevision_user", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  back_ContentEditorialState_ref_liveRevisionId           ContentEditorialState[]        @relation("ContentEditorialState_ref_liveRevisionId")
+  back_ContentEditorialState_ref_initialRevisionId        ContentEditorialState[]        @relation("ContentEditorialState_ref_initialRevisionId")
+  back_ContentDraft_ref_revisionId                        ContentDraft[]                 @relation("ContentDraft_ref_revisionId")
+  back_ContentRevision_ref_sourceRevisionId               ContentRevision[]              @relation("ContentRevision_ref_sourceRevisionId")
+  back_ContentRevision_ref_baseRevisionId                 ContentRevision[]              @relation("ContentRevision_ref_baseRevisionId")
+  back_ContentPublication_ref_revisionId                  ContentPublication[]           @relation("ContentPublication_ref_revisionId")
+  back_ContentScheduledRelease_ref_revisionId             ContentScheduledRelease[]      @relation("ContentScheduledRelease_ref_revisionId")
+  back_ContentScheduledRelease_ref_previousLiveRevisionId ContentScheduledRelease[]      @relation("ContentScheduledRelease_ref_previousLiveRevisionId")
+  back_ContentLegacyRevisionImport_ref_revisionId         ContentLegacyRevisionImport[]  @relation("ContentLegacyRevisionImport_ref_revisionId")
+  back_ContentMigrationCheckpoint_ref_baselineRevisionId  ContentMigrationCheckpoint[]   @relation("ContentMigrationCheckpoint_ref_baselineRevisionId")
+  back_ContentRevisionMedia_revision                      ContentRevisionMedia[]         @relation("ContentRevisionMedia_revision")
+  back_ContentRevisionTaxonomy_revision                   ContentRevisionTaxonomy[]      @relation("ContentRevisionTaxonomy_revision")
+  back_ContentRevisionPageReference_revision              ContentRevisionPageReference[] @relation("ContentRevisionPageReference_revision")
+
+  @@unique([pageId, id])
+  @@unique([pageId, number])
+  @@index([pageId, number(sort: Desc), id(sort: Desc)])
+  @@index([pageId, sourceRevisionId])
+  @@index([pageId, baseRevisionId])
+}
+
+model ContentPublication {
+  id                                       String                    @id @default(cuid())
+  pageId                                   String
+  revisionId                               String?
+  generation                               Int
+  action                                   String
+  actorId                                  String?
+  committedAt                              DateTime                  @db.Timestamptz(3)
+  effectiveAt                              DateTime?                 @db.Timestamptz(3)
+  displayedPublishedAt                     DateTime?                 @db.Timestamptz(3)
+  operationId                              String                    @db.Uuid
+  enrollmentEpoch                          Int
+  state                                    ContentEditorialState     @relation("ContentPublication_state", fields: [pageId], references: [pageId], onDelete: Restrict, onUpdate: NoAction)
+  ref_revisionId                           ContentRevision?          @relation("ContentPublication_ref_revisionId", fields: [pageId, revisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  user                                     User?                     @relation("ContentPublication_user", fields: [actorId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  back_ContentScheduledRelease_publication ContentScheduledRelease[] @relation("ContentScheduledRelease_publication")
+  back_ContentSlugReservation_publication  ContentSlugReservation[]  @relation("ContentSlugReservation_publication")
+
+  @@unique([pageId, generation])
+  @@index([pageId, committedAt, id])
+}
+
+model ContentScheduledRelease {
+  pageId                     String                @id
+  revisionId                 String
+  generation                 Int
+  scheduledFor               DateTime              @db.Timestamptz(3)
+  displayTimezone            String?
+  scheduledById              String?
+  previousLiveRevisionId     String?
+  createdAt                  DateTime              @db.Timestamptz(3)
+  state                      ContentEditorialState @relation("ContentScheduledRelease_state", fields: [pageId], references: [pageId], onDelete: Restrict, onUpdate: NoAction)
+  ref_revisionId             ContentRevision       @relation("ContentScheduledRelease_ref_revisionId", fields: [pageId, revisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  ref_previousLiveRevisionId ContentRevision?      @relation("ContentScheduledRelease_ref_previousLiveRevisionId", fields: [pageId, previousLiveRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  user                       User?                 @relation("ContentScheduledRelease_user", fields: [scheduledById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  publication                ContentPublication    @relation("ContentScheduledRelease_publication", fields: [pageId, generation], references: [pageId, generation], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([scheduledFor, pageId])
+}
+
+model ContentSlugReservation {
+  normalizedSlug    String                @id
+  pageId            String
+  releaseGeneration Int
+  createdAt         DateTime              @db.Timestamptz(3)
+  state             ContentEditorialState @relation("ContentSlugReservation_state", fields: [pageId], references: [pageId], onDelete: Restrict, onUpdate: NoAction)
+  publication       ContentPublication    @relation("ContentSlugReservation_publication", fields: [pageId, releaseGeneration], references: [pageId, generation], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([pageId, releaseGeneration])
+}
+
+model ContentRevisionMedia {
+  revisionId String
+  mediaId    String
+  usage      String
+  position   Int
+  path       String
+  revision   ContentRevision @relation("ContentRevisionMedia_revision", fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  target     Media           @relation("ContentRevisionMedia_target", fields: [mediaId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([revisionId, usage, path, position])
+  @@index([mediaId, revisionId])
+}
+
+model ContentRevisionTaxonomy {
+  revisionId String
+  taxonomyId String
+  usage      String
+  position   Int
+  revision   ContentRevision @relation("ContentRevisionTaxonomy_revision", fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  target     Taxonomy        @relation("ContentRevisionTaxonomy_target", fields: [taxonomyId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([revisionId, usage, position])
+  @@unique([revisionId, usage, taxonomyId])
+  @@index([taxonomyId, revisionId])
+}
+
+model ContentRevisionPageReference {
+  revisionId   String
+  targetPageId String
+  usage        String
+  path         String
+  revision     ContentRevision @relation("ContentRevisionPageReference_revision", fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  target       Page            @relation("ContentRevisionPageReference_target", fields: [targetPageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([revisionId, usage, path])
+  @@index([targetPageId, revisionId])
+}
+
+model ContentLegacyRevisionImport {
+  legacyRevisionId String          @id
+  pageId           String
+  revisionId       String          @unique
+  sourceHash       String          @db.Char(64)
+  adapterVersion   Int
+  importedAt       DateTime        @db.Timestamptz(3)
+  page             Page            @relation("ContentLegacyRevisionImport_page", fields: [pageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ref_revisionId   ContentRevision @relation("ContentLegacyRevisionImport_ref_revisionId", fields: [pageId, revisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+  legacy           PageRevision    @relation("ContentLegacyRevisionImport_legacy", fields: [legacyRevisionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([pageId])
+}
+
+model ContentMigrationCheckpoint {
+  pageId                 String           @id
+  adapterVersion         Int
+  sourceFingerprint      String           @db.Char(64)
+  projectionHash         String           @db.Char(64)
+  baselineRevisionId     String?
+  status                 String
+  capturedWorkingVersion Int
+  capturedAt             DateTime         @db.Timestamptz(3)
+  verifiedAt             DateTime?        @db.Timestamptz(3)
+  failureCode            String?
+  page                   Page             @relation("ContentMigrationCheckpoint_page", fields: [pageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ref_baselineRevisionId ContentRevision? @relation("ContentMigrationCheckpoint_ref_baselineRevisionId", fields: [pageId, baselineRevisionId], references: [pageId, id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([status, pageId])
+}
+
+model EditorialOperation {
+  actorKey    String
+  operationId String    @db.Uuid
+  operation   String
+  pageId      String?
+  requestHash String    @db.Char(64)
+  result      Json?     @db.JsonB
+  createdAt   DateTime  @db.Timestamptz(3)
+  replayUntil DateTime? @db.Timestamptz(3)
+  expiredAt   DateTime? @db.Timestamptz(3)
+
+  @@id([actorKey, operation, operationId])
+  @@index([pageId, createdAt])
+  @@index([replayUntil])
+}
+
+model ContentEditLease {
+  pageId             String    @id
+  generation         BigInt
+  editorId           String?
+  sessionBindingHash String?   @db.Char(64)
+  editorInstanceId   String?   @db.Uuid
+  tokenHash          String?   @db.Char(64)
+  acquiredAt         DateTime? @db.Timestamptz(3)
+  renewedAt          DateTime? @db.Timestamptz(3)
+  expiresAt          DateTime? @db.Timestamptz(3)
+  page               Page      @relation("ContentEditLease_page", fields: [pageId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user               User?     @relation("ContentEditLease_user", fields: [editorId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([expiresAt])
+  @@index([editorId])
+}
+
+model ContentEditLeaseEvent {
+  id                 String   @id @default(cuid())
+  pageId             String
+  generation         BigInt
+  previousGeneration BigInt?
+  action             String
+  actorKey           String?
+  previousEditorKey  String?
+  editorInstanceId   String?  @db.Uuid
+  occurredAt         DateTime @db.Timestamptz(3)
+  operationId        String   @db.Uuid
+  reasonCode         String?
+
+  @@unique([pageId, generation])
+  @@unique([actorKey, operationId])
+  @@index([pageId, occurredAt, id])
 }

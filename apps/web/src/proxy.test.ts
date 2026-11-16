@@ -80,3 +80,14 @@ describe("public locale proxy", () => {
     ).toBeNull();
   });
 });
+
+it("outage probe reaches rendering only at the canonical homepage", () => {
+  const root = proxy(new NextRequest("http://localhost:49200/"));
+  expect(root.status).toBe(308);
+  expect(root.headers.get("location")).toBe("http://localhost:49200/en/");
+  const probe = proxy(new NextRequest("http://localhost:49200/en/"));
+  expect(probe.headers.get("location")).toBeNull();
+  expect(probe.headers.get("x-middleware-rewrite")).toBe(
+    "http://localhost:49200/",
+  );
+});

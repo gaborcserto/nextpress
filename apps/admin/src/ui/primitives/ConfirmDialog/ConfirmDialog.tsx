@@ -14,6 +14,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   confirmColor = "primary",
   loading = false,
+  error,
   disableClose = false,
   onConfirmAction,
   onCancelAction,
@@ -87,7 +88,11 @@ export function ConfirmDialog({
       aria-describedby={children ? descriptionId : undefined}
       onKeyDown={handleKeyDown}
     >
-      <div className="modal-box" ref={dialogRef} tabIndex={-1}>
+      <div
+        className="modal-box max-w-[calc(100vw-2rem)] break-words"
+        ref={dialogRef}
+        tabIndex={-1}
+      >
         <h3 id={titleId} className="font-semibold text-lg">
           {title}
         </h3>
@@ -98,7 +103,17 @@ export function ConfirmDialog({
           </div>
         ) : null}
 
-        <div className="modal-action">
+        {error && (
+          <p role="alert" className="mt-3 text-error break-words">
+            {error}
+          </p>
+        )}
+        {loading && (
+          <p role="status" className="mt-3">
+            Please wait?
+          </p>
+        )}
+        <div className="modal-action flex-wrap gap-2">
           <Button
             variant="ghost"
             color="neutral"

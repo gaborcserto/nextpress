@@ -55,12 +55,11 @@ describe.each([
         "deletePage" in result.current
           ? result.current.deletePage
           : result.current.deletePost;
-      await deleteItem("item-1");
+      await expect(deleteItem("item-1")).rejects.toThrow(
+        `Unable to delete ${kind}.`,
+      );
     });
-    expect(showToast).toHaveBeenCalledWith(
-      `Unable to delete ${kind}. Please try again.`,
-      "error",
-    );
+    expect(showToast).not.toHaveBeenCalled();
     expect(result.current.deletingId).toBeNull();
   });
 });

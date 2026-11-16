@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { disposableDatabaseName } from "../testing/disposable-database";
+import { verifyDisposableDatabase } from "../testing/docker-database";
+
 const testUrl = process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
 let db: typeof import("@nextpress/db/src/client").prisma;
 let administer: typeof import("./user-administration.server").administerUser;
@@ -11,18 +14,14 @@ const emails = [0, 1].map(
 
 describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
   beforeAll(async () => {
-    const url = new URL(testUrl ?? "");
-
-    if (
-      testUrl !== process.env.DATABASE_URL ||
-      !["localhost", "127.0.0.1"].includes(url.hostname) ||
-      !url.pathname.startsWith("/nextpress_phase1_verify")
-    ) {
-      throw new Error(
-        "Use a matching disposable nextpress_phase1_verify* database",
-      );
-    }
-    db = (await import("@nextpress/db/src/client")).prisma;
+    const expectedName = disposableDatabaseName(
+      testUrl,
+      process.env.DATABASE_URL,
+      "content",
+    );
+    const candidate = (await import("@nextpress/db/src/client")).prisma;
+    await verifyDisposableDatabase(expectedName, candidate);
+    db = candidate;
     administer = (await import("./user-administration.server")).administerUser;
     if (await db.user.count({ where: { role: { name: "ADMIN" } } })) {
       throw new Error(
@@ -35,7 +34,13 @@ describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
   });
 
   afterAll(async () => {
-    if (!db) return;
+    if (!db) {
+      return;
+    }
+    await verifyDisposableDatabase(
+      disposableDatabaseName(testUrl, process.env.DATABASE_URL, "content"),
+      db,
+    );
     await db.user.deleteMany({ where: { email: { in: emails } } });
     await db.$disconnect();
   });
