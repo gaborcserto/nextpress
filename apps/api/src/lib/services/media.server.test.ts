@@ -4,13 +4,25 @@ const { db, storage } = vi.hoisted(() => ({
   db: {
     media: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
     page: { findMany: vi.fn() },
+    $transaction: vi.fn(),
   },
   storage: { put: vi.fn(), read: vi.fn(), remove: vi.fn() },
 }));
 vi.mock("@nextpress/db/src/client", () => ({ prisma: db }));
 vi.mock("./media-storage.server", () => ({ mediaStorage: storage }));
 
-import { listMedia, serveMedia, uploadMedia } from "./media.server";
+import {
+  ContentForbiddenError,
+  ContentNotFoundError,
+} from "@/lib/auth/content-access";
+
+import {
+  deleteMedia,
+  listMedia,
+  MediaReferencedError,
+  serveMedia,
+  uploadMedia,
+} from "./media.server";
 
 const actor = { id: "author", role: "AUTHOR" as const };
 const image =
@@ -95,5 +107,131 @@ describe("secure media boundaries", () => {
     expect(storage.remove).toHaveBeenCalledWith(
       expect.stringMatching(/\.png$/),
     );
+  });
+});
+
+describe("media deletion transaction characterization", () => {
+  const key = "00000000-0000-0000-0000-000000000001.png";
+  let metadataPresent: boolean;
+  let filePresent: boolean;
+  const tx = {
+    $executeRaw: vi.fn(),
+    media: { findUnique: vi.fn(), delete: vi.fn() },
+    page: { count: vi.fn() },
+    pageRevision: { count: vi.fn() },
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    metadataPresent = true;
+    filePresent = true;
+    tx.media.findUnique.mockImplementation(async () =>
+      metadataPresent ? { key, uploadedById: "author" } : null,
+    );
+    tx.media.delete.mockResolvedValue({});
+    tx.page.count.mockResolvedValue(0);
+    tx.pageRevision.count.mockResolvedValue(0);
+    storage.remove.mockImplementation(async () => {
+      expect(metadataPresent).toBe(false);
+      filePresent = false;
+    });
+    db.$transaction.mockImplementation(
+      async (callback: (client: typeof tx) => Promise<string | null>) => {
+        const result = await callback(tx);
+        metadataPresent = false;
+
+        return result;
+      },
+    );
+  });
+
+  it("commits metadata deletion and removes the file on success; a repeat is not found", async () => {
+    await deleteMedia("asset", actor);
+    expect(metadataPresent).toBe(false);
+    expect(filePresent).toBe(false);
+    await expect(deleteMedia("asset", actor)).rejects.toBeInstanceOf(
+      ContentNotFoundError,
+    );
+    expect(storage.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the file when metadata deletion fails", async () => {
+    tx.media.delete.mockRejectedValue(new Error("database failure"));
+    await expect(deleteMedia("asset", actor)).rejects.toThrow(
+      "database failure",
+    );
+    expect(metadataPresent).toBe(true);
+    expect(filePresent).toBe(true);
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it("preserves the file when commit fails after the callback", async () => {
+    db.$transaction.mockImplementation(
+      async (callback: (client: typeof tx) => Promise<string | null>) => {
+        await callback(tx);
+        throw new Error("commit failure");
+      },
+    );
+    await expect(deleteMedia("asset", actor)).rejects.toThrow("commit failure");
+    expect(metadataPresent).toBe(true);
+    expect(filePresent).toBe(true);
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it.each(["EACCES", "ENOENT"])(
+    "commits metadata when cleanup reports %s",
+    async (code) => {
+      const failure = Object.assign(new Error("private path"), { code });
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      filePresent = code !== "ENOENT";
+      storage.remove.mockRejectedValue(failure);
+      await expect(deleteMedia("asset", actor)).resolves.toBeUndefined();
+      expect(metadataPresent).toBe(false);
+      expect(filePresent).toBe(code !== "ENOENT");
+
+      if (code === "ENOENT") {
+        expect(log).not.toHaveBeenCalled();
+      } else {
+        expect(log).toHaveBeenCalledWith(
+          JSON.stringify({
+            event: "media.cleanup_failed",
+            mediaId: "asset",
+            category: "storage_removal_failed",
+          }),
+        );
+      }
+
+      await expect(deleteMedia("asset", actor)).rejects.toBeInstanceOf(
+        ContentNotFoundError,
+      );
+      log.mockRestore();
+    },
+  );
+
+  it.each(["page", "revision"])(
+    "blocks a %s reference without removing metadata or bytes",
+    async (reference) => {
+      (reference === "page"
+        ? tx.page.count
+        : tx.pageRevision.count
+      ).mockResolvedValue(1);
+      await expect(deleteMedia("asset", actor)).rejects.toBeInstanceOf(
+        MediaReferencedError,
+      );
+      expect(tx.media.delete).not.toHaveBeenCalled();
+      expect(storage.remove).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects subscribers before the transaction and other authors before deletion", async () => {
+    await expect(
+      deleteMedia("asset", { id: "subscriber", role: "SUBSCRIBER" }),
+    ).rejects.toBeInstanceOf(ContentForbiddenError);
+    expect(db.$transaction).not.toHaveBeenCalled();
+    await expect(
+      deleteMedia("asset", { id: "other", role: "AUTHOR" }),
+    ).rejects.toBeInstanceOf(ContentForbiddenError);
+    expect(tx.media.delete).not.toHaveBeenCalled();
+    expect(storage.remove).not.toHaveBeenCalled();
   });
 });

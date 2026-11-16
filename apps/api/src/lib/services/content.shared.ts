@@ -1,4 +1,3 @@
-import { normalizeTagIds, setTagsForPage } from "@/lib/repos";
 import { ContentVersionConflictError, isSlugConflictError } from "@/lib/utils";
 import {
   PageSchema,
@@ -26,14 +25,6 @@ export class PageNotFoundError extends Error {
     super(message);
     this.name = "PageNotFoundError";
   }
-}
-
-export async function applyTags(
-  pageId: string,
-  tagIds: unknown,
-): Promise<void> {
-  const normalized = normalizeTagIds(tagIds);
-  await setTagsForPage(pageId, normalized);
 }
 
 export function validateCreateBody(rawBody: unknown) {

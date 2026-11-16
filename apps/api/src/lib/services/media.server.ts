@@ -144,7 +144,7 @@ export async function serveMedia(id: string, actor?: ContentActor) {
 export async function deleteMedia(id: string, actor: ContentActor) {
   contentWriteWhere(actor);
   // Shared with revision writes so reference checks and deletion cannot race.
-  return prisma.$transaction(async (tx) => {
+  const key = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(71520261111::bigint)`;
     const media = await tx.media.findUnique({ where: { id } });
 
@@ -168,7 +168,24 @@ export async function deleteMedia(id: string, actor: ContentActor) {
     if (references || revisions) throw new MediaReferencedError();
     await tx.media.delete({ where: { id } });
 
-    // Removing metadata first fails closed if file removal requires operator retry.
-    if (media.key) await mediaStorage.remove(media.key);
+    return media.key;
   });
+
+  if (!key) return;
+
+  try {
+    await mediaStorage.remove(key);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return;
+    }
+
+    console.error(
+      JSON.stringify({
+        event: "media.cleanup_failed",
+        mediaId: id,
+        category: "storage_removal_failed",
+      }),
+    );
+  }
 }

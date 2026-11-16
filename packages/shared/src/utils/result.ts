@@ -19,18 +19,6 @@ export async function tryCatch<T, E = Error>(
 }
 
 /**
- * Map the error part of a Result and keep the data as-is.
- */
-export function mapResultError<T, E, E2>(
-  [data, error]: Result<T, E>,
-  mapper: (error: E) => E2,
-): Result<T, E2> {
-  if (!error) return [data, null];
-
-  return [data, mapper(error)];
-}
-
-/**
  * Unwrap a Result, throwing a custom error if needed.
  *
  * Example:

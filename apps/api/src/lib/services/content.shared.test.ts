@@ -1,24 +1,10 @@
 import { EMPTY_RICH_CONTENT } from "@nextpress/shared/content";
-import { describe, expect, it, vi } from "vitest";
-
-const { setTagsForPage } = vi.hoisted(() => ({ setTagsForPage: vi.fn() }));
-
-vi.mock("@/lib/repos", () => ({
-  normalizeTagIds: (value: unknown) =>
-    Array.isArray(value)
-      ? value
-          .filter((id): id is string => typeof id === "string")
-          .map((id) => id.trim())
-          .filter(Boolean)
-      : [],
-  setTagsForPage,
-}));
+import { describe, expect, it } from "vitest";
 
 import {
   PageConflictError,
   PageNotFoundError,
   PageValidationError,
-  applyTags,
   runWithContentConflictHandling,
   validateCreateBody,
   validateUpdateBody,
@@ -63,12 +49,6 @@ describe("content service validation", () => {
 });
 
 describe("content service boundaries", () => {
-  it("normalizes tag ids before persisting page relationships", async () => {
-    await applyTags("page-1", [" tag-a ", 3, "", "tag-b"]);
-
-    expect(setTagsForPage).toHaveBeenCalledWith("page-1", ["tag-a", "tag-b"]);
-  });
-
   it("maps only slug conflict failures and preserves other failures", async () => {
     await expect(
       runWithContentConflictHandling(async () => {
