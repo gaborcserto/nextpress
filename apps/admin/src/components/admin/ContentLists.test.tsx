@@ -48,7 +48,9 @@ beforeEach(() => {
           title: "Example",
           slug: "example",
           status: "DRAFT",
-          updatedAt: "2026-01-01",
+          type: "POST",
+          excerpt: null,
+          updatedAt: "2026-01-01T00:00:00.000Z",
         },
       ],
 

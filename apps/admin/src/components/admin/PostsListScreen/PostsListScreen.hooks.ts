@@ -6,11 +6,13 @@ import { apiFetch } from "@/lib/api";
 import { useContentList } from "@/lib/content/useContentList";
 import { showToast } from "@/ui/utils";
 
+import { fetchPostList } from "./postListFetcher";
+
 /**
  * Load paginated list of posts from /api/post.
  */
 export function usePostsList() {
-  return useContentList("/api/post");
+  return useContentList("/api/post", fetchPostList);
 }
 
 /**

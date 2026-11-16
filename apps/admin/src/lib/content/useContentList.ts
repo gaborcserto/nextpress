@@ -21,7 +21,10 @@ export type ContentPagination = {
 // Match the existing API pagination bound; never forward an unbounded URL value.
 const MAX_PAGE = 10_000;
 
-export function useContentList(endpoint: string) {
+export function useContentList(
+  endpoint: string,
+  fetcher: (url: string) => Promise<ContentListResponse> = jsonFetcher,
+) {
   const params = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -54,7 +57,7 @@ export function useContentList(endpoint: string) {
   );
 
   const { data, error, isLoading, isValidating, mutate } =
-    useSWR<ContentListResponse>(`${endpoint}?page=${page}`, jsonFetcher, {
+    useSWR<ContentListResponse>(`${endpoint}?page=${page}`, fetcher, {
       keepPreviousData: false,
     });
   const lastPage = data ? Math.max(1, Math.min(data.pages, MAX_PAGE)) : page;

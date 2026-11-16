@@ -2,6 +2,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fetchPostList } from "@/components/admin/PostsListScreen/postListFetcher";
+
 import { useContentList } from "./useContentList";
 
 import type { ReactNode } from "react";
@@ -27,22 +29,26 @@ const response = (page = 1, total = 101) => ({
   pages: Math.ceil(total / 50),
 });
 
-function setup() {
+function setup(usePostFetcher = false) {
   const cache = new Map();
 
-  return renderHook(() => useContentList("/api/post"), {
-    wrapper: ({ children }: { children: ReactNode }) => (
-      <SWRConfig
-        value={{
-          provider: () => cache,
-          dedupingInterval: 0,
-          shouldRetryOnError: false,
-        }}
-      >
-        {children}
-      </SWRConfig>
-    ),
-  });
+  return renderHook(
+    () =>
+      useContentList("/api/post", usePostFetcher ? fetchPostList : undefined),
+    {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <SWRConfig
+          value={{
+            provider: () => cache,
+            dedupingInterval: 0,
+            shouldRetryOnError: false,
+          }}
+        >
+          {children}
+        </SWRConfig>
+      ),
+    },
+  );
 }
 
 beforeEach(() => {
@@ -173,4 +179,36 @@ describe("content list URL pagination", () => {
     });
     expect(result.current.items[0]?.id).toBe("item-2");
   });
+});
+
+it("rejects invalid post data and recovers on retry", async () => {
+  fetcher.mockResolvedValueOnce({ items: "bad", page: 1 });
+  const { result } = setup(true);
+  await waitFor(() => expect(result.current.error).toBeDefined());
+  expect(result.current.items).toEqual([]);
+  expect(result.current.pagination.metadata).toBeUndefined();
+  expect(result.current.isLoading).toBe(false);
+
+  fetcher.mockResolvedValueOnce({
+    items: [
+      {
+        id: "post-1",
+        type: "POST",
+        status: "DRAFT",
+        slug: "post",
+        title: "Post",
+        excerpt: null,
+        updatedAt: "2026-11-16T12:00:00.000Z",
+      },
+    ],
+    page: 1,
+    limit: 50,
+    total: 1,
+    pages: 1,
+  });
+  await act(async () => {
+    await result.current.mutate();
+  });
+  await waitFor(() => expect(result.current.items[0]?.id).toBe("post-1"));
+  expect(result.current.error).toBeUndefined();
 });

@@ -54,3 +54,19 @@ describe("admin API client", () => {
     await expect(jsonFetcher("/api/value")).rejects.toThrow("offline");
   });
 });
+
+it.each([{ items: [] }, { items: "wrong", page: 1 }])(
+  "currently accepts incompatible successful JSON: %j",
+  async (body) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(body))),
+    );
+    await expect(jsonFetcher("/api/post")).resolves.toEqual(body);
+  },
+);
+
+it("returns a JSON parsing error for malformed successful responses", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{")));
+  await expect(jsonFetcher("/api/post")).rejects.toBeInstanceOf(SyntaxError);
+});
