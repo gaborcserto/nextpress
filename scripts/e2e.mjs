@@ -2,6 +2,14 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { tsImport } from "tsx/esm/api";
+
+const { disposableDockerContext, verifyLocalDocker } = await tsImport(
+  "../apps/api/src/lib/testing/docker-database.ts",
+  import.meta.url,
+);
+verifyLocalDocker();
+const dockerContext = disposableDockerContext().name;
 
 const name = `nextpress-e2e-${randomUUID()}`;
 const environment = {
@@ -16,18 +24,32 @@ const environment = {
 };
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    env: environment,
-    stdio: "inherit",
-    timeout: 600_000,
-    ...options,
-  });
+  const result = spawnSync(
+    command,
+    command === "docker" ? ["--context", dockerContext, ...args] : args,
+    {
+      env: environment,
+      stdio: "inherit",
+      timeout: 600_000,
+      ...options,
+    },
+  );
 
-  if (result.error) throw result.error;
+  if (result.error) {
+    throw result.error;
+  }
 
-  if (result.status !== 0)
+  if (result.status !== 0) {
     throw new Error(`${command} failed (${result.status})`);
+  }
 }
+
+// Install the browser revision required by the current Playwright package.
+run(process.execPath, [
+  "node_modules/@playwright/test/cli.js",
+  "install",
+  "chromium",
+]);
 
 let started = false;
 
@@ -50,11 +72,23 @@ try {
   for (let attempt = 0; attempt < 30; attempt++) {
     const ready = spawnSync(
       "docker",
-      ["exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
+      [
+        "--context",
+        dockerContext,
+        "exec",
+        name,
+        "pg_isready",
+        "-h",
+        "127.0.0.1",
+        "-U",
+        "postgres",
+      ],
       { stdio: "ignore" },
     );
 
-    if (ready.status === 0) break;
+    if (ready.status === 0) {
+      break;
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   // Upgrade populated pre-composition data, rather than testing only empty databases.
@@ -111,78 +145,17 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
     "after",
     evidence,
   ]);
-  for (const database of [
-    "nextpress_phase1_verify_e2e",
-    "nextpress_security_verify_e2e",
-  ]) {
-    run("docker", [
-      "exec",
-      name,
-      "psql",
-      "-U",
-      "postgres",
-      "-d",
-      "nextpress_e2e",
-      "-c",
-      `CREATE DATABASE ${database}`,
-    ]);
-    const isolated = {
-      ...environment,
-      DATABASE_URL: `postgresql://postgres:disposable-e2e@localhost:55441/${database}`,
-    };
+  // Guarded families own their independent clusters, roles, identity and cleanup.
+  for (const family of ["content", "security"]) {
     run(
       process.execPath,
-      ["../../node_modules/prisma/build/index.js", "migrate", "deploy"],
-      { cwd: "packages/db", env: isolated },
+      [
+        path.resolve("node_modules/tsx/dist/cli.mjs"),
+        "scripts/b04-postgres.ts",
+        family,
+      ],
+      { cwd: "apps/api", env: process.env },
     );
-
-    if (database.startsWith("nextpress_security")) {
-      run("docker", [
-        "exec",
-        name,
-        "psql",
-        "-U",
-        "postgres",
-        "-d",
-        database,
-        "-c",
-        `INSERT INTO "Role" (id,name) VALUES ('admin','ADMIN'),('editor','EDITOR'),('author','AUTHOR'),('subscriber','SUBSCRIBER')`,
-      ]);
-      run(
-        process.execPath,
-        [
-          path.resolve("node_modules/vitest/vitest.mjs"),
-          "run",
-          "src/lib/auth/live-postgres.integration.test.ts",
-          "--maxWorkers=1",
-        ],
-        {
-          cwd: "apps/api",
-          env: {
-            ...isolated,
-            NEXTPRESS_SECURITY_TEST_DATABASE_URL: isolated.DATABASE_URL,
-          },
-        },
-      );
-    } else {
-      run(
-        process.execPath,
-        [
-          path.resolve("node_modules/vitest/vitest.mjs"),
-          "run",
-          "src/lib/repos/content-transaction.integration.test.ts",
-          "src/lib/auth/user-administration.integration.test.ts",
-          "--maxWorkers=1",
-        ],
-        {
-          cwd: "apps/api",
-          env: {
-            ...isolated,
-            NEXTPRESS_CONTENT_TEST_DATABASE_URL: isolated.DATABASE_URL,
-          },
-        },
-      );
-    }
   }
   run(process.execPath, [
     "node_modules/tsx/dist/cli.mjs",
@@ -202,5 +175,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
   ]);
   run(process.execPath, ["scripts/e2e-outage.mjs"]);
 } finally {
-  if (started) run("docker", ["stop", name]);
+  if (started) {
+    run("docker", ["stop", name]);
+  }
 }

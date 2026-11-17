@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 
 import { ApiRequestError } from "@/lib/api/client";
@@ -52,33 +52,54 @@ export default function TaxonomyScreen() {
     return [...items].sort((a, b) => b.usedCount - a.usedCount);
   }, [items]);
 
-  const reload = async () => {
+  const loadRequest = useRef<AbortController | null>(null);
+
+  const load = useCallback(() => {
+    loadRequest.current?.abort();
+    const controller = new AbortController();
+    loadRequest.current = controller;
+
+    return loadTagsAdminAction(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setItems(
+            data.map(({ id, name, slug, usedCount }) => ({
+              id,
+              name,
+              slug,
+              usedCount,
+            })),
+          );
+        }
+      })
+      .catch((caught: unknown) => {
+        if (!controller.signal.aborted) {
+          setLoadError(
+            caught instanceof ApiRequestError &&
+              (caught.status === 401 || caught.status === 403)
+              ? "Unable to access tags. Sign in with an authorized admin account and try again."
+              : "Unable to load tags. Please try again.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+  }, []);
+
+  const reload = () => {
     setLoading(true);
     setLoadError(null);
-    try {
-      const data = await loadTagsAdminAction();
-      setItems(
-        data.map((t) => ({
-          id: t.id,
-          name: t.name,
-          slug: t.slug,
-          usedCount: t.usedCount,
-        })),
-      );
-    } catch (e) {
-      setLoadError(
-        e instanceof ApiRequestError && (e.status === 401 || e.status === 403)
-          ? "Unable to access tags. Sign in with an authorized admin account and try again."
-          : "Unable to load tags. Please try again.",
-      );
-    } finally {
-      setLoading(false);
-    }
+    void load();
   };
 
   useEffect(() => {
-    void reload();
-  }, []);
+    void load();
+
+    return () => loadRequest.current?.abort();
+  }, [load]);
 
   const canCreate =
     name.trim().length > 0 && slug.trim().length > 0 && !creating;
@@ -104,7 +125,7 @@ export default function TaxonomyScreen() {
 
       setName("");
 
-      void reload();
+      reload();
       showToast("Tag created.", "success");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create tag.");
@@ -257,7 +278,7 @@ export default function TaxonomyScreen() {
         </Section>
 
         <div className="flex justify-end">
-          <Button variant="ghost" color="neutral" onClick={() => void reload()}>
+          <Button variant="ghost" color="neutral" onClick={reload}>
             Refresh
           </Button>
         </div>

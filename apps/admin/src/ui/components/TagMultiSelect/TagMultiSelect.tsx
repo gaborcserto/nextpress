@@ -43,7 +43,6 @@ export function TagMultiSelect({
     options,
     loading,
     error: searchError,
-    setOptions,
   } = useTagMultiSelectSearch(query, loadOptionsAction, 2);
 
   const trimmedQuery = query.trim();
@@ -78,7 +77,6 @@ export function TagMultiSelect({
   /** Reset search input + dropdown */
   const resetSearch = (): void => {
     setQuery("");
-    setOptions([]);
     setOpen(false);
     inputRef.current?.focus();
   };

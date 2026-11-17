@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { databaseDiagnostics } from "@/lib/database-diagnostics";
 import { workingPersistenceFailure } from "@/lib/services/working-persistence-errors";
 
 type ErrorBody<E extends object = object> = { error: string } & E;
@@ -58,7 +59,9 @@ export function conflict(msg = "Conflict"): NextResponse<ErrorBody> {
  * 500 Internal Server Error.
  */
 export function oops(error?: unknown): NextResponse<ErrorBody> {
-  if (workingPersistenceFailure(error) === "TRANSACTION_RETRY_REQUIRED") {
+  const failure = workingPersistenceFailure(error);
+
+  if (failure === "TRANSACTION_RETRY_REQUIRED") {
     return conflict("Content write conflict; retry the operation");
   }
   const kind = databaseConflictKind(error);
@@ -71,11 +74,11 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
     return conflict("Content is retained by references");
   }
 
-  if (workingPersistenceFailure(error) === "REFERENCE_CONFLICT") {
+  if (failure === "REFERENCE_CONFLICT") {
     return conflict("Content is retained by references");
   }
 
-  if (workingPersistenceFailure(error) === "WRITER_FENCE_CONFLICT") {
+  if (failure === "WRITER_FENCE_CONFLICT") {
     return conflict("Content writer coordination conflict");
   }
 
@@ -88,40 +91,16 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
 /** Prisma adapters wrap PostgreSQL diagnostics differently; only known guard codes are exposed. */
 function databaseConflictKind(
   error: unknown,
-  depth = 0,
 ): "maintenance" | "reference" | null {
-  if (depth > 5 || typeof error !== "object" || error === null) {
-    return null;
-  }
-
-  for (const [key, value] of Object.entries(error)) {
-    if (
-      ["code", "originalCode", "sqlState"].includes(key) &&
-      typeof value === "string"
-    ) {
-      if (["P5501", "P5502", "P5503"].includes(value)) {
-        return "maintenance";
-      }
-
-      if (["P2003", "23001", "23503"].includes(value)) {
-        return "reference";
-      }
+  for (const code of databaseDiagnostics(error)) {
+    if (["P5501", "P5502", "P5503", "BACKFILL_WRITER_HELD"].includes(code)) {
+      return "maintenance";
     }
 
-    if (["meta", "cause", "driverAdapterError"].includes(key)) {
-      const kind = databaseConflictKind(value, depth + 1);
-
-      if (kind) {
-        return kind;
-      }
+    if (["P2003", "23001", "23503"].includes(code)) {
+      return "reference";
     }
   }
 
-  const held =
-    error instanceof Error &&
-    /\b(BACKFILL_WRITER_HELD|BACKFILL_COORDINATION_UNAVAILABLE|EDITORIAL_WRITER_OWNED)\b/.test(
-      error.message,
-    );
-
-  return held ? "maintenance" : null;
+  return null;
 }

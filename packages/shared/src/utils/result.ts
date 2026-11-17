@@ -1,42 +1,26 @@
-export type Result<T, E = Error> = readonly [T | null, E | null];
+export type Result<T> = readonly [T, null] | readonly [null, Error];
 
-/**
- * Lightweight wrapper for async/await error handling.
- *
- * Example:
- * const [data, err] = await tryCatch(fetch(...).then(r => r.json()));
- */
-export async function tryCatch<T, E = Error>(
-  promise: Promise<T>,
-): Promise<Result<T, E>> {
+/** Normalize arbitrary rejection values at the asynchronous boundary. */
+export async function tryCatch<T>(promise: Promise<T>): Promise<Result<T>> {
   try {
-    const data = await promise;
-
-    return [data, null] as const;
+    return [await promise, null];
   } catch (error) {
-    return [null, error as E] as const;
+    return [
+      null,
+      error instanceof Error
+        ? error
+        : new Error("Unknown error", { cause: error }),
+    ];
   }
 }
 
-/**
- * Unwrap a Result, throwing a custom error if needed.
- *
- * Example:
- * const user = unwrapResult(result, () => new Error("Failed to load user"));
- */
-export function unwrapResult<T, E = Error>(
-  [data, error]: Result<T, E>,
-  makeError?: (error: E) => Error,
+export function unwrapResult<T>(
+  result: Result<T>,
+  makeError?: (error: Error) => Error,
 ): T {
-  if (data !== null) return data;
-
-  if (error && makeError) {
-    throw makeError(error);
+  if (result[1] !== null) {
+    throw makeError ? makeError(result[1]) : result[1];
   }
 
-  if (error instanceof Error) {
-    throw error;
-  }
-
-  throw new Error("Unknown error");
+  return result[0];
 }

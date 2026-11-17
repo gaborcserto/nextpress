@@ -1,5 +1,7 @@
 import "server-only";
 
+import { z } from "zod";
+
 import { WorkingAggregateSchema } from "@/lib/validation/working-aggregate";
 
 import {
@@ -15,14 +17,33 @@ import {
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 
 /** A read-only inventory, never enrollment or an assertion of deployment readiness. */
-export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
+const inventoryOptionsSchema = z.strictObject({
+  afterId: z.string().min(1).optional(),
+  limit: z.number().int().min(1).max(100).default(100),
+});
+
+export async function reconcilePrivateDraftReadiness(
+  db: PrismaClient,
+  input: unknown = {},
+) {
+  const options = inventoryOptionsSchema.parse(input);
+
   return db.$transaction(
     async (tx) => {
       await tx.$executeRaw`SET TRANSACTION READ ONLY`;
-      const sources = await tx.page.findMany({
+      const cohort = await tx.page.findMany({
+        where: options.afterId ? { id: { gt: options.afterId } } : {},
+        take: options.limit + 1,
         include: { taxonomies: { include: { taxonomy: true } }, gallery: true },
         orderBy: { id: "asc" },
       });
+      const sources = cohort.slice(0, options.limit);
+      let complete = !options.afterId && cohort.length <= options.limit;
+      const [targetBudget] = await tx.$queryRaw<{ exceeded: boolean }[]>`
+        SELECT EXISTS(SELECT 1 FROM "Media" OFFSET 10000 LIMIT 1)
+          OR EXISTS(SELECT 1 FROM "Taxonomy" OFFSET 10000 LIMIT 1)
+          OR EXISTS(SELECT 1 FROM "Page" OFFSET 10000 LIMIT 1)
+          OR EXISTS(SELECT 1 FROM "User" OFFSET 10000 LIMIT 1) AS exceeded`;
       const records = [];
 
       for (const source of sources) {
@@ -44,14 +65,25 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
         }
 
         try {
-          const inspected = await inspectLegacyPage(tx, source.id);
+          const [historyBudget] = await tx.$queryRaw<{ exceeded: boolean }[]>`
+            SELECT EXISTS(SELECT 1 FROM "PageRevision" WHERE "pageId" = ${source.id} OFFSET 100 LIMIT 1)
+              OR EXISTS(SELECT 1 FROM "ContentRevision" WHERE "pageId" = ${source.id} OFFSET 100 LIMIT 1) AS exceeded`;
 
-          if (inspected.populated) {
-            issues.push(...inspected.issues.map((issue) => `SHADOW:${issue}`));
+          if (targetBudget?.exceeded || historyBudget?.exceeded) {
+            complete = false;
+            issues.push("LEGACY:INVENTORY_LIMIT_EXCEEDED");
           } else {
-            issues.push(
-              ...inspected.plan.issues.map((issue) => `LEGACY:${issue}`),
-            );
+            const inspected = await inspectLegacyPage(tx, source.id);
+
+            if (inspected.populated) {
+              issues.push(
+                ...inspected.issues.map((issue) => `SHADOW:${issue}`),
+              );
+            } else {
+              issues.push(
+                ...inspected.plan.issues.map((issue) => `LEGACY:${issue}`),
+              );
+            }
           }
         } catch (error) {
           if (!(error instanceof BackfillConflictError)) {
@@ -63,6 +95,7 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
         const revisions = await tx.nPWorkingRevision.findMany({
           where: { pageId: source.id },
           orderBy: { version: "asc" },
+          take: 101,
           select: {
             id: true,
             version: true,
@@ -73,7 +106,12 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
           },
         });
 
-        for (const [index, revision] of revisions.entries()) {
+        if (revisions.length > 100) {
+          complete = false;
+          issues.push("PRIVATE:HISTORY_LIMIT_EXCEEDED");
+        }
+
+        for (const [index, revision] of revisions.slice(0, 100).entries()) {
           if (revision.version !== index + 1) {
             issues.push(`PRIVATE:${revision.version}:HISTORY_GAP`);
           }
@@ -147,10 +185,14 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
 
       return {
         records,
+        complete,
+        nextCursor:
+          cohort.length > options.limit ? (sources.at(-1)?.id ?? null) : null,
         shadowRecords: records.filter(
           (record) => record.enrollmentState === "SHADOW",
         ).length,
-        clean: records.every((record) => record.issues.length === 0),
+        clean:
+          complete && records.every((record) => record.issues.length === 0),
         deploymentReady: false,
       };
     },

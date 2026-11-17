@@ -56,7 +56,15 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
       ...(hasBody ? { duplex: "half" } : {}),
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(30000)]),
+      signal: AbortSignal.any([
+        request.signal,
+        AbortSignal.timeout(
+          incoming.pathname === "/api/private-drafts/execute" &&
+            request.method === "POST"
+            ? 65000
+            : 30000,
+        ),
+      ]),
     });
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete("set-cookie");

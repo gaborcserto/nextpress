@@ -205,9 +205,12 @@ function isTagWithUsageArray(value: unknown): value is TagWithUsageValue[] {
  * Load all tags for the admin taxonomy screen,
  * including usage counts.
  */
-export async function loadTagsAdminAction(): Promise<TagWithUsageValue[]> {
+export async function loadTagsAdminAction(
+  signal?: AbortSignal,
+): Promise<TagWithUsageValue[]> {
   const raw = await jsonFetcher<unknown>("/api/admin/tags", {
     cache: "no-store",
+    ...(signal ? { signal } : {}),
   });
   const unwrapped = unwrapOkData(raw);
 

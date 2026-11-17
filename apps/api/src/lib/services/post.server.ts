@@ -1,5 +1,4 @@
 import {
-  contentWriteWhere,
   requireContentWrite,
   type ContentActor,
 } from "@/lib/auth/content-access";
@@ -9,80 +8,23 @@ import {
   getTagsForPage,
   listPages,
 } from "@/lib/repos";
-import { createPageWithTags, updatePageWithTags } from "@/lib/repos/pageRepo";
-import { validateTagIds } from "@/lib/repos/tagRepo";
 
 import {
-  validateCreateBody,
-  validateUpdateBody,
-  validatePublicationFields,
-  runWithContentConflictHandling,
-  PageNotFoundError,
-  PageValidationError,
-} from "./content.shared";
+  createContentService,
+  updateContentService,
+} from "./content-mutations.server";
+import { PageNotFoundError } from "./content.shared";
 
-/**
- * Create a POST with tags, validate body with PageSchema.
- */
-export async function createPostService(rawBody: unknown, actor: ContentActor) {
-  contentWriteWhere(actor);
-  const parsed = validateCreateBody(rawBody);
-
-  if (parsed.type !== "POST") {
-    throw new PageValidationError([
-      { path: "type", message: "Content type does not match endpoint" },
-    ]);
-  }
-  await validateTagIds(parsed.tagIds);
-  const { tagIds, ...pageData } = parsed;
-
-  const created = await runWithContentConflictHandling(() =>
-    createPageWithTags(
-      {
-        ...pageData,
-        type: "POST",
-        authorId: actor.id,
-      },
-      tagIds,
-    ),
-  );
-
-  return created;
+export function createPostService(rawBody: unknown, actor: ContentActor) {
+  return createContentService("POST", rawBody, actor);
 }
 
-/**
- * Update POST with tags, validate body with PageUpdateSchema.
- */
-export async function updatePostService(
+export function updatePostService(
   id: string,
   rawBody: unknown,
   actor: ContentActor,
 ) {
-  const current = await requireContentWrite(id, actor, "POST");
-  const parsed = validateUpdateBody(rawBody);
-
-  if (parsed.type && parsed.type !== "POST") {
-    throw new PageValidationError([
-      { path: "type", message: "Content type cannot be changed" },
-    ]);
-  }
-
-  if (parsed.status === "PUBLISHED") {
-    validatePublicationFields({
-      title: parsed.title ?? current.title,
-      slug: parsed.slug ?? current.slug,
-    });
-  }
-
-  if (parsed.tagIds) await validateTagIds(parsed.tagIds);
-
-  const { tagIds, ...pageData } = parsed;
-
-  const updated = await runWithContentConflictHandling(() =>
-    updatePageWithTags(id, pageData, "POST", actor, tagIds),
-  );
-
-  return updated;
+  return updateContentService("POST", id, rawBody, actor);
 }
 
 /**

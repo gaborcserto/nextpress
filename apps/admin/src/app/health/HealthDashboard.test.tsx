@@ -33,7 +33,10 @@ it("shows the health result and safe environment values", async () => {
   expect(
     screen.getByText("Last successful check").parentElement,
   ).toHaveTextContent("Last successful check");
-  expect(fetch).toHaveBeenCalledWith("/api/health", { cache: "no-store" });
+  expect(fetch).toHaveBeenCalledWith("/api/health", {
+    cache: "no-store",
+    signal: expect.any(AbortSignal),
+  });
 });
 
 it("supports manual refresh and reports unavailable metrics on failure", async () => {

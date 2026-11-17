@@ -9,6 +9,7 @@ import {
   ContentForbiddenError,
   ContentNotFoundError,
 } from "@/lib/auth/content-access";
+import { PublicationFieldsSchema } from "@/lib/validation/page";
 import {
   WorkingAggregateSaveSchema,
   WorkingAggregateSchema,
@@ -166,18 +167,16 @@ export async function loadWorkingAggregate(
             })
           : undefined;
         const history = options.includeSourceMetadata
-          ? await tx.nPWorkingRevision.findMany({
-              where: { pageId },
-              orderBy: { version: "desc" },
-              take: 100,
-              select: { version: true, aggregate: true },
-            })
+          ? await tx.$queryRaw<{ version: number; title: string }[]>`
+              SELECT version, aggregate #>> '{snapshot,fields,title}' AS title
+              FROM "NPWorkingRevision" WHERE "pageId" = ${pageId}
+              ORDER BY version DESC LIMIT 100`
           : undefined;
         const legacyHistory = options.includeSourceMetadata
           ? await tx.pageRevision.findMany({
               where: { pageId },
               orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-              take: 100,
+              take: 20,
             })
           : undefined;
 
@@ -200,8 +199,7 @@ export async function loadWorkingAggregate(
                 tagLabels,
                 history: history?.map((revision) => ({
                   version: revision.version,
-                  title: WorkingAggregateSchema.parse(revision.aggregate)
-                    .snapshot.fields.title,
+                  title: revision.title,
                 })),
                 legacyHistory: legacyHistory
                   ?.filter((revision) => {
@@ -228,7 +226,7 @@ export async function loadWorkingAggregate(
             : {}),
         };
       },
-      { isolationLevel: "ReadCommitted" },
+      { isolationLevel: "ReadCommitted", timeout: 5000 },
     )
     .catch(persistenceFailure);
 }
@@ -269,6 +267,14 @@ export async function saveWorkingAggregate(
         command.edit.publicationIntent))
   ) {
     throw new WorkingAggregateConflictError("RESTORE_COMMAND_CONFLICT");
+  }
+
+  if (
+    command.operation === "RESET" &&
+    (Object.keys(command.edit.patch).length > 0 ||
+      command.edit.publicationIntent)
+  ) {
+    throw new WorkingAggregateConflictError("RESET_COMMAND_CONFLICT");
   }
 
   const requestHash = createHash("sha256")
@@ -344,13 +350,6 @@ export async function saveWorkingAggregate(
           actor,
         );
 
-        if (
-          command.operation === "RESET" &&
-          (Object.keys(command.edit.patch).length > 0 ||
-            command.edit.publicationIntent)
-        ) {
-          throw new WorkingAggregateConflictError("RESET_COMMAND_CONFLICT");
-        }
         let aggregate =
           command.operation === "RESET"
             ? captureWorkingAggregate(source)
@@ -367,6 +366,8 @@ export async function saveWorkingAggregate(
         }
 
         if (command.operation === "SCHEDULE") {
+          PublicationFieldsSchema.parse(aggregate.snapshot.fields);
+
           if (
             Date.parse(command.scheduledFor ?? "") <= Date.now() ||
             !actor.role ||
@@ -531,6 +532,11 @@ export async function saveWorkingAggregate(
           // specialized fields, categories, gallery and operational counters stay intact.
           const fields = aggregate.snapshot.fields;
           const unpublish = command.operation === "UNPUBLISH";
+
+          if (!unpublish) {
+            // Validate the actual projection after capture, restore or pinned selection.
+            PublicationFieldsSchema.parse(fields);
+          }
           let publishedAt = source.publishedAt;
 
           if (

@@ -65,6 +65,250 @@ describe.skipIf(!url)(
       await db?.$disconnect();
     });
 
+    it.each([
+      ["PAGE", "title"],
+      ["PAGE", "slug"],
+      ["POST", "title"],
+      ["POST", "slug"],
+    ] as const)(
+      "rejects invalid captured and restored %s publication %s",
+      async (kind, field) => {
+        const publisher = { id: randomUUID(), role: "ADMIN" as const };
+        await db.user.create({
+          data: { id: publisher.id, roleId: "b04-admin" },
+        });
+        const source = await seed(kind);
+        await db.page.update({
+          where: { id: source.id },
+          data:
+            field === "title"
+              ? { title: "" }
+              : { slug: `INVALID_${randomUUID()}` },
+        });
+
+        const make = async (operation?: string) => {
+          const input = await command(source.id);
+
+          return {
+            ...input,
+            ...(operation ? { operation } : {}),
+            edit: { ...input.edit, patch: {} },
+          };
+        };
+        await saveDisposableWorkingAggregate(db, await make(), publisher);
+        for (const operation of ["PUBLISH", "SCHEDULE"]) {
+          const input = await make(operation);
+          await expect(
+            saveDisposableWorkingAggregate(
+              db,
+              {
+                ...input,
+                ...(operation === "SCHEDULE"
+                  ? { scheduledFor: new Date(Date.now() + 60000).toISOString() }
+                  : {}),
+              },
+              publisher,
+            ),
+          ).rejects.toThrow();
+        }
+        // Emulate an immutable schedule accepted by the historical permissive writer.
+        const captured = await loadDisposableWorkingAggregate(
+          db,
+          source.id,
+          publisher,
+        );
+        const historicalSchedule = {
+          ...captured.aggregate,
+          release: {
+            id: randomUUID(),
+            pinnedVersion: 1,
+            actorId: publisher.id,
+            actorRole: publisher.role,
+            scheduledFor: new Date(Date.now() - 1000).toISOString(),
+            state: "PENDING",
+          },
+        };
+        await db.$executeRaw`INSERT INTO "NPWorkingRevision"
+          (id, "pageId", version, "sourceVersion", "requestId", "requestHash", aggregate)
+          VALUES (${randomUUID()}::uuid, ${source.id}, 2, ${captured.sourceVersion}, ${randomUUID()}::uuid,
+            'historical-fixture', ${JSON.stringify(historicalSchedule)}::jsonb)`;
+        const { saveWorkingAggregate } =
+          await import("../services/working-aggregate-persistence.server");
+        await expect(
+          saveWorkingAggregate(db, await make("EXECUTE"), publisher, {
+            scheduledExecution: true,
+          }),
+        ).rejects.toThrow();
+        const valid = await make();
+        await saveDisposableWorkingAggregate(
+          db,
+          {
+            ...valid,
+            edit: {
+              ...valid.edit,
+              patch: { title: "Valid", slug: `valid-${randomUUID()}` },
+            },
+          },
+          publisher,
+        );
+        await saveDisposableWorkingAggregate(
+          db,
+          { ...(await make("RESTORE")), restoreVersion: 1 },
+          publisher,
+        );
+        const before = await db.page.findUniqueOrThrow({
+          where: { id: source.id },
+        });
+        await expect(
+          saveDisposableWorkingAggregate(db, await make("PUBLISH"), publisher),
+        ).rejects.toThrow();
+        expect(
+          await db.page.findUniqueOrThrow({ where: { id: source.id } }),
+        ).toEqual(before);
+        expect(
+          (await loadDisposableWorkingAggregate(db, source.id, publisher))
+            .version,
+        ).toBe(4);
+        await saveDisposableWorkingAggregate(
+          db,
+          await make("CANCEL_SCHEDULE"),
+          publisher,
+        );
+      },
+    );
+
+    it("continues beyond a full refused cohort without discarding schedules", async () => {
+      const blocked = { id: randomUUID(), role: "ADMIN" as const };
+      const allowed = { id: randomUUID(), role: "ADMIN" as const };
+
+      for (const publisher of [blocked, allowed]) {
+        await db.user.create({
+          data: { id: publisher.id, roleId: "b04-admin" },
+        });
+      }
+      const ids: string[] = [];
+
+      const { loadWorkingAggregate, saveWorkingAggregate } =
+        await import("../services/working-aggregate-persistence.server");
+
+      const schedule = async (publisher: typeof blocked) => {
+        const source = await seed();
+        const current = await loadWorkingAggregate(db, source.id, publisher);
+        const saved = await saveWorkingAggregate(
+          db,
+          {
+            pageId: source.id,
+            requestId: randomUUID(),
+            expectedDraftVersion: current.version,
+            expectedSourceVersion: current.sourceVersion,
+            edit: {
+              expectedVersion: current.aggregate.baseVersion,
+              expectedFingerprint: current.aggregate.baseFingerprint,
+              patch: { title: "Scheduled" },
+            },
+          },
+          publisher,
+        );
+        await saveWorkingAggregate(
+          db,
+          {
+            pageId: source.id,
+            requestId: randomUUID(),
+            expectedDraftVersion: saved.version,
+            expectedSourceVersion: saved.sourceVersion,
+            operation: "SCHEDULE",
+            scheduledFor: new Date(Date.now() + 1000).toISOString(),
+            edit: {
+              expectedVersion: saved.aggregate.baseVersion,
+              expectedFingerprint: saved.aggregate.baseFingerprint,
+              patch: {},
+            },
+          },
+          publisher,
+        );
+
+        return source.id;
+      };
+
+      for (let batch = 0; batch < 4; batch++) {
+        ids.push(
+          ...(await Promise.all(
+            Array.from({ length: 5 }, () => schedule(blocked)),
+          )),
+        );
+      }
+      ids.push(await schedule(allowed));
+      await db.user.update({
+        where: { id: blocked.id },
+        data: { roleId: "b04-subscriber" },
+      });
+      await new Promise((done) => setTimeout(done, 1100));
+      const { executeDuePrivateReleases } =
+        await import("../services/private-release-executor.server");
+      let result = await executeDuePrivateReleases(db);
+      expect(result.results.some((row) => row.pageId === ids[20])).toBe(false);
+      expect(result.nextCursor).not.toBeNull();
+      for (let batch = 0; result.nextCursor && batch < 10; batch++) {
+        result = await executeDuePrivateReleases(db, {
+          after: result.nextCursor,
+        });
+
+        if (
+          result.results.some(
+            (row) => row.pageId === ids[20] && row.outcome === "executed",
+          )
+        ) {
+          break;
+        }
+      }
+      expect(result.results).toContainEqual({
+        pageId: ids[20],
+        outcome: "executed",
+      });
+      expect(
+        (await loadDisposableWorkingAggregate(db, ids[0] ?? "", blocked))
+          .aggregate.release?.state,
+      ).toBe("PENDING");
+      // Restored privileges permit retry in a fresh sweep.
+      await db.user.update({
+        where: { id: blocked.id },
+        data: { roleId: "b04-admin" },
+      });
+      const retry = await command(ids[0] ?? "");
+      await saveWorkingAggregate(
+        db,
+        { ...retry, operation: "EXECUTE", edit: { ...retry.edit, patch: {} } },
+        blocked,
+        { scheduledExecution: true },
+      );
+      expect(
+        (await loadDisposableWorkingAggregate(db, ids[0] ?? "", blocked))
+          .aggregate.release?.state,
+      ).toBe("EXECUTED");
+      // Close only this test's remaining schedules through the supported lifecycle.
+      await Promise.all(
+        ids.slice(1, 20).map(async (pageId) => {
+          const current = await loadWorkingAggregate(db, pageId, blocked);
+          await saveWorkingAggregate(
+            db,
+            {
+              pageId,
+              requestId: randomUUID(),
+              operation: "CANCEL_SCHEDULE",
+              expectedDraftVersion: current.version,
+              expectedSourceVersion: current.sourceVersion,
+              edit: {
+                expectedVersion: current.aggregate.baseVersion,
+                expectedFingerprint: current.aggregate.baseFingerprint,
+                patch: {},
+              },
+            },
+            blocked,
+          );
+        }),
+      );
+    });
+
     it("refuses scheduled execution after actor demotion, ownership and source changes", async () => {
       const owner = { id: randomUUID(), role: "AUTHOR" as const };
       await db.user.create({ data: { id: owner.id, roleId: "b04-author" } });
@@ -258,7 +502,7 @@ describe.skipIf(!url)(
 
           return {
             ...input,
-            operation,
+            ...(operation ? { operation } : {}),
             edit: { ...input.edit, patch: {} },
             ...extra,
           };
@@ -847,6 +1091,18 @@ describe.skipIf(!url)(
         shadow: await db.contentEditorialState.count(),
       };
       const first = await reconcilePrivateDraftReadiness(db);
+      const cohort = await reconcilePrivateDraftReadiness(db, { limit: 1 });
+      expect(cohort.records).toHaveLength(1);
+      expect(cohort.complete).toBe(false);
+      expect(cohort.clean).toBe(false);
+      expect(cohort.deploymentReady).toBe(false);
+      expect(cohort.nextCursor).toBe(cohort.records[0]?.id);
+      const next = await reconcilePrivateDraftReadiness(db, {
+        limit: 1,
+        afterId: cohort.nextCursor,
+      });
+      expect(next.records[0]?.id).not.toBe(cohort.records[0]?.id);
+      expect(next.complete).toBe(false);
       expect(await reconcilePrivateDraftReadiness(db)).toEqual(first);
       expect(first.deploymentReady).toBe(false);
       expect(

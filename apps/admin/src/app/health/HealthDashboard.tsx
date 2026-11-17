@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiActivity, FiClock, FiRefreshCw, FiServer } from "react-icons/fi";
 
 type HealthDashboardProps = {
@@ -14,6 +14,27 @@ function formatDate(value: number | null) {
   return value === null ? "Unknown" : new Date(value).toLocaleString();
 }
 
+async function fetchHealth(signal: AbortSignal) {
+  const startedAt = performance.now();
+  const response = await fetch("/api/health", { cache: "no-store", signal });
+  const body: unknown = await response.json();
+
+  if (
+    !response.ok ||
+    typeof body !== "object" ||
+    body === null ||
+    !("status" in body) ||
+    body.status !== "ok"
+  ) {
+    throw new Error("Health check returned an unexpected response.");
+  }
+
+  return {
+    elapsed: Math.round(performance.now() - startedAt),
+    checkedAt: Date.now(),
+  };
+}
+
 export default function HealthDashboard({
   environment,
   deployment,
@@ -25,40 +46,41 @@ export default function HealthDashboard({
   );
   const [error, setError] = useState<string | null>(null);
 
-  const checkHealth = useCallback(async () => {
-    setState("loading");
-    setError(null);
-    setResponseTime(null);
-    const startedAt = performance.now();
+  const request = useRef<AbortController | null>(null);
 
-    try {
-      const response = await fetch("/api/health", { cache: "no-store" });
-      const body: unknown = await response.json();
-      const elapsed = Math.round(performance.now() - startedAt);
+  const checkHealth = useCallback(() => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
 
-      if (
-        !response.ok ||
-        typeof body !== "object" ||
-        body === null ||
-        !("status" in body) ||
-        body.status !== "ok"
-      ) {
-        throw new Error("Health check returned an unexpected response.");
-      }
-
-      const checkedAt = Date.now();
-      setResponseTime(elapsed);
-      setLastSuccessfulCheck(checkedAt);
-      setState("available");
-    } catch {
-      setState("unavailable");
-      setError("Could not reach the health endpoint. Try again.");
-    }
+    return fetchHealth(controller.signal)
+      .then(({ elapsed, checkedAt }) => {
+        if (!controller.signal.aborted) {
+          setResponseTime(elapsed);
+          setLastSuccessfulCheck(checkedAt);
+          setState("available");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setState("unavailable");
+          setError("Could not reach the health endpoint. Try again.");
+        }
+      });
   }, []);
 
   useEffect(() => {
     void checkHealth();
+
+    return () => request.current?.abort();
   }, [checkHealth]);
+
+  const refreshHealth = () => {
+    setState("loading");
+    setError(null);
+    setResponseTime(null);
+    void checkHealth();
+  };
 
   const available = state === "available";
 
@@ -84,7 +106,7 @@ export default function HealthDashboard({
           <button
             type="button"
             className="btn btn-primary min-h-11 self-start sm:self-auto"
-            onClick={() => void checkHealth()}
+            onClick={refreshHealth}
             disabled={state === "loading"}
           >
             <FiRefreshCw

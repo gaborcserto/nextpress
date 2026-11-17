@@ -42,9 +42,12 @@ import {
   RevisionListSchema,
   RevisionRecordSchema,
 } from "@nextpress/shared/revisions";
+import {
+  SettingsResponseSchema,
+  SettingsUpdateSchema,
+} from "@nextpress/shared/settings-contracts";
 import { z } from "zod";
 
-import { OAUTH_PROVIDERS } from "@/lib/auth/oauth-providers";
 import { ROLES } from "@/lib/auth/roles";
 import {
   PageSchema,
@@ -103,7 +106,6 @@ function object(
 }
 
 const role = schema(z.enum(ROLES));
-const provider = schema(z.enum(OAUTH_PROVIDERS));
 const roleRelation: OpenAPIV3.SchemaObject = {
   anyOf: [
     object({ name: string }),
@@ -117,40 +119,6 @@ const userProperties = {
   role: roleRelation,
   roleName: nullableString,
 };
-const providerInput = object(
-  {
-    provider,
-    enabled: boolean,
-    clientId: { ...string, maxLength: 2000 },
-    clientSecret: {
-      ...string,
-      maxLength: 10000,
-      writeOnly: true,
-      description:
-        "Omit or leave blank to retain the stored secret. Never returned.",
-    },
-  },
-  ["provider", "enabled", "clientId"],
-);
-const settingsProperties = {
-  siteName: { ...string, maxLength: 200 },
-  siteDescription: { ...string, maxLength: 1000 },
-  siteUrl: { ...string, maxLength: 2000 },
-  ogImageUrl: { ...string, maxLength: 2000 },
-  defaultUserRole: role,
-  postListingMode: {
-    ...string,
-    enum: ["PAGINATION", "LOAD_MORE"],
-    description: "Public post archive navigation mode.",
-  },
-  postsPerPage: {
-    type: "integer" as const,
-    minimum: 1,
-    maximum: 50,
-    description: "Number of posts in each page or Load more batch.",
-  },
-};
-
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   PrivateDraft: schema(WorkingAggregateEnvelopeSchema),
   PrivateDraftSave: schema(WorkingAggregateSaveSchema.omit({ pageId: true })),
@@ -225,27 +193,8 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   ),
   RoleUpdate: object({ role }),
   UpdatedRole: object({ id: string, roleName: nullableString }),
-  SettingsUpdate: object({
-    ...settingsProperties,
-    oauthProviders: {
-      ...array(providerInput),
-      minItems: OAUTH_PROVIDERS.length,
-      maxItems: OAUTH_PROVIDERS.length,
-    },
-  }),
-  Settings: object({
-    ...settingsProperties,
-    oauthProviders: array(
-      object({
-        provider,
-        enabled: boolean,
-        clientId: string,
-        hasClientId: boolean,
-        hasClientSecret: boolean,
-        operational: boolean,
-      }),
-    ),
-  }),
+  SettingsUpdate: schema(SettingsUpdateSchema),
+  Settings: schema(SettingsResponseSchema),
 };
 
 const errors: Record<number, string> = {
@@ -368,7 +317,7 @@ const paths: OpenAPIV3.PathsObject = {
       "Execute due private releases",
       schema(PrivateReleaseExecutionResultSchema),
       [400, ...mutationCodes, 500, 503],
-      "ADMIN Better Auth session, trusted Origin and JSON empty object required. Same production-disabled private admission. At most 20 due releases and 50 seconds of work; deployment timeout 60 seconds. Each original scheduling actor is reauthorized under database locks. Overlap and retry are safe through the content fence and atomic execution receipt. Refused releases remain pending; inspect each result and alert on repeated refusal. No deployment trigger is installed.",
+      "ADMIN Better Auth session, trusted Origin and JSON command with optional after cursor required. Same production-disabled private admission. At most 20 due releases and 50 seconds of work; deployment timeout 60 seconds. Each original scheduling actor is reauthorized under database locks. Overlap and retry are safe through the content fence and atomic execution receipt. Refused releases remain pending. Carry nextCursor as after until the sweep completes, then restart without a cursor to retry refusals; inspect results and alert on repeated refusal. No deployment trigger is installed.",
       "protected",
       "ExecutePrivateReleases",
     ),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/ui/primitives/Buttons";
 import { ConfirmDialog } from "@/ui/primitives/ConfirmDialog";
@@ -64,6 +64,48 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
   const [restoreVersion, setRestoreVersion] = useState("");
   const [legacyRevisionId, setLegacyRevisionId] = useState("");
   const [scheduledFor, setScheduledFor] = useState("");
+  const [scheduleIsFuture, setScheduleIsFuture] = useState(false);
+  const scheduledTime = Date.parse(`${scheduledFor}:00Z`);
+
+  useEffect(() => {
+    if (!scheduleIsFuture) {
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout>;
+
+    function waitForExpiry() {
+      const remaining = scheduledTime - Date.now();
+      timer = setTimeout(
+        () => {
+          if (Date.now() < scheduledTime) {
+            waitForExpiry();
+          } else {
+            setScheduleIsFuture(false);
+          }
+        },
+        Math.max(0, Math.min(remaining, 2_147_483_647)),
+      );
+    }
+
+    waitForExpiry();
+
+    return () => clearTimeout(timer);
+  }, [scheduledTime, scheduleIsFuture]);
+
+  const changeSchedule = (value: string) => {
+    setScheduledFor(value);
+    setScheduleIsFuture(Date.parse(`${value}:00Z`) > Date.now());
+  };
+
+  const requestSchedule = () => {
+    if (scheduledTime > Date.now()) {
+      setError("");
+      setConfirmation("schedule");
+    } else {
+      setScheduleIsFuture(false);
+    }
+  };
   const publicationDisabled =
     busy ||
     draft.pending ||
@@ -82,6 +124,13 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       } else if (confirmation === "unpublish") {
         await draft.publication("UNPUBLISH");
       } else if (confirmation === "schedule") {
+        if (scheduledTime <= Date.now()) {
+          setScheduleIsFuture(false);
+          setError("Choose a publication time in the future.");
+
+          return;
+        }
+
         await draft.publication("SCHEDULE", `${scheduledFor}:00Z`);
       } else if (confirmation === "cancelSchedule") {
         await draft.publication("CANCEL_SCHEDULE");
@@ -151,16 +200,12 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           type="datetime-local"
           className="input input-bordered"
           value={scheduledFor}
-          onChange={(event) => setScheduledFor(event.target.value)}
+          onChange={(event) => changeSchedule(event.target.value)}
         />
         <Button
           type="button"
-          disabled={
-            publicationDisabled ||
-            !scheduledFor ||
-            Date.parse(`${scheduledFor}:00Z`) <= Date.now()
-          }
-          onClick={() => setConfirmation("schedule")}
+          disabled={publicationDisabled || !scheduleIsFuture}
+          onClick={requestSchedule}
         >
           {draft.release?.state === "PENDING" ? "Reschedule" : "Schedule"}
         </Button>

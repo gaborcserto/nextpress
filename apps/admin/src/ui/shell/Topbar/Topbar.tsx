@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React from "react";
+import { useSyncExternalStore } from "react";
 import { FaBars } from "react-icons/fa";
 
 import { useSession } from "@/lib/auth/auth-client";
@@ -16,6 +16,11 @@ const UserMenu = dynamic(
     ssr: false,
   },
 );
+
+// There are no updates after the client snapshot replaces the server snapshot.
+function subscribeToHydration() {
+  return () => {};
+}
 
 export default function Topbar({
   scrolled,
@@ -36,8 +41,11 @@ export default function Topbar({
   const image = user?.image ?? undefined;
   const role = user?.role ?? undefined;
 
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   return (
     <header

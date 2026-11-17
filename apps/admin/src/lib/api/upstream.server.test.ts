@@ -131,3 +131,40 @@ it.each([
   vi.stubEnv("API_INTERNAL_ORIGIN", value);
   expect(apiOrigin).toThrow();
 });
+
+it.each([
+  ["/api/private-drafts/execute", "POST", 65000],
+  ["/api/private-drafts/execute", "GET", 30000],
+  ["/api/post", "POST", 30000],
+  ["/api/private-drafts/execute/extra", "POST", 30000],
+])(
+  "bounds forwarding budget for %s %s",
+  async (pathname, method, milliseconds) => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const controller = new AbortController();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: URL, init: RequestInit) => {
+        controller.abort();
+        expect(init.signal?.aborted).toBe(true);
+
+        return Response.json({ ok: true });
+      }),
+    );
+    try {
+      expect(
+        (
+          await forwardApiRequest(
+            new Request(`http://localhost${pathname}`, {
+              method,
+              signal: controller.signal,
+            }),
+          )
+        ).status,
+      ).toBe(200);
+      expect(timeout).toHaveBeenCalledWith(Number(milliseconds));
+    } finally {
+      timeout.mockRestore();
+    }
+  },
+);

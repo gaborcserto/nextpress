@@ -10,6 +10,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -323,8 +324,44 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
       assert.equal(valid.errorCount, 0, workspace);
     }
 
-    if (workspace.startsWith("apps/"))
-      assert.equal(effective.rules["react-hooks/exhaustive-deps"][0], 2);
+    if (workspace.startsWith("apps/")) {
+      const requireConfig = createRequire(
+        new URL("../packages/eslint-config/package.json", import.meta.url),
+      );
+      assert.equal(
+        effective.plugins["react-hooks"],
+        requireConfig("eslint-plugin-react-hooks"),
+        workspace,
+      );
+
+      for (const rule of [
+        "rules-of-hooks",
+        "exhaustive-deps",
+        "set-state-in-effect",
+        "purity",
+      ]) {
+        assert.equal(effective.rules[`react-hooks/${rule}`][0], 2, workspace);
+      }
+
+      const [violation] = await eslint.lintText(
+        `
+        import { useEffect, useState } from "react";
+        export function EffectFixture() {
+          const [value, setValue] = useState(0);
+          useEffect(() => setValue(1), []);
+          return value;
+        }
+      `,
+        { filePath: file },
+      );
+      assert.ok(
+        violation.messages.some(
+          ({ ruleId, severity }) =>
+            ruleId === "react-hooks/set-state-in-effect" && severity === 2,
+        ),
+        workspace,
+      );
+    }
 
     if (workspace === "apps/web" || workspace === "packages/shared")
       assert.equal(effective.rules["no-restricted-imports"][0], 2);

@@ -6,6 +6,11 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
+import {
+  legacyEditorRevalidation,
+  prepareLegacyUpdate,
+  reportLegacySaveFailure,
+} from "@/lib/content/legacy-editor";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
 import { showToast } from "@/ui/utils";
 
@@ -35,12 +40,7 @@ export function usePageEditor(id?: string) {
   const { data, error, isLoading, mutate } = useSWR<EditPageResponse>(
     isEdit && id ? `/api/pages/${id}` : null,
     jsonFetcher,
-    // Keep the version tied to the loaded form, not a background revalidation.
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
+    legacyEditorRevalidation,
   );
 
   const item: PageFormValues | null = isEdit
@@ -67,30 +67,14 @@ export function usePageEditor(id?: string) {
 
         return false;
       }
-      // An unchanged blank date is not an explicit request to reset publication time.
-      const submittedValues = { ...values };
-
-      if (data && values.publishedAt === data.item.publishedAt) {
-        delete submittedValues.publishedAt;
-      }
+      const submittedValues = prepareLegacyUpdate(values, data?.item);
       const { ok, status } =
         id && data
           ? await updatePageApi(id, submittedValues, data.item.workingVersion)
           : await createPageApi(values);
 
       if (!ok) {
-        if (status === 409) {
-          showToast(
-            "Content changed elsewhere. Your edits are preserved; reload before retrying.",
-            "warning",
-          );
-
-          return false;
-        }
-        showToast(
-          `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
-          "error",
-        );
+        reportLegacySaveFailure(status, isEdit);
 
         return false;
       }

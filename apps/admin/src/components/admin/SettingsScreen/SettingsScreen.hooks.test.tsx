@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { normalizeSettingsForm } from "@/lib/settings/admin-settings";
+import { deferred } from "@/lib/testing/deferred.fixture";
 
 import { useSettingsScreen } from "./SettingsScreen.hooks";
 
@@ -97,5 +98,45 @@ describe("settings safety", () => {
       expect(await first).toBe(true);
     });
     expect(result.current.saving).toBe(false);
+  });
+  it("aborts superseded reads and keeps Save blocked until the current role's load settles", async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    fetcher
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const { result, rerender, unmount } = renderHook(
+      ({ role }: { role: "SUBSCRIBER" | "EDITOR" }) => useSettingsScreen(role),
+      {
+        initialProps: { role: "SUBSCRIBER" },
+      },
+    );
+    const oldSignal = fetcher.mock.calls[0][1].signal;
+
+    rerender({ role: "EDITOR" });
+    expect(oldSignal.aborted).toBe(true);
+    await act(async () => first.resolve(authoritative));
+    expect(result.current.loading).toBe(true);
+    expect(result.current.loaded).toBe(false);
+    await act(async () => {
+      expect(await result.current.save({})).toBe(false);
+    });
+
+    await act(async () =>
+      second.resolve({ ...authoritative, siteName: "Current settings" }),
+    );
+    expect(result.current.form.siteName).toBe("Current settings");
+    expect(result.current.loading).toBe(false);
+
+    const pending = deferred<unknown>();
+    fetcher.mockReturnValueOnce(pending.promise);
+    act(() => {
+      void result.current.retry();
+    });
+    const retrySignal = fetcher.mock.calls[2][1].signal;
+    expect(result.current.loading).toBe(true);
+    unmount();
+    expect(retrySignal.aborted).toBe(true);
+    await act(async () => pending.reject(new Error("Late failure")));
   });
 });

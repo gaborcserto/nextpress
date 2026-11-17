@@ -82,28 +82,48 @@ export default function RevisionEditor({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<RevisionRecord | null>(null);
 
-  const load = useCallback(async () => {
-    const response = await fetch(`/api/pages/${pageId}/revisions`, {
-      cache: "no-store",
-    });
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      const response = await fetch(`/api/pages/${pageId}/revisions`, {
+        cache: "no-store",
+        signal,
+      });
 
-    if (!response.ok) {
-      throw new Error("Unable to load revisions");
-    }
+      if (!response.ok) {
+        throw new Error("Unable to load revisions");
+      }
 
-    const data = RevisionListSchema.parse(await response.json());
+      const data = RevisionListSchema.parse(await response.json());
+
+      return data;
+    },
+    [pageId],
+  );
+
+  const showRevisions = useCallback((data: RevisionList) => {
     const latest = data.revisions[0] ?? data.current;
-
     setRevisions(data);
     setSelectedRevisionId(data.revisions[0]?.id ?? "");
     setTitle(latest.title);
-  }, [pageId]);
+  }, []);
 
   useEffect(() => {
-    void load()
-      .then(() => setMessage(""))
-      .catch(() => setMessage("Unable to load revisions"));
-  }, [load]);
+    const controller = new AbortController();
+    void load(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          showRevisions(data);
+          setMessage("");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setMessage("Unable to load revisions");
+        }
+      });
+
+    return () => controller.abort();
+  }, [load, showRevisions]);
 
   async function perform(action: RevisionAction) {
     if (!revisions) {
@@ -162,7 +182,7 @@ export default function RevisionEditor({
         );
       }
 
-      await load();
+      showRevisions(await load());
       setPreview(null);
       setMessage(feedback.success);
     } catch (error) {

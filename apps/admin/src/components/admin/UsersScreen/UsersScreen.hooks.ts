@@ -30,32 +30,59 @@ export function useUsersScreen() {
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const savingRoleRef = useRef<string | null>(null);
 
-  const load = useCallback(async () => {
+  const usersRequest = useRef<AbortController | null>(null);
+
+  const load = useCallback(() => {
+    usersRequest.current?.abort();
+    const controller = new AbortController();
+    usersRequest.current = controller;
+
+    return jsonFetcher<UserRow[]>("/api/admin/users", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setUsers(data);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (!controller.signal.aborted) {
+          setError(
+            caught instanceof Error ? caught.message : "Failed to load users.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+  }, []);
+
+  const reload = async () => {
     setLoading(true);
     setError(null);
-    try {
-      const data = await jsonFetcher<UserRow[]>("/api/admin/users", {
-        cache: "no-store",
-      });
-      setUsers(data);
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "Failed to load users.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await load();
+  };
 
   useEffect(() => {
     void load();
+
+    return () => usersRequest.current?.abort();
   }, [load]);
 
   useEffect(() => {
+    const controller = new AbortController();
     void jsonFetcher<{ defaultUserRole: RoleName }>("/api/admin/settings", {
       cache: "no-store",
+      signal: controller.signal,
     })
       .then((settings) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
         setDefaultRole(settings.defaultUserRole);
         setCreateForm((current) => ({
           ...current,
@@ -63,12 +90,16 @@ export function useUsersScreen() {
         }));
       })
       .catch((caught: unknown) => {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "Failed to load the default user role.",
-        );
+        if (!controller.signal.aborted) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Failed to load the default user role.",
+          );
+        }
       });
+
+    return () => controller.abort();
   }, []);
 
   const createUser = async () => {
@@ -89,7 +120,7 @@ export function useUsersScreen() {
       });
 
       setCreateForm({ email: "", name: "", role: defaultRole, password: "" });
-      await load();
+      await reload();
       showToast("User created.", "success");
     } catch (caught) {
       setError(
@@ -133,7 +164,7 @@ export function useUsersScreen() {
     } catch (caught) {
       const message =
         caught instanceof Error ? caught.message : "Failed to update role.";
-      await load();
+      await reload();
       setError(message);
     } finally {
       savingRoleRef.current = null;
@@ -186,6 +217,6 @@ export function useUsersScreen() {
     deleteUser,
 
     // reload
-    reload: load,
+    reload,
   };
 }

@@ -20,11 +20,14 @@ export const POST = withAuth(
   async (req) => {
     try {
       await requirePrivateDraftAdmission(prisma);
-      ExecutePrivateReleasesSchema.parse(await req.json());
+      const command = ExecutePrivateReleasesSchema.parse(await req.json());
 
-      return NextResponse.json(await executeDuePrivateReleases(prisma), {
-        headers: { "Cache-Control": "private, no-store" },
-      });
+      return NextResponse.json(
+        await executeDuePrivateReleases(prisma, command),
+        {
+          headers: { "Cache-Control": "private, no-store" },
+        },
+      );
     } catch (error) {
       if (error instanceof PrivateDraftUnavailableError) {
         return NextResponse.json(
@@ -37,7 +40,7 @@ export const POST = withAuth(
       }
 
       if (error instanceof SyntaxError || error instanceof z.ZodError) {
-        return bad("Expected an empty JSON command");
+        return bad("Invalid execution command");
       }
 
       return oops(error);

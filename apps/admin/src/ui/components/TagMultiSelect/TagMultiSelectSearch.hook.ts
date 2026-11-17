@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { TagLoadOptionsFn, TagValue } from "./TagMultiSelect.types";
 
@@ -12,37 +12,41 @@ export function useTagMultiSelectSearch(
   loadOptions: TagLoadOptionsFn,
   minChars = 2,
 ) {
-  const [options, setOptions] = useState<TagValue[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const search = useMemo(
+    () => ({ query, loadOptions, minChars }),
+    [query, loadOptions, minChars],
+  );
+  const [result, setResult] = useState<{
+    search: typeof search;
+    options: TagValue[];
+    error: string | null;
+  } | null>(null);
+  const canSearch = query.trim().length >= minChars;
+  const current = canSearch && result?.search === search ? result : null;
 
   useEffect(() => {
-    const trimmed = query.trim();
-    setError(null);
+    const trimmed = search.query.trim();
 
-    // Avoid hitting the API for very short queries.
-    if (trimmed.length < minChars) {
-      setOptions([]);
-      setLoading(false);
-
+    if (trimmed.length < search.minChars) {
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
-
     const timer = setTimeout(async () => {
       try {
-        const result = await loadOptions(trimmed);
+        const options = await search.loadOptions(trimmed);
 
-        if (!cancelled) setOptions(result);
+        if (!cancelled) {
+          setResult({ search, options, error: null });
+        }
       } catch {
         if (!cancelled) {
-          setOptions([]);
-          setError("Unable to search tags. Please try again.");
+          setResult({
+            search,
+            options: [],
+            error: "Unable to search tags. Please try again.",
+          });
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }, 200);
 
@@ -50,7 +54,11 @@ export function useTagMultiSelectSearch(
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, loadOptions, minChars]);
+  }, [search]);
 
-  return { options, loading, error, setOptions };
+  return {
+    options: current?.options ?? [],
+    loading: canSearch && !current,
+    error: current?.error ?? null,
+  };
 }

@@ -10,7 +10,7 @@ See [the environment template](.env.example). `DATABASE_URL` selects PostgreSQL;
 
 Media files use a private local directory: `MEDIA_STORAGE_ROOT`, or `.media` relative to the API working directory. Back it up alongside PostgreSQL; do not put it under `public/`.
 
-Private draft admission is off by default and development/test only. The environment switch alone is insufficient: independently verified database identity, a restricted non-owner role, installed writer fences and maintenance checks are also required. See the [development guide](../../docs/development.md) for publication limitations. Do not enable rehearsal against the normal development or a shared database by copying test credentials.
+Private draft admission is off by default and development/test only. The environment switch alone is insufficient: independently verified database identity, a restricted non-owner role, installed writer fences and maintenance checks are also required. Rehearsal supports save, restoration, publish/unpublish and pinned scheduling. No unattended scheduler is installed. Execution callers must carry `nextCursor` as `after` until a sweep completes, then restart to retry refusals; use a caller timeout of at least 65 seconds. The development OpenAPI reference describes the active execution contract. Do not enable rehearsal against the normal development or a shared database by copying test credentials.
 
 ## API reference
 
@@ -29,7 +29,7 @@ npm --workspace api test
 npm --workspace api run build
 ```
 
-Generate Prisma before a direct workspace build using `npm run prisma:generate`. Root development and verification commands are listed in the [repository README](../../docs/development.md).
+Generate Prisma before a direct workspace build using `npm run prisma:generate`. Root development and verification commands are listed in the [repository README](../../README.md).
 
 ## Isolated integration tests
 

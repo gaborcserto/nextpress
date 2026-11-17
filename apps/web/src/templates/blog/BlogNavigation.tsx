@@ -1,7 +1,15 @@
 ﻿"use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { useMessages } from "@/lib/i18n/client";
 
@@ -23,11 +31,15 @@ declare global {
   }
 }
 
+const desktopQuery = "(min-width: 56rem)";
+
+function getDesktopSnapshot() {
+  return window.matchMedia(desktopQuery).matches;
+}
+
 export function BlogNavigation({ children }: { children: ReactNode }) {
   const text = useMessages();
   const pathname = usePathname();
-  // SSR exposes the links as a meaningful fallback until enhancement runs.
-  const [desktop, setDesktop] = useState(true);
   const [open, setOpen] = useState(false);
   const [previousPath, setPreviousPath] = useState(pathname);
   const button = useRef<HTMLButtonElement>(null);
@@ -35,6 +47,36 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
   const indicator = useRef<HTMLSpanElement>(null);
   const id = useId();
   const pendingFocus = useRef<"toggle" | "link" | null>(null);
+
+  const subscribeToDesktop = useCallback((onChange: () => void) => {
+    const query = window.matchMedia(desktopQuery);
+
+    function updateLayout() {
+      if (query.matches && document.activeElement === button.current) {
+        pendingFocus.current = "link";
+      }
+
+      if (
+        !query.matches &&
+        navigation.current?.contains(document.activeElement)
+      ) {
+        pendingFocus.current = "toggle";
+      }
+
+      setOpen(false);
+      onChange();
+    }
+
+    query.addEventListener("change", updateLayout);
+
+    return () => query.removeEventListener("change", updateLayout);
+  }, []);
+  // Expose the links in the server snapshot until the browser resolves its viewport.
+  const desktop = useSyncExternalStore(
+    subscribeToDesktop,
+    getDesktopSnapshot,
+    () => true,
+  );
 
   if (pathname !== previousPath) {
     setPreviousPath(pathname);
@@ -135,39 +177,6 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
       cancelAnimationFrame(frame);
     };
   }, [pathname, desktop, children]);
-
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 56rem)");
-
-    function updateLayout() {
-      if (
-        !query.matches &&
-        navigation.current?.contains(document.activeElement)
-      ) {
-        pendingFocus.current = "toggle";
-      }
-
-      if (query.matches && document.activeElement === button.current) {
-        pendingFocus.current = "link";
-      }
-
-      if (
-        !query.matches &&
-        navigation.current?.contains(document.activeElement)
-      ) {
-        button.current?.focus();
-      }
-      setDesktop(query.matches);
-      setOpen(false);
-    }
-
-    updateLayout();
-    query.addEventListener("change", updateLayout);
-
-    return () => {
-      query.removeEventListener("change", updateLayout);
-    };
-  }, []);
 
   useEffect(() => {
     if (pendingFocus.current === "toggle") {

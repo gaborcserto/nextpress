@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import { ExecutePrivateReleasesSchema } from "@/lib/validation/private-release";
 import { WorkingAggregateSchema } from "@/lib/validation/working-aggregate";
 
 import { WorkingAggregateConflictError } from "./working-aggregate";
@@ -13,17 +14,26 @@ import {
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 
 /** No claims or leases: each release either commits with its receipt or remains due. */
-export async function executeDuePrivateReleases(db: PrismaClient) {
+export async function executeDuePrivateReleases(
+  db: PrismaClient,
+  input: unknown = {},
+) {
+  const { after } = ExecutePrivateReleasesSchema.parse(input);
+  let nextCursor = after ?? null;
   const started = Date.now();
-  const candidates = await db.$queryRaw<
-    { pageId: string; aggregate: unknown }[]
-  >`
+  const candidates = await db.$transaction(
+    (tx) => tx.$queryRaw<{ pageId: string; aggregate: unknown }[]>`
     SELECT "pageId", aggregate FROM (
       SELECT DISTINCT ON ("pageId") "pageId", aggregate
       FROM "NPWorkingRevision" ORDER BY "pageId", version DESC
     ) latest WHERE aggregate->'release'->>'state' = 'PENDING'
       AND (aggregate->'release'->>'scheduledFor')::timestamptz <= now()
-    ORDER BY aggregate->'release'->>'scheduledFor', "pageId" LIMIT 20`;
+      AND (${after?.pageId ?? null}::text IS NULL OR
+        (aggregate->'release'->>'scheduledFor', "pageId") >
+        (${after?.scheduledFor ?? null}, ${after?.pageId ?? null}))
+    ORDER BY aggregate->'release'->>'scheduledFor', "pageId" LIMIT 20`,
+    { timeout: 5000 },
+  );
   const results: {
     pageId: string;
     outcome: "executed" | "refused";
@@ -39,6 +49,10 @@ export async function executeDuePrivateReleases(db: PrismaClient) {
     if (!release) {
       continue;
     }
+    nextCursor = {
+      scheduledFor: release.scheduledFor,
+      pageId: candidate.pageId,
+    };
     const actor = { id: release.actorId, role: release.actorRole };
 
     try {
@@ -82,6 +96,10 @@ export async function executeDuePrivateReleases(db: PrismaClient) {
 
   return {
     results,
+    nextCursor:
+      candidates.length === 20 || results.length < candidates.length
+        ? nextCursor
+        : null,
     remainingMayExist:
       candidates.length === 20 || results.length < candidates.length,
   };

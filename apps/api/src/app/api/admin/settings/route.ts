@@ -2,13 +2,14 @@ export const runtime = "nodejs";
 
 import { prisma } from "@nextpress/db/src/client";
 import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
+import {
+  SettingsPayloadSchema,
+  SettingsUpdateSchema,
+} from "@nextpress/shared/settings-contracts";
 
 import { bad, ok, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
-import {
-  OAUTH_PROVIDERS,
-  isOAuthProviderName,
-} from "@/lib/auth/oauth-providers";
+import { OAUTH_PROVIDERS } from "@/lib/auth/oauth-providers";
 import {
   getOAuthProviderStatus,
   type OAuthProviderRow,
@@ -21,49 +22,8 @@ import {
 
 import type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";
 
-type ProviderInput = SettingsApiPayload["oauthProviders"][number];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === "string";
-}
-
-function isProviderInput(value: unknown): value is ProviderInput {
-  return (
-    isRecord(value) &&
-    isOAuthProviderName(value.provider) &&
-    typeof value.enabled === "boolean" &&
-    typeof value.clientId === "string" &&
-    isOptionalString(value.clientSecret)
-  );
-}
-
 function isSettingsPayload(value: unknown): value is SettingsApiPayload {
-  if (
-    !isRecord(value) ||
-    typeof value.siteName !== "string" ||
-    typeof value.siteDescription !== "string" ||
-    typeof value.siteUrl !== "string" ||
-    typeof value.ogImageUrl !== "string" ||
-    !isRole(value.defaultUserRole) ||
-    !PostListingModeSchema.safeParse(value.postListingMode).success ||
-    typeof value.postsPerPage !== "number" ||
-    !Array.isArray(value.oauthProviders) ||
-    !value.oauthProviders.every(isProviderInput)
-  ) {
-    return false;
-  }
-
-  const providers = value.oauthProviders.map((row) => row.provider);
-
-  return (
-    providers.length === OAUTH_PROVIDERS.length &&
-    new Set(providers).size === OAUTH_PROVIDERS.length &&
-    OAUTH_PROVIDERS.every((provider) => providers.includes(provider))
-  );
+  return SettingsPayloadSchema.safeParse(value).success;
 }
 
 function validOptionalUrl(value: string) {
@@ -235,6 +195,10 @@ export const PUT = withAuth(
           `Provider ${input.provider} is missing required credentials`,
         );
       }
+    }
+
+    if (!SettingsUpdateSchema.safeParse(body).success) {
+      return bad("Invalid settings payload");
     }
 
     try {

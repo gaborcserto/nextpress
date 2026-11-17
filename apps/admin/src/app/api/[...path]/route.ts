@@ -1,6 +1,7 @@
 import { forwardApiRequest } from "@/lib/api/upstream.server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 70;
 export const GET = forwardApiRequest;
 export const HEAD = forwardApiRequest;
 export const POST = forwardApiRequest;

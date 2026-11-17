@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { getNextPostBatch } from "@/app/posts/actions";
 import { EditorialArrow } from "@/components/public-ui/EditorialArrow";
@@ -19,6 +19,11 @@ import styles from "./post-list.module.css";
 import { type PostListVariant, PostList } from "./PostList";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
+
+// The server snapshot keeps progressive navigation available until hydration completes.
+function subscribeToHydration() {
+  return () => {};
+}
 
 export function LoadMorePostList({
   posts: initialPosts,
@@ -40,12 +45,17 @@ export function LoadMorePostList({
   const [posts, setPosts] = useState(initialPosts);
   const [page, setPage] = useState(initialPage);
   const [hasMore, setHasMore] = useState(initialHasMore);
-  const [enhanced, setEnhanced] = useState(false);
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  const [enhancementFailed, setEnhancementFailed] = useState(false);
+  const enhanced = hydrated && !enhancementFailed;
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => setEnhanced(true), []);
   useEffect(() => {
     const reloadFromArchiveUrl = () => window.location.reload();
     window.addEventListener("popstate", reloadFromArchiveUrl);
@@ -71,7 +81,7 @@ export function LoadMorePostList({
       const batch = await getNextPostBatch(nextPage);
 
       if (!batch) {
-        setEnhanced(false);
+        setEnhancementFailed(true);
 
         return;
       }

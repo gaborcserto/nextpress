@@ -1,10 +1,7 @@
 "use client";
 
-import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
-import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
-import { ROLES } from "@nextpress/shared/roles";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { z } from "zod";
+import { SettingsResponseSchema } from "@nextpress/shared/settings-contracts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
 import {
@@ -20,33 +17,16 @@ import type {
   SettingsScreenState,
 } from "./SettingsScreen.types";
 
-// Reject incomplete authoritative responses instead of normalizing them into writable defaults.
-const settingsResponseSchema = z.object({
-  siteName: z.string(),
-  siteDescription: z.string(),
-  siteUrl: z.string(),
-  ogImageUrl: z.string(),
-  defaultUserRole: z.enum(ROLES),
-  postListingMode: PostListingModeSchema,
-  postsPerPage: PostsPerPageSchema,
-  oauthProviders: z.array(
-    z.object({
-      provider: z.enum(OAUTH_PROVIDERS),
-      enabled: z.boolean(),
-      clientId: z.string(),
-      hasClientId: z.boolean(),
-      hasClientSecret: z.boolean(),
-      operational: z.boolean(),
-    }),
-  ),
-});
-
 export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
   const [loaded, setLoaded] = useState(false);
   const loadedRef = useRef(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const request = useRef(0);
-  const [loading, setLoading] = useState(true);
+  const request = useRef<AbortController | null>(null);
+  const loadContext = useMemo(() => ({ fallbackRole }), [fallbackRole]);
+  const [settledContext, setSettledContext] = useState<
+    typeof loadContext | null
+  >(null);
+  const loading = settledContext !== loadContext;
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,43 +34,51 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
     normalizeSettingsForm(undefined, fallbackRole),
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    const requestId = ++request.current;
+  const load = useCallback(() => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
 
-    try {
-      const response = await jsonFetcher<unknown>("/api/admin/settings", {
-        cache: "no-store",
+    return jsonFetcher<unknown>("/api/admin/settings", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const data = SettingsResponseSchema.parse(response);
+        setLoadError(null);
+
+        if (!loadedRef.current) {
+          setForm(normalizeSettingsForm(data, loadContext.fallbackRole));
+          loadedRef.current = true;
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setLoadError("Unable to load settings. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setSettledContext(loadContext);
+        }
       });
-      const data = settingsResponseSchema.parse(response);
+  }, [loadContext]);
 
-      if (request.current !== requestId) {
-        return;
-      }
-
-      if (!loadedRef.current) {
-        setForm(normalizeSettingsForm(data, fallbackRole));
-        loadedRef.current = true;
-        setLoaded(true);
-      }
-    } catch {
-      if (request.current === requestId) {
-        setLoadError("Unable to load settings. Please try again.");
-      }
-    } finally {
-      if (request.current === requestId) {
-        setLoading(false);
-      }
-    }
-  }, [fallbackRole]);
+  const retry = async () => {
+    setSettledContext(null);
+    setLoadError(null);
+    await load();
+  };
 
   useEffect(() => {
     void load();
 
-    return () => {
-      request.current += 1;
-    };
+    return () => request.current?.abort();
   }, [load]);
 
   const save = useCallback(
@@ -137,8 +125,8 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
     form,
     setForm,
     loaded,
-    loadError,
-    retry: load,
+    loadError: loading ? null : loadError,
+    retry,
     loading,
     saving,
     error,

@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { useStickyScrolled } from "@/ui/hooks/useStickyScrolled";
 import { Sidebar } from "@/ui/shell/Sidebar";
@@ -14,20 +19,33 @@ import type { RoleName } from "@/lib/auth/roles";
 
 const MotionDiv = motion.div;
 
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
+const desktopQuery = "(min-width: 1024px)";
 
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
+function subscribeToDesktop(onChange: () => void) {
+  const query = window.matchMedia(desktopQuery);
+  query.addEventListener?.("change", onChange);
 
-    const handler = () => setIsDesktop(mq.matches);
-    handler();
-    mq.addEventListener?.("change", handler);
+  return () => query.removeEventListener?.("change", onChange);
+}
 
-    return () => mq.removeEventListener?.("change", handler);
-  }, []);
+function getDesktopSnapshot() {
+  return window.matchMedia(desktopQuery).matches;
+}
 
-  return isDesktop;
+const sidebarPreferenceKey = "admin.sidebar.collapsed";
+
+function subscribeToSidebarPreference(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+
+  return () => window.removeEventListener("storage", onChange);
+}
+
+function getSidebarPreference() {
+  try {
+    return window.localStorage.getItem(sidebarPreferenceKey) === "true";
+  } catch {
+    return false;
+  }
 }
 
 export default function AppShell({
@@ -37,12 +55,29 @@ export default function AppShell({
   children: ReactNode;
   role: RoleName | null;
 }) {
-  const isDesktop = useIsDesktop();
+  const isDesktop = useSyncExternalStore(
+    subscribeToDesktop,
+    getDesktopSnapshot,
+    () => false,
+  );
 
-  // SSR-safe initial state: always false on first render
-  const [collapsed, setCollapsed] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const storedCollapsed = useSyncExternalStore(
+    subscribeToSidebarPreference,
+    getSidebarPreference,
+    () => false,
+  );
+  const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(
+    null,
+  );
+  const collapsed = collapsedOverride ?? storedCollapsed;
   const pathname = usePathname();
+  const [drawerPath, setDrawerPath] = useState<string | null>(null);
+  const drawerOpen =
+    drawerPath !== null && drawerPath === pathname && !isDesktop;
+
+  if (drawerPath !== null && !drawerOpen) {
+    setDrawerPath(null);
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const desktopNavRef = useRef<HTMLDivElement>(null);
@@ -51,39 +86,7 @@ export default function AppShell({
   const openedPathRef = useRef(pathname);
   const wasDrawerOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    try {
-      const stored = window.localStorage.getItem("admin.sidebar.collapsed");
-
-      if (stored === null) return;
-
-      const next = stored === "true";
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCollapsed((prev) => (prev === next ? prev : next));
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
-
   const scrolled = useStickyScrolled(scrollRef);
-
-  useEffect(() => {
-    if (!isDesktop || !drawerOpen) return;
-    // The media query is an external lifecycle boundary; clear its dependent UI state here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDrawerOpen(false);
-  }, [drawerOpen, isDesktop]);
-
-  // Keep the drawer in sync with browser back/forward navigation.
-  useEffect(() => {
-    if (openedPathRef.current !== pathname) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDrawerOpen(false);
-    }
-  }, [pathname]);
 
   useEffect(() => {
     if (drawerOpen) {
@@ -116,7 +119,7 @@ export default function AppShell({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      setDrawerOpen(false);
+      setDrawerPath(null);
     };
     document.addEventListener("keydown", onKeyDown);
 
@@ -126,20 +129,18 @@ export default function AppShell({
   const sideW = collapsed ? 60 : 240;
 
   const handleSidebarTrigger = () => {
-    if (isDesktop) {
-      setCollapsed((prev) => {
-        const next = !prev;
+    if (!isDesktop) {
+      setDrawerPath(pathname);
 
-        try {
-          window.localStorage.setItem("admin.sidebar.collapsed", String(next));
-        } catch {
-          // ignore
-        }
+      return;
+    }
+    const next = !collapsed;
+    setCollapsedOverride(next);
 
-        return next;
-      });
-    } else {
-      setDrawerOpen(true);
+    try {
+      window.localStorage.setItem(sidebarPreferenceKey, String(next));
+    } catch {
+      // The sidebar can still be toggled when storage is unavailable.
     }
   };
 
@@ -176,7 +177,7 @@ export default function AppShell({
             mobileNavTriggerRef={(node) => {
               mobileTriggerRef.current = node;
             }}
-            onMobileNavOpenAction={() => setDrawerOpen(true)}
+            onMobileNavOpenAction={() => setDrawerPath(pathname)}
           />
           <main
             ref={scrollRef}
@@ -193,7 +194,7 @@ export default function AppShell({
           type="checkbox"
           className="drawer-toggle"
           checked={drawerOpen}
-          onChange={(e) => setDrawerOpen(e.target.checked)}
+          onChange={(e) => setDrawerPath(e.target.checked ? pathname : null)}
         />
         <div className="drawer-content" />
         {/* Expose the open drawer immediately for focus; retain its opacity and slide transitions. */}
@@ -208,7 +209,7 @@ export default function AppShell({
             htmlFor="admin-drawer"
             aria-label="close sidebar"
             className="drawer-overlay"
-            onClick={() => setDrawerOpen(false)}
+            onClick={() => setDrawerPath(null)}
           />
           <aside
             id="admin-mobile-navigation"
@@ -243,8 +244,8 @@ export default function AppShell({
             <Sidebar
               role={role}
               collapsed={false}
-              onItemClickAction={() => setDrawerOpen(false)}
-              onCloseAction={() => setDrawerOpen(false)}
+              onItemClickAction={() => setDrawerPath(null)}
+              onCloseAction={() => setDrawerPath(null)}
             />
           </aside>
         </div>

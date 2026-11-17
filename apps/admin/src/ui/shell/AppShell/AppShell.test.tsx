@@ -200,4 +200,31 @@ describe("AppShell mobile navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Page action" }));
     expect(onPageAction).toHaveBeenCalledOnce();
   });
+  it("closes on navigation and stays closed when going back", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+    const { rerender } = render(<AppShell role="ADMIN">Page</AppShell>);
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(
+      screen.getByRole("dialog", { name: "Admin navigation" }),
+    ).toBeInTheDocument();
+
+    try {
+      pathnameMock.mockReturnValue("/admin/users");
+      rerender(<AppShell role="ADMIN">Users</AppShell>);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      pathnameMock.mockReturnValue("/admin");
+      rerender(<AppShell role="ADMIN">Page</AppShell>);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    } finally {
+      pathnameMock.mockReturnValue("/admin");
+    }
+  });
 });

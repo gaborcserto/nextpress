@@ -1,0 +1,63 @@
+import { expect, it } from "vitest";
+
+import { OAUTH_PROVIDERS } from "./oauth-providers";
+import {
+  SettingsPayloadSchema,
+  SettingsResponseSchema,
+  SettingsUpdateSchema,
+} from "./settings-contracts";
+
+const input = {
+  siteName: "Example",
+  siteDescription: "",
+  siteUrl: "",
+  ogImageUrl: "",
+  defaultUserRole: "SUBSCRIBER",
+  postListingMode: "PAGINATION",
+  postsPerPage: 10,
+  oauthProviders: OAUTH_PROVIDERS.map((provider) => ({
+    provider,
+    enabled: false,
+    clientId: "",
+  })),
+};
+
+it("requires the complete provider set and preserves omitted or blank write-only secrets", () => {
+  expect(SettingsUpdateSchema.parse(input)).toEqual(input);
+  expect(
+    SettingsUpdateSchema.safeParse({ ...input, oauthProviders: [] }).success,
+  ).toBe(false);
+  expect(
+    SettingsPayloadSchema.safeParse({
+      ...input,
+      oauthProviders: input.oauthProviders.map(() => input.oauthProviders[0]),
+    }).success,
+  ).toBe(false);
+  expect(
+    SettingsUpdateSchema.safeParse({ ...input, siteUrl: "javascript:alert(1)" })
+      .success,
+  ).toBe(false);
+  expect(
+    SettingsUpdateSchema.safeParse({ ...input, siteName: " " }).success,
+  ).toBe(false);
+  expect(
+    SettingsUpdateSchema.safeParse({ ...input, postsPerPage: 51 }).success,
+  ).toBe(false);
+});
+
+it("requires credential presence metadata while stripping secrets from responses", () => {
+  expect(SettingsResponseSchema.safeParse(input).success).toBe(false);
+  const response = SettingsResponseSchema.parse({
+    ...input,
+    oauthProviders: input.oauthProviders.map((row) => ({
+      ...row,
+      hasClientId: false,
+      hasClientSecret: true,
+      operational: false,
+      clientSecret: "must be omitted",
+    })),
+  });
+  expect(response.oauthProviders.every((row) => !("clientSecret" in row))).toBe(
+    true,
+  );
+});

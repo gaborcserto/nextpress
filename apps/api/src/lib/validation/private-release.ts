@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-export const ExecutePrivateReleasesSchema = z.strictObject({});
+export const PrivateReleaseCursorSchema = z.strictObject({
+  scheduledFor: z.iso.datetime(),
+  pageId: z.string().min(1).max(200),
+});
+export const ExecutePrivateReleasesSchema = z.strictObject({
+  after: PrivateReleaseCursorSchema.optional(),
+});
 export const PrivateReleaseExecutionResultSchema = z.strictObject({
   results: z.array(
     z.strictObject({
@@ -10,4 +16,5 @@ export const PrivateReleaseExecutionResultSchema = z.strictObject({
     }),
   ),
   remainingMayExist: z.boolean(),
+  nextCursor: PrivateReleaseCursorSchema.nullable(),
 });

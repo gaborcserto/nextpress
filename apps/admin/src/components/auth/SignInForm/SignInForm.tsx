@@ -3,9 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
 } from "react";
 import { FaUserAlt } from "react-icons/fa";
@@ -29,6 +29,24 @@ type SignInFormProps = {
 
 const rememberedEmailKey = "nextpress.admin.remembered-email";
 
+function subscribeToRememberedEmail(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+
+  return () => window.removeEventListener("storage", onChange);
+}
+
+function readRememberedEmail() {
+  try {
+    const email = signInSchema.shape.email.safeParse(
+      window.localStorage.getItem(rememberedEmailKey),
+    );
+
+    return email.success ? email.data : null;
+  } catch {
+    return null;
+  }
+}
+
 function signInErrorMessage(status?: number, code?: string): string {
   if (status === 429 || code === "TOO_MANY_REQUESTS") {
     return "Too many sign-in attempts. Please wait a minute before trying again.";
@@ -42,14 +60,21 @@ function signInErrorMessage(status?: number, code?: string): string {
 }
 
 export default function SignInForm({ providers }: SignInFormProps) {
-  const [form, setForm] = useState<SignInFormValues>({
-    email: "",
-    password: "",
-  });
-
-  const [rememberEmail, setRememberEmail] = useState(false);
+  const rememberedEmail = useSyncExternalStore(
+    subscribeToRememberedEmail,
+    readRememberedEmail,
+    () => null,
+  );
+  const [fields, setFields] = useState<Partial<SignInFormValues>>({});
+  const form: SignInFormValues = {
+    email: fields.email ?? rememberedEmail ?? "",
+    password: fields.password ?? "",
+  };
+  const [rememberOverride, setRememberOverride] = useState<boolean | null>(
+    null,
+  );
+  const rememberEmail = rememberOverride ?? rememberedEmail !== null;
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof SignInFormValues, string>>
@@ -63,30 +88,32 @@ export default function SignInForm({ providers }: SignInFormProps) {
     safeCallbackUrl(params.get("callbackUrl") || params.get("redirectTo")) ||
     "/";
 
-  useLayoutEffect(() => {
+  const errorParam = params.get("error");
+  const [previousErrorParam, setPreviousErrorParam] = useState(errorParam);
+  const [err, setErr] = useState(() =>
+    errorParam ? mapNextAuthError(errorParam) : null,
+  );
+
+  if (previousErrorParam !== errorParam) {
+    setPreviousErrorParam(errorParam);
+
+    if (errorParam) {
+      setErr(mapNextAuthError(errorParam));
+    }
+  }
+
+  useEffect(() => {
     try {
-      const savedEmail = window.localStorage.getItem(rememberedEmailKey);
-
-      if (savedEmail === null) return;
-
-      const email = signInSchema.shape.email.safeParse(savedEmail);
-
-      if (email.success) {
-        setForm((current) => ({ ...current, email: email.data }));
-        setRememberEmail(true);
-      } else {
+      if (
+        window.localStorage.getItem(rememberedEmailKey) !== null &&
+        readRememberedEmail() === null
+      ) {
         window.localStorage.removeItem(rememberedEmailKey);
       }
     } catch {
       // Browser storage can be unavailable; sign-in remains usable without it.
     }
   }, []);
-
-  useEffect(() => {
-    const errorParam = params.get("error");
-
-    if (errorParam) setErr(mapNextAuthError(errorParam));
-  }, [params]);
 
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
@@ -145,15 +172,17 @@ export default function SignInForm({ providers }: SignInFormProps) {
   };
 
   const updateField = (field: keyof SignInFormValues, value: string) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setFields((current) => ({ ...current, [field]: value }));
     setErr(null);
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
   };
 
   const handleRememberEmailChange = (checked: boolean) => {
-    setRememberEmail(checked);
+    setRememberOverride(checked);
 
     if (!checked) {
+      setFields((current) => ({ ...current, email: form.email }));
+
       try {
         window.localStorage.removeItem(rememberedEmailKey);
       } catch {

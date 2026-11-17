@@ -268,7 +268,7 @@ export default function PageForm({
                     htmlFor="page-published-at"
                     hint={
                       privateEditing
-                        ? "Current public date. Publication changes are unavailable in private mode."
+                        ? "Current public date. Use the private draft publication controls to publish or schedule."
                         : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
                     }
                     span={4}

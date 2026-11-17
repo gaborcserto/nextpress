@@ -138,3 +138,19 @@ export function richContentText(document: RichDocument): string {
     })
     .join("\n");
 }
+
+/** Public presentation omits corrupt content without relaxing the canonical write contract. */
+export function parsePublicRichContent(
+  content: RichDocument | string | null,
+): RichDocument {
+  if (typeof content === "string" || content === null) {
+    try {
+      return readRichContent(content);
+    } catch {
+      return textDocument();
+    }
+  }
+  const result = RichDocumentSchema.safeParse(content);
+
+  return result.success ? result.data : textDocument();
+}

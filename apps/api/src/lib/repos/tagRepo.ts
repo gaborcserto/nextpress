@@ -50,19 +50,6 @@ function mapTaxonomyToTagDto(t: {
 }
 
 /**
- * Shared small helper to normalize and filter tagIds.
- * This belongs here because it is data-shape oriented and reused by multiple services.
- */
-export function normalizeTagIds(tagIds: unknown): string[] {
-  if (!Array.isArray(tagIds)) return [];
-
-  return tagIds
-    .filter((id): id is string => typeof id === "string")
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
-
-/**
  * Find tags by a pre-normalized search query (name or slug).
  * The query should already be trimmed and non-empty in the service layer.
  */

@@ -3,8 +3,23 @@ import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 
+import type { Page } from "@playwright/test";
+
 const origin = "http://localhost:49200";
 const headers = { origin: "http://localhost:49201" };
+
+async function openPrimaryNavigation(page: Page) {
+  const toggle = page.getByRole("button", {
+    name: "Open navigation",
+    exact: true,
+  });
+
+  if (await toggle.isVisible()) {
+    await toggle.click();
+  }
+
+  return page.getByRole("navigation", { name: "Primary", exact: true });
+}
 
 test.beforeAll(async ({ request }) => {
   const database = new URL(process.env.DATABASE_URL ?? "");
@@ -76,11 +91,13 @@ for (const width of [320, 393, 768, 1440]) {
     const resourceFailures: string[] = [];
     const chunks: { url: string; status: number }[] = [];
     page.on("console", (message) => {
-      if (/\[Fast Refresh\]|\[HMR\]/.test(message.text()))
+      if (/\[Fast Refresh\]|\[HMR\]/.test(message.text())) {
         developmentMessages.push(message.text());
+      }
 
-      if (["warning", "error"].includes(message.type()))
+      if (["warning", "error"].includes(message.type())) {
         warnings.push(message.text());
+      }
     });
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("response", (response) => {
@@ -101,7 +118,7 @@ for (const width of [320, 393, 768, 1440]) {
       }
     });
 
-    expect((await page.goto(`${origin}/posts`))?.status()).toBe(200);
+    expect((await page.goto(`${origin}/en/posts`))?.status()).toBe(200);
     await expect(
       page.getByRole("heading", { name: "Posts", exact: true }),
     ).toBeVisible();
@@ -110,11 +127,10 @@ for (const width of [320, 393, 768, 1440]) {
       "smooth",
     );
     await expect(page.locator("html")).toHaveCSS("scroll-behavior", "smooth");
-    await page
-      .getByRole("navigation", { name: "Primary", exact: true })
-      .getByRole("link", { name: "Posts", exact: true })
-      .focus();
+    const primary = await openPrimaryNavigation(page);
+    await primary.getByRole("link", { name: "Posts", exact: true }).focus();
     await expect(page.locator(":focus")).toHaveText("Posts");
+    await page.keyboard.press("Escape");
     // Chrome reports unused preloads several seconds after load; retain that observation window.
     await page.waitForTimeout(6500);
     const geometry = await page.evaluate(() => ({
@@ -139,7 +155,7 @@ for (const width of [320, 393, 768, 1440]) {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
     );
     await page.getByRole("link", { name: "Next page", exact: true }).click();
-    await expect(page).toHaveURL(`${origin}/posts?page=2`);
+    await expect(page).toHaveURL(`${origin}/en/posts?page=2`);
     // Next preserves the scroll position when the destination is already visible.
     await expect(
       page.getByRole("heading", { name: "Posts", exact: true }),
@@ -147,15 +163,16 @@ for (const width of [320, 393, 768, 1440]) {
     await page
       .getByRole("link", { name: "Previous page", exact: true })
       .click();
-    await expect(page).toHaveURL(`${origin}/posts`);
-    const navigation = page.getByRole("navigation", {
-      name: "Primary",
-      exact: true,
-    });
+    await expect(page).toHaveURL(`${origin}/en/posts`);
+    const navigation = await openPrimaryNavigation(page);
     await navigation.getByRole("link", { name: "Home", exact: true }).click();
-    await expect(page).toHaveURL(`${origin}/`);
-    await navigation.getByRole("link", { name: "Posts", exact: true }).click();
-    await expect(page).toHaveURL(`${origin}/posts`);
+    await expect(page).toHaveURL(`${origin}/en/`);
+    await (
+      await openPrimaryNavigation(page)
+    )
+      .getByRole("link", { name: "Posts", exact: true })
+      .click();
+    await expect(page).toHaveURL(`${origin}/en/posts`);
     await page
       .getByRole("link", { name: /^Responsive archive fixture/ })
       .first()
@@ -165,7 +182,7 @@ for (const width of [320, 393, 768, 1440]) {
       "Responsive archive fixture",
     );
     await page.goBack();
-    await expect(page).toHaveURL(`${origin}/posts`);
+    await expect(page).toHaveURL(`${origin}/en/posts`);
     await page.reload();
     await page.keyboard.press("Tab");
     await expect(
@@ -186,8 +203,9 @@ for (const width of [320, 393, 768, 1440]) {
     ).toEqual([]);
     expect(chunks.length).toBeGreaterThan(0);
 
-    if (process.env.NEXTPRESS_E2E_WEB_PRODUCTION === "1")
+    if (process.env.NEXTPRESS_E2E_WEB_PRODUCTION === "1") {
       expect(developmentMessages).toEqual([]);
+    }
     const observations = testInfo.outputPath("resource-observations.json");
     await writeFile(
       observations,

@@ -6,6 +6,11 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
+import {
+  legacyEditorRevalidation,
+  prepareLegacyUpdate,
+  reportLegacySaveFailure,
+} from "@/lib/content/legacy-editor";
 import { createPostApi, updatePostApi } from "@/lib/services/post.client";
 import { showToast } from "@/ui/utils";
 
@@ -34,12 +39,7 @@ export function usePostEditor(postId?: string) {
   const { data, error, isLoading, mutate } = useSWR<PostDetailResponse>(
     isEdit && postId ? `/api/post/${postId}` : null,
     jsonFetcher,
-    // Keep the version tied to the loaded form, not a background revalidation.
-    {
-      revalidateIfStale: false,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-    },
+    legacyEditorRevalidation,
   );
 
   const item: PostFormValues | null = isEdit
@@ -67,12 +67,7 @@ export function usePostEditor(postId?: string) {
 
         return false;
       }
-      // An unchanged blank date is not an explicit request to reset publication time.
-      const submittedValues = { ...values };
-
-      if (data && values.publishedAt === data.item.publishedAt) {
-        delete submittedValues.publishedAt;
-      }
+      const submittedValues = prepareLegacyUpdate(values, data?.item);
       const { ok, status } =
         postId && data
           ? await updatePostApi(
@@ -83,18 +78,7 @@ export function usePostEditor(postId?: string) {
           : await createPostApi(values);
 
       if (!ok) {
-        if (status === 409) {
-          showToast(
-            "Content changed elsewhere. Your edits are preserved; reload before retrying.",
-            "warning",
-          );
-
-          return false;
-        }
-        showToast(
-          `${isEdit ? "Update failed" : "Create failed"}: ${status}`,
-          "error",
-        );
+        reportLegacySaveFailure(status, isEdit);
 
         return false;
       }

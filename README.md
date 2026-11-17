@@ -12,7 +12,7 @@ NextPress is a PostgreSQL-backed headless CMS with separate API, administration 
 - Canonical and Open Graph metadata, sitemap and robots routes.
 - A development-only OpenAPI document and interactive API reference.
 
-Private drafts, autosave and restoration are rehearsal-only. The private draft rehearsal does not support publishing, unpublishing or scheduled release.
+Private drafts, autosave and restoration are rehearsal-only. The guarded private draft rehearsal supports publishing, unpublishing and pinned scheduled release. Production admission remains disabled; no unattended scheduler is installed.
 
 ## Architecture
 
@@ -87,4 +87,4 @@ These steps describe local development, not production provisioning. Environment
 
 ## Documentation
 
-See the [development guide](docs/development.md) and [workspace guides](apps/api/README.md).
+See the [workspace guides](apps/api/README.md).

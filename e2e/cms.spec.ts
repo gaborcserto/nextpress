@@ -253,7 +253,7 @@ test("disposable editorial publication, public rendering and session lifecycle",
   await expect(page.getByText("Column content", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Read archive" }),
-  ).toHaveAttribute("href", "/posts");
+  ).toHaveAttribute("href", "/en/posts");
   expect(
     (
       await request.get(`http://localhost:49202/api/public/media/${asset.id}`)
@@ -269,17 +269,24 @@ test("disposable editorial publication, public rendering and session lifecycle",
   ).toBe(409);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    "http://localhost:49200/pages/browser-fixture",
+    "http://localhost:49200/en/pages/browser-fixture",
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("http://localhost:49200");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();
-  await page.goto("http://localhost:49200/pages/nonexistent-browser-fixture");
+  expect(
+    (
+      await page.goto(
+        "http://localhost:49200/pages/nonexistent-browser-fixture",
+      )
+    )?.status(),
+  ).toBe(404);
   await expect(
-    page.getByRole("heading", { name: /not found|unavailable/i }),
+    page.getByRole("heading", { name: "404", exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Page not found", { exact: true })).toBeVisible();
   expect(
     (
       await page.request.delete(
