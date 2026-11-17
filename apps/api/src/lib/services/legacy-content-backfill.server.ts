@@ -54,7 +54,7 @@ export function mapEditorialReferenceEdges(
     >;
     relationships: EditorialSnapshot["relationships"];
   },
-  targets: ReferenceTargets,
+  targets?: ReferenceTargets,
 ) {
   const edges: ReferenceEdges = { media: [], taxonomies: [], pages: [] };
   const issues: string[] = [];
@@ -65,7 +65,7 @@ export function mapEditorialReferenceEdges(
     path: string,
     position: number,
   ) => {
-    if (!targets.mediaIds.has(mediaId)) {
+    if (targets && !targets.mediaIds.has(mediaId)) {
       issues.push(`MISSING_MEDIA:${path}`);
 
       return;
@@ -74,7 +74,7 @@ export function mapEditorialReferenceEdges(
   };
 
   const addTaxonomy = (taxonomyId: string, usage: string, position: number) => {
-    if (!targets.taxonomyIds.has(taxonomyId)) {
+    if (targets && !targets.taxonomyIds.has(taxonomyId)) {
       issues.push(`MISSING_TAXONOMY:${usage}:${position}`);
 
       return;
@@ -102,7 +102,7 @@ export function mapEditorialReferenceEdges(
   }
 
   if (fields.parentId) {
-    if (targets.pageIds.has(fields.parentId)) {
+    if (!targets || targets.pageIds.has(fields.parentId)) {
       edges.pages.push({
         revisionId,
         targetPageId: fields.parentId,
@@ -332,9 +332,9 @@ export function legacyPageMapping(page: {
         .filter((item) => item.taxonomy.type === "CATEGORY")
         .map((item) => item.taxonomyId)
         .sort(),
-      gallery: [...page.gallery].sort(
-        (a, b) => a.sort - b.sort || a.mediaId.localeCompare(b.mediaId),
-      ),
+      gallery: page.gallery
+        .map(({ mediaId, sort }) => ({ mediaId, sort }))
+        .sort((a, b) => a.sort - b.sort || a.mediaId.localeCompare(b.mediaId)),
     },
     extensions: { schemaVersion: 1 as const, values: {} },
   };

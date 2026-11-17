@@ -3,6 +3,22 @@ import { describe, expect, it } from "vitest";
 import { oops } from "./http";
 
 describe("writer coordination diagnostics", () => {
+  it.each(["55P03", "40001", "40P01", "P2034"])(
+    "maps %s contention without exposing database details",
+    async (code) => {
+      const response = oops({
+        meta: {
+          driverAdapterError: {
+            cause: { originalCode: code, originalMessage: "private SQL" },
+          },
+        },
+      });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({
+        error: "Content write conflict; retry the operation",
+      });
+    },
+  );
   it.each(["P2003", "23001", "23503"])(
     "maps retained-reference %s to a sanitized conflict",
     async (code) => {

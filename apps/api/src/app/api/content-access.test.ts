@@ -51,6 +51,7 @@ const { prisma, session, configureAuth } = vi.hoisted(() => ({
       delete: vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
+    $queryRaw: vi.fn().mockResolvedValue([]),
     taxonomy: { findMany: vi.fn(), delete: vi.fn() },
     pageOnTaxonomy: {
       findMany: vi.fn(),

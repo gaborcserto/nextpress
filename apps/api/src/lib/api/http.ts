@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { workingPersistenceFailure } from "@/lib/services/working-persistence-errors";
+
 type ErrorBody<E extends object = object> = { error: string } & E;
 
 /**
@@ -56,6 +58,9 @@ export function conflict(msg = "Conflict"): NextResponse<ErrorBody> {
  * 500 Internal Server Error.
  */
 export function oops(error?: unknown): NextResponse<ErrorBody> {
+  if (workingPersistenceFailure(error) === "TRANSACTION_RETRY_REQUIRED") {
+    return conflict("Content write conflict; retry the operation");
+  }
   const kind = databaseConflictKind(error);
 
   if (kind === "maintenance") {
@@ -64,6 +69,14 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
 
   if (kind === "reference") {
     return conflict("Content is retained by references");
+  }
+
+  if (workingPersistenceFailure(error) === "REFERENCE_CONFLICT") {
+    return conflict("Content is retained by references");
+  }
+
+  if (workingPersistenceFailure(error) === "WRITER_FENCE_CONFLICT") {
+    return conflict("Content writer coordination conflict");
   }
 
   return NextResponse.json<ErrorBody>(

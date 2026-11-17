@@ -1,5 +1,10 @@
 import { prisma } from "@nextpress/db/src/client";
 
+import {
+  contentWriteWhere,
+  type ContentActor,
+} from "@/lib/auth/content-access";
+
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
 
 export class TaxonomyScopeError extends Error {
@@ -171,9 +176,24 @@ export async function setTagsForPage(
   pageId: string,
   tagIds: string[],
   transaction?: Prisma.TransactionClient,
+  actor?: ContentActor,
 ): Promise<void> {
   const replace = async (tx: Prisma.TransactionClient) => {
+    // Keep classification stable through assignment as well as checking existence.
+    // NOWAIT is compatible with legacy deletes holding a target before a Page lock.
+    for (const id of [...new Set(tagIds)].sort()) {
+      await tx.$queryRaw`SELECT id FROM "Taxonomy" WHERE id = ${id} FOR SHARE NOWAIT`;
+    }
     await validateTagIds(tagIds, tx);
+
+    if (!transaction) {
+      // Recheck ownership atomically and advance the token for standalone writers.
+      // The database trigger acquires the same fence as scalar and private saves.
+      await tx.page.update({
+        where: { id: pageId, ...(actor ? contentWriteWhere(actor) : {}) },
+        data: { workingVersion: { increment: 1 } },
+      });
+    }
     await tx.page.findUniqueOrThrow({
       where: { id: pageId },
       select: { id: true },

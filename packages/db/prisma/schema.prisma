@@ -234,6 +234,9 @@ model Page {
   back_ContentMigrationCheckpoint_page     ContentMigrationCheckpoint?    @relation("ContentMigrationCheckpoint_page")
   back_ContentEditLease_page               ContentEditLease?              @relation("ContentEditLease_page")
   back_ContentRevisionPageReference_target ContentRevisionPageReference[] @relation("ContentRevisionPageReference_target")
+
+  privateWorkingRevisions  NPWorkingRevision[]
+  privateWorkingReferences NPWorkingPage[]
 }
 
 model Media {
@@ -252,6 +255,8 @@ model Media {
   PageMedia                        PageMedia[]
   Page                             Page[]
   back_ContentRevisionMedia_target ContentRevisionMedia[] @relation("ContentRevisionMedia_target")
+
+  privateWorkingReferences NPWorkingMedia[]
 }
 
 model Taxonomy {
@@ -263,6 +268,8 @@ model Taxonomy {
   pages                               PageOnTaxonomy[]
   Page                                Page[]
   back_ContentRevisionTaxonomy_target ContentRevisionTaxonomy[] @relation("ContentRevisionTaxonomy_target")
+
+  privateWorkingReferences NPWorkingTaxonomy[]
 }
 
 model PageOnTaxonomy {
@@ -310,6 +317,60 @@ model PageRevision {
   back_ContentLegacyRevisionImport_legacy ContentLegacyRevisionImport? @relation("ContentLegacyRevisionImport_legacy")
 
   @@index([pageId, createdAt])
+}
+
+// Private working history is independent of SHADOW enrollment and public authority.
+// Fence tombstones deliberately outlive deleted Page identities.
+model NPContentFence {
+  pageId  String @id
+  version Int    @default(0)
+}
+
+model NPWorkingRevision {
+  id            String              @id @db.Uuid
+  pageId        String
+  version       Int
+  sourceVersion Int
+  requestId     String              @db.Uuid
+  requestHash   String              @db.Char(64)
+  aggregate     Json                @db.JsonB
+  page          Page                @relation(fields: [pageId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  media         NPWorkingMedia[]
+  taxonomies    NPWorkingTaxonomy[]
+  pages         NPWorkingPage[]
+
+  @@unique([pageId, version])
+  @@unique([pageId, requestId])
+}
+
+model NPWorkingMedia {
+  revisionId String            @db.Uuid
+  targetId   String
+  revision   NPWorkingRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  target     Media             @relation(fields: [targetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([revisionId, targetId])
+  @@index([targetId])
+}
+
+model NPWorkingTaxonomy {
+  revisionId String            @db.Uuid
+  targetId   String
+  revision   NPWorkingRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  target     Taxonomy          @relation(fields: [targetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([revisionId, targetId])
+  @@index([targetId])
+}
+
+model NPWorkingPage {
+  revisionId String            @db.Uuid
+  targetId   String
+  revision   NPWorkingRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  target     Page              @relation(fields: [targetId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([revisionId, targetId])
+  @@index([targetId])
 }
 
 model ContentEditorialState {

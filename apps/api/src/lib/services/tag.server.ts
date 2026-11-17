@@ -160,7 +160,7 @@ export async function setTagsForPageService(
   const parsed = TagIdsSchema.safeParse(rawTagIds);
 
   if (!parsed.success) throw new ValidationError("Invalid tag IDs");
-  await setTagsForPage(pageId, parsed.data);
+  await setTagsForPage(pageId, parsed.data, undefined, actor);
 }
 
 /**

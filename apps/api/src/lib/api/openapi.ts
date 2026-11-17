@@ -712,7 +712,7 @@ paths["/api/tags/link"] = {
     "Replace assigned tags",
     ref("Success"),
     [400, ...mutationCodes, 404, 409, 500],
-    writeScope,
+    `${writeScope} Tags are replaced immediately in one transaction and advance the Page workingVersion. Clients must reload the version before a later scalar save. Concurrent content writers may return 409 without partial changes.`,
     "protected",
     "TagLinks",
   ),
