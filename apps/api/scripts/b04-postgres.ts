@@ -387,6 +387,17 @@ async function verifyFamily(family: "content" | "security") {
       );
 
       if (family === "content") {
+        // This suite counts every administrator. Run it before content fixtures
+        // retain publication actors for the lifetime of the disposable cluster.
+        npm([
+          "--workspace",
+          "api",
+          "test",
+          "--",
+          "src/lib/auth/user-administration.integration.test.ts",
+          "--maxWorkers=1",
+          "--testTimeout=30000",
+        ]);
         sql(
           container,
           database,
@@ -421,7 +432,6 @@ async function verifyFamily(family: "content" | "security") {
           "test",
           "--",
           "src/lib/repos/content-transaction.integration.test.ts",
-          "src/lib/auth/user-administration.integration.test.ts",
           "src/lib/testing/postgres-feasibility.integration.test.ts",
           "src/lib/testing/working-aggregate-persistence.integration.test.ts",
           "src/lib/testing/editorial-persistence.integration.test.ts",
