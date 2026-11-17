@@ -20,6 +20,10 @@ export function workingPersistenceFailure(
         return "REFERENCE_CONFLICT";
       }
 
+      if (["23505", "P2002"].includes(value)) {
+        return "CONTENT_CONFLICT";
+      }
+
       if (["P5501", "P5502", "P5503", "P5504"].includes(value)) {
         return "WRITER_FENCE_CONFLICT";
       }

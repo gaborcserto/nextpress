@@ -128,6 +128,9 @@ jobs:
       - name: Generate database client
         run: npm run prisma:generate
 
+      - name: Install Playwright Chromium for authenticated integration tests
+        run: npx playwright install --with-deps chromium
+
       - name: Validate isolated backend transactions
         working-directory: apps/api
         run: npx tsx scripts/b04-postgres.ts content

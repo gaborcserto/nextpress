@@ -4,6 +4,7 @@ import {
   canonicalEditorialJson,
   EditorialSnapshotSchema,
 } from "@nextpress/shared/editorial-contracts";
+import { readPageDocument } from "@nextpress/shared/page-document";
 import { createHash } from "node:crypto";
 
 import {
@@ -18,7 +19,10 @@ import {
 
 import { legacyPageMapping } from "./legacy-content-backfill.server";
 
-import type { Prisma } from "@nextpress/db/generated/prisma/client";
+import type {
+  PageRevision,
+  Prisma,
+} from "@nextpress/db/generated/prisma/client";
 
 import type { ContentActor } from "@/lib/auth/content-access";
 
@@ -28,6 +32,48 @@ export type LegacyAggregateSource = Prisma.PageGetPayload<{
 
 export class WorkingAggregateConflictError extends Error {
   readonly code = "VERSION_CONFLICT";
+}
+
+/** Legacy history covers six fields only; retain the current private values for all others. */
+export function restoreLegacyWorkingAggregate(
+  current: WorkingAggregate,
+  revision: PageRevision,
+): WorkingAggregate {
+  if (revision.pageId !== current.pageId) {
+    throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
+  }
+  let pageDocument = null;
+
+  if (revision.pageDocument !== null) {
+    try {
+      const parsed = readPageDocument(revision.pageDocument);
+
+      if (!parsed.supported) {
+        throw new Error("Unsupported document");
+      }
+      pageDocument = parsed.document;
+    } catch {
+      throw new WorkingAggregateConflictError("UNSUPPORTED_LEGACY_REVISION");
+    }
+  }
+
+  return WorkingAggregateSchema.parse({
+    ...current,
+    snapshot: {
+      ...current.snapshot,
+      fields: {
+        ...current.snapshot.fields,
+        title: revision.title,
+        slug: revision.slug,
+        excerpt: revision.excerpt,
+        content: revision.content,
+        layout: revision.layout,
+        pageDocument,
+      },
+    },
+    rawPageDocument: revision.pageDocument,
+    publicationIntent: { action: "PRESERVE" },
+  });
 }
 
 /** Pure capture from one consistent database snapshot; statistics and auth data are excluded. */

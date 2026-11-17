@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   contentWriteWhere,
+  ContentForbiddenError,
   ContentNotFoundError,
 } from "@/lib/auth/content-access";
 import {
@@ -18,6 +19,7 @@ import {
   assertWorkingAggregateBase,
   captureWorkingAggregate,
   prepareWorkingAggregateEdit,
+  restoreLegacyWorkingAggregate,
   WorkingAggregateConflictError,
 } from "./working-aggregate";
 import { workingPersistenceFailure } from "./working-persistence-errors";
@@ -97,6 +99,34 @@ async function lockSource(
   return { source, sourceVersion: fences[0].version };
 }
 
+async function lockPublicationActor(
+  tx: Prisma.TransactionClient,
+  actor: ContentActor,
+) {
+  const [privileges] = await tx.$queryRaw<{ ready: boolean }[]>`
+    SELECT has_table_privilege('"PageRevision"', 'INSERT') AND
+      has_table_privilege('"PageOnTaxonomy"', 'INSERT') AND
+      has_table_privilege('"PageOnTaxonomy"', 'DELETE') AND
+      has_function_privilege('public.np_lock_publication_actor(text)', 'EXECUTE') AND
+      (SELECT bool_and(has_column_privilege('"Page"', column_name, 'UPDATE'))
+        FROM unnest(ARRAY['title','slug','content','excerpt','layout','pageDocument',
+          'inHeaderMenu','inFooterMenu','status','publishedAt','workingVersion','updatedAt']) AS column_name)
+      AS ready`;
+
+  if (!privileges?.ready) {
+    throw new WorkingAggregateConflictError(
+      "PUBLICATION_PRIVILEGES_UNAVAILABLE",
+    );
+  }
+  const roles = await tx.$queryRaw<{ name: string }[]>`
+    SELECT name FROM public.np_lock_publication_actor(${actor.id})`;
+
+  if (!roles[0] || roles[0].name !== actor.role) {
+    throw new ContentForbiddenError();
+  }
+  contentWriteWhere(actor);
+}
+
 export async function loadWorkingAggregate(
   db: PrismaClient,
   pageId: string,
@@ -135,13 +165,66 @@ export async function loadWorkingAggregate(
               orderBy: { id: "asc" },
             })
           : undefined;
+        const history = options.includeSourceMetadata
+          ? await tx.nPWorkingRevision.findMany({
+              where: { pageId },
+              orderBy: { version: "desc" },
+              take: 100,
+              select: { version: true, aggregate: true },
+            })
+          : undefined;
+        const legacyHistory = options.includeSourceMetadata
+          ? await tx.pageRevision.findMany({
+              where: { pageId },
+              orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+              take: 100,
+            })
+          : undefined;
 
         return {
           version: stored.version,
           sourceVersion: stored.sourceVersion,
           aggregate: stored.aggregate,
           ...(options.includeSourceMetadata
-            ? { currentSourceVersion: sourceVersion, tagLabels }
+            ? {
+                currentSourceVersion: sourceVersion,
+                pendingPrivateChanges:
+                  canonicalEditorialJson({
+                    snapshot: stored.aggregate.snapshot,
+                    raw: stored.aggregate.rawPageDocument,
+                  }) !==
+                  canonicalEditorialJson({
+                    snapshot: captureWorkingAggregate(source).snapshot,
+                    raw: source.pageDocument,
+                  }),
+                tagLabels,
+                history: history?.map((revision) => ({
+                  version: revision.version,
+                  title: WorkingAggregateSchema.parse(revision.aggregate)
+                    .snapshot.fields.title,
+                })),
+                legacyHistory: legacyHistory
+                  ?.filter((revision) => {
+                    try {
+                      restoreLegacyWorkingAggregate(stored.aggregate, revision);
+
+                      return true;
+                    } catch (error) {
+                      if (
+                        error instanceof WorkingAggregateConflictError ||
+                        error instanceof z.ZodError
+                      ) {
+                        return false;
+                      }
+                      throw error;
+                    }
+                  })
+                  .map((revision) => ({
+                    id: revision.id,
+                    title: revision.title,
+                    createdAt: revision.createdAt.toISOString(),
+                  })),
+              }
             : {}),
         };
       },
@@ -154,9 +237,39 @@ export async function saveWorkingAggregate(
   db: PrismaClient,
   input: unknown,
   actor: ContentActor,
+  options: { scheduledExecution?: boolean } = {},
 ) {
   const command = WorkingAggregateSaveSchema.parse(input);
   contentWriteWhere(actor);
+  const lifecycle =
+    command.operation !== undefined &&
+    ["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE", "EXECUTE"].includes(
+      command.operation,
+    );
+
+  if (
+    (command.operation === "EXECUTE" && !options.scheduledExecution) ||
+    (command.operation === "SCHEDULE") !==
+      (command.scheduledFor !== undefined) ||
+    (lifecycle &&
+      (Object.keys(command.edit.patch).length > 0 ||
+        command.edit.publicationIntent))
+  ) {
+    throw new WorkingAggregateConflictError("PUBLICATION_COMMAND_CONFLICT");
+  }
+
+  if (
+    (command.operation === "RESTORE") !==
+      (command.restoreVersion !== undefined) ||
+    (command.operation === "RESTORE_LEGACY") !==
+      (command.legacyRevisionId !== undefined) ||
+    ((command.operation === "RESTORE" ||
+      command.operation === "RESTORE_LEGACY") &&
+      (Object.keys(command.edit.patch).length > 0 ||
+        command.edit.publicationIntent))
+  ) {
+    throw new WorkingAggregateConflictError("RESTORE_COMMAND_CONFLICT");
+  }
 
   const requestHash = createHash("sha256")
     .update(
@@ -170,6 +283,9 @@ export async function saveWorkingAggregate(
   return db
     .$transaction(
       async (tx) => {
+        if (lifecycle) {
+          await lockPublicationActor(tx, actor);
+        }
         const { source, sourceVersion } = await lockSource(
           tx,
           command.pageId,
@@ -235,12 +351,128 @@ export async function saveWorkingAggregate(
         ) {
           throw new WorkingAggregateConflictError("RESET_COMMAND_CONFLICT");
         }
-        const aggregate =
+        let aggregate =
           command.operation === "RESET"
             ? captureWorkingAggregate(source)
             : edited;
+
+        if (command.operation === "RESET" && current.aggregate.release) {
+          aggregate = { ...aggregate, release: current.aggregate.release };
+        }
+
+        if (lifecycle && current.version === 0) {
+          throw new WorkingAggregateConflictError(
+            "PUBLICATION_COMMAND_CONFLICT",
+          );
+        }
+
+        if (command.operation === "SCHEDULE") {
+          if (
+            Date.parse(command.scheduledFor ?? "") <= Date.now() ||
+            !actor.role ||
+            actor.role === "SUBSCRIBER"
+          ) {
+            throw new WorkingAggregateConflictError(
+              "PUBLICATION_COMMAND_CONFLICT",
+            );
+          }
+          aggregate = {
+            ...aggregate,
+            release: {
+              id: command.requestId,
+              pinnedVersion: current.version,
+              actorId: actor.id,
+              actorRole: actor.role,
+              scheduledFor: new Date(command.scheduledFor ?? "").toISOString(),
+              state: "PENDING",
+            },
+          };
+        }
+
+        if (command.operation === "CANCEL_SCHEDULE") {
+          if (aggregate.release?.state !== "PENDING") {
+            throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
+          }
+          aggregate = {
+            ...aggregate,
+            release: { ...aggregate.release, state: "CANCELLED" },
+          };
+        }
+
+        if (command.operation === "EXECUTE") {
+          const release = aggregate.release;
+
+          if (
+            !release ||
+            release.state !== "PENDING" ||
+            release.actorId !== actor.id ||
+            release.actorRole !== actor.role ||
+            Date.parse(release.scheduledFor) > Date.now()
+          ) {
+            throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
+          }
+          const pinned = await tx.nPWorkingRevision.findUnique({
+            where: {
+              pageId_version: {
+                pageId: command.pageId,
+                version: release.pinnedVersion,
+              },
+            },
+          });
+
+          if (!pinned) {
+            throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
+          }
+          const accepted = WorkingAggregateSchema.parse(pinned.aggregate);
+          assertWorkingAggregateBase(accepted, source);
+          aggregate = { ...accepted, release };
+        }
+
+        if (command.operation === "RESTORE") {
+          const historical = await tx.nPWorkingRevision.findUnique({
+            where: {
+              pageId_version: {
+                pageId: command.pageId,
+                version: command.restoreVersion ?? 0,
+              },
+            },
+            select: { aggregate: true },
+          });
+
+          if (!historical) {
+            throw new ContentNotFoundError();
+          }
+          const restored = WorkingAggregateSchema.parse(historical.aggregate);
+
+          if (
+            restored.pageId !== source.id ||
+            restored.kind !== source.type ||
+            restored.ownerId !== source.authorId
+          ) {
+            throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
+          }
+          // Restore content only. Historical base tokens and publication intent
+          // must never replace the currently authorized baseline.
+          aggregate = WorkingAggregateSchema.parse({
+            ...aggregate,
+            snapshot: restored.snapshot,
+            rawPageDocument: restored.rawPageDocument,
+            publicationIntent: { action: "PRESERVE" },
+          });
+        }
+
+        if (command.operation === "RESTORE_LEGACY") {
+          const historical = await tx.pageRevision.findFirst({
+            where: { id: command.legacyRevisionId, pageId: command.pageId },
+          });
+
+          if (!historical) {
+            throw new ContentNotFoundError();
+          }
+          aggregate = restoreLegacyWorkingAggregate(aggregate, historical);
+        }
         const revisionId = randomUUID();
-        const { edges } = mapEditorialReferenceEdges(
+        let { edges } = mapEditorialReferenceEdges(
           revisionId,
           aggregate.snapshot,
         );
@@ -288,10 +520,137 @@ export async function saveWorkingAggregate(
             throw new WorkingAggregateConflictError("REFERENCE_CONFLICT");
           }
         }
+        let acceptedSourceVersion = sourceVersion;
+
+        if (
+          command.operation === "PUBLISH" ||
+          command.operation === "UNPUBLISH" ||
+          command.operation === "EXECUTE"
+        ) {
+          // Only fields editable/restorable by this contract are assigned. Historical
+          // specialized fields, categories, gallery and operational counters stay intact.
+          const fields = aggregate.snapshot.fields;
+          const unpublish = command.operation === "UNPUBLISH";
+          let publishedAt = source.publishedAt;
+
+          if (
+            !unpublish &&
+            (source.status !== "PUBLISHED" ||
+              !publishedAt ||
+              publishedAt > new Date())
+          ) {
+            publishedAt = new Date();
+          }
+          const updated = await tx.page.update({
+            where: { id: source.id },
+            data: {
+              ...(unpublish
+                ? {}
+                : {
+                    title: fields.title,
+                    slug: fields.slug,
+                    content: fields.content,
+                    excerpt: fields.excerpt,
+                    layout: fields.layout,
+                    pageDocument: aggregate.rawPageDocument,
+                    inHeaderMenu: fields.inHeaderMenu,
+                    inFooterMenu: fields.inFooterMenu,
+                  }),
+              status: unpublish ? "DRAFT" : "PUBLISHED",
+              publishedAt,
+              workingVersion: { increment: 1 },
+            },
+          });
+
+          if (!unpublish) {
+            const tagIds = aggregate.snapshot.relationships.tagIds;
+            await tx.pageOnTaxonomy.deleteMany({
+              where: { pageId: source.id, taxonomy: { type: "TAG" } },
+            });
+            await tx.pageOnTaxonomy.createMany({
+              data: tagIds.map((taxonomyId) => ({
+                pageId: source.id,
+                taxonomyId,
+              })),
+            });
+          }
+          await tx.pageRevision.create({
+            data: {
+              pageId: source.id,
+              authorId: actor.id,
+              title: updated.title,
+              slug: updated.slug,
+              excerpt: updated.excerpt,
+              content: updated.content,
+              layout: updated.layout,
+              pageDocument: updated.pageDocument,
+              workingVersion: updated.workingVersion,
+              status: updated.status,
+              publishedAt: updated.publishedAt,
+              note: command.operation,
+            },
+          });
+          const finalSource = await tx.page.findUniqueOrThrow({
+            where: { id: source.id },
+            include: {
+              taxonomies: { include: { taxonomy: true } },
+              gallery: true,
+            },
+          });
+          const fence = await tx.nPContentFence.findUniqueOrThrow({
+            where: { pageId: source.id },
+          });
+          acceptedSourceVersion = fence.version;
+          const baseline = captureWorkingAggregate(finalSource);
+          let release = aggregate.release;
+
+          if (release?.state === "PENDING") {
+            release = {
+              ...release,
+              state: command.operation === "EXECUTE" ? "EXECUTED" : "CANCELLED",
+            };
+          }
+          aggregate = {
+            ...baseline,
+            ...(unpublish || command.operation === "EXECUTE"
+              ? {
+                  snapshot: current.aggregate.snapshot,
+                  rawPageDocument: current.aggregate.rawPageDocument,
+                }
+              : {}),
+            ...(release ? { release } : {}),
+          };
+        }
+
+        if (lifecycle) {
+          aggregate = WorkingAggregateSchema.parse({
+            ...aggregate,
+            receipt: {
+              operation: command.operation,
+              requestId: command.requestId,
+              actorId: actor.id,
+              pinnedVersion:
+                command.operation === "EXECUTE"
+                  ? current.aggregate.release?.pinnedVersion
+                  : current.version,
+              acceptedAt: new Date().toISOString(),
+              ...(command.operation === "SCHEDULE" &&
+              current.aggregate.release?.state === "PENDING"
+                ? { supersededReleaseId: current.aggregate.release.id }
+                : {}),
+            },
+          });
+        }
         const version = current.version + 1;
+        // Execution may retain a newer private snapshot while publishing its pin.
+        // Its existing immutable references remain retained; index the final snapshot.
+        ({ edges } = mapEditorialReferenceEdges(
+          revisionId,
+          aggregate.snapshot,
+        ));
         await tx.$executeRaw`INSERT INTO "NPWorkingRevision"
       (id, "pageId", version, "sourceVersion", "requestId", "requestHash", aggregate)
-      VALUES (${revisionId}::uuid, ${command.pageId}, ${version}, ${sourceVersion},
+      VALUES (${revisionId}::uuid, ${command.pageId}, ${version}, ${acceptedSourceVersion},
         ${command.requestId}::uuid, ${requestHash}, ${JSON.stringify(aggregate)}::jsonb)`;
 
         for (const id of [
@@ -312,7 +671,7 @@ export async function saveWorkingAggregate(
           await tx.$executeRaw`INSERT INTO "NPWorkingPage" VALUES (${revisionId}::uuid, ${id})`;
         }
 
-        return { version, sourceVersion, aggregate };
+        return { version, sourceVersion: acceptedSourceVersion, aggregate };
       },
       { isolationLevel: "ReadCommitted", timeout: 15000 },
     )

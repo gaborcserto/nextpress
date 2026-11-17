@@ -88,7 +88,11 @@ describe("server-admitted private editors", () => {
       );
       expect(
         await screen.findByRole("region", { name: "Private draft" }),
-      ).toHaveTextContent("Publishing is unavailable");
+      ).toHaveTextContent("require an explicit publication command");
+      expect(
+        screen.getByRole("button", { name: "Publish Changes" }),
+      ).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Unpublish" })).toBeEnabled();
       expect(screen.getByLabelText("Status", { exact: true })).toBeDisabled();
       expect(
         screen.getByLabelText("Publish date", { exact: true }),

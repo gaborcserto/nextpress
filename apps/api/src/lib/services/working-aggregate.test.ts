@@ -8,11 +8,22 @@ import {
   assertWorkingAggregateBase,
   captureWorkingAggregate,
   prepareWorkingAggregateEdit,
+  restoreLegacyWorkingAggregate,
   workingAggregateLegacyProjection,
   type LegacyAggregateSource,
 } from "./working-aggregate";
+import { workingPersistenceFailure } from "./working-persistence-errors";
 
 vi.mock("@nextpress/db/src/client", () => ({ prisma: {} }));
+
+it("reports unique content collisions as deterministic conflicts without adapter details", () => {
+  expect(
+    workingPersistenceFailure({ code: "P2002", meta: { target: ["slug"] } }),
+  ).toBe("CONTENT_CONFLICT");
+  expect(workingPersistenceFailure({ cause: { originalCode: "23505" } })).toBe(
+    "CONTENT_CONFLICT",
+  );
+});
 
 const instant = new Date("2020-01-02T03:04:05.006Z");
 const actor = { id: "author", role: "AUTHOR" as const };
@@ -84,6 +95,64 @@ function edit(
 }
 
 describe("inactive working aggregate preparation", () => {
+  it("restores only covered legacy fields, preserving raw bytes, private relationships and the current baseline", () => {
+    const aggregate = captureWorkingAggregate(source());
+    const historical = {
+      id: "history",
+      pageId: "page",
+      authorId: "different-revision-actor",
+      title: "Historical",
+      slug: "historical",
+      content: "Legacy bytes",
+      excerpt: null,
+      layout: "STANDARD" as const,
+      pageDocument: '{ "version": 1, "blocks": [] }',
+      workingVersion: 1,
+      status: "DRAFT" as const,
+      publishedAt: null,
+      note: null,
+      createdAt: instant,
+    };
+    const restored = restoreLegacyWorkingAggregate(aggregate, historical);
+    expect(restored.snapshot.fields).toEqual({
+      ...aggregate.snapshot.fields,
+      title: historical.title,
+      slug: historical.slug,
+      content: historical.content,
+      excerpt: null,
+      layout: "STANDARD",
+      pageDocument: { version: 1, blocks: [] },
+    });
+    expect(restored.snapshot.relationships).toEqual(
+      aggregate.snapshot.relationships,
+    );
+    expect(restored.rawPageDocument).toBe(historical.pageDocument);
+    expect(restored.baseFingerprint).toBe(aggregate.baseFingerprint);
+    expect(restored.publicState).toEqual(aggregate.publicState);
+    expect(restored.ownerId).toBe(aggregate.ownerId);
+    expect(restored.publicationIntent).toEqual({ action: "PRESERVE" });
+    expect(() =>
+      restoreLegacyWorkingAggregate(aggregate, {
+        ...historical,
+        pageId: "other",
+      }),
+    ).toThrow("IDENTITY_CONFLICT");
+
+    for (const pageDocument of ["", "not-json", '{"version":99,"blocks":[]}']) {
+      expect(() =>
+        restoreLegacyWorkingAggregate(aggregate, {
+          ...historical,
+          pageDocument,
+        }),
+      ).toThrow("UNSUPPORTED_LEGACY_REVISION");
+    }
+    expect(
+      restoreLegacyWorkingAggregate(aggregate, {
+        ...historical,
+        pageDocument: null,
+      }).rawPageDocument,
+    ).toBeNull();
+  });
   it("rejects inconsistent raw documents and empty publication commands", () => {
     const aggregate = captureWorkingAggregate(source());
     expect(() =>

@@ -1,18 +1,57 @@
 # API
 
-The `api` workspace owns Better Auth, authorization, API routes, validation, business rules, and database access. Run `npm run dev:api` from the repository root; it listens on `http://localhost:49102`.
+The `api` workspace owns Better Auth, server-side authorization, API routes, validation, content services and database access. The admin forwards browser requests here; the public website consumes anonymous `/api/public/*` projections.
 
-Copy `apps/api/.env.example` to `apps/api/.env`. The API needs `DATABASE_URL`, `BETTER_AUTH_URL`, and a unique `BETTER_AUTH_SECRET` of at least 32 characters. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for `npm run admin:bootstrap`. OAuth providers are enabled only when both credentials are configured.
+Follow the repository [Quick Start](../../README.md#quick-start) for installation, environment setup, migrations and administrator bootstrap. `npm run dev:api` from the root listens on `http://localhost:49102`.
 
-The OpenAPI document is available at `/api/openapi`; the interactive API reference is served by the admin application at `/api-docs` in development. Validate the document and route coverage with `npm run openapi:validate` from the repository root.
+## Configuration
 
-Useful workspace commands:
+See [the environment template](.env.example). `DATABASE_URL` selects PostgreSQL; `BETTER_AUTH_URL` is the browser-facing admin origin and `BETTER_AUTH_SECRET` must be unique and at least 32 characters. OAuth providers require enabling in site settings and complete credentials, from settings or environment variables. Template placeholders are not working provider credentials.
+
+Media files use a private local directory: `MEDIA_STORAGE_ROOT`, or `.media` relative to the API working directory. Back it up alongside PostgreSQL; do not put it under `public/`.
+
+Private draft admission is off by default and development/test only. The environment switch alone is insufficient: independently verified database identity, a restricted non-owner role, installed writer fences and maintenance checks are also required. See the [development guide](../../docs/development.md) for publication limitations. Do not enable rehearsal against the normal development or a shared database by copying test credentials.
+
+## API reference
+
+In development, `/api/openapi` serves the OpenAPI document. The admin exposes the interactive reference at `http://localhost:49101/api-docs` and forwards its JSON route. These documentation routes return 404 outside development; this does not replace endpoint authentication or authorization. Interactive requests use the current session and can modify data.
+
+Run `npm run openapi:validate` from the repository root to validate the document and route coverage.
+
+## Workspace checks
+
+From the repository root:
 
 ```sh
-npm --workspace api run build
-npm --workspace api start
-npm --workspace api test
+npm --workspace api run lint
 npm --workspace api run typecheck
+npm --workspace api test
+npm --workspace api run build
 ```
 
-Generate Prisma before building directly. `npm run prisma:generate` from the root performs this step.
+Generate Prisma before a direct workspace build using `npm run prisma:generate`. Root development and verification commands are listed in the [repository README](../../docs/development.md).
+
+## Isolated integration tests
+
+Normal `npm test` does not provision PostgreSQL; database suites are opt-in. Backend integration runners provision their own disposable PostgreSQL 18 cluster, verify its identity and remove it after the run. They are separate from `docker-compose.yml` and must never target a development, shared or production database.
+
+Prerequisites: installed dependencies, generated Prisma client, Docker with a local Linux engine and Playwright Chromium. The guarded runner supports Linux's `default` Docker context at `/var/run/docker.sock` and Windows Docker Desktop's `desktop-linux` context. Other platforms or remote Docker endpoints are refused. Install only Chromium, from the root:
+
+```sh
+npx playwright install chromium
+```
+
+On Linux, use `npx playwright install --with-deps chromium` if browser system libraries are missing; CI uses that form before its browser-dependent backend suite.
+
+Run these **from `apps/api`**, serially:
+
+```sh
+npx tsx scripts/b04-postgres.ts content
+npx tsx scripts/b04-postgres.ts security
+```
+
+The content family includes database transactions, writer fencing, private-draft HTTP tests with real Better Auth sessions and Chromium editor flows. HTTP/browser processes use a non-owner application role. The security family exercises the isolated authentication lifecycle. The runner sets its own database/test environment and uses an identity manifest; do not hand-configure the opt-in database URLs to bypass it.
+
+Keep ports `55432` (content database), `55433` (security database), `49312` (test API) and `49311` (test admin) free. Run the content family without simultaneous dev/build processes for the same apps. If interrupted, preserve its `.b04-disposable.json` evidence and inspect exact resource identity before recovery; do not prune unrelated Docker resources or delete the manifest to bypass admission.
+
+The separate root `npm run test:e2e` command runs the broader Playwright suite with its own disposable database on port `55441`; it does not replace these backend families. Its server ports are defined in [playwright.config.ts](../../playwright.config.ts). Do not run the runners concurrently. A skipped opt-in suite is not a passing database or browser test.

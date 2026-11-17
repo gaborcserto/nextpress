@@ -74,6 +74,29 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
     ...state,
     contentKey,
     publicStatus: editing.draft.aggregate.publicState.status,
+    pendingPrivateChanges:
+      state.dirty ||
+      state.version > editing.draft.version ||
+      editing.draft.pendingPrivateChanges === true,
+    history: editing.draft.history ?? [],
+    legacyHistory: editing.draft.legacyHistory ?? [],
+    release: editing.draft.aggregate.release,
+    publication: async (
+      operation: "PUBLISH" | "UNPUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE",
+      scheduledFor?: string,
+    ) => {
+      if (
+        !(await controller.save(operation, undefined, undefined, scheduledFor))
+      ) {
+        throw new Error(
+          "Publication command was not acknowledged; check status before retrying",
+        );
+      }
+
+      if (!controller.hasLocalChanges()) {
+        await editing.reloadAction();
+      }
+    },
     save: () => {
       controller.update(values, formPatch(values));
 
@@ -91,6 +114,18 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       if (await controller.save("RESET")) {
         await editing.reloadAction();
       }
+    },
+    restore: async (version: number) => {
+      if (!(await controller.save("RESTORE", version))) {
+        throw new Error("Private restore was not acknowledged");
+      }
+      await editing.reloadAction();
+    },
+    restoreLegacy: async (id: string) => {
+      if (!(await controller.save("RESTORE_LEGACY", undefined, id))) {
+        throw new Error("Legacy restore was not acknowledged");
+      }
+      await editing.reloadAction();
     },
     reload: editing.reloadAction,
   };

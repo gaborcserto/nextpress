@@ -53,6 +53,10 @@ import {
   TagIdsSchema,
 } from "@/lib/validation";
 import {
+  ExecutePrivateReleasesSchema,
+  PrivateReleaseExecutionResultSchema,
+} from "@/lib/validation/private-release";
+import {
   WorkingAggregateEnvelopeSchema,
   WorkingAggregateSaveSchema,
 } from "@/lib/validation/working-aggregate";
@@ -150,6 +154,7 @@ const settingsProperties = {
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   PrivateDraft: schema(WorkingAggregateEnvelopeSchema),
   PrivateDraftSave: schema(WorkingAggregateSaveSchema.omit({ pageId: true })),
+  ExecutePrivateReleases: schema(ExecutePrivateReleasesSchema),
   MediaUpload: schema(MediaUploadSchema),
   RevisionInput: schema(RevisionInputSchema),
   RevisionAction: schema(RevisionActionSchema),
@@ -356,6 +361,18 @@ const readScope =
 const writeScope =
   "ADMIN, EDITOR or AUTHOR. AUTHOR may update only owned content. Mutations require a trusted Origin and application/json; request body maximum 5,000,000 bytes.";
 const paths: OpenAPIV3.PathsObject = {
+  "/api/private-drafts/execute": {
+    post: operation(
+      "executePrivateReleases",
+      "Content",
+      "Execute due private releases",
+      schema(PrivateReleaseExecutionResultSchema),
+      [400, ...mutationCodes, 500, 503],
+      "ADMIN Better Auth session, trusted Origin and JSON empty object required. Same production-disabled private admission. At most 20 due releases and 50 seconds of work; deployment timeout 60 seconds. Each original scheduling actor is reauthorized under database locks. Overlap and retry are safe through the content fence and atomic execution receipt. Refused releases remain pending; inspect each result and alert on repeated refusal. No deployment trigger is installed.",
+      "protected",
+      "ExecutePrivateReleases",
+    ),
+  },
   "/api/private-drafts/{id}": {
     parameters: [id],
     get: operation(
@@ -364,16 +381,16 @@ const paths: OpenAPIV3.PathsObject = {
       "Load private working state or authoritative initialization snapshot",
       ref("PrivateDraft"),
       [400, 401, 403, 404, 409, 500, 503],
-      "Development rehearsal only; disabled by default and always disabled in production. Requires independently verified database/cluster/nonprivileged role and installed writer guards. ADMIN/EDITOR all; AUTHOR owned content only. Version zero is an unpersisted initialization snapshot. Latest saved private state recovers after reload. No public or SHADOW writes. Private no-store.",
+      "Development rehearsal only; disabled by default and always disabled in production. Requires independently verified database/cluster/nonprivileged role and installed writer guards. ADMIN/EDITOR all; AUTHOR owned content only. Version zero is an unpersisted initialization snapshot. Latest saved private state recovers after reload. Includes the latest 100 private revision numbers/titles at load; older revisions remain retained. No public or SHADOW writes. Private no-store.",
       "protected",
     ),
     put: operation(
       "savePrivateDraft",
       "Content",
-      "Append a private working revision without publication",
+      "Save private content or explicitly manage publication",
       ref("PrivateDraft"),
       [400, ...mutationCodes, 404, 409, 500, 503],
-      "Same rehearsal admission and ownership as load. Empty patch initializes a durable copy. Use a fresh UUID per logical save, and exactly the same UUID/body after a lost response. Draft/source/base tokens reject stale edits. Only supported patch fields change; historical fields remain retained. Publication intent is metadata only. Explicit operation RESET with an empty patch and no publication intent appends a complete snapshot from the current authoritative source; it requires the latest draft token and observed currentSourceVersion (GET metadata), even after legacy source drift. All private revisions and replay evidence remain retained. No automatic rebase, publication, deletion or SHADOW enrollment.",
+      "Same rehearsal admission and ownership as load. Empty patch initializes a durable copy. Use a fresh UUID per logical save, and exactly the same UUID/body after a lost response. Draft/source/base tokens reject stale edits. Only supported patch fields change; historical fields remain retained. Publication intent is metadata only. Explicit operation RESET with an empty patch and no publication intent appends a complete snapshot from the current authoritative source; it requires the latest draft token and observed currentSourceVersion (GET metadata), even after legacy source drift. Explicit operation RESTORE requires restoreVersion for the same content identity, an empty patch and no publication intent, plus current draft/source/base tokens. It appends historical private content with the current baseline and PRESERVE intent, revalidating references; stale source requires RESET first. RESTORE_LEGACY instead requires legacyRevisionId from this Page and no restoreVersion. It restores only title, slug, excerpt, content, layout and supported raw pageDocument; fields absent from legacy history retain current private values. Historical author identifies the revision actor, not past ownership or kind. GET legacyHistory exposes supported records from the latest 100; unsupported documents are excluded and direct commands refused. Current identity authorization, source/draft/base validation, reference locks and durable replay apply. All private revisions and replay evidence remain retained. No automatic rebase, deletion or SHADOW enrollment. Explicit PUBLISH pins the current accepted private revision and atomically updates authoritative content, tags, compatible legacy history, publication receipt and baseline. UNPUBLISH retains historical content/date and cancels pending release. SCHEDULE requires a future offset-aware scheduledFor and pins the current revision; repeating SCHEDULE replaces the pending generation. CANCEL_SCHEDULE retains cancellation evidence. These commands require empty patches, no publication intent, current role/ownership, source/draft/base tokens and publication database privileges. EXECUTE is internal and refused through this PUT; use the secured executor. All lifecycle commands support exact UUID replay.",
       "protected",
       "PrivateDraftSave",
     ),

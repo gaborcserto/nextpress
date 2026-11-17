@@ -116,7 +116,7 @@ export class PrivateDraftController<T> {
     this.listeners.forEach((listener) => listener());
   }
 
-  private changed() {
+  hasLocalChanges() {
     return (
       canonicalEditorialJson(this.current.patch) !==
       canonicalEditorialJson(this.acknowledged.patch)
@@ -125,7 +125,7 @@ export class PrivateDraftController<T> {
 
   update(values: T, patch: WorkingPatch) {
     this.current = { values, patch };
-    const dirty = this.changed();
+    const dirty = this.hasLocalChanges();
     this.publish({ dirty: dirty || this.attempt !== null });
 
     if (this.flight || this.attempt || this.blocked || this.disposed) {
@@ -141,11 +141,38 @@ export class PrivateDraftController<T> {
     }
   }
 
-  save(operation: "SAVE" | "RESET" = "SAVE"): Promise<boolean> {
+  save(
+    operation:
+      | "SAVE"
+      | "RESET"
+      | "RESTORE"
+      | "RESTORE_LEGACY"
+      | "PUBLISH"
+      | "UNPUBLISH"
+      | "SCHEDULE"
+      | "CANCEL_SCHEDULE" = "SAVE",
+    restoreVersion?: number,
+    legacyRevisionId?: string,
+    scheduledFor?: string,
+  ): Promise<boolean> {
     const reset = operation === "RESET";
+    const restore = operation === "RESTORE" || operation === "RESTORE_LEGACY";
+    const publication = [
+      "PUBLISH",
+      "UNPUBLISH",
+      "SCHEDULE",
+      "CANCEL_SCHEDULE",
+    ].includes(operation);
     clearTimeout(this.timer);
 
     if (this.disposed || (this.blocked && !reset)) {
+      return Promise.resolve(false);
+    }
+
+    if (
+      publication &&
+      (this.hasLocalChanges() || this.attempt || this.draft.version === 0)
+    ) {
       return Promise.resolve(false);
     }
 
@@ -154,7 +181,13 @@ export class PrivateDraftController<T> {
     }
 
     if (!this.attempt) {
-      if (!reset && !this.changed() && this.draft.version > 0) {
+      if (
+        !reset &&
+        !restore &&
+        !publication &&
+        !this.hasLocalChanges() &&
+        this.draft.version > 0
+      ) {
         return Promise.resolve(true);
       }
       const delta = Object.fromEntries(
@@ -166,7 +199,7 @@ export class PrivateDraftController<T> {
         ),
       );
       const parsed = WorkingAggregateEditSchema.shape.patch.safeParse(
-        reset ? {} : delta,
+        reset || restore || publication ? {} : delta,
       );
 
       if (!parsed.success) {
@@ -196,6 +229,12 @@ export class PrivateDraftController<T> {
             patch: parsed.data,
           },
           ...(reset ? { operation: "RESET" as const } : {}),
+          ...(operation === "RESTORE" ? { operation, restoreVersion } : {}),
+          ...(operation === "RESTORE_LEGACY"
+            ? { operation, legacyRevisionId }
+            : {}),
+          ...(publication && operation !== "SAVE" ? { operation } : {}),
+          ...(operation === "SCHEDULE" ? { scheduledFor } : {}),
         },
       };
     }
@@ -220,7 +259,14 @@ export class PrivateDraftController<T> {
       }
       this.draft = result;
 
-      if (attempt.command.operation === "RESET") {
+      if (
+        attempt.command.operation === "RESET" ||
+        attempt.command.operation === "RESTORE" ||
+        attempt.command.operation === "RESTORE_LEGACY" ||
+        ["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE"].includes(
+          attempt.command.operation ?? "",
+        )
+      ) {
         this.attempt = null;
         this.blocked = true;
         this.publish({
@@ -228,14 +274,20 @@ export class PrivateDraftController<T> {
           dirty: true,
           pending: false,
           version: result.version,
-          message: "Private reset acknowledged. Reload before further editing.",
+          message:
+            attempt.command.operation &&
+            ["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE"].includes(
+              attempt.command.operation,
+            )
+              ? "Publication command acknowledged. Copy any local edits you need, then reload before further editing."
+              : "Private recovery acknowledged. Reload before further editing.",
         });
 
         return true;
       }
       this.acknowledged = { values: attempt.values, patch: attempt.patch };
       this.attempt = null;
-      const dirty = this.changed();
+      const dirty = this.hasLocalChanges();
       this.publish({
         phase: dirty ? "unsaved" : "saved",
         dirty,

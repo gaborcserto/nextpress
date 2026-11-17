@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { z } from "zod";
 
 import { disposableDatabaseName } from "../src/lib/testing/disposable-database";
@@ -46,11 +46,53 @@ function npm(args: string[]) {
   });
 
   if (result.status !== 0) {
+    console.error("Verification process", {
+      status: result.status,
+      signal: result.signal,
+      outputBytes: result.stdout?.length ?? 0,
+      diagnosticBytes: result.stderr?.length ?? 0,
+      failureCode:
+        result.error && "code" in result.error ? result.error.code : undefined,
+    });
+    let diagnostics = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+
+    for (const [name, value] of Object.entries(process.env)) {
+      if (!value || !/secret|password|token|database_url/i.test(name)) {
+        continue;
+      }
+      diagnostics = diagnostics.replaceAll(value, "[redacted]");
+
+      if (/database_url/i.test(name)) {
+        const password = new URL(value).password;
+
+        if (password) {
+          diagnostics = diagnostics.replaceAll(password, "[redacted]");
+        }
+      }
+    }
+    console.error(
+      diagnostics
+        .replace(/postgres(?:ql)?:\/\/[^\s]+/g, "[redacted database URL]")
+        .slice(-6000),
+    );
+    mkdirSync(new URL("../../../.notes/", import.meta.url), {
+      recursive: true,
+    });
+    writeFileSync(
+      new URL("../../../.notes/np-final-postgres-failure.txt", import.meta.url),
+      diagnostics.replace(
+        /postgres(?:ql)?:\/\/[^\s]+/g,
+        "[redacted database URL]",
+      ),
+      { mode: 0o600 },
+    );
+
     if (tests && result.stdout) {
       const report = z
         .object({
           testResults: z.array(
             z.object({
+              message: z.string().optional(),
               assertionResults: z.array(
                 z.object({
                   fullName: z.string(),
@@ -64,6 +106,13 @@ function npm(args: string[]) {
         .parse(JSON.parse(result.stdout));
 
       for (const suite of report.testResults) {
+        if (suite.message) {
+          console.error(
+            suite.message
+              .replace(/postgres(?:ql)?:\/\/[^\s]+/g, "[redacted database URL]")
+              .slice(0, 2000),
+          );
+        }
         for (const test of suite.assertionResults) {
           if (test.status === "failed") {
             console.error(
@@ -334,7 +383,15 @@ async function verifyFamily(family: "content" | "security") {
           GRANT INSERT ON "NPContentFence","NPWorkingRevision","NPWorkingMedia","NPWorkingTaxonomy","NPWorkingPage" TO np_private_app;
           GRANT UPDATE ON "NPContentFence" TO np_private_app;
           GRANT UPDATE (id) ON "LegacyBackfillFence","Media","Taxonomy" TO np_private_app;
-          GRANT UPDATE ("workingVersion") ON "Page" TO np_private_app;
+          -- Disposable cluster only, verified above and destroyed in finally.
+          -- Narrow locked-read function avoids granting auth-table UPDATE.
+          GRANT EXECUTE ON FUNCTION public.np_lock_publication_actor(text) TO np_private_app;
+          -- Allow only the publication mapper's columns, never identity/ownership,
+          -- specialized historical data, counters, Page DELETE or history UPDATE.
+          GRANT UPDATE ("title","slug","content","excerpt","layout","pageDocument",
+            "inHeaderMenu","inFooterMenu","status","publishedAt","workingVersion","updatedAt") ON "Page" TO np_private_app;
+          GRANT INSERT ON "PageRevision","PageOnTaxonomy" TO np_private_app;
+          GRANT DELETE ON "PageOnTaxonomy" TO np_private_app;
         `,
         );
         process.env.NEXTPRESS_PRIVATE_TEST_DATABASE_URL = `postgresql://np_private_app:${password}@127.0.0.1:${port}/${database}`;
@@ -352,6 +409,7 @@ async function verifyFamily(family: "content" | "security") {
           "src/lib/testing/legacy-backfill-fence.integration.test.ts",
           "src/lib/testing/private-draft-http.integration.test.ts",
           "--maxWorkers=1",
+          "--testTimeout=30000",
         ]);
       } else {
         npm([

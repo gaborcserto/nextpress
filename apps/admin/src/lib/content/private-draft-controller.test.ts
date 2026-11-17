@@ -19,6 +19,153 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("private autosave controller", () => {
+  it("retains local edits typed while a publication command is in flight", async () => {
+    const response = deferred();
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      vi.fn().mockReturnValue(response.promise),
+    );
+    const publication = controller.save("PUBLISH");
+    controller.update("Later local edits", { title: "Later local edits" });
+    response.resolve(privateDraftFixture("PAGE", 2));
+    expect(await publication).toBe(true);
+    expect(controller.hasLocalChanges()).toBe(true);
+    expect(controller.snapshot().message).toContain("Copy any local edits");
+    controller.dispose();
+  });
+  it("does not acknowledge publication using an autosave already in flight", async () => {
+    const response = deferred();
+    const transport = vi.fn().mockReturnValue(response.promise);
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    controller.update("Changed", { title: "Changed" });
+    const save = controller.save();
+    const publication = controller.save("PUBLISH");
+    response.resolve(privateDraftFixture("PAGE", 2));
+    await save;
+    expect(await publication).toBe(false);
+    expect(transport).toHaveBeenCalledTimes(1);
+    controller.dispose();
+  });
+  it.each(["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE"] as const)(
+    "replays a lost %s response and blocks editing until reload",
+    async (operation) => {
+      const transport = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("Response lost"))
+        .mockResolvedValue(privateDraftFixture("PAGE", 2));
+      const controller = new PrivateDraftController(
+        privateDraftFixture("PAGE", 1),
+        "Original",
+        { title: "Original" },
+        transport,
+      );
+      await controller.save(
+        operation,
+        undefined,
+        undefined,
+        operation === "SCHEDULE" ? "2099-01-01T00:00:00Z" : undefined,
+      );
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(transport.mock.calls[1]?.[1]).toEqual(
+        transport.mock.calls[0]?.[1],
+      );
+      expect(transport.mock.calls[0]?.[1]).toMatchObject({
+        operation,
+        edit: { patch: {} },
+      });
+      expect(controller.snapshot()).toMatchObject({
+        phase: "conflict",
+        pending: false,
+        version: 2,
+      });
+      controller.update("Later", { title: "Later" });
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(transport).toHaveBeenCalledTimes(2);
+      controller.dispose();
+    },
+  );
+
+  it("requires unsaved edits to be acknowledged before publication", async () => {
+    const transport = vi.fn();
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    controller.update("Changed", { title: "Changed" });
+    expect(await controller.save("PUBLISH")).toBe(false);
+    expect(transport).not.toHaveBeenCalled();
+    controller.dispose();
+  });
+  it("retries an uncertain legacy restore with the identical command and requires reload", async () => {
+    const transport = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Response lost"))
+      .mockResolvedValue(privateDraftFixture("POST", 2));
+    const controller = new PrivateDraftController(
+      privateDraftFixture("POST", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    await controller.save("RESTORE_LEGACY", undefined, "legacy-id");
+    expect(controller.snapshot().pending).toBe(true);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(transport.mock.calls[1]?.[1]).toEqual(transport.mock.calls[0]?.[1]);
+    expect(transport.mock.calls[0]?.[1]).toMatchObject({
+      operation: "RESTORE_LEGACY",
+      legacyRevisionId: "legacy-id",
+      edit: { patch: {} },
+    });
+    expect(controller.snapshot()).toMatchObject({
+      phase: "conflict",
+      pending: false,
+      version: 2,
+    });
+    controller.update("Later", { title: "Later" });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(transport).toHaveBeenCalledTimes(2);
+    controller.dispose();
+  });
+  it("replays a lost restore response with the same historical command and blocks edits until reload", async () => {
+    const transport = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Response lost"))
+      .mockResolvedValue(privateDraftFixture("PAGE", 2));
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    await controller.save("RESTORE", 1);
+    expect(controller.snapshot().pending).toBe(true);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(transport.mock.calls[1]?.[1]).toEqual(transport.mock.calls[0]?.[1]);
+    expect(transport.mock.calls[0]?.[1]).toMatchObject({
+      operation: "RESTORE",
+      restoreVersion: 1,
+      edit: { patch: {} },
+    });
+    expect(controller.snapshot()).toMatchObject({
+      phase: "conflict",
+      pending: false,
+      version: 2,
+    });
+    controller.update("Later", { title: "Later" });
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(transport).toHaveBeenCalledTimes(2);
+    controller.dispose();
+  });
   it("keeps private mode blocked when server admission is withdrawn without attempting a live save", async () => {
     const transport = vi
       .fn()

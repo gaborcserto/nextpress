@@ -5,6 +5,7 @@ import { WorkingAggregateSchema } from "@/lib/validation/working-aggregate";
 import {
   BackfillConflictError,
   inspectLegacyPage,
+  mapEditorialReferenceEdges,
 } from "./legacy-content-backfill.server";
 import {
   assertWorkingAggregateBase,
@@ -62,10 +63,20 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
         const revisions = await tx.nPWorkingRevision.findMany({
           where: { pageId: source.id },
           orderBy: { version: "asc" },
-          select: { version: true, aggregate: true },
+          select: {
+            id: true,
+            version: true,
+            aggregate: true,
+            media: { select: { targetId: true } },
+            taxonomies: { select: { targetId: true } },
+            pages: { select: { targetId: true } },
+          },
         });
 
-        for (const revision of revisions) {
+        for (const [index, revision] of revisions.entries()) {
+          if (revision.version !== index + 1) {
+            issues.push(`PRIVATE:${revision.version}:HISTORY_GAP`);
+          }
           const parsed = WorkingAggregateSchema.safeParse(revision.aggregate);
 
           if (!parsed.success) {
@@ -79,6 +90,37 @@ export async function reconcilePrivateDraftReadiness(db: PrismaClient) {
             parsed.data.ownerId !== source.authorId
           ) {
             issues.push(`PRIVATE:${revision.version}:IDENTITY_DRIFT`);
+          }
+          const { edges } = mapEditorialReferenceEdges(
+            revision.id,
+            parsed.data.snapshot,
+          );
+          const referenceSets = [
+            {
+              expected: edges.media.map((edge) => edge.mediaId),
+              retained: revision.media,
+            },
+            {
+              expected: edges.taxonomies.map((edge) => edge.taxonomyId),
+              retained: revision.taxonomies,
+            },
+            {
+              expected: edges.pages.map((edge) => edge.targetPageId),
+              retained: revision.pages,
+            },
+          ];
+
+          if (
+            referenceSets.some(({ expected, retained }) => {
+              const ids = new Set(expected);
+
+              return (
+                ids.size !== retained.length ||
+                retained.some((edge) => !ids.has(edge.targetId))
+              );
+            })
+          ) {
+            issues.push(`PRIVATE:${revision.version}:REFERENCE_INDEX_MISMATCH`);
           }
 
           if (revision === revisions.at(-1)) {

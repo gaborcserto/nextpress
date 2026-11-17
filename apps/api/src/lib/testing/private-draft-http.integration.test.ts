@@ -289,6 +289,34 @@ describe.skipIf(!ownerUrl || !appUrl)(
         expect(
           await db.nPWorkingRevision.count({ where: { pageId: page.id } }),
         ).toBe(2);
+        const resetState = await load(page.id);
+        expect(resetState.history).toEqual([
+          { version: 2, title: "Public original" },
+          { version: 1, title: "Private HTTP title" },
+        ]);
+        const restoreInput = {
+          ...command(resetState),
+          operation: "RESTORE",
+          restoreVersion: 1,
+        };
+        const restored = await http(
+          `/api/private-drafts/${page.id}`,
+          "PUT",
+          restoreInput,
+        );
+        expect(restored.status).toBe(200);
+        const restoredBody = await restored.json();
+        expect(
+          WorkingAggregateEnvelopeSchema.parse(restoredBody).aggregate,
+        ).toEqual(saved.aggregate);
+        expect(
+          await (
+            await http(`/api/private-drafts/${page.id}`, "PUT", restoreInput)
+          ).json(),
+        ).toEqual(restoredBody);
+        expect(
+          await db.nPWorkingRevision.count({ where: { pageId: page.id } }),
+        ).toBe(3);
         expect(await db.page.findUnique({ where: { id: page.id } })).toEqual(
           page,
         );
@@ -301,8 +329,92 @@ describe.skipIf(!ownerUrl || !appUrl)(
       60000,
     );
 
+    it.each(["PAGE", "POST"] as const)(
+      "restores legacy %s through real sessions with replay and access refusal",
+      async (kind) => {
+        const page = await seed(kind);
+        const historical = await db.pageRevision.create({
+          data: {
+            pageId: page.id,
+            title: "HTTP legacy title",
+            slug: page.slug,
+            content: page.content,
+            layout: page.layout,
+            status: "DRAFT",
+          },
+        });
+        const input = {
+          ...command(await load(page.id)),
+          operation: "RESTORE_LEGACY",
+          legacyRevisionId: historical.id,
+        };
+        const path = `/api/private-drafts/${page.id}`;
+        expect((await http(path, "PUT", input, "")).status).toBe(401);
+        expect(
+          (await http(path, "PUT", input, cookie, "https://untrusted.invalid"))
+            .status,
+        ).toBe(403);
+        const accepted = await http(path, "PUT", input);
+        expect(accepted.status).toBe(200);
+        const result = WorkingAggregateEnvelopeSchema.parse(
+          await accepted.json(),
+        );
+        expect(result.aggregate.snapshot.fields.title).toBe(historical.title);
+        expect(await (await http(path, "PUT", input)).json()).toEqual(result);
+        expect(
+          (await http(path, "PUT", { ...input, legacyRevisionId: "other" }))
+            .status,
+        ).toBe(409);
+        await db.page.update({
+          where: { id: page.id },
+          data: { authorId: null },
+        });
+        expect((await http(path, "PUT", input)).status).toBe(404);
+        await db.page.update({ where: { id: page.id }, data: { authorId } });
+        await db.user.update({
+          where: { id: authorId },
+          data: { roleId: "b04-subscriber" },
+        });
+
+        try {
+          expect((await http(path, "PUT", input)).status).toBe(403);
+        } finally {
+          await db.user.update({
+            where: { id: authorId },
+            data: { roleId: "b04-author" },
+          });
+        }
+        expect(
+          await db.pageRevision.findUnique({ where: { id: historical.id } }),
+        ).toEqual(historical);
+        const publicResponse = await http(
+          `/api/public/${kind === "PAGE" ? "pages" : "posts"}/${page.slug}`,
+          "GET",
+          undefined,
+          "",
+        );
+        expect(await publicResponse.text()).not.toContain(historical.title);
+      },
+      60000,
+    );
+
     it("enforces anonymous, CSRF, ownership and current role boundaries through actual sessions", async () => {
       const page = await seed("PAGE");
+      const initial = await load(page.id);
+      expect(
+        (
+          await http(
+            `/api/private-drafts/${page.id}`,
+            "PUT",
+            command(initial, { title: "Retained private history" }),
+          )
+        ).status,
+      ).toBe(200);
+      const restore = {
+        ...command(await load(page.id)),
+        operation: "RESTORE",
+        restoreVersion: 1,
+      };
       expect(
         (await http(`/api/private-drafts/${page.id}`, "GET", undefined, ""))
           .status,
@@ -323,11 +435,17 @@ describe.skipIf(!ownerUrl || !appUrl)(
         data: { authorId: null },
       });
       expect((await http(`/api/private-drafts/${page.id}`)).status).toBe(404);
+      expect(
+        (await http(`/api/private-drafts/${page.id}`, "PUT", restore)).status,
+      ).toBe(404);
       await db.user.update({
         where: { id: authorId },
         data: { roleId: "b04-subscriber" },
       });
       expect((await http(`/api/private-drafts/${page.id}`)).status).toBe(403);
+      expect(
+        (await http(`/api/private-drafts/${page.id}`, "PUT", restore)).status,
+      ).toBe(403);
       await db.user.update({
         where: { id: authorId },
         data: { roleId: "b04-author" },
@@ -371,6 +489,140 @@ describe.skipIf(!ownerUrl || !appUrl)(
       ).toBe(200);
     }, 60000);
 
+    it.each(["PAGE", "POST"] as const)(
+      "publishes and manages %s schedules through authenticated HTTP",
+      async (kind) => {
+        const source = await seed(kind);
+        const path = `/api/private-drafts/${source.id}`;
+        const publicPath = `/api/public/${kind === "PAGE" ? "pages" : "posts"}/${source.slug}`;
+        expect(
+          (
+            await http(
+              path,
+              "PUT",
+              command(await load(source.id), { title: "HTTP publication" }),
+            )
+          ).status,
+        ).toBe(200);
+        const publish = {
+          ...command(await load(source.id)),
+          operation: "PUBLISH",
+        };
+        expect((await http(path, "PUT", publish, "")).status).toBe(401);
+        expect(
+          (
+            await http(
+              path,
+              "PUT",
+              publish,
+              cookie,
+              "https://untrusted.invalid",
+            )
+          ).status,
+        ).toBe(403);
+        const accepted = await http(path, "PUT", publish);
+        expect(accepted.status).toBe(200);
+        const receipt = await accepted.json();
+        expect(await (await http(path, "PUT", publish)).json()).toEqual(
+          receipt,
+        );
+        expect(
+          (await db.page.findUniqueOrThrow({ where: { id: source.id } })).title,
+        ).toBe("HTTP publication");
+        expect(
+          await (await http(publicPath, "GET", undefined, "")).json(),
+        ).toMatchObject({ title: "HTTP publication" });
+
+        for (const operation of [
+          "SCHEDULE",
+          "SCHEDULE",
+          "CANCEL_SCHEDULE",
+          "UNPUBLISH",
+          "PUBLISH",
+        ] as const) {
+          const request = {
+            ...command(await load(source.id)),
+            operation,
+            ...(operation === "SCHEDULE"
+              ? { scheduledFor: new Date(Date.now() + 60000).toISOString() }
+              : {}),
+          };
+          const response = await http(path, "PUT", request);
+          expect(response.status).toBe(200);
+          expect((await http(publicPath, "GET", undefined, "")).status).toBe(
+            operation === "UNPUBLISH" ? 404 : 200,
+          );
+        }
+        expect(
+          (await http("/api/private-drafts/execute", "POST", {})).status,
+        ).toBe(403);
+        expect(
+          (
+            await http(path, "PUT", {
+              ...command(await load(source.id)),
+              operation: "EXECUTE",
+            })
+          ).status,
+        ).toBe(409);
+        expect((await load(source.id)).aggregate.release?.state).toBe(
+          "CANCELLED",
+        );
+      },
+    );
+
+    it("executes a due release through the secured ADMIN HTTP entry point", async () => {
+      await db.user.update({
+        where: { id: authorId },
+        data: { roleId: "b04-admin" },
+      });
+
+      try {
+        const source = await seed("PAGE");
+        const path = `/api/private-drafts/${source.id}`;
+        expect(
+          (
+            await http(
+              path,
+              "PUT",
+              command(await load(source.id), { title: "Scheduled HTTP" }),
+            )
+          ).status,
+        ).toBe(200);
+        expect(
+          (
+            await http(path, "PUT", {
+              ...command(await load(source.id)),
+              operation: "SCHEDULE",
+              scheduledFor: new Date(Date.now() + 1000).toISOString(),
+            })
+          ).status,
+        ).toBe(200);
+        await new Promise((done) => setTimeout(done, 1100));
+        const response = await http("/api/private-drafts/execute", "POST", {});
+        expect(response.status).toBe(200);
+        expect(await response.json()).toMatchObject({
+          results: expect.arrayContaining([
+            { pageId: source.id, outcome: "executed" },
+          ]),
+        });
+        const executed = await db.page.findUniqueOrThrow({
+          where: { id: source.id },
+        });
+        expect(executed.title).toBe("Scheduled HTTP");
+        expect(
+          (await http("/api/private-drafts/execute", "POST", {})).status,
+        ).toBe(200);
+        expect(
+          await db.page.findUniqueOrThrow({ where: { id: source.id } }),
+        ).toEqual(executed);
+      } finally {
+        await db.user.update({
+          where: { id: authorId },
+          data: { roleId: "b04-author" },
+        });
+      }
+    }, 30000);
+
     it("runs authenticated Page and Post autosave/reload/discard browser flows against the non-owner API", async () => {
       await startApp("admin", 49311);
       const browser = await chromium.launch({ headless: true });
@@ -388,6 +640,18 @@ describe.skipIf(!ownerUrl || !appUrl)(
 
         for (const kind of ["PAGE", "POST"] as const) {
           const source = await seed(kind);
+          const legacy = await db.pageRevision.create({
+            data: {
+              pageId: source.id,
+              title: `Legacy browser ${kind}`,
+              slug: source.slug,
+              content: source.content,
+              layout: source.layout,
+              workingVersion: 1,
+              status: "DRAFT",
+            },
+          });
+
           await page.goto(
             `${adminOrigin}/admin/${kind === "PAGE" ? "pages" : "posts"}/${source.id}`,
           );
@@ -428,6 +692,122 @@ describe.skipIf(!ownerUrl || !appUrl)(
           expect(
             await db.nPWorkingRevision.count({ where: { pageId: source.id } }),
           ).toBe(2);
+          await page
+            .getByLabel("Private revision history (latest 100 at load)")
+            .selectOption("1");
+          await page
+            .getByRole("button", { name: "Restore to Draft", exact: true })
+            .click();
+          await browserExpect(page.getByRole("dialog")).toContainText(
+            "Public content and publication dates are unchanged",
+          );
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByLabel("Title", { exact: true }),
+          ).toHaveValue(`Browser private ${kind}`);
+          expect(
+            await db.page.findUnique({ where: { id: source.id } }),
+          ).toEqual(source);
+          expect(
+            await db.nPWorkingRevision.count({ where: { pageId: source.id } }),
+          ).toBe(3);
+          await page
+            .getByLabel("Supported legacy history (from latest 100 at load)")
+            .selectOption(legacy.id);
+          await page
+            .getByRole("button", {
+              name: "Restore Legacy to Draft",
+              exact: true,
+            })
+            .click();
+          await browserExpect(page.getByRole("dialog")).toContainText(
+            "legacy history did not record them",
+          );
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByLabel("Title", { exact: true }),
+          ).toHaveValue(legacy.title);
+          expect(
+            await db.page.findUnique({ where: { id: source.id } }),
+          ).toEqual(source);
+          expect(
+            await db.pageRevision.findUnique({ where: { id: legacy.id } }),
+          ).toEqual(legacy);
+          expect(
+            await db.nPWorkingRevision.count({ where: { pageId: source.id } }),
+          ).toBe(4);
+          await page
+            .getByRole("button", { name: "Publish Changes", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText("Private content matches the public source"),
+          ).toBeVisible();
+          expect(
+            (await db.page.findUniqueOrThrow({ where: { id: source.id } }))
+              .title,
+          ).toBe(legacy.title);
+          await page
+            .getByLabel("Publication time (UTC)")
+            .fill("2099-01-01T12:00");
+          await page
+            .getByRole("button", { name: "Schedule", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText(/Scheduled release: PENDING/),
+          ).toBeVisible();
+          await page
+            .getByLabel("Publication time (UTC)")
+            .fill("2099-01-02T12:00");
+          await page
+            .getByRole("button", { name: "Reschedule", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText(/Scheduled release: PENDING at 2099-01-02/),
+          ).toBeVisible();
+          await page
+            .getByRole("button", { name: "Cancel Schedule", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByText(/Scheduled release: CANCELLED/),
+          ).toBeVisible();
+          await page
+            .getByRole("button", { name: "Unpublish", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByRole("button", { name: "Publish", exact: true }),
+          ).toBeEnabled();
+          expect(
+            (await db.page.findUniqueOrThrow({ where: { id: source.id } }))
+              .status,
+          ).toBe("DRAFT");
+          await page
+            .getByRole("button", { name: "Publish", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Confirm", exact: true })
+            .click();
+          await browserExpect(
+            page.getByRole("button", { name: "Publish Changes", exact: true }),
+          ).toBeEnabled();
         }
         await context.close();
       } finally {
