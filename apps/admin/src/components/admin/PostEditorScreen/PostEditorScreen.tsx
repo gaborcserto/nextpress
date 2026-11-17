@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { PrivateDraftBoundary } from "@/components/admin/PrivateDraftBoundary";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -17,6 +18,16 @@ import { usePostEditor } from "./PostEditorScreen.hooks";
 import type { PostEditorScreenProps } from "./PostEditorScreen.types";
 
 export default function PostEditorScreen({ postId }: PostEditorScreenProps) {
+  return postId ? (
+    <PrivateDraftBoundary key={postId} id={postId} kind="POST">
+      <LegacyPostEditorScreen postId={postId} />
+    </PrivateDraftBoundary>
+  ) : (
+    <LegacyPostEditorScreen />
+  );
+}
+
+function LegacyPostEditorScreen({ postId }: PostEditorScreenProps) {
   const { isEdit, item, isLoading, notFound, error, saving, handleSubmit } =
     usePostEditor(postId);
 

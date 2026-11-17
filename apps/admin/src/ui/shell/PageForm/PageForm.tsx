@@ -3,12 +3,14 @@
 import { useState, type FormEvent } from "react";
 
 import LivePreview from "@/components/admin/LivePreview";
+import { PrivateDraftStatus } from "@/components/admin/PrivateDraftStatus";
 import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
   publicationDateToLocal,
 } from "@/lib/content/editor";
+import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
 import {
@@ -45,6 +47,7 @@ const PAGE_STATUS_OPTIONS: readonly {
 ];
 
 export default function PageForm({
+  privateEditing,
   initial,
   onSubmitAction,
   submitting = false,
@@ -64,7 +67,8 @@ export default function PageForm({
     };
   });
 
-  const unsaved = useUnsavedChanges(form, false);
+  const privateDraft = usePrivateDraft(form, setForm, privateEditing);
+  const unsaved = useUnsavedChanges(form, false, privateDraft?.dirty);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
   const [hasSaved, setHasSaved] = useState(false);
@@ -121,6 +125,12 @@ export default function PageForm({
 
     setSaveFailed(false);
 
+    if (privateDraft) {
+      await privateDraft.save();
+
+      return;
+    }
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
       setHasSaved(true);
@@ -144,11 +154,15 @@ export default function PageForm({
     <LivePreview id={entityId} savedContent={initial} values={form}>
       {unsaved.dialog}
       <form onSubmit={handleSubmit}>
+        {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
         <AdminPageLayout
           title={sidebarTitle ?? "Page"}
           description={sidebarSubtitle}
         >
-          <fieldset disabled={submitting} className="contents">
+          <fieldset
+            disabled={submitting && !privateEditing}
+            className="contents"
+          >
             <AdminPageColumns
               sidebar={
                 <>
@@ -216,6 +230,7 @@ export default function PageForm({
                   <Field label="Status" htmlFor="page-status" span={4}>
                     <Select
                       id="page-status"
+                      disabled={!!privateEditing}
                       fullWidth
                       value={form.status}
                       options={PAGE_STATUS_OPTIONS}
@@ -251,11 +266,16 @@ export default function PageForm({
                   <Field
                     label="Publish date"
                     htmlFor="page-published-at"
-                    hint="Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                    hint={
+                      privateEditing
+                        ? "Current public date. Publication changes are unavailable in private mode."
+                        : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                    }
                     span={4}
                   >
                     <Input
                       id="page-published-at"
+                      disabled={!!privateEditing}
                       type="datetime-local"
                       step="0.001"
                       fullWidth
@@ -331,20 +351,25 @@ export default function PageForm({
 
               <Section title="Content" desc="Write your content.">
                 <SlateEditor
+                  key={privateDraft?.contentKey ?? 0}
                   readOnly={submitting}
                   value={form.content ?? EMPTY_SLATE_VALUE}
                   onChangeAction={(val) => setField("content", val)}
                 />
               </Section>
 
-              <p className="text-sm">
-                Saving Published content updates public content when its publish
-                date is due. Choose Draft and save to withdraw it. Autosave is
-                unavailable; use Save to persist changes.
-              </p>
+              {!privateEditing && (
+                <p className="text-sm">
+                  Saving Published content updates public content when its
+                  publish date is due. Choose Draft and save to withdraw it.
+                  Autosave is unavailable; use Save to persist changes.
+                </p>
+              )}
               <StickyWrapper>
                 <p role="status" aria-live="polite">
-                  {saveStatus}
+                  {privateDraft
+                    ? "Save affects only the private working copy."
+                    : saveStatus}
                 </p>
                 <Button
                   type="button"
@@ -360,7 +385,9 @@ export default function PageForm({
                   type="submit"
                   color="primary"
                   className="min-w-30"
-                  loading={submitting}
+                  loading={
+                    privateDraft ? privateDraft.phase === "saving" : submitting
+                  }
                 >
                   {submitLabel}
                 </Button>

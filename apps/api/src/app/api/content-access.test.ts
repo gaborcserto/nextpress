@@ -32,6 +32,10 @@ import {
   DELETE as deletePost,
 } from "./post/[id]/route";
 import { GET as listPosts, POST as createPost } from "./post/route";
+import {
+  GET as loadPrivateDraft,
+  PUT as savePrivateDraft,
+} from "./private-drafts/[id]/route";
 import { GET as readLinks, PUT as replaceTags } from "./tags/link/route";
 import { POST as createTag, DELETE as deleteTag } from "./tags/route";
 
@@ -280,6 +284,35 @@ const routes = [
   },
 ] as const;
 
+describe("private draft admission through real auth middleware", () => {
+  it.each([null, "SUBSCRIBER"] as const)(
+    "rejects private reads and writes for %s",
+    async (viewer) => {
+      role = viewer;
+      expect(
+        (await loadPrivateDraft(request(), context("page-live"))).status,
+      ).toBe(viewer === null ? 401 : 403);
+      expect(
+        (await savePrivateDraft(request("PUT", {}), context("page-live")))
+          .status,
+      ).toBe(viewer === null ? 401 : 403);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("fails closed for authorized users before content access when disabled", async () => {
+    role = "ADMIN";
+    const response = await loadPrivateDraft(request(), context("page-live"));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: "Private editing is unavailable",
+      code: "PRIVATE_DRAFT_DISABLED",
+    });
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
 describe.each([
   ["POST", createPage],
   ["PUT", updatePage],
@@ -295,6 +328,7 @@ describe.each([
   ["POST", createUser],
   ["DELETE", deleteUser],
   ["PATCH", updateUserRole],
+  ["PUT", savePrivateDraft],
 ] as const)("custom mutation %s (%#)", (method, mutate) => {
   it.each([
     undefined,

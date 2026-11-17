@@ -52,6 +52,10 @@ import {
   TagCreateSchema,
   TagIdsSchema,
 } from "@/lib/validation";
+import {
+  WorkingAggregateEnvelopeSchema,
+  WorkingAggregateSaveSchema,
+} from "@/lib/validation/working-aggregate";
 
 import { version } from "../../../package.json";
 
@@ -144,6 +148,8 @@ const settingsProperties = {
 };
 
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
+  PrivateDraft: schema(WorkingAggregateEnvelopeSchema),
+  PrivateDraftSave: schema(WorkingAggregateSaveSchema.omit({ pageId: true })),
   MediaUpload: schema(MediaUploadSchema),
   RevisionInput: schema(RevisionInputSchema),
   RevisionAction: schema(RevisionActionSchema),
@@ -247,6 +253,7 @@ const errors: Record<number, string> = {
   415: "Mutation Content-Type must be application/json.",
   429: "Application mutation rate limit reached.",
   500: "Unexpected error. Collection content reads may instead return a framework error response.",
+  503: "Private draft admission disabled or isolated database identity unverifiable.",
 };
 
 function response(
@@ -349,6 +356,28 @@ const readScope =
 const writeScope =
   "ADMIN, EDITOR or AUTHOR. AUTHOR may update only owned content. Mutations require a trusted Origin and application/json; request body maximum 5,000,000 bytes.";
 const paths: OpenAPIV3.PathsObject = {
+  "/api/private-drafts/{id}": {
+    parameters: [id],
+    get: operation(
+      "loadPrivateDraft",
+      "Content",
+      "Load private working state or authoritative initialization snapshot",
+      ref("PrivateDraft"),
+      [400, 401, 403, 404, 409, 500, 503],
+      "Development rehearsal only; disabled by default and always disabled in production. Requires independently verified database/cluster/nonprivileged role and installed writer guards. ADMIN/EDITOR all; AUTHOR owned content only. Version zero is an unpersisted initialization snapshot. Latest saved private state recovers after reload. No public or SHADOW writes. Private no-store.",
+      "protected",
+    ),
+    put: operation(
+      "savePrivateDraft",
+      "Content",
+      "Append a private working revision without publication",
+      ref("PrivateDraft"),
+      [400, ...mutationCodes, 404, 409, 500, 503],
+      "Same rehearsal admission and ownership as load. Empty patch initializes a durable copy. Use a fresh UUID per logical save, and exactly the same UUID/body after a lost response. Draft/source/base tokens reject stale edits. Only supported patch fields change; historical fields remain retained. Publication intent is metadata only. Explicit operation RESET with an empty patch and no publication intent appends a complete snapshot from the current authoritative source; it requires the latest draft token and observed currentSourceVersion (GET metadata), even after legacy source drift. All private revisions and replay evidence remain retained. No automatic rebase, publication, deletion or SHADOW enrollment.",
+      "protected",
+      "PrivateDraftSave",
+    ),
+  },
   "/api/public/content": {
     get: {
       ...operation(

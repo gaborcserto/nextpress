@@ -5,8 +5,10 @@ import type {
   TagLoadOptionsFn,
   TagUpdateEntityFn,
 } from "@/lib/content/contracts";
+import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
 
 export type PageFormProps = {
+  privateEditing?: PrivateEditing;
   initial: PageFormValues;
   onSubmitAction: (values: PageFormValues) => Promise<boolean> | boolean;
   submitting?: boolean;

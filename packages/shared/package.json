@@ -17,7 +17,8 @@
     "./roles": "./src/roles.ts",
     "./oauth-providers": "./src/oauth-providers.ts",
     "./settings-contracts": "./src/settings-contracts.ts",
-    "./editorial-contracts": "./src/editorial-contracts.ts"
+    "./editorial-contracts": "./src/editorial-contracts.ts",
+    "./working-aggregate": "./src/working-aggregate.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

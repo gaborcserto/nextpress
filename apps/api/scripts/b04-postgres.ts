@@ -318,6 +318,26 @@ async function verifyFamily(family: "content" | "security") {
       );
 
       if (family === "content") {
+        sql(
+          container,
+          database,
+          `
+          CREATE ROLE np_private_app LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE ${database} TO np_private_app;
+          GRANT USAGE ON SCHEMA public TO np_private_app;
+          GRANT EXECUTE ON FUNCTION pg_control_system() TO np_private_app;
+          GRANT SELECT ON "User","Role","Account","Session","OAuthProvider","SiteSettings",
+            "Page","PageRevision","PageOnTaxonomy","PageMedia","Taxonomy","Media",
+            "ContentEditorialState","LegacyBackfillFence","NPContentFence","NPWorkingRevision",
+            "NPWorkingMedia","NPWorkingTaxonomy","NPWorkingPage" TO np_private_app;
+          GRANT INSERT, DELETE ON "Session" TO np_private_app;
+          GRANT INSERT ON "NPContentFence","NPWorkingRevision","NPWorkingMedia","NPWorkingTaxonomy","NPWorkingPage" TO np_private_app;
+          GRANT UPDATE ON "NPContentFence" TO np_private_app;
+          GRANT UPDATE (id) ON "LegacyBackfillFence","Media","Taxonomy" TO np_private_app;
+          GRANT UPDATE ("workingVersion") ON "Page" TO np_private_app;
+        `,
+        );
+        process.env.NEXTPRESS_PRIVATE_TEST_DATABASE_URL = `postgresql://np_private_app:${password}@127.0.0.1:${port}/${database}`;
         npm([
           "--workspace",
           "api",
@@ -330,6 +350,7 @@ async function verifyFamily(family: "content" | "security") {
           "src/lib/testing/editorial-persistence.integration.test.ts",
           "src/lib/testing/legacy-backfill.integration.test.ts",
           "src/lib/testing/legacy-backfill-fence.integration.test.ts",
+          "src/lib/testing/private-draft-http.integration.test.ts",
           "--maxWorkers=1",
         ]);
       } else {

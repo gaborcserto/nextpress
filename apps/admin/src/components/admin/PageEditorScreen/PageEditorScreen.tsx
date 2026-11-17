@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { PrivateDraftBoundary } from "@/components/admin/PrivateDraftBoundary";
 import { ApiRequestError } from "@/lib/api/client";
 import {
   createTagAction,
@@ -17,6 +18,16 @@ import { usePageEditor } from "./PageEditorScreen.hooks";
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
 
 export default function PageEditorScreen({ id }: PageEditorScreenProps) {
+  return id ? (
+    <PrivateDraftBoundary key={id} id={id} kind="PAGE">
+      <LegacyPageEditorScreen id={id} />
+    </PrivateDraftBoundary>
+  ) : (
+    <LegacyPageEditorScreen />
+  );
+}
+
+function LegacyPageEditorScreen({ id }: PageEditorScreenProps) {
   const { isEdit, item, isLoading, notFound, error, saving, handleSubmit } =
     usePageEditor(id);
 

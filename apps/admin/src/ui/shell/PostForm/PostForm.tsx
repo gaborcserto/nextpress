@@ -3,12 +3,14 @@
 import { useState, type FormEvent } from "react";
 
 import LivePreview from "@/components/admin/LivePreview";
+import { PrivateDraftStatus } from "@/components/admin/PrivateDraftStatus";
 import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
   publicationDateToLocal,
 } from "@/lib/content/editor";
+import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
 import {
@@ -42,6 +44,7 @@ const POST_STATUS_OPTIONS: readonly { value: PostStatus; label: string }[] = [
 ];
 
 export default function PostForm({
+  privateEditing,
   initial,
   onSubmitAction,
   submitting = false,
@@ -68,7 +71,8 @@ export default function PostForm({
 
   // Track if slug was manually edited:
   // true only if initial.slug differs from auto-generated slug
-  const unsaved = useUnsavedChanges(form, false);
+  const privateDraft = usePrivateDraft(form, setForm, privateEditing);
+  const unsaved = useUnsavedChanges(form, false, privateDraft?.dirty);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(() => {
     if (!initial.title || !initial.slug) return false;
@@ -118,6 +122,12 @@ export default function PostForm({
 
     setSaveFailed(false);
 
+    if (privateDraft) {
+      await privateDraft.save();
+
+      return;
+    }
+
     if ((await onSubmitAction(form)) === true) {
       unsaved.markSaved();
       setHasSaved(true);
@@ -146,11 +156,15 @@ export default function PostForm({
     >
       {unsaved.dialog}
       <form onSubmit={handleSubmit}>
+        {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
         <AdminPageLayout
           title={sidebarTitle ?? "Post"}
           description={sidebarSubtitle}
         >
-          <fieldset disabled={submitting} className="contents">
+          <fieldset
+            disabled={submitting && !privateEditing}
+            className="contents"
+          >
             <AdminPageColumns
               sidebar={
                 <>
@@ -196,6 +210,7 @@ export default function PostForm({
                   <Field label="Status" htmlFor="post-status" span={4}>
                     <Select
                       id="post-status"
+                      disabled={!!privateEditing}
                       fullWidth
                       value={form.status}
                       options={POST_STATUS_OPTIONS}
@@ -231,11 +246,16 @@ export default function PostForm({
                   <Field
                     label="Publish date"
                     htmlFor="post-published-at"
-                    hint="Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                    hint={
+                      privateEditing
+                        ? "Current public date. Publication changes are unavailable in private mode."
+                        : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                    }
                     span={4}
                   >
                     <Input
                       id="post-published-at"
+                      disabled={!!privateEditing}
                       type="datetime-local"
                       step="0.001"
                       fullWidth
@@ -258,6 +278,7 @@ export default function PostForm({
                 desc="Short lead text and optional cover image."
               >
                 <PostIntroFields
+                  key={privateDraft?.contentKey ?? 0}
                   disabled={submitting}
                   excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
                   onExcerptChangeAction={(value) => setField("excerpt", value)}
@@ -277,20 +298,25 @@ export default function PostForm({
 
               <Section title="Content" desc="Write your content.">
                 <SlateEditor
+                  key={privateDraft?.contentKey ?? 0}
                   readOnly={submitting}
                   value={form.content ?? EMPTY_SLATE_VALUE}
                   onChangeAction={(val) => setField("content", val)}
                 />
               </Section>
 
-              <p className="text-sm">
-                Saving Published content updates public content when its publish
-                date is due. Choose Draft and save to withdraw it. Autosave is
-                unavailable; use Save to persist changes.
-              </p>
+              {!privateEditing && (
+                <p className="text-sm">
+                  Saving Published content updates public content when its
+                  publish date is due. Choose Draft and save to withdraw it.
+                  Autosave is unavailable; use Save to persist changes.
+                </p>
+              )}
               <StickyWrapper>
                 <p role="status" aria-live="polite">
-                  {saveStatus}
+                  {privateDraft
+                    ? "Save affects only the private working copy."
+                    : saveStatus}
                 </p>
                 <Button
                   type="button"
@@ -306,7 +332,9 @@ export default function PostForm({
                   type="submit"
                   color="primary"
                   className="min-w-30"
-                  loading={submitting}
+                  loading={
+                    privateDraft ? privateDraft.phase === "saving" : submitting
+                  }
                 >
                   {submitLabel}
                 </Button>

@@ -80,6 +80,7 @@ function stableValue(value: unknown, cache: WeakMap<object, string>): string {
 export function useUnsavedChanges<T extends { tags: unknown }>(
   values: T,
   persistedTags: boolean,
+  dirtyOverride?: boolean,
 ) {
   const router = useRouter();
   const [cache] = useState(() => new WeakMap<object, string>());
@@ -89,7 +90,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
     return stableValue(persistedTags ? fields : { ...fields, tags }, cache);
   }, [values, persistedTags, cache]);
   const [baseline, setBaseline] = useState(snapshot);
-  const dirty = snapshot !== baseline;
+  const dirty = dirtyOverride ?? snapshot !== baseline;
   const [open, setOpen] = useState(false);
   const leaving = useRef(false);
   const destination = useRef<(() => void) | null>(null);
@@ -203,6 +204,8 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
         onConfirmAction={leave}
       >
         Your unsaved changes will be lost.
+        {dirtyOverride !== undefined &&
+          " An outstanding private save may still finish; reloading recovers the last persisted state."}
         {persistedTags && " Tags already saved are not undone."}
       </ConfirmDialog>
     ),

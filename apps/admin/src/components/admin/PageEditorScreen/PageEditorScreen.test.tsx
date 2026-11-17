@@ -12,6 +12,16 @@ const { editorState, listState } = vi.hoisted(() => ({
   editorState: vi.fn(),
   listState: vi.fn(),
 }));
+// Exercise legacy load behavior after the server explicitly declines private admission.
+vi.mock("@/lib/api", async (original) => ({
+  ...(await original<typeof import("@/lib/api")>()),
+  apiFetch: vi.fn(
+    async () =>
+      new Response(JSON.stringify({ code: "PRIVATE_DRAFT_DISABLED" }), {
+        status: 503,
+      }),
+  ),
+}));
 vi.mock("./PageEditorScreen.hooks", () => ({ usePageEditor: editorState }));
 vi.mock("../PostEditorScreen/PostEditorScreen.hooks", () => ({
   usePostEditor: editorState,
@@ -43,7 +53,7 @@ describe("Content screen load failures", () => {
 
   it.each(["page", "post"])(
     "distinguishes a %s load failure from not found",
-    (kind) => {
+    async (kind) => {
       render(
         kind === "page" ? (
           <PageEditorScreen id="item-1" />
@@ -51,7 +61,7 @@ describe("Content screen load failures", () => {
           <PostEditorScreen postId="item-1" />
         ),
       );
-      expect(screen.getByRole("alert")).toHaveTextContent(
+      expect(await screen.findByRole("alert")).toHaveTextContent(
         `Unable to load ${kind}.`,
       );
       expect(screen.queryByText(/not found/)).not.toBeInTheDocument();
@@ -60,7 +70,7 @@ describe("Content screen load failures", () => {
 
   it.each(["page", "post"])(
     "preserves the missing %s state for a 404",
-    (kind) => {
+    async (kind) => {
       editorState.mockReturnValue({
         isEdit: true,
         item: null,
@@ -76,7 +86,7 @@ describe("Content screen load failures", () => {
         ),
       );
       expect(
-        screen.getByText(
+        await screen.findByText(
           kind === "page" ? "Page not found." : "Post not found.",
         ),
       ).toBeInTheDocument();

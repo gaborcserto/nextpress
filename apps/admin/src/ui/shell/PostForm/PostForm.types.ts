@@ -6,10 +6,12 @@ import type {
   TagUpdateEntityFn,
   UploadFn,
 } from "@/lib/content/contracts";
+import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
 
 export type { PostFormValues, PostStatus } from "@/lib/content/contracts";
 
 export type PostFormProps = {
+  privateEditing?: PrivateEditing;
   initial: PostFormValues;
   onSubmitAction: (values: PostFormValues) => Promise<boolean> | boolean;
   submitting?: boolean;

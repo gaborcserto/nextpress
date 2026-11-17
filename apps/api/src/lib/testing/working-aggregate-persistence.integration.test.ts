@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { disposableDatabaseName } from "./disposable-database";
 import { verifyDisposableDatabase } from "./docker-database";
@@ -63,6 +63,109 @@ describe.skipIf(!url)(
     afterAll(async () => {
       // The guarded runner owns destruction of this entire cluster, including retained history.
       await db?.$disconnect();
+    });
+
+    it("logically resets a private draft after source drift, retaining every revision and replay", async () => {
+      const page = await seed();
+      const original = await command(page.id);
+      const saved = await saveDisposableWorkingAggregate(db, original, actor);
+      await db.page.update({
+        where: { id: page.id },
+        data: { title: "New live source" },
+      });
+      const { loadWorkingAggregate } =
+        await import("../services/working-aggregate-persistence.server");
+      const latest = await loadWorkingAggregate(db, page.id, actor, {
+        includeSourceMetadata: true,
+      });
+      const reset = {
+        ...original,
+        requestId: randomUUID(),
+        operation: "RESET",
+        expectedDraftVersion: latest.version,
+        expectedSourceVersion: latest.currentSourceVersion,
+        edit: {
+          expectedVersion: latest.aggregate.baseVersion,
+          expectedFingerprint: latest.aggregate.baseFingerprint,
+          patch: {},
+        },
+      };
+      const result = await saveDisposableWorkingAggregate(db, reset, actor);
+      expect(result.aggregate.snapshot.fields.title).toBe("New live source");
+      expect(result.version).toBe(saved.version + 1);
+      expect(await saveDisposableWorkingAggregate(db, reset, actor)).toEqual(
+        result,
+      );
+      expect(await saveDisposableWorkingAggregate(db, original, actor)).toEqual(
+        saved,
+      );
+      expect(
+        await db.nPWorkingRevision.count({ where: { pageId: page.id } }),
+      ).toBe(2);
+      expect(
+        (await db.page.findUniqueOrThrow({ where: { id: page.id } })).title,
+      ).toBe("New live source");
+      await expect(
+        saveDisposableWorkingAggregate(
+          db,
+          { ...reset, requestId: randomUUID() },
+          actor,
+        ),
+      ).rejects.toThrow("DRAFT_VERSION_CONFLICT");
+    });
+
+    it("refuses rehearsal under the disposable harness schema-owner role", async () => {
+      const { requirePrivateDraftAdmission, PrivateDraftUnavailableError } =
+        await import("../services/private-draft-admission.server");
+      const [privileges] = await db.$queryRaw<{ owner: boolean }[]>`
+        SELECT has_schema_privilege('public', 'CREATE') AS owner`;
+      expect(privileges?.owner).toBe(true);
+      vi.stubEnv("NEXTPRESS_PRIVATE_DRAFT_REHEARSAL", "enabled");
+
+      try {
+        await expect(requirePrivateDraftAdmission(db)).rejects.toBeInstanceOf(
+          PrivateDraftUnavailableError,
+        );
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
+
+    it("reconciles deterministically without enrollment, normalization or legacy mutation", async () => {
+      const { reconcilePrivateDraftReadiness } =
+        await import("../services/private-draft-readiness.server");
+      const page = await seed();
+      await saveDisposableWorkingAggregate(db, await command(page.id), actor);
+      const before = {
+        page: await db.page.findUnique({ where: { id: page.id } }),
+        history: await db.nPWorkingRevision.count(),
+        shadow: await db.contentEditorialState.count(),
+      };
+      const first = await reconcilePrivateDraftReadiness(db);
+      expect(await reconcilePrivateDraftReadiness(db)).toEqual(first);
+      expect(first.deploymentReady).toBe(false);
+      expect(
+        first.records.find((record) => record.id === page.id),
+      ).toMatchObject({
+        id: page.id,
+        kind: "PAGE",
+        enrollmentState: "absent",
+        privateVersions: 1,
+        issues: [],
+      });
+      expect({
+        page: await db.page.findUnique({ where: { id: page.id } }),
+        history: await db.nPWorkingRevision.count(),
+        shadow: await db.contentEditorialState.count(),
+      }).toEqual(before);
+      await db.page.update({
+        where: { id: page.id },
+        data: { title: "Legacy update" },
+      });
+      const drifted = await reconcilePrivateDraftReadiness(db);
+      expect(
+        drifted.records.find((record) => record.id === page.id)?.issues,
+      ).toContain("PRIVATE:SOURCE_DRIFT");
     });
 
     it.each(["PAGE", "POST"] as const)(

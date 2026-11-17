@@ -9,7 +9,7 @@ import {
   ContentNotFoundError,
 } from "@/lib/auth/content-access";
 import {
-  WorkingAggregateEditSchema,
+  WorkingAggregateSaveSchema,
   WorkingAggregateSchema,
 } from "@/lib/validation/working-aggregate";
 
@@ -28,14 +28,6 @@ import type {
 } from "@nextpress/db/generated/prisma/client";
 
 import type { ContentActor } from "@/lib/auth/content-access";
-
-const saveSchema = z.strictObject({
-  pageId: z.string().min(1).max(191),
-  requestId: z.uuid(),
-  expectedDraftVersion: z.number().int().nonnegative(),
-  expectedSourceVersion: z.number().int().nonnegative(),
-  edit: WorkingAggregateEditSchema,
-});
 
 const storedSchema = z.object({
   version: z.number().int().positive(),
@@ -109,6 +101,7 @@ export async function loadWorkingAggregate(
   db: PrismaClient,
   pageId: string,
   actor: ContentActor,
+  options: { includeSourceMetadata?: boolean } = {},
 ) {
   return db
     .$transaction(
@@ -118,14 +111,13 @@ export async function loadWorkingAggregate(
       SELECT version, "sourceVersion", "requestHash", aggregate FROM "NPWorkingRevision"
       WHERE "pageId" = ${pageId} ORDER BY version DESC LIMIT 1`;
 
-        if (!rows.length) {
-          return {
-            version: 0,
-            sourceVersion,
-            aggregate: captureWorkingAggregate(source),
-          };
-        }
-        const stored = storedSchema.parse(rows[0]);
+        const stored = rows.length
+          ? storedSchema.parse(rows[0])
+          : {
+              version: 0,
+              sourceVersion,
+              aggregate: captureWorkingAggregate(source),
+            };
 
         if (
           stored.aggregate.ownerId !== source.authorId ||
@@ -133,11 +125,24 @@ export async function loadWorkingAggregate(
         ) {
           throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
         }
+        const tagLabels = options.includeSourceMetadata
+          ? await tx.taxonomy.findMany({
+              where: {
+                id: { in: stored.aggregate.snapshot.relationships.tagIds },
+                type: "TAG",
+              },
+              select: { id: true, name: true, slug: true },
+              orderBy: { id: "asc" },
+            })
+          : undefined;
 
         return {
           version: stored.version,
           sourceVersion: stored.sourceVersion,
           aggregate: stored.aggregate,
+          ...(options.includeSourceMetadata
+            ? { currentSourceVersion: sourceVersion, tagLabels }
+            : {}),
         };
       },
       { isolationLevel: "ReadCommitted" },
@@ -150,11 +155,16 @@ export async function saveWorkingAggregate(
   input: unknown,
   actor: ContentActor,
 ) {
-  const command = saveSchema.parse(input);
+  const command = WorkingAggregateSaveSchema.parse(input);
   contentWriteWhere(actor);
 
   const requestHash = createHash("sha256")
-    .update(canonicalEditorialJson({ command, actor }))
+    .update(
+      canonicalEditorialJson({
+        command,
+        actor: { id: actor.id, role: actor.role },
+      }),
+    )
     .digest("hex");
 
   return db
@@ -203,16 +213,32 @@ export async function saveWorkingAggregate(
 
         if (
           sourceVersion !== command.expectedSourceVersion ||
-          current.sourceVersion !== sourceVersion
+          (command.operation !== "RESET" &&
+            current.sourceVersion !== sourceVersion)
         ) {
           throw new WorkingAggregateConflictError("SOURCE_VERSION_CONFLICT");
         }
-        assertWorkingAggregateBase(current.aggregate, source);
-        const aggregate = prepareWorkingAggregateEdit(
+
+        if (command.operation !== "RESET") {
+          assertWorkingAggregateBase(current.aggregate, source);
+        }
+        const edited = prepareWorkingAggregateEdit(
           current.aggregate,
           command.edit,
           actor,
         );
+
+        if (
+          command.operation === "RESET" &&
+          (Object.keys(command.edit.patch).length > 0 ||
+            command.edit.publicationIntent)
+        ) {
+          throw new WorkingAggregateConflictError("RESET_COMMAND_CONFLICT");
+        }
+        const aggregate =
+          command.operation === "RESET"
+            ? captureWorkingAggregate(source)
+            : edited;
         const revisionId = randomUUID();
         const { edges } = mapEditorialReferenceEdges(
           revisionId,
