@@ -1,6 +1,16 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 
 import { disposableDatabaseName } from "../src/lib/testing/disposable-database";
@@ -14,6 +24,11 @@ import {
   verifyProvisioningCleanup,
   type DisposableManifest,
 } from "../src/lib/testing/docker-database";
+import {
+  inspectVerificationProcess,
+  redactVerificationOutput,
+  subprocessFailureMetadata,
+} from "../src/lib/testing/verification-process";
 
 function docker(...args: string[]) {
   try {
@@ -26,16 +41,32 @@ function docker(...args: string[]) {
         timeout: 30000,
       },
     ).trim();
-  } catch {
+  } catch (error) {
     throw new Error(
-      "Docker verification command failed (credential output suppressed)",
+      `Docker ${args[0]} failed ${subprocessFailureMetadata(error)} (credential output suppressed)`,
     );
   }
 }
 
 function npm(args: string[]) {
   const tests = args.includes("test");
-  const command = ["--silent", ...args, ...(tests ? ["--reporter=json"] : [])];
+  const reportDirectory = tests
+    ? mkdtempSync(join(tmpdir(), "nextpress-verification-"))
+    : undefined;
+  const reportPath = reportDirectory
+    ? join(reportDirectory, "report.json")
+    : undefined;
+  const command = [
+    "--silent",
+    ...args,
+    ...(reportPath
+      ? [
+          "--reporter=default",
+          "--reporter=json",
+          `--outputFile.json=${reportPath}`,
+        ]
+      : []),
+  ];
   const result = spawnSync("npm", command, {
     shell: process.platform === "win32",
     // Prisma and test diagnostics can contain generated database identities.
@@ -45,102 +76,89 @@ function npm(args: string[]) {
     env: process.env,
   });
 
-  if (result.status !== 0) {
-    console.error("Verification process", {
-      status: result.status,
-      signal: result.signal,
-      outputBytes: result.stdout?.length ?? 0,
-      diagnosticBytes: result.stderr?.length ?? 0,
-      failureCode:
-        result.error && "code" in result.error ? result.error.code : undefined,
-    });
-    let diagnostics = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+  let reportOutput = "";
 
-    for (const [name, value] of Object.entries(process.env)) {
-      if (!value || !/secret|password|token|database_url/i.test(name)) {
-        continue;
+  if (reportPath && reportDirectory) {
+    try {
+      if (existsSync(reportPath)) {
+        reportOutput = readFileSync(reportPath, "utf8");
       }
-      diagnostics = diagnostics.replaceAll(value, "[redacted]");
-
-      if (/database_url/i.test(name)) {
-        const password = new URL(value).password;
-
-        if (password) {
-          diagnostics = diagnostics.replaceAll(password, "[redacted]");
-        }
+    } finally {
+      if (existsSync(reportPath)) {
+        unlinkSync(reportPath);
       }
+      rmdirSync(reportDirectory);
     }
-    console.error(
-      diagnostics
-        .replace(/postgres(?:ql)?:\/\/[^\s]+/g, "[redacted database URL]")
-        .slice(-6000),
+  }
+
+  const { outcome, report } = inspectVerificationProcess(
+    { ...result, stdout: tests ? reportOutput : result.stdout },
+    tests,
+  );
+
+  if (outcome !== "passed") {
+    const diagnostics = redactVerificationOutput(
+      [
+        `Outcome: ${outcome}`,
+        `status=${result.status} signal=${result.signal} error=${result.error?.message ?? "none"}`,
+        `stderr (${Buffer.byteLength(result.stderr ?? "")} bytes):`,
+        result.stderr ?? "",
+        `stdout (${Buffer.byteLength(result.stdout ?? "")} bytes):`,
+        result.stdout ?? "",
+        "JSON report:",
+        reportOutput,
+      ].join("\n"),
     );
     mkdirSync(new URL("../../../.notes/", import.meta.url), {
       recursive: true,
     });
     writeFileSync(
       new URL("../../../.notes/np-final-postgres-failure.txt", import.meta.url),
-      diagnostics.replace(
-        /postgres(?:ql)?:\/\/[^\s]+/g,
-        "[redacted database URL]",
-      ),
+      diagnostics,
       { mode: 0o600 },
     );
+    console.error(
+      redactVerificationOutput(
+        `Verification process: ${outcome}; status=${result.status}; signal=${result.signal}; error=${result.error?.message ?? "none"}`,
+      ),
+    );
+    // Print each stream separately so a long JSON report cannot hide stderr.
+    console.error("stderr:", redactVerificationOutput(result.stderr ?? ""));
 
-    if (tests && result.stdout) {
-      const report = z
-        .object({
-          testResults: z.array(
-            z.object({
-              message: z.string().optional(),
-              assertionResults: z.array(
-                z.object({
-                  fullName: z.string(),
-                  status: z.string(),
-                  failureMessages: z.array(z.string()),
-                }),
-              ),
-            }),
-          ),
-        })
-        .parse(JSON.parse(result.stdout));
+    console.error("stdout:", redactVerificationOutput(result.stdout ?? ""));
+
+    if (report) {
+      console.error("Test report counts", {
+        passed: report.numPassedTests,
+        failed: report.numFailedTests,
+        skipped: report.numPendingTests,
+        failedSuites: report.numFailedTestSuites,
+      });
 
       for (const suite of report.testResults) {
         if (suite.message) {
-          console.error(
-            suite.message
-              .replace(/postgres(?:ql)?:\/\/[^\s]+/g, "[redacted database URL]")
-              .slice(0, 2000),
-          );
+          console.error(redactVerificationOutput(suite.message));
         }
+
         for (const test of suite.assertionResults) {
           if (test.status === "failed") {
             console.error(
-              test.fullName,
-              test.failureMessages
-                .join("\n")
-                .replace(
-                  /postgres(?:ql)?:\/\/[^\s]+/g,
-                  "[redacted database URL]",
-                ),
+              redactVerificationOutput(
+                `${test.fullName}\n${test.failureMessages.join("\n")}`,
+              ),
             );
           }
         }
       }
     }
-    throw new Error(`Verification command failed: npm ${args.join(" ")}`);
+    throw new Error(
+      `Verification command failed (${outcome}): npm ${args.join(" ")}`,
+    );
   }
 
-  if (tests) {
-    const counts = z
-      .object({
-        numPassedTests: z.number(),
-        numFailedTests: z.number(),
-        numPendingTests: z.number(),
-      })
-      .parse(JSON.parse(result.stdout));
+  if (report) {
     console.log(
-      `PostgreSQL tests: ${counts.numPassedTests} passed, ${counts.numFailedTests} failed, ${counts.numPendingTests} skipped`,
+      `PostgreSQL tests: ${report.numPassedTests} passed, ${report.numFailedTests} failed, ${report.numPendingTests} skipped`,
     );
   } else {
     console.log(
@@ -175,8 +193,10 @@ function sql(container: string, database: string, statement: string) {
         timeout: 30000,
       },
     ).trim();
-  } catch {
-    throw new Error("Disposable SQL failed (credential output suppressed)");
+  } catch (error) {
+    throw new Error(
+      `Disposable SQL failed ${subprocessFailureMetadata(error)} (credential output suppressed)`,
+    );
   }
 }
 
@@ -431,29 +451,47 @@ async function verifyFamily(family: "content" | "security") {
     } finally {
       await prisma.$disconnect();
     }
+  } catch (error) {
+    console.error(
+      "PostgreSQL provisioning/database/test failure:",
+      redactVerificationOutput(
+        error instanceof Error ? error.message : String(error),
+      ),
+    );
+    throw error;
   } finally {
-    // Destruction requires the same evidence as provisioning. An identity
-    // mismatch deliberately leaves resources for investigation.
-    verifyLocalDocker();
+    try {
+      // Destruction requires the same evidence as provisioning. An identity
+      // mismatch deliberately leaves resources for investigation.
+      verifyLocalDocker();
 
-    if (container) {
-      if (clusterVerified && manifest) {
-        verifyDockerTarget(manifest);
-      } else {
-        verifyProvisioningCleanup(
-          { run, container, network, image, port },
-          JSON.parse(docker("inspect", container)),
-          JSON.parse(docker("network", "inspect", network)),
-        );
+      if (container) {
+        if (clusterVerified && manifest) {
+          verifyDockerTarget(manifest);
+        } else {
+          verifyProvisioningCleanup(
+            { run, container, network, image, port },
+            JSON.parse(docker("inspect", container)),
+            JSON.parse(docker("network", "inspect", network)),
+          );
+        }
+        docker("rm", "--force", container);
       }
-      docker("rm", "--force", container);
-    }
-    removeNetwork(network, run);
+      removeNetwork(network, run);
 
-    if (evidenceCreated) {
-      unlinkSync(disposableManifestPath);
+      if (evidenceCreated) {
+        unlinkSync(disposableManifestPath);
+      }
+      console.log("Disposable cluster, network and evidence removed");
+    } catch (error) {
+      console.error(
+        "Cleanup failure:",
+        redactVerificationOutput(
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+      process.exitCode = 1;
     }
-    console.log("Disposable cluster, network and evidence removed");
   }
 }
 
@@ -462,9 +500,14 @@ const family = process.argv[2];
 if (family !== "content" && family !== "security") {
   throw new Error("Specify content or security");
 }
-verifyFamily(family).catch(() => {
+verifyFamily(family).catch((error: unknown) => {
   console.error(
-    "Disposable PostgreSQL verification failed; database diagnostics withheld",
+    redactVerificationOutput(
+      error instanceof Error ? error.message : String(error),
+    ),
+  );
+  console.error(
+    "Disposable PostgreSQL verification failed; sanitized diagnostics above",
   );
   process.exitCode = 1;
 });
