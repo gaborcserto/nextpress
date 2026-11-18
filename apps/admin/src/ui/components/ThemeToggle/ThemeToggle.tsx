@@ -21,18 +21,19 @@ export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
   });
 
   useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
+    const preference = window.matchMedia("(prefers-color-scheme: dark)");
 
-    const curr = currentTheme();
-    const next = { mounted: true, isDark: curr === "dark" };
+    const syncTheme = () => {
+      setUi({ mounted: true, isDark: currentTheme() === "dark" });
+    };
 
-    const raf = requestAnimationFrame(() => {
-      setUi(next);
-    });
+    const raf = requestAnimationFrame(syncTheme);
+    preference.addEventListener("change", syncTheme);
 
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      preference.removeEventListener("change", syncTheme);
+    };
   }, []);
 
   const handleToggle = () => {

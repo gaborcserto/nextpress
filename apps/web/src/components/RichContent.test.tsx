@@ -101,6 +101,7 @@ describe("RichContent", () => {
           },
           {
             type: "code-block",
+            align: "right",
             children: [{ text: source, code: true, bold: true }],
           },
         ])}
@@ -111,6 +112,10 @@ describe("RichContent", () => {
     );
     expect(container.querySelector("pre > code")?.textContent).toBe(source);
     expect(container.querySelector("pre")).toHaveAttribute("tabindex", "0");
+    expect(container.querySelector("pre")).toHaveAttribute(
+      "data-align",
+      "right",
+    );
     expect(
       container.querySelector("pre code code, pre strong, script"),
     ).toBeNull();

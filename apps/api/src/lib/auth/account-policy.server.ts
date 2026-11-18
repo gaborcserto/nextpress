@@ -1,13 +1,22 @@
 import "server-only";
 
 import {
+  displayNameSchema,
   emailSchema,
   passwordSchema,
   MAX_PASSWORD_LENGTH,
 } from "@nextpress/shared/auth-policy";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { z } from "zod";
 
 import { authAbusePolicy } from "./abuse-policy.server";
+
+const ProfileUpdateSchema = z
+  .strictObject({
+    name: displayNameSchema.optional(),
+    image: z.string().max(2048).nullable().optional(),
+  })
+  .refine(({ name, image }) => name !== undefined || image !== undefined);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -47,7 +56,20 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
     });
   }
 
-  if (ctx.path === "/sign-up/email" || ctx.path === "/update-user") {
+  if (ctx.path === "/update-user") {
+    const profile = ProfileUpdateSchema.safeParse(input);
+
+    if (!profile.success) {
+      throw new APIError("BAD_REQUEST", {
+        code: "INVALID_INPUT",
+        message: "Invalid profile update",
+      });
+    }
+
+    return { context: { body: profile.data } };
+  }
+
+  if (ctx.path === "/sign-up/email") {
     if (typeof input.name === "string" && input.name.length > 200) {
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_INPUT",

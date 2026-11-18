@@ -1,4 +1,4 @@
-import { AppearanceSchema } from "@nextpress/shared";
+import { AppearanceCatalogSchema, AppearanceSchema } from "@nextpress/shared";
 import {
   PublicSearchQuerySchema,
   PublicSearchResultSchema,
@@ -167,6 +167,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   PublicNavigation: schema(PublicNavigationSchema),
   PublicSiteSettings: schema(PublicSiteSettingsSchema),
   Appearance: schema(AppearanceSchema),
+  AppearanceCatalog: schema(AppearanceCatalogSchema),
   SessionDiscovery: schema(SessionDiscoverySchema),
   ProviderDiscovery: schema(ProviderDiscoverySchema),
   UserCreate: object(
@@ -852,6 +853,18 @@ paths["/api/admin/settings/appearance"] = {
     "ADMIN only. Strict template/preset/mode validation. Appearance fields only; preserves general, role and OAuth settings. Requires trusted Origin and application/json; settings mutation rate limit applies.",
     "protected",
     "Appearance",
+  ),
+};
+
+paths["/api/admin/settings/appearance/catalog"] = {
+  get: operation(
+    "listAppearanceTemplates",
+    "Settings",
+    "List selectable website templates and style variants",
+    ref("AppearanceCatalog"),
+    [401, 403, 500],
+    "ADMIN only. Returns the API release's supported renderers, with each template's default and available presets.",
+    "protected",
   ),
 };
 

@@ -78,7 +78,7 @@ function renderBlock(block: RichBlock): ReactNode {
       );
     case "code-block":
       return (
-        <pre tabIndex={0}>
+        <pre tabIndex={0} data-align={block.align}>
           <code>{block.children.map((leaf) => leaf.text).join("")}</code>
         </pre>
       );

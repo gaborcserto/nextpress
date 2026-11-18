@@ -9,10 +9,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function mockSystemTheme(dark: boolean) {
+  const preference = Object.assign(new EventTarget(), { matches: dark });
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue(preference));
+
+  return preference;
+}
+
 it.each([true, false])(
   "toggles from the effective OS mode and persists only appearance (dark=%s)",
   async (dark) => {
-    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: dark }));
+    mockSystemTheme(dark);
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       callback(0);
 
@@ -35,7 +42,7 @@ it.each([true, false])(
 
 it("uses the explicit theme instead of the OS preference", async () => {
   document.documentElement.setAttribute("data-theme", "light");
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }));
+  mockSystemTheme(true);
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
     callback(0);
 
@@ -46,4 +53,33 @@ it("uses the explicit theme instead of the OS preference", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
   expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+});
+
+it("follows system changes until the user chooses an explicit theme", async () => {
+  const preference = mockSystemTheme(false);
+  render(<ThemeToggle />);
+  const lightModeButton = await screen.findByRole("button", {
+    name: "Switch to dark theme",
+  });
+  expect(lightModeButton).toHaveAttribute("aria-pressed", "false");
+
+  act(() => {
+    preference.matches = true;
+    preference.dispatchEvent(new Event("change"));
+  });
+  const darkModeButton = screen.getByRole("button", {
+    name: "Switch to light theme",
+  });
+  expect(darkModeButton).toHaveAttribute("aria-pressed", "true");
+  expect(document.documentElement).not.toHaveAttribute("data-theme");
+  fireEvent.click(darkModeButton);
+
+  act(() => {
+    preference.matches = false;
+    preference.dispatchEvent(new Event("change"));
+    preference.matches = true;
+    preference.dispatchEvent(new Event("change"));
+  });
+  expect(lightModeButton).toHaveAttribute("aria-pressed", "false");
+  expect(document.documentElement).toHaveAttribute("data-theme", "light");
 });

@@ -75,6 +75,7 @@ vi.mock("@/lib/auth/auth-server", () => ({
     },
 }));
 
+import { GET as getAppearanceCatalog } from "./settings/appearance/catalog/route";
 import {
   GET as getAppearance,
   PUT as putAppearance,
@@ -565,9 +566,30 @@ describe("appearance-only settings updates", () => {
   it.each([null, "EDITOR"] as const)("denies role %s", async (role) => {
     authState.role = role;
     expect(
+      (await getAppearanceCatalog(request("GET"), { params: {} })).status,
+    ).toBe(role ? 403 : 401);
+    expect(
       (await putAppearance(request("PUT", appearance), { params: {} })).status,
     ).toBe(role ? 403 : 401);
     expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
+  });
+  it("returns the available templates and their selectable variants", async () => {
+    const response = await getAppearanceCatalog(request("GET"), { params: {} });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([
+      {
+        id: "blog",
+        label: "Blog",
+        defaultPreset: "classic",
+        presets: [
+          { id: "classic", label: "Classic" },
+          { id: "modern", label: "Modern" },
+          { id: "minimal", label: "Minimal" },
+        ],
+      },
+    ]);
+    expect(prisma.siteSettings.findUnique).not.toHaveBeenCalled();
   });
   it.each([
     { websiteTemplate: "corporate" },
@@ -615,4 +637,21 @@ it("reads only appearance through the administrative appearance operation", asyn
     where: { id: "default" },
     select: { websiteTemplate: true, stylePreset: true, colorMode: true },
   });
+});
+
+it("uses safe defaults when the stored template has become unavailable", async () => {
+  prisma.siteSettings.findUnique.mockResolvedValue({
+    websiteTemplate: "retired",
+    stylePreset: "modern",
+    colorMode: "obsolete",
+  });
+
+  const response = await getAppearance(request("GET"), { params: {} });
+
+  expect(await response.json()).toEqual({
+    websiteTemplate: "blog",
+    stylePreset: "classic",
+    colorMode: "light",
+  });
+  expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
 });

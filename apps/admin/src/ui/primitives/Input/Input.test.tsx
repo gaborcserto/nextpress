@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import Input from "./Input";
@@ -18,4 +18,41 @@ describe("Input rounding", () => {
       "rounded-[var(--radius-control)]",
     );
   });
+});
+
+it("keeps the password visibility control named and exposes its pressed state", () => {
+  const { rerender } = render(<Input type="password" label="Password" />);
+  const field = screen.getByLabelText("Password", { exact: true });
+  const toggle = screen.getByRole("button", { name: "Show password" });
+
+  fireEvent.click(toggle);
+  expect(field).toHaveAttribute("type", "text");
+  expect(screen.getByRole("button", { name: "Show password" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  rerender(<Input type="password" label="Password" disabled />);
+  expect(toggle).toBeDisabled();
+});
+
+it.each([{ disabled: true }, { readOnly: true }])(
+  "disables clearing when the input cannot be edited (%j)",
+  (inputProps) => {
+    render(
+      <Input label="Title" defaultValue="Draft" clearable {...inputProps} />,
+    );
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue("Draft");
+    expect(screen.getByRole("button", { name: "Clear input" })).toBeDisabled();
+  },
+);
+
+it("allows an editable default value of zero to be cleared", () => {
+  render(<Input type="number" label="Count" defaultValue={0} clearable />);
+  const count = screen.getByRole("spinbutton", { name: "Count" });
+  expect(count).toHaveValue(0);
+
+  fireEvent.click(screen.getByRole("button", { name: "Clear input" }));
+  expect(count).toHaveValue(null);
+  expect(screen.queryByRole("button", { name: "Clear input" })).toBeNull();
 });

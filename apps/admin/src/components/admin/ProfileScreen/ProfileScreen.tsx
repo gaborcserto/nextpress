@@ -1,8 +1,14 @@
 "use client";
 
-import { useSession } from "@/lib/auth/auth-client";
+import {
+  displayNameSchema,
+  MAX_DISPLAY_NAME_LENGTH,
+} from "@nextpress/shared/auth-policy";
+import { useState, type FormEvent } from "react";
+
+import { authClient, useSession } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components";
-import { Alert, Box, Section } from "@/ui/primitives";
+import { Alert, Box, Button, Input, Section } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell";
 
 export default function ProfileScreen() {
@@ -23,39 +29,101 @@ export default function ProfileScreen() {
   }
 
   const user = data?.user;
-  const name = user?.name || "Unnamed user";
 
   return (
     <AdminPageLayout
       title="Profile"
-      description="Review your current account details."
+      description="Manage your display name and review your account details."
     >
-      <Alert
-        status="info"
-        message="Profile editing and account management are not available in the admin yet. Your account details continue to be managed by the configured sign-in provider."
-      />
-
-      <Section title="Account" desc="Details from your current session.">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <UserAvatar
-            name={user?.name}
-            image={user?.image}
-            size="lg"
-            className="ring-0"
-          />
-
-          <dl className="grid min-w-0 gap-3 text-sm wrap-anywhere">
-            <div>
-              <dt className="text-base-content/60">Display name</dt>
-              <dd className="font-medium">{name}</dd>
+      <Section title="Account">
+        {user ? (
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            <UserAvatar
+              name={user.name}
+              image={user.image}
+              size="lg"
+              className="ring-0"
+            />
+            <div className="min-w-0 space-y-4 wrap-anywhere">
+              <dl className="text-sm">
+                <dt className="text-base-content/60">Email</dt>
+                <dd className="font-medium">{user.email}</dd>
+              </dl>
+              <DisplayNameForm key={user.id} initialName={user.name ?? ""} />
             </div>
-            <div>
-              <dt className="text-base-content/60">Email</dt>
-              <dd className="font-medium">{user?.email || "Not available"}</dd>
-            </div>
-          </dl>
-        </div>
+          </div>
+        ) : (
+          <Alert status="error" message="Unable to load your profile." />
+        )}
       </Section>
     </AdminPageLayout>
+  );
+}
+
+function DisplayNameForm({ initialName }: { initialName: string }) {
+  const [name, setName] = useState(initialName);
+  const [saving, setSaving] = useState(false);
+  const [fieldError, setFieldError] = useState<string>();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (saving) {
+      return;
+    }
+
+    setSaveError(null);
+    setSaved(false);
+    const parsed = displayNameSchema.safeParse(name);
+
+    if (!parsed.success) {
+      setFieldError(parsed.error.issues[0]?.message);
+
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const { error } = await authClient.updateUser({ name: parsed.data });
+
+      if (error) {
+        throw new Error("Profile update rejected");
+      }
+
+      setName(parsed.data);
+      setSaved(true);
+    } catch {
+      setSaveError(
+        "Unable to save your profile. Check your session and try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="space-y-3" onSubmit={(event) => void saveProfile(event)}>
+      <Input
+        autoComplete="nickname"
+        disabled={saving}
+        error={fieldError}
+        label="Display name"
+        maxLength={MAX_DISPLAY_NAME_LENGTH}
+        onChange={(event) => {
+          setName(event.target.value);
+          setFieldError(undefined);
+          setSaved(false);
+        }}
+        value={name}
+      />
+      <Alert status="error" message={saveError} />
+      <Button type="submit" color="primary" loading={saving}>
+        Save profile
+      </Button>
+      <p role="status">{saved ? "Profile saved." : ""}</p>
+    </form>
   );
 }

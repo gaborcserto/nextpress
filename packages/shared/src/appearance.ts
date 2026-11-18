@@ -15,13 +15,30 @@ export const APPEARANCE_CATALOG = [
 ] as const;
 
 const blog = APPEARANCE_CATALOG[0];
+const PresetSchema = z.strictObject({
+  id: z.string().min(1),
+  label: z.string().min(1),
+});
+const TemplateSchema = PresetSchema.extend({
+  defaultPreset: z.string().min(1),
+  presets: z.array(PresetSchema).min(1),
+});
+export const AppearanceCatalogSchema = z
+  .array(TemplateSchema)
+  .min(1)
+  .refine(
+    (templates) =>
+      new Set(templates.map(({ id }) => id)).size === templates.length &&
+      templates.every(
+        ({ defaultPreset, presets }) =>
+          new Set(presets.map(({ id }) => id)).size === presets.length &&
+          presets.some(({ id }) => id === defaultPreset),
+      ),
+  );
+
 export const AppearanceSchema = z.strictObject({
   websiteTemplate: z.literal(blog.id),
-  stylePreset: z.enum([
-    blog.presets[0].id,
-    blog.presets[1].id,
-    blog.presets[2].id,
-  ]),
+  stylePreset: z.enum(blog.presets.map(({ id }) => id)),
   colorMode: z.enum(["light", "dark", "system"]),
 });
 export type Appearance = z.infer<typeof AppearanceSchema>;

@@ -13,11 +13,11 @@ import {
 } from "slate-react";
 
 import { EMPTY_SLATE_VALUE } from "./slate.constants";
+import styles from "./SlateEditor.module.css";
 import SlateToolbar from "./SlateToolbar";
 
 import type { CSSProperties } from "react";
 
-import type { Align } from "./slate.d";
 import type { SlateEditorProps } from "./slate.types";
 
 export default function SlateEditor({
@@ -38,7 +38,7 @@ export default function SlateEditor({
     const { attributes, children, element } = props;
 
     const style: CSSProperties = {
-      textAlign: element.align as Align | undefined,
+      textAlign: element.align,
     };
 
     switch (element.type) {
@@ -88,36 +88,45 @@ export default function SlateEditor({
           <blockquote
             {...attributes}
             style={style}
-            className="border-l-4 border-base-300 pl-4 italic opacity-90"
+            className="border-s-4 border-base-300 ps-4 italic"
           >
             {children}
           </blockquote>
         );
       case "bulleted-list":
         return (
-          <ul {...attributes} className="list-disc pl-6">
+          <ul {...attributes} style={style} className="list-disc ps-6">
             {children}
           </ul>
         );
       case "numbered-list":
         return (
-          <ol {...attributes} className="list-decimal pl-6">
+          <ol {...attributes} style={style} className="list-decimal ps-6">
             {children}
           </ol>
         );
       case "list-item":
-        return <li {...attributes}>{children}</li>;
+        return (
+          <li {...attributes} style={style}>
+            {children}
+          </li>
+        );
       case "code-block":
         return (
           <pre
             {...attributes}
+            style={style}
             className="rounded-md border border-base-300 bg-base-200 p-3 overflow-auto"
           >
             <code>{children}</code>
           </pre>
         );
       default:
-        return <p {...attributes}>{children}</p>;
+        return (
+          <p {...attributes} style={style}>
+            {children}
+          </p>
+        );
     }
   }, []);
 
@@ -243,7 +252,7 @@ export default function SlateEditor({
             placeholder="Write your content..."
             renderElement={renderElement}
             renderLeaf={renderLeaf}
-            className="min-h-75 p-4 focus-visible:outline-2 focus-visible:outline-primary prose max-w-none"
+            className={`${styles.content} min-h-75 p-4 focus-visible:outline-2 focus-visible:outline-primary`}
           />
         )}
       </Slate>

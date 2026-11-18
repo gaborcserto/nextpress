@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const MIN_PASSWORD_LENGTH = 15;
 export const MAX_PASSWORD_LENGTH = 128;
+export const MAX_DISPLAY_NAME_LENGTH = 200;
+
+export const displayNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter a display name.")
+  .max(MAX_DISPLAY_NAME_LENGTH, "Display name must not exceed 200 characters.");
 
 export const emailSchema = z
   .string()

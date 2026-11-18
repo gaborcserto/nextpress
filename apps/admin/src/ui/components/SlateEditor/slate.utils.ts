@@ -46,13 +46,14 @@ export function setAlign(editor: Editor, align: Align): void {
   Transforms.setNodes(
     editor,
     { align },
-    { match: (n) => SlateElement.isElement(n), split: true },
+    { match: (node) => SlateElement.isElement(node) },
   );
 }
 
 export function getActiveAlign(editor: Editor): Align | null {
   const [match] = Editor.nodes(editor, {
-    match: (n) => SlateElement.isElement(n) && typeof n.align === "string",
+    match: (node) => SlateElement.isElement(node),
+    mode: "lowest",
   });
 
   if (!match) {
@@ -61,24 +62,23 @@ export function getActiveAlign(editor: Editor): Align | null {
 
   const [node] = match;
 
-  return (
-    (SlateElement.isElement(node)
-      ? (node.align as Align | undefined)
-      : undefined) ?? null
-  );
+  return SlateElement.isElement(node) ? (node.align ?? null) : null;
 }
 
-export function toggleBlock(editor: Editor, type: BlockFormat): void {
-  const isActive = isBlockActive(editor, type);
-  const isList = LIST_TYPES.includes(type);
-
-  // unwrap existing lists
+function unwrapSelectedLists(editor: Editor): void {
   Transforms.unwrapNodes(editor, {
     match: (n) =>
       SlateElement.isElement(n) &&
       (n.type === "bulleted-list" || n.type === "numbered-list"),
     split: true,
   });
+}
+
+export function toggleBlock(editor: Editor, type: BlockFormat): void {
+  const isActive = isBlockActive(editor, type);
+  const isList = LIST_TYPES.includes(type);
+
+  unwrapSelectedLists(editor);
 
   if (type === "heading") {
     Transforms.setNodes(
@@ -137,11 +137,14 @@ export function toggleBlock(editor: Editor, type: BlockFormat): void {
 export function toggleHeading(editor: Editor, level: 2 | 3 | 4 | 5 | 6): void {
   const isActive = isHeadingActive(editor, level);
 
-  Transforms.setNodes(
-    editor,
-    isActive ? { type: "paragraph" } : { type: "heading", level },
-    { match: (n) => SlateElement.isElement(n) },
-  );
+  Editor.withoutNormalizing(editor, () => {
+    unwrapSelectedLists(editor);
+    Transforms.setNodes(
+      editor,
+      isActive ? { type: "paragraph" } : { type: "heading", level },
+      { match: (node) => SlateElement.isElement(node) },
+    );
+  });
 }
 
 export function isHeadingActive(

@@ -4,18 +4,27 @@ import { useId, useState, type ChangeEvent } from "react";
 
 import type { InputProps } from "./Input.types";
 
-type UseInputArgs = Pick<InputProps, "id" | "value" | "type" | "onChange">;
+type UseInputArgs = Pick<
+  InputProps,
+  "id" | "value" | "defaultValue" | "type" | "onChange"
+>;
 
-export function useInput({ id, value, type, onChange }: UseInputArgs) {
+export function useInput({
+  id,
+  value,
+  defaultValue,
+  type,
+  onChange,
+}: UseInputArgs) {
   const generatedId = useId();
   const inputId = id || generatedId;
 
   const [internalValue, setInternalValue] = useState(
-    (value as string | undefined) ?? "",
+    value ?? defaultValue ?? "",
   );
 
   const isControlled = value !== undefined;
-  const currentValue = isControlled ? (value as string) : internalValue;
+  const currentValue = value ?? internalValue;
 
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = (type ?? "text") === "password";

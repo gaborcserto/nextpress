@@ -23,6 +23,7 @@ function Input(props: InputProps) {
     leftIcon,
     rightIcon,
     clearable = false,
+    defaultValue,
     ...inputProps
   } = props;
 
@@ -35,7 +36,7 @@ function Input(props: InputProps) {
     setShowPassword,
     handleChange,
     clear,
-  } = useInput(inputProps);
+  } = useInput({ ...inputProps, defaultValue });
 
   const sizeCls =
     size === "xs"
@@ -78,15 +79,18 @@ function Input(props: InputProps) {
   );
 
   const hasLeftIcon = !!leftIcon;
-  const showClearButton = !isPassword && clearable && !!currentValue;
+  const showClearButton =
+    !isPassword && clearable && String(currentValue) !== "";
   const showPasswordToggle = isPassword;
   const showRightIcon = !isPassword && !!rightIcon && !clearable;
 
-  const paddingLeftCls = hasLeftIcon ? "pl-10" : "pl-4";
-  const paddingRightCls =
-    showPasswordToggle || showRightIcon || showClearButton ? "pr-12" : "pr-4";
+  const paddingStartCls = hasLeftIcon ? "ps-10" : "ps-(--space-control-inline)";
+  const paddingEndCls =
+    showPasswordToggle || showRightIcon || showClearButton
+      ? "pe-12"
+      : "pe-(--space-control-inline)";
 
-  const inputClasses = cx(baseInputClasses, paddingLeftCls, paddingRightCls);
+  const inputClasses = cx(baseInputClasses, paddingStartCls, paddingEndCls);
 
   const describedBy = error
     ? `${inputId}-error`
@@ -104,7 +108,7 @@ function Input(props: InputProps) {
 
       <div className="relative">
         {hasLeftIcon && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
+          <span className="absolute start-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
             {leftIcon}
           </span>
         )}
@@ -123,9 +127,10 @@ function Input(props: InputProps) {
         {showPasswordToggle && (
           <button
             type="button"
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label="Show password"
             aria-pressed={showPassword}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 text-base-content/70 hover:text-base-content"
+            disabled={inputProps.disabled}
+            className="absolute end-1 top-1/2 z-20 grid size-(--target-min) -translate-y-1/2 place-items-center rounded-(--radius-control) text-(--control-icon) enabled:hover:text-(--control-icon-hover) focus-visible:outline-(length:--focus-width) focus-visible:outline-offset-(--focus-offset) focus-visible:outline-(--focus-color)"
             onClick={() => setShowPassword((v) => !v)}
           >
             {showPassword ? (
@@ -140,7 +145,8 @@ function Input(props: InputProps) {
           <button
             type="button"
             aria-label="Clear input"
-            className="btn btn-ghost btn-circle absolute right-1 top-1/2 -translate-y-1/2"
+            disabled={inputProps.disabled || inputProps.readOnly}
+            className="btn btn-ghost btn-circle absolute end-1 top-1/2 -translate-y-1/2"
             onClick={clear}
           >
             <FaTimes size={16} aria-hidden="true" />
@@ -148,7 +154,7 @@ function Input(props: InputProps) {
         )}
 
         {showRightIcon && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
+          <span className="absolute end-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
             {rightIcon}
           </span>
         )}

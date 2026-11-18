@@ -1,0 +1,33 @@
+:root {
+  color-scheme: light dark;
+
+  --surface-bg: light-dark(white, #1f2937);
+  --surface-border: light-dark(rgb(0 0 0 / 20%), rgb(255 255 255 / 30%));
+  --text-muted: light-dark(#4b5563, #9ca3af);
+  --accent-solid: light-dark(#2563eb, #93c5fd);
+  --accent-soft: light-dark(#eff6ff, rgb(255 255 255 / 10%));
+  --control-icon: light-dark(#4b5563, #9ca3af);
+  --control-icon-hover: light-dark(#18181b, #e5e7eb);
+
+  --text-ui-size: 0.875rem;
+  --text-ui-leading: 1.25rem;
+  --space-control-inline: 1rem;
+  --radius-surface: 0.75rem;
+  --radius-control: 0.375rem;
+  --shadow-topbar: 0 8px 24px rgb(0 0 0 / 8%);
+  --focus-color: var(--accent-solid);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --target-min: 24px;
+  --motion-spinner: 750ms;
+  --layout-auth-gutter: 1rem;
+  --layout-auth-max-width: 28rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}

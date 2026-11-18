@@ -667,6 +667,56 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     expect(db.Session).toHaveLength(0);
   });
 
+  it("rejects invalid display names and fields outside the profile contract", async () => {
+    const auth = await registeredAuth();
+    const { cookie } = await signIn(auth);
+
+    for (const body of [
+      { name: "   " },
+      { name: 123 },
+      { name: "Changed", roleId: "admin-role" },
+      { name: "Changed", id: "another-user" },
+      { name: "Changed", emailVerified: true },
+    ]) {
+      const response = await sessionRequest(auth, "/update-user", body, cookie);
+      expect(response.status).toBe(400);
+      expect(db.User[0]).toMatchObject({
+        name: "User",
+        roleId: "subscriber-role",
+      });
+    }
+
+    expect(
+      (await sessionRequest(auth, "/update-user", { name: "Changed" })).status,
+    ).toBe(401);
+    expect(
+      (
+        await sessionRequest(
+          auth,
+          "/update-user",
+          { name: "Changed" },
+          cookie,
+          "https://other.invalid",
+        )
+      ).status,
+    ).toBe(403);
+
+    expect(
+      (
+        await sessionRequest(
+          auth,
+          "/update-user",
+          { name: "  Updated  " },
+          cookie,
+        )
+      ).status,
+    ).toBe(200);
+    expect(db.User[0]).toMatchObject({
+      name: "Updated",
+      roleId: "subscriber-role",
+    });
+  });
+
   it("bounds authenticated profile mutations by verified user identity", async () => {
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);

@@ -20,6 +20,7 @@ import {
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
+import AppearanceSettings from "./AppearanceSettings";
 import { useSettingsScreen } from "./SettingsScreen.hooks";
 
 import type { OAuthProviderName } from "@/lib/auth/oauth-providers";
@@ -127,22 +128,22 @@ export default function SettingsScreen() {
   }
 
   return (
-    <form
-      ref={credentialForm}
-      onSubmit={(event) => void saveSettings(event)}
-      className="space-y-6"
+    <AdminPageLayout
+      title="Settings"
+      description="Site name, defaults, and OAuth providers."
     >
-      <Alert message={loadError} status="error" />
-      {loadError && (
-        <Button loading={loading} onClick={() => void retry()}>
-          Retry loading settings
-        </Button>
-      )}
-      <Alert message={error} status="error" />
-      <AdminPageLayout
-        title="Settings"
-        description="Site name, defaults, and OAuth providers."
+      <form
+        ref={credentialForm}
+        onSubmit={(event) => void saveSettings(event)}
+        className="space-y-6"
       >
+        <Alert message={loadError} status="error" />
+        {loadError && (
+          <Button loading={loading} onClick={() => void retry()}>
+            Retry loading settings
+          </Button>
+        )}
+        <Alert message={error} status="error" />
         <fieldset disabled={saving} className="contents">
           <AdminPageColumns
             sidebar={
@@ -422,7 +423,8 @@ export default function SettingsScreen() {
             </Section>
           </AdminPageColumns>
         </fieldset>
-      </AdminPageLayout>
-    </form>
+      </form>
+      <AppearanceSettings />
+    </AdminPageLayout>
   );
 }
