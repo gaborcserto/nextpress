@@ -18,6 +18,7 @@ async function prepareLegacyContent() {
       "Legacy migration fixtures require the disposable E2E database",
     );
   }
+
   const mode = process.argv[2];
   const evidencePath = process.argv[3];
   assert.ok(evidencePath && ["before", "after"].includes(mode ?? ""));
@@ -30,12 +31,14 @@ async function prepareLegacyContent() {
         WHERE table_schema='public' AND table_name IN ('Page','PageRevision')
           AND column_name IN ('pageDocument','workingVersion')`;
       assert.equal(columns[0]?.count, 0);
+
       for (const page of developmentPages) {
         const { content, excerpt } = serializeDevelopmentContent(page);
         await prisma.$executeRaw`
           INSERT INTO "Page" (id,type,status,slug,title,content,excerpt,"publishedAt","updatedAt","inHeaderMenu","inFooterMenu")
           VALUES (${page.id},${page.type}::"PageType",${page.status}::"PublishStatus",${page.slug},${page.title},${content},${excerpt},${page.publishedAt},NOW(),${page.inHeaderMenu ?? false},${page.inFooterMenu ?? false})`;
       }
+
       for (const [id, type, content] of [
         [
           "legacy-slate-page",

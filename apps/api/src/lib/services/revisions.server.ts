@@ -35,7 +35,10 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
     },
   });
 
-  if (!page) throw new ContentNotFoundError();
+  if (!page) {
+    throw new ContentNotFoundError();
+  }
+
   const revisions = await prisma.pageRevision.findMany({
     where: { pageId },
     orderBy: [{ workingVersion: "desc" }, { createdAt: "desc" }],
@@ -60,10 +63,14 @@ export async function saveRevision(
       select: { updatedAt: true },
     });
 
-    if (!current) throw new ContentNotFoundError();
+    if (!current) {
+      throw new ContentNotFoundError();
+    }
+
     const mediaIds = parsed.pageDocument
       ? pageMediaIds(parsed.pageDocument)
       : [];
+
     const mediaCount = await tx.media.count({
       where: {
         id: { in: mediaIds },
@@ -71,13 +78,18 @@ export async function saveRevision(
       },
     });
 
-    if (mediaCount !== mediaIds.length) throw new ContentNotFoundError();
+    if (mediaCount !== mediaIds.length) {
+      throw new ContentNotFoundError();
+    }
+
     const changed = await tx.page.updateMany({
       where: { id: pageId, ...scope, workingVersion: parsed.expectedVersion },
       data: { workingVersion: { increment: 1 }, updatedAt: current.updatedAt },
     });
 
-    if (!changed.count) throw new RevisionConflictError();
+    if (!changed.count) {
+      throw new RevisionConflictError();
+    }
 
     return tx.pageRevision.create({
       data: {
@@ -114,18 +126,24 @@ export async function revisionAction(
       select: { updatedAt: true, status: true, publishedAt: true },
     });
 
-    if (!current) throw new ContentNotFoundError();
+    if (!current) {
+      throw new ContentNotFoundError();
+    }
+
     const revision = await tx.pageRevision.findFirst({
       where: { id: parsed.revisionId, pageId },
     });
 
-    if (!revision) throw new ContentNotFoundError();
+    if (!revision) {
+      throw new ContentNotFoundError();
+    }
 
     if (
       revision.pageDocument &&
       !readPageDocument(revision.pageDocument).supported
-    )
+    ) {
       throw new RevisionConflictError();
+    }
 
     if (parsed.action === "publish") {
       PublicationFieldsSchema.parse(revision);
@@ -136,7 +154,10 @@ export async function revisionAction(
       data: { workingVersion: { increment: 1 }, updatedAt: current.updatedAt },
     });
 
-    if (!changed.count) throw new RevisionConflictError();
+    if (!changed.count) {
+      throw new RevisionConflictError();
+    }
+
     const snapshot = {
       title: revision.title,
       slug: revision.slug,
@@ -160,11 +181,12 @@ export async function revisionAction(
       });
     }
 
-    if (parsed.action === "unpublish")
+    if (parsed.action === "unpublish") {
       return tx.page.update({
         where: { id: pageId },
         data: { status: "DRAFT" },
       });
+    }
 
     return tx.page.update({
       where: { id: pageId },
@@ -187,7 +209,9 @@ export async function previewRevision(
     where: { id: revisionId, pageId },
   });
 
-  if (!revision) throw new ContentNotFoundError();
+  if (!revision) {
+    throw new ContentNotFoundError();
+  }
 
   return revision;
 }

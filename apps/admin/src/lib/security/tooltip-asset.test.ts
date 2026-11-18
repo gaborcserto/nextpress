@@ -21,6 +21,7 @@ describe("tooltip CSP compatibility", () => {
     expect(svg).toContain('viewBox="0 0 8 4"');
     expect(svg).toContain("<path ");
     expect(svg).not.toMatch(/data:|<script|href=/);
+
     for (const production of [false, true]) {
       const policy = adminContentSecurityPolicy("test-nonce", production);
       expect(policy).toContain("img-src 'self'");

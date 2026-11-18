@@ -150,6 +150,7 @@ describe("versioned full snapshot and strict patch", () => {
       DraftPatchSchema.safeParse({ pageDocument: { version: 2, blocks: [] } })
         .success,
     ).toBe(false);
+
     for (const value of [
       { ...snapshot, schemaVersion: 2 },
       {
@@ -175,6 +176,7 @@ describe("versioned full snapshot and strict patch", () => {
         raw,
       });
     }
+
     expect(readEditorialSnapshot("invalid")).toMatchObject({
       supported: false,
       raw: "invalid",
@@ -319,6 +321,7 @@ it("validates bodyless command headers and rejects duplicate/ambiguous numbers",
       "x-nextpress-draft-version": "0",
     }).success,
   ).toBe(true);
+
   for (const value of [
     "-1",
     "01",
@@ -402,6 +405,7 @@ it("retains compatible errors and bounded revision cursors", () => {
   expect(VersionConflictSchema.parse(conflict)).toEqual(conflict);
   expect(ApiErrorSchema.parse(conflict)).toEqual({ error: "Content changed" });
   expect(RevisionPageQuerySchema.parse({})).toEqual({ limit: 25 });
+
   for (const query of [
     { limit: 0 },
     { limit: 101 },

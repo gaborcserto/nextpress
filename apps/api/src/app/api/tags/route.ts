@@ -25,7 +25,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const query = url.searchParams.get("query") ?? "";
 
-  if (query.length > 200) return bad("Search query is too long");
+  if (query.length > 200) {
+    return bad("Search query is too long");
+  }
 
   try {
     const tags = await searchTagsService(query);
@@ -85,7 +87,9 @@ export const DELETE = withAuth(
     const url = new URL(req.url);
     const id = url.searchParams.get("id") ?? "";
 
-    if (id.trim().length > 64) return bad("Invalid tag ID");
+    if (id.trim().length > 64) {
+      return bad("Invalid tag ID");
+    }
 
     try {
       await deleteTagService(id);

@@ -16,6 +16,7 @@ export async function generateMetadata({ searchParams }: PostsPageProps) {
     getPublicSiteSettings(),
     getLocale(),
   ]);
+
   const page = parsePostsPage(query.page, settings.postsPerPage);
 
   return contentMetadata(
@@ -34,6 +35,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const { page: pageParam } = await searchParams;
   const settings = await getPublicSiteSettings();
   const page = parsePostsPage(pageParam, settings.postsPerPage);
+
   const { posts, hasMore } = await getPublishedPosts({
     limit: settings.postsPerPage,
     offset: (page - 1) * settings.postsPerPage,

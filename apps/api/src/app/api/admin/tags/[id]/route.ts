@@ -18,9 +18,13 @@ export const DELETE = withAuth(
     } catch (err) {
       console.error("DELETE /api/admin/tags/[id] failed");
 
-      if (err instanceof ValidationError) return bad(err.message);
+      if (err instanceof ValidationError) {
+        return bad(err.message);
+      }
 
-      if (err instanceof NotFoundError) return notfound(err.message);
+      if (err instanceof NotFoundError) {
+        return notfound(err.message);
+      }
 
       return oops(err);
     }

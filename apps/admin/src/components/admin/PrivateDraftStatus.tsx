@@ -145,6 +145,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       } else {
         await draft.reload();
       }
+
       setConfirmation(null);
     } catch {
       setError(

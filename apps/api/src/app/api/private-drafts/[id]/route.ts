@@ -89,6 +89,7 @@ export const GET = withAuth(
     try {
       await requirePrivateDraftAdmission(prisma);
       const id = idSchema.parse(params.id);
+
       const draft = await loadWorkingAggregate(prisma, id, session.user, {
         includeSourceMetadata: true,
       });
@@ -113,7 +114,9 @@ export const PUT = withAuth(
       } catch {
         return bad("Invalid JSON");
       }
+
       const command = requestSchema.parse(input);
+
       const draft = await saveWorkingAggregate(
         prisma,
         { ...command, pageId },

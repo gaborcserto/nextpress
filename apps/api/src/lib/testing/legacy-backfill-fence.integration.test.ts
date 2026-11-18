@@ -47,8 +47,10 @@ async function waitForBlockedGate() {
     if (row?.waiting) {
       return;
     }
+
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
+
   throw new Error("Expected a database-blocked coordination attempt");
 }
 
@@ -168,6 +170,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
           });
         }
       }
+
       expect(
         await db.contentRevision.count({ where: { pageId: page.id } }),
       ).toBe(1);
@@ -377,6 +380,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
       );
       await fence.releaseBackfillOwnership(db, ownership);
     }
+
     await db.page.update({
       where: { id: page.id },
       data: { title: "Legacy resumed" },
@@ -440,6 +444,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     } finally {
       await db.$executeRaw`UPDATE "_prisma_migrations" SET rolled_back_at=NULL WHERE migration_name='20261116160000_legacy_writer_ownership'`;
     }
+
     await db.$executeRawUnsafe(
       'ALTER TABLE "PageMedia" DISABLE TRIGGER legacy_backfill_guard',
     );
@@ -453,6 +458,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
         'ALTER TABLE "PageMedia" ENABLE ALWAYS TRIGGER legacy_backfill_guard',
       );
     }
+
     await db.$executeRawUnsafe(
       'REVOKE INSERT ON "ContentDraft" FROM CURRENT_USER',
     );
@@ -569,6 +575,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
 
   it("protects targets after import and allows ordinary writers after explicit release", async () => {
     const page = await seed("references");
+
     const media = await db.media.create({
       data: { id: prefix + "target", url: "/synthetic", mime: "image/png" },
     });
@@ -587,6 +594,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     } finally {
       await fence.releaseBackfillOwnership(db, ownership);
     }
+
     try {
       await expect(
         client.query('DELETE FROM "Media" WHERE id=$1', [media.id]),
@@ -607,6 +615,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
 
   it("has one durable owner and rejects stale tokens after release, expiry and takeover", async () => {
     const page = await seed("ownership");
+
     const outcomes = await Promise.allSettled([
       fence.acquireBackfillOwnership(db),
       fence.acquireBackfillOwnership(db),
@@ -619,6 +628,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     if (!winner || winner.status !== "fulfilled") {
       throw new Error("Missing owner");
     }
+
     const old = winner.value;
     await fence.releaseBackfillOwnership(db, old);
     const current = await fence.acquireBackfillOwnership(db);
@@ -692,6 +702,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     await db.$executeRawUnsafe(
       `CREATE TRIGGER b053_expire BEFORE INSERT ON "ContentMigrationCheckpoint" FOR EACH ROW EXECUTE FUNCTION b053_expire()`,
     );
+
     try {
       await expect(
         persistence.persistFencedLegacyPage(db, second.id, ownership),
@@ -708,6 +719,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
       );
       await db.$executeRawUnsafe(`DROP FUNCTION b053_expire()`);
     }
+
     try {
       await fence.renewBackfillOwnership(db, ownership);
       expect(
@@ -722,6 +734,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     await db.$executeRawUnsafe(
       'ALTER TABLE "PageMedia" DISABLE TRIGGER legacy_backfill_guard',
     );
+
     try {
       await expect(fence.acquireBackfillOwnership(db)).rejects.toMatchObject({
         code: "BACKFILL_COORDINATION_UNAVAILABLE",
@@ -735,6 +748,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
 
   it("returns sanitized reference integrity diagnostics and rolls back before retry", async () => {
     const page = await seed("bad-reference");
+
     const media = await db.media.create({
       data: {
         id: prefix + "bad-reference-media",
@@ -753,6 +767,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     await db.$executeRawUnsafe(
       `CREATE TRIGGER b053_bad_reference BEFORE INSERT ON "ContentRevisionMedia" FOR EACH ROW EXECUTE FUNCTION b053_bad_reference()`,
     );
+
     try {
       await expect(
         persistence.persistFencedLegacyPage(db, page.id, ownership),
@@ -769,6 +784,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
       );
       await db.$executeRawUnsafe(`DROP FUNCTION b053_bad_reference()`);
     }
+
     try {
       expect(
         await persistence.persistFencedLegacyPage(db, page.id, ownership),
@@ -781,6 +797,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
   it("rejects a configured identity that disagrees with the connected cluster", async () => {
     const original = process.env.NEXTPRESS_BACKFILL_CLUSTER_ID;
     process.env.NEXTPRESS_BACKFILL_CLUSTER_ID = "1";
+
     try {
       await expect(fence.acquireBackfillOwnership(db)).rejects.toMatchObject({
         code: "BACKFILL_IDENTITY_MISMATCH",
@@ -812,6 +829,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     try {
       await waitForBlockedGate();
       releasing = fence.releaseBackfillOwnership(db, ownership);
+
       for (let attempt = 0; attempt < 100; attempt++) {
         const [row] = await db.$queryRaw<
           { count: number }[]
@@ -824,8 +842,10 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
         if (attempt === 99) {
           throw new Error("Release did not wait for the committing worker");
         }
+
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
+
       await blocker.query("SELECT pg_advisory_unlock(71520260504::bigint)");
       expect(await writing).toBe("created");
       await releasing;
@@ -841,6 +861,7 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
       } else {
         await fence.releaseBackfillOwnership(db, ownership);
       }
+
       await blocker.end();
       await db.$executeRawUnsafe(
         `DROP TRIGGER b053_pause ON "ContentMigrationCheckpoint"`,

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+
   if ([...params.keys()].some((key) => params.getAll(key).length !== 1)) {
     return bad("Invalid search parameters");
   }
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   const parsed = PublicSearchQuerySchema.strict().safeParse(
     Object.fromEntries(params),
   );
+
   if (!parsed.success) {
     return bad("Invalid search parameters");
   }
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
       PublicSearchResultSchema.parse(await searchPublishedContent(parsed.data)),
     );
     response.headers.set("Cache-Control", "no-store");
+
     return response;
   } catch {
     return oops();

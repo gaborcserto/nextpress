@@ -14,6 +14,7 @@ export function safeCallbackUrl(raw?: string | null): string {
   ) {
     return DEFAULT_CALLBACK;
   }
+
   try {
     const trimmed = raw.trim();
     const boundary = trimmed.search(/[?#]/);
@@ -32,6 +33,7 @@ export function safeCallbackUrl(raw?: string | null): string {
     ) {
       return DEFAULT_CALLBACK;
     }
+
     const url = new URL(decoded + suffix, LOCAL_ORIGIN);
 
     // URL parsing normalizes dot segments before checking the route boundary.

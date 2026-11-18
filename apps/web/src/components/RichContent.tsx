@@ -15,15 +15,25 @@ const headings = { 2: "h2", 3: "h3", 4: "h4", 5: "h5", 6: "h6" } as const;
 function renderText(leaf: RichText): ReactNode {
   let text: ReactNode = leaf.text;
 
-  if (leaf.code) text = <code>{text}</code>;
+  if (leaf.code) {
+    text = <code>{text}</code>;
+  }
 
-  if (leaf.bold) text = <strong>{text}</strong>;
+  if (leaf.bold) {
+    text = <strong>{text}</strong>;
+  }
 
-  if (leaf.italic) text = <em>{text}</em>;
+  if (leaf.italic) {
+    text = <em>{text}</em>;
+  }
 
-  if (leaf.underline) text = <u>{text}</u>;
+  if (leaf.underline) {
+    text = <u>{text}</u>;
+  }
 
-  if (leaf.strikethrough) text = <s>{text}</s>;
+  if (leaf.strikethrough) {
+    text = <s>{text}</s>;
+  }
 
   return text;
 }

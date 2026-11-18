@@ -94,8 +94,12 @@ function projectPublicCover(
 }
 
 function projectPublicContent(row: PublicContentRow): PublicContent {
-  if (!row.publishedAt) throw new Error("Missing publication time");
+  if (!row.publishedAt) {
+    throw new Error("Missing publication time");
+  }
+
   const document = row.pageDocument ? readPageDocument(row.pageDocument) : null;
+
   return {
     ...(row.pageDocument
       ? { pageDocument: document?.supported ? document.document : null }
@@ -118,7 +122,10 @@ function projectPublicContent(row: PublicContentRow): PublicContent {
 function projectPublicPostSummary(
   row: PublicPostSummaryRow,
 ): PublicPostSummary {
-  if (!row.publishedAt) throw new Error("Missing publication time");
+  if (!row.publishedAt) {
+    throw new Error("Missing publication time");
+  }
+
   return {
     cover: projectPublicCover(row.cover),
     slug: row.slug,
@@ -138,8 +145,10 @@ function projectPublicPostSummary(
 export async function getPublishedPost(
   slug: string,
 ): Promise<PublicPublishedPost | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim())
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) {
     return null;
+  }
+
   const row = await prisma.page.findFirst({
     where: {
       slug,
@@ -149,7 +158,11 @@ export async function getPublishedPost(
     },
     select: publicContentSelect,
   });
-  if (!row?.publishedAt) return null;
+
+  if (!row?.publishedAt) {
+    return null;
+  }
+
   return {
     ...projectPublicContent(row),
     publishedAt: row.publishedAt.toISOString(),
@@ -160,8 +173,10 @@ export async function getPublishedPost(
 export async function getPublishedPage(
   slug: string,
 ): Promise<PublicPublishedPage | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim())
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) {
     return null;
+  }
+
   const row = await prisma.page.findFirst({
     where: {
       slug,
@@ -171,7 +186,11 @@ export async function getPublishedPage(
     },
     select: publicContentSelect,
   });
-  if (!row?.publishedAt) return null;
+
+  if (!row?.publishedAt) {
+    return null;
+  }
+
   return {
     ...projectPublicContent(row),
     publishedAt: row.publishedAt.toISOString(),
@@ -191,10 +210,12 @@ export async function getPublicPageNavigation(): Promise<PublicPageNavigation> {
     orderBy: [{ title: "asc" }, { slug: "asc" }],
     select: publicPageNavigationSelect,
   });
+
   const project = ({ slug, title }: PublicPageNavigationRow) => ({
     slug,
     title,
   });
+
   return {
     header: rows.filter(({ inHeaderMenu }) => inHeaderMenu).map(project),
     footer: rows.filter(({ inFooterMenu }) => inFooterMenu).map(project),
@@ -217,6 +238,7 @@ export async function getPublishedPosts({
   const skip = Number.isFinite(offset)
     ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
     : 0;
+
   const rows = await prisma.page.findMany({
     where: {
       ...(taxonomy
@@ -235,7 +257,9 @@ export async function getPublishedPosts({
     take: boundedLimit + 1,
     select: publicPostSummarySelect,
   });
+
   const hasMore = rows.length > boundedLimit;
+
   return {
     posts: rows.slice(0, boundedLimit).map(projectPublicPostSummary),
     hasMore,
@@ -284,6 +308,7 @@ export async function getPublishedTags({
   const skip = Number.isFinite(offset)
     ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
     : 0;
+
   const rows = await prisma.taxonomy.findMany({
     where: {
       type: "TAG",

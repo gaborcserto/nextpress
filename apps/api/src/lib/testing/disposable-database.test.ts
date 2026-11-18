@@ -92,6 +92,7 @@ it("rejects recovery, privileged roles, memberships, foreign grants and writable
   };
   expect(() => verifyConnectedIdentity(manifest, identity)).not.toThrow();
   expect(() => verifyConnectedIdentity(manifest, undefined)).toThrow();
+
   for (const field of [
     "recovery",
     "privileged",
@@ -102,6 +103,7 @@ it("rejects recovery, privileged roles, memberships, foreign grants and writable
       verifyConnectedIdentity(manifest, { ...identity, [field]: true }),
     ).toThrow();
   }
+
   expect(() =>
     verifyConnectedIdentity(manifest, {
       ...identity,
@@ -240,6 +242,7 @@ it("cleans only owned provisioning resources even when startup fails", () => {
   expect(() =>
     verifyDockerEvidence(manifest, target.container, target.network),
   ).toThrow();
+
   for (const field of ["container", "network", "image", "run"] as const) {
     expect(() =>
       verifyProvisioningCleanup(
@@ -249,6 +252,7 @@ it("cleans only owned provisioning resources even when startup fails", () => {
       ),
     ).toThrow();
   }
+
   target.network[0]!.Containers.other = {};
   expect(() =>
     verifyProvisioningCleanup(manifest, target.container, target.network),

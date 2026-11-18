@@ -33,7 +33,9 @@ function colorClass(
   variant: "toggle" | "checkbox",
   color?: ToggleProps["color"],
 ) {
-  if (!color || color === "default") return "";
+  if (!color || color === "default") {
+    return "";
+  }
 
   return variant === "checkbox" ? `checkbox-${color}` : `toggle-${color}`;
 }

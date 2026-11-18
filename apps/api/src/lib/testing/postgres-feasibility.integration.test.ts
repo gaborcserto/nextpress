@@ -107,6 +107,7 @@ describe.skipIf(!url)(
       } finally {
         release.release();
       }
+
       await rejected;
       expect(
         await db.$queryRaw`SELECT pg_try_advisory_xact_lock(404041) AS acquired`,
@@ -203,6 +204,7 @@ describe.skipIf(!url)(
           ),
         ).rejects.toThrow();
       }
+
       for (const replacement of [
         "cms",
         "wrong",
@@ -224,10 +226,12 @@ describe.skipIf(!url)(
         } else {
           changed.pathname = `/${replacement}`;
         }
+
         expect(() =>
           disposableDatabaseName(url, changed.toString(), "content"),
         ).toThrow();
       }
+
       const privilegedUrl = new URL(url ?? "");
       privilegedUrl.username = "b04_provisioner";
 
@@ -242,6 +246,7 @@ describe.skipIf(!url)(
       } finally {
         vi.unstubAllEnvs();
       }
+
       await verifyDisposableDatabase(
         disposableDatabaseName(url, process.env.DATABASE_URL, "content"),
         db,

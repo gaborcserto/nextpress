@@ -12,7 +12,9 @@ export async function administerUser(
   userId: string,
   role: RoleName | null,
 ) {
-  if (actor.role !== "ADMIN") throw new Error("Forbidden");
+  if (actor.role !== "ADMIN") {
+    throw new Error("Forbidden");
+  }
 
   return prisma.$transaction(async (tx) => {
     // Serialize demotion/deletion across processes before counting administrators.
@@ -27,7 +29,9 @@ export async function administerUser(
         where: { role: { name: "ADMIN" } },
       });
 
-      if (administrators <= 1) throw new LastAdministratorError();
+      if (administrators <= 1) {
+        throw new LastAdministratorError();
+      }
     }
 
     if (role === null) {

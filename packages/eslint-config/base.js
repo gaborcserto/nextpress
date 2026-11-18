@@ -62,23 +62,48 @@ export function createBaseConfig({ registerPlugins = true } = {}) {
     },
   };
 
-  if (registerPlugins) javascriptConfig.plugins = { import: importPlugin };
+  if (registerPlugins) {
+    javascriptConfig.plugins = { import: importPlugin };
+  }
 
   return [
-    { ignores: ["coverage/**"] },
+    {
+      ignores: [
+        "**/.next/**",
+        "**/.next-e2e/**",
+        "**/build/**",
+        "**/coverage/**",
+        "**/dist/**",
+        "**/generated/**",
+        "**/migrations/**",
+        "**/vendor/**",
+        "**/*.min.*",
+        "**/.notes/**",
+        "**/.references/**",
+      ],
+    },
     {
       files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
 
       rules: {
         ...js.configs.recommended.rules,
+        curly: ["error", "all"],
       },
     },
     {
       files: ["**/*.{js,mjs,cjs}"],
       languageOptions: { globals: globals.node },
     },
+    {
+      files: ["**/*.jsx"],
+      languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+    },
     ...turboConfig,
     javascriptConfig,
+    {
+      files: ["**/*.cjs"],
+      plugins: { import: importPlugin },
+    },
     typescriptConfig,
     {
       ...typescriptConfig,

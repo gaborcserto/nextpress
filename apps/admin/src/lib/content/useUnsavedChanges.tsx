@@ -10,6 +10,7 @@ function stableValue(value: unknown, cache: WeakMap<object, string>): string {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value) ?? "null";
   }
+
   const previous = cache.get(value);
 
   if (previous !== undefined) {
@@ -41,6 +42,7 @@ function stableValue(value: unknown, cache: WeakMap<object, string>): string {
         nodes.push(item);
       }
     }
+
     result = `[${nodes.map((item) => stableValue(item, cache)).join(",")}]`;
   } else {
     result = `{${Object.entries(value)
@@ -71,6 +73,7 @@ function stableValue(value: unknown, cache: WeakMap<object, string>): string {
       })
       .join(",")}}`;
   }
+
   cache.set(value, result);
 
   return result;
@@ -109,6 +112,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
     if (destination.current) {
       return;
     }
+
     destination.current = action;
     setOpen(true);
   };
@@ -122,6 +126,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
       if (leaving.current) {
         return;
       }
+
       event.preventDefault();
       event.returnValue = "";
     };
@@ -137,6 +142,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
       ) {
         return;
       }
+
       const anchor =
         event.target instanceof Element
           ? event.target.closest("a[href]")
@@ -149,6 +155,7 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
       ) {
         return;
       }
+
       const url = new URL(anchor.href);
 
       if (
@@ -157,12 +164,14 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
       ) {
         return;
       }
+
       event.preventDefault();
       event.stopPropagation();
 
       if (destination.current) {
         return;
       }
+
       destination.current = () =>
         router.push(url.pathname + url.search + url.hash);
       setOpen(true);

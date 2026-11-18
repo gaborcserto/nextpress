@@ -12,6 +12,7 @@
   "ignorePatterns": [
     "**/node_modules/**",
     "**/.next/**",
+    "**/.next-e2e/**",
     "**/dist/**",
     "**/build/**",
     "**/coverage/**",

@@ -71,6 +71,7 @@ export function LoadMorePostList({
     if (loading || !canLoadMore) {
       return;
     }
+
     const startedWithButtonFocus = document.activeElement === buttonRef.current;
 
     setLoading(true);
@@ -85,6 +86,7 @@ export function LoadMorePostList({
 
         return;
       }
+
       setPosts((current) => {
         const knownSlugs = new Set(current.map(({ slug }) => slug));
 
@@ -103,6 +105,7 @@ export function LoadMorePostList({
       ) {
         navigationRef.current?.focus();
       }
+
       setHasMore(batch.hasMore);
       window.history.pushState(null, "", fallbackHref);
 

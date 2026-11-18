@@ -49,9 +49,11 @@ test("upgraded legacy pages and posts open and save without composition or revis
     ["posts", "dev-seed-post-structured-content"],
   ]) {
     const endpoint = kind === "pages" ? "pages" : "post";
+
     const before = await (
       await page.request.get(`/api/${endpoint}/${id}`)
     ).json();
+
     const revisions = await page.request.get(`/api/pages/${id}/revisions`);
     expect(revisions.status()).toBe(200);
     expect(await revisions.json()).toMatchObject({
@@ -88,8 +90,10 @@ test("upgraded legacy pages and posts open and save without composition or revis
     expect(after.item).toMatchObject({ title, workingVersion: 1 });
     expect(after.item.content).toEqual(before.item.content);
 
-    if (kind === "posts")
+    if (kind === "posts") {
       expect(after.item.excerpt).toEqual(before.item.excerpt);
+    }
+
     expect(
       (
         await page.request.put(`/api/${endpoint}/${id}`, {

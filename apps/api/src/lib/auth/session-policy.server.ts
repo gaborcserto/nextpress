@@ -9,19 +9,27 @@ import { resetSuccessfulLogin } from "./abuse-policy.server";
 export const verifyLogout = createAuthMiddleware(async (ctx) => {
   await resetSuccessfulLogin(ctx);
 
-  if (ctx.path !== "/sign-out" || ctx.context.returned instanceof APIError)
+  if (ctx.path !== "/sign-out" || ctx.context.returned instanceof APIError) {
     return;
+  }
+
   const token = await ctx.getSignedCookie(
     ctx.context.authCookies.sessionToken.name,
     ctx.context.secret,
   );
 
-  if (!token) return;
+  if (!token) {
+    return;
+  }
+
   try {
-    if (!(await ctx.context.internalAdapter.findSession(token))) return;
+    if (!(await ctx.context.internalAdapter.findSession(token))) {
+      return;
+    }
   } catch {
     // A failed authoritative read also cannot establish successful logout.
   }
+
   throw new APIError("INTERNAL_SERVER_ERROR", {
     code: "SESSION_REVOCATION_FAILED",
     message: "Logout could not be completed. Please try again.",

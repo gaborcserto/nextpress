@@ -52,6 +52,7 @@ export async function GET(
   ) {
     throw new Error("swagger-ui-dist does not expose its distribution path");
   }
+
   const distributionPath: unknown = swaggerUiDistribution.getAbsoluteFSPath();
 
   if (typeof distributionPath !== "string") {

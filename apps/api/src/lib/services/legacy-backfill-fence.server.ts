@@ -59,6 +59,7 @@ export async function verifyBackfillDatabase(db: PrismaClient) {
   ) {
     throw new BackfillFenceError("BACKFILL_IDENTITY_REQUIRED");
   }
+
   let connection: URL;
 
   try {
@@ -76,6 +77,7 @@ export async function verifyBackfillDatabase(db: PrismaClient) {
   ) {
     throw new BackfillFenceError("BACKFILL_IDENTITY_MISMATCH");
   }
+
   const [identity] = await db.$queryRaw<
     { database: string; cluster: string; role: string; safe: boolean }[]
   >`
@@ -147,6 +149,7 @@ export async function acquireBackfillOwnership(
   return db.$transaction(async (tx) => {
     await lockBackfillDomain(tx);
     const owner = randomUUID();
+
     const rows = await tx.$queryRaw<FenceRow[]>`
       UPDATE "LegacyBackfillFence" SET owner = ${owner}::uuid,
         generation = nextval('"LegacyBackfillFence_generation_seq"'), "expiresAt" = clock_timestamp() + interval '60 seconds'

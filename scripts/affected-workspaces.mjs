@@ -3,14 +3,17 @@ export function selectChanges(
   files,
   { full = false, emptyIsFull = false } = {},
 ) {
-  if (full)
+  if (full) {
     return {
       mode: "full",
       reason: "Full verification requested or change detection unavailable.",
     };
+  }
 
-  if (!files.length)
+  if (!files.length) {
     return { mode: emptyIsFull ? "full" : "none", reason: "No changed files." };
+  }
+
   const directories = new Set();
 
   for (const file of files) {
@@ -18,21 +21,25 @@ export function selectChanges(
       file === "AGENTS.md" ||
       file === "CLAUDE.md" ||
       file.startsWith(".agents/")
-    )
+    ) {
       return {
         mode: "full",
         reason: "Agent instructions or resources changed.",
       };
+    }
+
     const directory =
       /^(apps\/(?:web|admin|api)|packages\/(?:db|shared|eslint-config))\//.exec(
         file,
       )?.[1];
 
-    if (!directory)
+    if (!directory) {
       return {
         mode: "full",
         reason: `Root configuration or unknown path: ${file}`,
       };
+    }
+
     directories.add(directory);
   }
 

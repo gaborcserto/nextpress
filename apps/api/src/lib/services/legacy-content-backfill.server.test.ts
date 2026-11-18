@@ -188,6 +188,7 @@ describe("legacy historical mapping", () => {
     );
     expect(absent?.state).toBe("pending");
     expect(absent?.edges).toEqual({ media: [], taxonomies: [], pages: [] });
+
     for (const pageDocument of [
       "{broken",
       '{"version":99,"blocks":[]}',
@@ -234,6 +235,7 @@ describe("legacy historical mapping", () => {
     expect(
       mapLegacyRevisionHistory("page", [source], targets, [imported])[0]?.state,
     ).toBe("existing");
+
     for (const change of [
       { sourceHash: "bad" },
       { revisionId: "other" },
@@ -246,6 +248,7 @@ describe("legacy historical mapping", () => {
         ])[0]?.issues,
       ).toContain("HISTORY_IMPORT_CONFLICT");
     }
+
     expect(
       mapLegacyRevisionHistory(
         "page",

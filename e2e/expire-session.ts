@@ -5,8 +5,10 @@ async function expireFixtureSession() {
     url.hostname !== "localhost" ||
     url.port !== "55441" ||
     url.pathname !== "/nextpress_e2e"
-  )
+  ) {
     throw new Error("Session expiry requires the disposable E2E database");
+  }
+
   const { prisma } = await import("@nextpress/db/src/client");
 
   try {

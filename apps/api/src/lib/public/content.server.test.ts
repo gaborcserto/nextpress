@@ -121,6 +121,7 @@ describe("public published content boundary", () => {
             item.publishedAt <= where.publishedAt.lte,
         ) ?? null,
     );
+
     for (const slug of [
       "missing",
       "draft",
@@ -199,6 +200,7 @@ describe("public published content boundary", () => {
             publishedAt: new Date("2025-01-01"),
           },
         ];
+
         return eligible
           .filter(
             (item) =>
@@ -290,6 +292,7 @@ describe("public published content boundary", () => {
             publishedAt: row.publishedAt,
           },
         ];
+
         return (
           records.find(
             (item) =>
@@ -302,6 +305,7 @@ describe("public published content boundary", () => {
         );
       },
     );
+
     for (const slug of [
       "missing",
       "draft",
@@ -356,6 +360,7 @@ describe("public published content boundary", () => {
         expect(args.take).toBe(2);
         expect(args.select).not.toHaveProperty("content");
         expect(args.select).toHaveProperty("cover.select.url", true);
+
         return [published, publishedNext, future, draft]
           .filter(
             (item) =>

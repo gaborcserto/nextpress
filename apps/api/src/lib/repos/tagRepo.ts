@@ -19,13 +19,18 @@ export async function validateTagIds(
 ) {
   const ids = [...new Set(tagIds)];
 
-  if (!ids.length) return;
+  if (!ids.length) {
+    return;
+  }
+
   const tags = await db.taxonomy.findMany({
     where: { id: { in: ids }, type: "TAG" },
     select: { id: true },
   });
 
-  if (tags.length !== ids.length) throw new TaxonomyScopeError();
+  if (tags.length !== ids.length) {
+    throw new TaxonomyScopeError();
+  }
 }
 
 export type TagDto = {
@@ -94,7 +99,9 @@ export async function findTagBySlug(slug: string): Promise<TagDto | null> {
     where: { slug },
   });
 
-  if (!found || found.type !== "TAG") return null;
+  if (!found || found.type !== "TAG") {
+    return null;
+  }
 
   return mapTaxonomyToTagDto(found);
 }
@@ -138,6 +145,7 @@ export async function deleteTagRecord(id: string): Promise<TagDto | null> {
     ) {
       return null;
     }
+
     throw error;
   }
 }
@@ -171,6 +179,7 @@ export async function setTagsForPage(
     for (const id of [...new Set(tagIds)].sort()) {
       await tx.$queryRaw`SELECT id FROM "Taxonomy" WHERE id = ${id} FOR SHARE NOWAIT`;
     }
+
     await validateTagIds(tagIds, tx);
 
     if (!transaction) {
@@ -181,6 +190,7 @@ export async function setTagsForPage(
         data: { workingVersion: { increment: 1 } },
       });
     }
+
     await tx.page.findUniqueOrThrow({
       where: { id: pageId },
       select: { id: true },
@@ -197,8 +207,11 @@ export async function setTagsForPage(
     }
   };
 
-  if (transaction) await replace(transaction);
-  else await prisma.$transaction(replace);
+  if (transaction) {
+    await replace(transaction);
+  } else {
+    await prisma.$transaction(replace);
+  }
 }
 
 /**

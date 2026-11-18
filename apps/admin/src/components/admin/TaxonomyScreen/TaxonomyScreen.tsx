@@ -105,7 +105,10 @@ export default function TaxonomyScreen() {
     name.trim().length > 0 && slug.trim().length > 0 && !creating;
 
   const onCreate = async () => {
-    if (!canCreate || creatingRef.current) return;
+    if (!canCreate || creatingRef.current) {
+      return;
+    }
+
     creatingRef.current = true;
     setCreating(true);
     setError(null);

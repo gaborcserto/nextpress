@@ -54,6 +54,7 @@ describe("Next.js CSP proxy", () => {
     ]) {
       expect(matcher.test(path)).toBe(true);
     }
+
     expect(matcher.test("/_next/static/chunk.js")).toBe(false);
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("NEXT_PUBLIC_BETTER_AUTH_URL", "http://localhost:49101");

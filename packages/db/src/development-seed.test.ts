@@ -34,7 +34,9 @@ describe("development seed persistence", () => {
           ({ slug }) => slug === where.slug,
         );
 
-        if (!taxonomy) throw new Error("Unknown fixture tag");
+        if (!taxonomy) {
+          throw new Error("Unknown fixture tag");
+        }
 
         return { id: taxonomy.id };
       },
@@ -52,6 +54,7 @@ describe("development seed persistence", () => {
       expect(prisma.taxonomy.upsert).toHaveBeenCalledTimes(
         developmentTaxonomies.length * 2,
       );
+
       for (const taxonomy of developmentTaxonomies) {
         expect(prisma.taxonomy.upsert).toHaveBeenCalledWith({
           where: { id: taxonomy.id },
@@ -59,6 +62,7 @@ describe("development seed persistence", () => {
           update: {},
         });
       }
+
       for (const page of developmentPages) {
         expect(prisma.page.upsert).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -66,6 +70,7 @@ describe("development seed persistence", () => {
             update: {},
           }),
         );
+
         for (const slug of page.taxonomies) {
           const taxonomy = developmentTaxonomies.find(
             (tag) => tag.slug === slug,
@@ -79,6 +84,7 @@ describe("development seed persistence", () => {
           });
         }
       }
+
       const associationCount = developmentPages.reduce(
         (count, page) => count + page.taxonomies.length,
         0,

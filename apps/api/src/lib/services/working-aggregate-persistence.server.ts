@@ -45,6 +45,7 @@ function persistenceFailure(error: unknown): never {
   if (failure) {
     throw new WorkingAggregateConflictError(failure);
   }
+
   throw error;
 }
 
@@ -54,6 +55,7 @@ async function lockSource(
   actor: ContentActor,
 ) {
   const scope = contentWriteWhere(actor);
+
   const [policy] = await tx.$queryRaw<{ ready: boolean }[]>`
     SELECT count(*) = 26 AS ready FROM pg_trigger t
     JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -69,6 +71,7 @@ async function lockSource(
   if (!policy?.ready) {
     throw new WorkingAggregateConflictError("WRITER_FENCE_UNAVAILABLE");
   }
+
   // Same shared maintenance gate as the legacy statement guards; never take its exclusive side.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(71520260503::bigint)`;
   const maintenance = await tx.$queryRaw<{ available: boolean }[]>`
@@ -79,12 +82,14 @@ async function lockSource(
   if (maintenance.length !== 1 || !maintenance[0]?.available) {
     throw new WorkingAggregateConflictError("MAINTENANCE_CONFLICT");
   }
+
   const fences = await tx.$queryRaw<{ version: number }[]>`
     SELECT version FROM "NPContentFence" WHERE "pageId" = ${pageId} FOR UPDATE`;
 
   if (fences.length !== 1 || !fences[0]) {
     throw new ContentNotFoundError();
   }
+
   // Legacy writers can already hold a Page/target row before reaching their
   // NOWAIT fence trigger. Never wait in the inverse direction here.
   await tx.$queryRaw`SELECT id FROM "Page" WHERE id = ${pageId} FOR SHARE NOWAIT`;
@@ -119,12 +124,14 @@ async function lockPublicationActor(
       "PUBLICATION_PRIVILEGES_UNAVAILABLE",
     );
   }
+
   const roles = await tx.$queryRaw<{ name: string }[]>`
     SELECT name FROM public.np_lock_publication_actor(${actor.id})`;
 
   if (!roles[0] || roles[0].name !== actor.role) {
     throw new ContentForbiddenError();
   }
+
   contentWriteWhere(actor);
 }
 
@@ -138,6 +145,7 @@ export async function loadWorkingAggregate(
     .$transaction(
       async (tx) => {
         const { source, sourceVersion } = await lockSource(tx, pageId, actor);
+
         const rows = await tx.$queryRaw<unknown[]>`
       SELECT version, "sourceVersion", "requestHash", aggregate FROM "NPWorkingRevision"
       WHERE "pageId" = ${pageId} ORDER BY version DESC LIMIT 1`;
@@ -156,6 +164,7 @@ export async function loadWorkingAggregate(
         ) {
           throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
         }
+
         const tagLabels = options.includeSourceMetadata
           ? await tx.taxonomy.findMany({
               where: {
@@ -214,6 +223,7 @@ export async function loadWorkingAggregate(
                       ) {
                         return false;
                       }
+
                       throw error;
                     }
                   })
@@ -292,11 +302,13 @@ export async function saveWorkingAggregate(
         if (lifecycle) {
           await lockPublicationActor(tx, actor);
         }
+
         const { source, sourceVersion } = await lockSource(
           tx,
           command.pageId,
           actor,
         );
+
         const replay = await tx.$queryRaw<unknown[]>`
       SELECT version, "sourceVersion", "requestHash", aggregate FROM "NPWorkingRevision"
       WHERE "pageId" = ${command.pageId} AND "requestId" = ${command.requestId}::uuid`;
@@ -318,9 +330,11 @@ export async function saveWorkingAggregate(
             aggregate: stored.aggregate,
           };
         }
+
         const rows = await tx.$queryRaw<unknown[]>`
       SELECT version, "sourceVersion", "requestHash", aggregate FROM "NPWorkingRevision"
       WHERE "pageId" = ${command.pageId} ORDER BY version DESC LIMIT 1`;
+
         const current = rows.length
           ? storedSchema.parse(rows[0])
           : {
@@ -344,6 +358,7 @@ export async function saveWorkingAggregate(
         if (command.operation !== "RESET") {
           assertWorkingAggregateBase(current.aggregate, source);
         }
+
         const edited = prepareWorkingAggregateEdit(
           current.aggregate,
           command.edit,
@@ -377,6 +392,7 @@ export async function saveWorkingAggregate(
               "PUBLICATION_COMMAND_CONFLICT",
             );
           }
+
           aggregate = {
             ...aggregate,
             release: {
@@ -394,6 +410,7 @@ export async function saveWorkingAggregate(
           if (aggregate.release?.state !== "PENDING") {
             throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
           }
+
           aggregate = {
             ...aggregate,
             release: { ...aggregate.release, state: "CANCELLED" },
@@ -412,6 +429,7 @@ export async function saveWorkingAggregate(
           ) {
             throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
           }
+
           const pinned = await tx.nPWorkingRevision.findUnique({
             where: {
               pageId_version: {
@@ -424,6 +442,7 @@ export async function saveWorkingAggregate(
           if (!pinned) {
             throw new WorkingAggregateConflictError("SCHEDULE_CONFLICT");
           }
+
           const accepted = WorkingAggregateSchema.parse(pinned.aggregate);
           assertWorkingAggregateBase(accepted, source);
           aggregate = { ...accepted, release };
@@ -443,6 +462,7 @@ export async function saveWorkingAggregate(
           if (!historical) {
             throw new ContentNotFoundError();
           }
+
           const restored = WorkingAggregateSchema.parse(historical.aggregate);
 
           if (
@@ -452,6 +472,7 @@ export async function saveWorkingAggregate(
           ) {
             throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
           }
+
           // Restore content only. Historical base tokens and publication intent
           // must never replace the currently authorized baseline.
           aggregate = WorkingAggregateSchema.parse({
@@ -470,13 +491,16 @@ export async function saveWorkingAggregate(
           if (!historical) {
             throw new ContentNotFoundError();
           }
+
           aggregate = restoreLegacyWorkingAggregate(aggregate, historical);
         }
+
         const revisionId = randomUUID();
         let { edges } = mapEditorialReferenceEdges(
           revisionId,
           aggregate.snapshot,
         );
+
         // Stable table/id order. Retained foreign keys also protect references after commit.
         for (const id of [
           ...new Set(edges.media.map((edge) => edge.mediaId)),
@@ -521,6 +545,7 @@ export async function saveWorkingAggregate(
             throw new WorkingAggregateConflictError("REFERENCE_CONFLICT");
           }
         }
+
         let acceptedSourceVersion = sourceVersion;
 
         if (
@@ -537,6 +562,7 @@ export async function saveWorkingAggregate(
             // Validate the actual projection after capture, restore or pinned selection.
             PublicationFieldsSchema.parse(fields);
           }
+
           let publishedAt = source.publishedAt;
 
           if (
@@ -547,6 +573,7 @@ export async function saveWorkingAggregate(
           ) {
             publishedAt = new Date();
           }
+
           const updated = await tx.page.update({
             where: { id: source.id },
             data: {
@@ -580,6 +607,7 @@ export async function saveWorkingAggregate(
               })),
             });
           }
+
           await tx.pageRevision.create({
             data: {
               pageId: source.id,
@@ -603,6 +631,7 @@ export async function saveWorkingAggregate(
               gallery: true,
             },
           });
+
           const fence = await tx.nPContentFence.findUniqueOrThrow({
             where: { pageId: source.id },
           });
@@ -616,6 +645,7 @@ export async function saveWorkingAggregate(
               state: command.operation === "EXECUTE" ? "EXECUTED" : "CANCELLED",
             };
           }
+
           aggregate = {
             ...baseline,
             ...(unpublish || command.operation === "EXECUTE"
@@ -647,6 +677,7 @@ export async function saveWorkingAggregate(
             },
           });
         }
+
         const version = current.version + 1;
         // Execution may retain a newer private snapshot while publishing its pin.
         // Its existing immutable references remain retained; index the final snapshot.

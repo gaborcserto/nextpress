@@ -78,7 +78,10 @@ test("existing page and post forms create and edit content with Slate preserved"
     await expect(page).toHaveURL(new RegExp(`/admin/${kind}/[^/]+$`));
     const id = new URL(page.url()).pathname.split("/").at(-1);
 
-    if (!id) throw new Error("Missing editorial route identity");
+    if (!id) {
+      throw new Error("Missing editorial route identity");
+    }
+
     await page
       .getByRole("textbox", { name: /^Title/ })
       .fill(`Edited form ${kind}`);
@@ -88,8 +91,9 @@ test("existing page and post forms create and edit content with Slate preserved"
       if (
         request.url().endsWith(`/api/${endpoint}/${id}`) &&
         request.method() === "GET"
-      )
+      ) {
         detailReads.push(request);
+      }
     };
     page.on("request", trackDetailReads);
     const editedResponse = page.waitForResponse(
@@ -205,6 +209,7 @@ test("published posts, pagination and load more use real HTTP settings", async (
     expect(response.status()).toBe(201);
     ContentRecordSchema.parse(await response.json());
   }
+
   const settings = {
     siteName: "Disposable publication",
     siteDescription: "Browser acceptance",
@@ -282,6 +287,7 @@ test("unsaved editors keep safe dialog actions usable at supported viewport widt
     await page
       .getByRole("textbox", { name: /^Title/ })
       .fill("Unsaved viewport fixture");
+
     for (const width of [320, 375, 390, 768, 1024, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -301,6 +307,7 @@ test("unsaved editors keep safe dialog actions usable at supported viewport widt
         "Unsaved viewport fixture",
       );
     }
+
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("button", { name: "Discard and leave" }).click();
   }

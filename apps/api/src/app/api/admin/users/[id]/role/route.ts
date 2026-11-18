@@ -11,8 +11,10 @@ import {
 export const PATCH = withAuth(
   ["ADMIN"],
   async (_req, ctx, auth) => {
-    if (!ctx.params.id || ctx.params.id.length > 64)
+    if (!ctx.params.id || ctx.params.id.length > 64) {
       return bad("Invalid user ID");
+    }
+
     let body: unknown;
 
     try {
@@ -26,7 +28,9 @@ export const PATCH = withAuth(
         ? body.role
         : undefined;
 
-    if (!isRole(role)) return bad("Invalid role");
+    if (!isRole(role)) {
+      return bad("Invalid role");
+    }
 
     try {
       const updated = await administerUser(
@@ -35,7 +39,10 @@ export const PATCH = withAuth(
         role,
       );
 
-      if (!updated) return oops();
+      if (!updated) {
+        return oops();
+      }
+
       console.info(
         JSON.stringify({
           event: "user.role.changed",
@@ -47,16 +54,19 @@ export const PATCH = withAuth(
 
       return ok({ id: updated.id, roleName: updated.role?.name ?? null });
     } catch (e) {
-      if (e instanceof LastAdministratorError)
+      if (e instanceof LastAdministratorError) {
         return conflict("At least one administrator is required");
+      }
 
       if (
         typeof e === "object" &&
         e !== null &&
         "code" in e &&
         e.code === "P2025"
-      )
+      ) {
         return notfound("User not found");
+      }
+
       console.error("PATCH /api/admin/users/:id/role failed");
 
       return oops(e);

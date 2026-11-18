@@ -20,8 +20,9 @@ export default function SwaggerUiLoader({
           mount.dataset.swaggerMounted === "true" ||
           mount.dataset.swaggerLoading === "true" ||
           !window.SwaggerUIBundle
-        )
+        ) {
           return;
+        }
 
         mount.dataset.swaggerLoading = "true";
         const stylesheet = document.createElement("link");

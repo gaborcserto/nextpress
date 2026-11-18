@@ -62,6 +62,7 @@ it.each(["", "better-auth.session_token=admin-cookie"])(
     const req = new Request("http://localhost/api/public/posts", {
       headers: { cookie },
     });
+
     for (const handler of [post, page]) {
       const response = await handler(req, {
         params: Promise.resolve({ slug: "published" }),
@@ -72,6 +73,7 @@ it.each(["", "better-auth.session_token=admin-cookie"])(
       expect(PublicContentSchema.safeParse(payload).success).toBe(true);
       expect(JSON.stringify(payload)).not.toContain("secret-");
     }
+
     expect(
       PublicPostBatchSchema.safeParse(await (await posts(req)).json()).success,
     ).toBe(true);

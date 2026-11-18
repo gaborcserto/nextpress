@@ -24,7 +24,9 @@ export function ForgotPasswordForm() {
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
 
-    if (submissionLock.current || sent) return;
+    if (submissionLock.current || sent) {
+      return;
+    }
 
     const parsed = forgotPasswordSchema.safeParse({ email });
 
@@ -37,6 +39,7 @@ export function ForgotPasswordForm() {
     submissionLock.current = true;
     setLoading(true);
     setFormError(null);
+
     try {
       const { error } = await requestPasswordReset({
         email: parsed.data.email,
@@ -50,6 +53,7 @@ export function ForgotPasswordForm() {
 
         return;
       }
+
       setSent(true);
     } catch {
       setFormError(

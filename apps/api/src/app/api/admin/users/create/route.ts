@@ -49,12 +49,16 @@ export const POST = withAuth(
       return bad("Invalid password");
     }
 
-    if (input.role !== undefined && !isRole(input.role))
+    if (input.role !== undefined && !isRole(input.role)) {
       return bad("Invalid role");
+    }
 
     const parsedEmail = emailSchema.safeParse(input.email);
 
-    if (!parsedEmail.success) return bad("Invalid email");
+    if (!parsedEmail.success) {
+      return bad("Invalid email");
+    }
+
     const email = parsedEmail.data;
 
     if (typeof input.name === "string" && input.name.length > 200) {
@@ -64,10 +68,11 @@ export const POST = withAuth(
     if (input.password !== undefined) {
       const parsedPassword = passwordSchema.safeParse(input.password);
 
-      if (!parsedPassword.success)
+      if (!parsedPassword.success) {
         return bad(
           parsedPassword.error.issues[0]?.message ?? "Invalid password",
         );
+      }
     }
 
     const body: Body = {
@@ -83,7 +88,9 @@ export const POST = withAuth(
         select: { id: true },
       });
 
-      if (existing) return conflict("Email already exists");
+      if (existing) {
+        return conflict("Email already exists");
+      }
 
       const id = randomUUID();
       let password: string | undefined;
@@ -93,6 +100,7 @@ export const POST = withAuth(
         const context = await auth.$context;
         password = await context.password.hash(body.password);
       }
+
       // Atomic provisioning using Better Auth's mapped account contract:
       // providerId=credential, accountId=user.id, and the configured hash function.
       const user = await prisma.user.create({
@@ -121,8 +129,10 @@ export const POST = withAuth(
 
       return ok({ ...user, roleName: user.role?.name ?? null }, 201);
     } catch (error) {
-      if (error instanceof APIError && error.statusCode === 429)
+      if (error instanceof APIError && error.statusCode === 429) {
         return tooManyRequests(1);
+      }
+
       console.error("POST /api/admin/users/create failed");
 
       return oops(error);

@@ -21,22 +21,31 @@ export function inspectFiles(
 
   for (const file of [...new Set(files)]) {
     const normalized = file.replaceAll("\\", "/");
+    const absolute = path.resolve(cwd, file);
 
     if (
       !/\.[cm]?[jt]sx?$/.test(normalized) ||
-      /(^|\/)(node_modules|\.next|dist|build|coverage|generated|vendor|migrations|public|\.notes|\.references)\//.test(
+      /(^|\/)(node_modules|\.next(?:-e2e)?|dist|build|coverage|generated|vendor|migrations|\.notes|\.references)\//.test(
         normalized,
-      )
-    )
+      ) ||
+      /\/apps\/[^/]+\/public\//.test(absolute.replaceAll("\\", "/")) ||
+      /\.min\.[^.]+$/.test(normalized)
+    ) {
       continue;
-    const absolute = path.resolve(cwd, file);
+    }
 
     try {
-      if (!statSync(absolute).isFile()) continue;
+      if (!statSync(absolute).isFile()) {
+        continue;
+      }
     } catch (error) {
-      if (error.code === "ENOENT") continue;
+      if (error.code === "ENOENT") {
+        continue;
+      }
+
       throw error;
     }
+
     inspected++;
     const text = readFileSync(absolute, "utf8");
 
@@ -44,16 +53,20 @@ export function inspectFiles(
       const gaps = boundaries(text, file);
       violations += gaps.length;
 
-      if (gaps.length) filesWithViolations++;
+      if (gaps.length) {
+        filesWithViolations++;
+      }
 
-      if (write && gaps.length) writeFileSync(absolute, format(text, file));
-      else if (verbose)
+      if (write && gaps.length) {
+        writeFileSync(absolute, format(text, file));
+      } else if (verbose) {
         for (const gap of gaps) {
           const line = text.slice(0, gap.end).split("\n").length;
           log(
             `${file}:${line}: readability/spacing: Expected one blank line at this boundary. Run node scripts/readability.mjs --write --files "${file}" then Oxfmt.`,
           );
         }
+      }
     } catch (error) {
       errors++;
       log(
@@ -61,14 +74,16 @@ export function inspectFiles(
       );
     }
   }
+
   log(
     `Inspected ${inspected} source files; ${violations} readability violations in ${filesWithViolations} files${write ? " repaired" : ""}; ${errors} parse errors.`,
   );
 
-  if (violations && !write)
+  if (violations && !write) {
     log(
       "Autofix: node scripts/readability.mjs --write (then npm run format:changed). Details: node scripts/readability.mjs --verbose",
     );
+  }
 
   return { inspected, filesWithViolations, violations, errors };
 }
@@ -81,10 +96,12 @@ function main() {
   if (
     options.some((arg) => !["--write", "--verbose"].includes(arg)) ||
     (explicit !== -1 && !args.slice(explicit + 1).length)
-  )
+  ) {
     throw new Error(
       "Usage: readability.mjs [--write] [--verbose] [--files paths...]",
     );
+  }
+
   const files =
     explicit === -1
       ? execFileSync(
@@ -93,6 +110,7 @@ function main() {
           { encoding: "utf8" },
         ).split("\0")
       : args.slice(explicit + 1);
+
   const result = inspectFiles(files, {
     write: options.includes("--write"),
     verbose: options.includes("--verbose"),
@@ -103,5 +121,9 @@ function main() {
       : 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
+}

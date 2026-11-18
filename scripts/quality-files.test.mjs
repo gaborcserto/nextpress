@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  globSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -47,7 +48,10 @@ function runGitHook({ cwd, env = process.env, timeoutMs = 120_000 }) {
           stdio: "ignore",
           timeout: 5000,
         });
-      } else if (child.pid) process.kill(-child.pid, "SIGKILL");
+      } else if (child.pid) {
+        process.kill(-child.pid, "SIGKILL");
+      }
+
       child.stdout.destroy();
       child.stderr.destroy();
       reject(
@@ -100,8 +104,10 @@ test("formatter rejects drift, writes only selected paths with spaces, ignores g
   const cwd = fixture(t);
   const source = "export const value={a:1}\n";
 
-  for (const file of ["selected file.ts", "untouched.ts"])
+  for (const file of ["selected file.ts", "untouched.ts"]) {
     writeFileSync(path.join(cwd, file), source);
+  }
+
   mkdirSync(path.join(cwd, "generated"));
   writeFileSync(path.join(cwd, "generated/client.ts"), source);
   assert.throws(
@@ -146,7 +152,9 @@ test("staged runner uses owning configs across React, server, shared and root fi
       path.join(cwd, workspace, "eslint.config.mjs"),
     );
   }
+
   mkdirSync(path.join(cwd, "scripts"));
+
   for (const name of [
     "check-staged.mjs",
     "test-readability.mjs",
@@ -154,11 +162,13 @@ test("staged runner uses owning configs across React, server, shared and root fi
     "readability.mjs",
     "readability-core.mjs",
     "readability.test.mjs",
-  ])
+  ]) {
     copyFileSync(
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
     );
+  }
+
   symlinkSync(
     path.join(root, "node_modules"),
     path.join(cwd, "node_modules"),
@@ -179,9 +189,12 @@ test("staged runner uses owning configs across React, server, shared and root fi
     mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
     let source = "export const example={value:1}\n";
 
-    if (file.includes("generated/")) source = generatedSource;
-    else if (file.endsWith(".tsx"))
+    if (file.includes("generated/")) {
+      source = generatedSource;
+    } else if (file.endsWith(".tsx")) {
       source = "export const example=<div>Example</div>\n";
+    }
+
     writeFileSync(path.join(cwd, file), source);
   }
 
@@ -212,6 +225,7 @@ test("staged runner uses owning configs across React, server, shared and root fi
     readFileSync(path.join(cwd, files.at(-1)), "utf8"),
     generatedSource,
   );
+
   for (const file of files.slice(0, -1)) {
     assert.equal(
       readFileSync(path.join(cwd, file), "utf8"),
@@ -231,6 +245,7 @@ test("staged runner uses owning configs across React, server, shared and root fi
       /Staged checks: 1 files processed in \d+\.\d{2}s \(failed\)/,
     );
   }
+
   writeFileSync(path.join(cwd, files[0]), "export const = ;");
   const formatterFailure = run([files[0]]);
   assert.notEqual(formatterFailure.status, 0);
@@ -276,21 +291,24 @@ test("formatter supports required languages and preserves directives, import ord
     assert.equal(twice.code, once.code, file);
     assert.ok(!once.code.includes("\r"), file);
 
-    if (source.startsWith('"use '))
+    if (source.startsWith('"use ')) {
       assert.ok(once.code.startsWith(source.split("\n")[0]));
+    }
 
     if (file === "page.tsx") {
       assert.ok(once.code.indexOf('from "z"') < once.code.indexOf('from "a"'));
       assert.ok(once.code.includes("Hello world"));
     }
 
-    if (file === "layout.tsx")
+    if (file === "layout.tsx") {
       assert.ok(
         once.code.indexOf('"./z.css"') < once.code.indexOf('"./a.css"'),
       );
+    }
 
-    if (file === "package.json")
+    if (file === "package.json") {
       assert.ok(once.code.indexOf('"version"') < once.code.indexOf('"name"'));
+    }
   }
 });
 
@@ -311,6 +329,7 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
       workspace === "."
         ? "missingGlobal();\nconst unused = 1;\n"
         : "export const value: any = 1;\nconst unused = 1;\n";
+
     const [result] = await eslint.lintText(source, { filePath: file });
     assert.ok(result.errorCount > 0, workspace);
 
@@ -363,8 +382,88 @@ test("effective configs enforce quality, imports, hooks and preserve boundaries"
       );
     }
 
-    if (workspace === "apps/web" || workspace === "packages/shared")
+    if (workspace === "apps/web" || workspace === "packages/shared") {
       assert.equal(effective.rules["no-restricted-imports"][0], 2);
+    }
+  }
+});
+
+test("every workspace runs readability and rejects unbraced control flow in maintained extensions", async () => {
+  const { workspaces } = JSON.parse(
+    readFileSync(path.join(root, "package.json"), "utf8"),
+  );
+  const manifests = globSync(
+    workspaces.map((pattern) => `${pattern}/package.json`),
+    { cwd: root },
+  ).sort();
+  assert.ok(manifests.length > 0);
+
+  for (const manifest of ["package.json", ...manifests]) {
+    const directory = path.dirname(manifest);
+    const cwd = path.join(root, directory);
+    const eslint = new ESLint({ cwd });
+    const config = await eslint.findConfigFile();
+    assert.equal(path.dirname(config), cwd, manifest);
+
+    if (directory !== ".") {
+      const { scripts } = JSON.parse(
+        readFileSync(path.join(root, manifest), "utf8"),
+      );
+      const readability = path
+        .relative(cwd, path.join(root, "scripts/readability.mjs"))
+        .replaceAll("\\", "/");
+      assert.equal(
+        scripts?.lint,
+        `node ${readability} --verbose && eslint . --max-warnings 0`,
+        manifest,
+      );
+    }
+
+    for (const extension of [
+      "js",
+      "jsx",
+      "mjs",
+      "cjs",
+      "ts",
+      "tsx",
+      "mts",
+      "cts",
+    ]) {
+      const filePath = `src/fixture.${extension}`;
+      const jsx = extension.endsWith("x");
+      const result = jsx ? "<span />" : "null";
+      const source = `function example(items) {
+        if (items.length) return ${result};
+        for (const item of items) if (item) return ${result};
+        return ${result};
+      }
+      example([]);`;
+      const [invalid] = await eslint.lintText(source, { filePath });
+      assert.equal(
+        invalid.messages.filter(
+          ({ ruleId, severity }) => ruleId === "curly" && severity === 2,
+        ).length,
+        3,
+        `${directory}/${filePath}: ${JSON.stringify(invalid.messages)}`,
+      );
+      const [valid] = await eslint.lintText(
+        source
+          .replace(
+            `if (items.length) return ${result};`,
+            `if (items.length) { return ${result}; }`,
+          )
+          .replace(
+            `for (const item of items) if (item) return ${result};`,
+            `for (const item of items) { if (item) { return ${result}; } }`,
+          ),
+        { filePath },
+      );
+      assert.equal(
+        valid.errorCount,
+        0,
+        `${directory}/${filePath}: ${JSON.stringify(valid.messages)}`,
+      );
+    }
   }
 });
 
@@ -386,6 +485,7 @@ test("admin UI modules cannot import their own umbrella but local and narrow pub
         `${section}${suffix}`,
       );
     }
+
     for (const source of ["./Example.types", `@/ui/${section}/OtherModule`]) {
       const [result] = await eslint.lintText(
         `export { Example } from "${source}";`,
@@ -394,6 +494,7 @@ test("admin UI modules cannot import their own umbrella but local and narrow pub
       assert.equal(result.errorCount, 0, `${filePath}: ${source}`);
     }
   }
+
   const [consumer] = await eslint.lintText(
     'export { EmailField } from "@/ui/components";',
     { filePath: "src/components/auth/Example.ts" },
@@ -412,6 +513,7 @@ test("admin UI modules cannot import their own umbrella but local and narrow pub
     );
     assert.equal(result.errorCount, 0, source);
   }
+
   const [boundary] = await web.lintText(
     'export { Example } from "admin/private";',
     { filePath: "src/components/public-content/Example.ts" },
@@ -447,15 +549,17 @@ test("invalid revisions and implicit full writes fail without touching files", (
 test("CI selection runs on a clean checkout without installed dependencies", (t) => {
   const cwd = fixture(t);
   mkdirSync(path.join(cwd, "scripts"));
+
   for (const name of [
     "check-changed.mjs",
     "affected-workspaces.mjs",
     "quality-files.mjs",
-  ])
+  ]) {
     copyFileSync(
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
     );
+  }
 
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
   git("init", "--quiet");
@@ -528,6 +632,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
     readFileSync(output, "utf8"),
     "should_validate=true\nturbo_filters=--filter=...{./apps/web}\n",
   );
+
   for (const args of [
     ["--format-check", "--ci"],
     ["--format-check", "--files", sourceFile],
@@ -541,6 +646,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
     );
     assert.equal(readFileSync(path.join(cwd, sourceFile), "utf8"), source);
   }
+
   symlinkSync(
     path.join(root, "node_modules"),
     path.join(cwd, "node_modules"),
@@ -560,6 +666,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
 test("local and CI entry points reject committed format drift and base writes leave other files untouched", (t) => {
   const cwd = fixture(t);
   mkdirSync(path.join(cwd, "scripts"));
+
   for (const name of [
     "check-changed.mjs",
     "affected-workspaces.mjs",
@@ -570,6 +677,7 @@ test("local and CI entry points reject committed format drift and base writes le
       path.join(cwd, "scripts", name),
     );
   }
+
   symlinkSync(
     path.join(root, "node_modules"),
     path.join(cwd, "node_modules"),
@@ -641,6 +749,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
 
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
   mkdirSync(path.join(cwd, "scripts"));
+
   for (const name of [
     "check-staged.mjs",
     "test-readability.mjs",
@@ -648,11 +757,13 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     "readability.mjs",
     "readability-core.mjs",
     "readability.test.mjs",
-  ])
+  ]) {
     copyFileSync(
       path.join(root, "scripts", name),
       path.join(cwd, "scripts", name),
     );
+  }
+
   copyFileSync(
     path.join(root, "lint-staged.config.mjs"),
     path.join(cwd, "lint-staged.config.mjs"),
@@ -729,12 +840,13 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     encoding: "utf8",
     env: plainEnvironment,
   });
+
   const successOutput = success.stdout + success.stderr;
   assert.equal(success.status, 0, successOutput);
   assert.ok(!successOutput.includes("\u001b["));
   const plainOutput = stripVTControlCharacters(successOutput);
-  assert.match(plainOutput, /tests 10/);
-  assert.match(plainOutput, /pass 10/);
+  assert.match(plainOutput, /tests 12/);
+  assert.match(plainOutput, /pass 12/);
   assert.match(plainOutput, /fail 0/);
   assert.equal(
     (
@@ -742,7 +854,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
         /^\u2714 (?:separates|preserves|keeps|rejects) .+ \(.+\)$/gm,
       ) ?? []
     ).length,
-    10,
+    12,
   );
   assert.match(
     plainOutput,
@@ -779,16 +891,18 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   assert.match(readFileSync(file, "utf8"), /debugger;/);
   assert.ok(staged.includes("value: 2"));
   // A lint failure must preserve both the staged version and unrelated worktree edits.
-  writeFileSync(file, "debugger;\n\n// original\n");
+  writeFileSync(file, "if (true) debugger;\n\n// original\n");
   git("add", "file with spaces.mjs");
-  writeFileSync(file, "debugger;\n\n// unrelated unstaged note\n");
+  writeFileSync(file, "if (true) debugger;\n\n// unrelated unstaged note\n");
   const beforeIndex = git("write-tree");
   const beforeWorktree = readFileSync(file, "utf8");
+
   const failure = await runGitHook({
     cwd,
     encoding: "utf8",
   });
   assert.notEqual(failure.status, 0);
+  assert.match(failure.stdout + failure.stderr, /\bcurly\b/);
   assert.equal(git("write-tree"), beforeIndex);
   assert.equal(readFileSync(file, "utf8"), beforeWorktree);
   assert.ok(git("show", ":file with spaces.mjs").includes("debugger;"));
@@ -803,11 +917,12 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     encoding: "utf8",
     env: colorEnvironment,
   });
+
   const colorOutput = colored.stdout + colored.stderr;
   assert.equal(colored.status, 0, stripVTControlCharacters(colorOutput));
   assert.ok(colorOutput.includes("\u001b[32m\u2714 separates function values"));
-  assert.ok(colorOutput.includes("\u001b[34m\u2139 tests 10"));
-  assert.ok(colorOutput.includes("\u001b[34m\u2139 pass 10"));
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 tests 12"));
+  assert.ok(colorOutput.includes("\u001b[34m\u2139 pass 12"));
   const violation =
     "export const ready = true;\nif (ready) console.log(ready);\n";
   writeFileSync(file, violation + "\n// original\n");
@@ -815,6 +930,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(file, violation + "\n// unrelated unstaged note\n");
   const readabilityIndex = git("write-tree");
   const readabilityWorktree = readFileSync(file, "utf8");
+
   const readabilityFailure = await runGitHook({
     cwd,
     encoding: "utf8",
@@ -830,7 +946,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     stripVTControlCharacters(
       readabilityFailure.stdout + readabilityFailure.stderr,
     ),
-    /pass 10/,
+    /pass 12/,
   );
   assert.doesNotMatch(
     readabilityFailure.stdout + readabilityFailure.stderr,
@@ -881,6 +997,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
       `export const value={index:${index}}\n`,
     );
   }
+
   writeFileSync(path.join(cwd, "large style.css"), ".example{color:red}\n");
   writeFileSync(path.join(cwd, "large config.json"), '{"example":true}');
   git("add", "--", ...largeFiles, "large style.css", "large config.json");
@@ -893,12 +1010,13 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     encoding: "utf8",
     env: plainEnvironment,
   });
+
   const batchedOutput = stripVTControlCharacters(
     batched.stdout + batched.stderr,
   );
   assert.equal(batched.status, 0, batchedOutput);
   assert.equal(
-    (batchedOutput.match(/tests 10/g) ?? []).length,
+    (batchedOutput.match(/tests 12/g) ?? []).length,
     1,
     batchedOutput,
   );
@@ -926,6 +1044,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
       `export const value = { index: ${index} };\n`,
     );
   }
+
   assert.match(readFileSync(file, "utf8"), /preserved unstaged comment/);
   assert.doesNotMatch(
     git("show", ":file with spaces.mjs"),
@@ -938,6 +1057,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     encoding: "utf8",
     env: plainEnvironment,
   });
+
   const detailedOutput = stripVTControlCharacters(
     detailedHook.stdout + detailedHook.stderr,
   );
@@ -961,17 +1081,19 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(lastPath, invalidSource + "// preserved unstaged tail\n");
   const batchIndex = git("write-tree");
   const batchWorktree = readFileSync(lastPath, "utf8");
+
   const rejectedBatch = await runGitHook({
     cwd,
     encoding: "utf8",
     env: plainEnvironment,
   });
+
   const rejectedOutput = stripVTControlCharacters(
     rejectedBatch.stdout + rejectedBatch.stderr,
   );
   assert.notEqual(rejectedBatch.status, 0);
   assert.equal(
-    (rejectedOutput.match(/tests 10/g) ?? []).length,
+    (rejectedOutput.match(/tests 12/g) ?? []).length,
     1,
     rejectedOutput,
   );
@@ -1067,6 +1189,7 @@ test("owning lint configs reject incorrect import ordering", async () => {
     const eslint = new ESLint({ cwd: path.join(root, workspace) });
     const filePath =
       workspace === "." ? "scripts/fixture.mjs" : "src/fixture.ts";
+
     const [invalid] = await eslint.lintText(
       'import z from "z";\nimport a from "a";\n\nexport { z, a };\n',
       { filePath },

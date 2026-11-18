@@ -3,8 +3,10 @@ import "server-only";
 export function apiOrigin(): string {
   const value = process.env.API_INTERNAL_ORIGIN;
 
-  if (!value && process.env.NODE_ENV === "production")
+  if (!value && process.env.NODE_ENV === "production") {
     throw new Error("API_INTERNAL_ORIGIN is required");
+  }
+
   const url = new URL(value ?? "http://localhost:49102");
 
   if (
@@ -30,10 +32,12 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
   ) {
     return Response.json({ error: "Not Found" }, { status: 404 });
   }
+
   const target = new URL(apiOrigin());
   target.pathname = incoming.pathname;
   target.search = incoming.search;
   const headers = new Headers();
+
   // Never forward client identity, Host, or proxy trust headers.
   for (const name of [
     "cookie",
@@ -45,8 +49,11 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
   ]) {
     const value = request.headers.get(name);
 
-    if (value !== null) headers.set(name, value);
+    if (value !== null) {
+      headers.set(name, value);
+    }
   }
+
   try {
     const hasBody = !["GET", "HEAD"].includes(request.method);
     const upstream = await fetch(target, {
@@ -68,16 +75,21 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
     });
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete("set-cookie");
-    for (const cookie of upstream.headers.getSetCookie())
+
+    for (const cookie of upstream.headers.getSetCookie()) {
       responseHeaders.append("set-cookie", cookie);
+    }
+
     // Fetch decodes compressed bodies; these upstream metadata are no longer valid.
     for (const name of [
       "content-encoding",
       "content-length",
       "transfer-encoding",
       "connection",
-    ])
+    ]) {
       responseHeaders.delete(name);
+    }
+
     responseHeaders.set("Cache-Control", "private, no-store");
 
     return new Response(upstream.body, {

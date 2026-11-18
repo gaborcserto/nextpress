@@ -69,6 +69,7 @@ try {
     "postgres:18",
   ]);
   started = true;
+
   for (let attempt = 0; attempt < 30; attempt++) {
     const ready = spawnSync(
       "docker",
@@ -89,8 +90,10 @@ try {
     if (ready.status === 0) {
       break;
     }
+
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
+
   // Upgrade populated pre-composition data, rather than testing only empty databases.
   const legacyRoot = path.resolve(".notes", "e2e-upgrades", name);
   const legacyMigrations = path.join(legacyRoot, "migrations");
@@ -109,6 +112,7 @@ try {
       );
     }
   }
+
   cpSync(
     path.join(migrationRoot, "migration_lock.toml"),
     path.join(legacyMigrations, "migration_lock.toml"),
@@ -145,6 +149,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
     "after",
     evidence,
   ]);
+
   // Guarded families own their independent clusters, roles, identity and cleanup.
   for (const family of ["content", "security"]) {
     run(
@@ -157,6 +162,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
       { cwd: "apps/api", env: process.env },
     );
   }
+
   run(process.execPath, [
     "node_modules/tsx/dist/cli.mjs",
     "apps/api/scripts/bootstrap-admin.ts",
@@ -168,6 +174,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
     run(process.execPath, ["scripts/scan-artifacts.mjs", artifact]);
     environment.NEXTPRESS_E2E_WEB_ARTIFACT = artifact;
   }
+
   run(process.execPath, [
     "node_modules/@playwright/test/cli.js",
     "test",

@@ -33,24 +33,37 @@ export async function checkStaged(
       const discovery = new ESLint({ cwd: path.dirname(path.resolve(file)) });
       const config = await discovery.findConfigFile(file);
 
-      if (!config) throw new Error(`No ESLint configuration for ${file}`);
+      if (!config) {
+        throw new Error(`No ESLint configuration for ${file}`);
+      }
+
       const group = groups.get(config) ?? [];
       group.push(file);
       groups.set(config, group);
     }
+
     for (const [config, group] of groups) {
       const eslint = new ESLint({ cwd: path.dirname(config) });
       const selected = [];
 
-      for (const file of group)
-        if (!(await eslint.isPathIgnored(file))) selected.push(file);
+      for (const file of group) {
+        if (!(await eslint.isPathIgnored(file))) {
+          selected.push(file);
+        }
+      }
 
-      if (!selected.length) continue;
+      if (!selected.length) {
+        continue;
+      }
+
       const results = await eslint.lintFiles(selected);
       const formatter = await eslint.loadFormatter("stylish");
       const output = formatter.format(results);
 
-      if (output) log(output);
+      if (output) {
+        log(output);
+      }
+
       hasFailures ||= results.some(
         (result) => result.errorCount > 0 || result.warningCount > 0,
       );

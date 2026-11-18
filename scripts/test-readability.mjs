@@ -10,5 +10,8 @@ const result = spawnSync(
   { cwd: root, env: environment, stdio: "inherit" },
 );
 
-if (result.error) throw result.error;
+if (result.error) {
+  throw result.error;
+}
+
 process.exitCode = result.status ?? 1;

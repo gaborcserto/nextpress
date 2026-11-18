@@ -73,7 +73,72 @@ function boundaries(text, filename = "fixture.tsx") {
     );
   }
 
-  function ifBoundary(previous, node) {
+  function controlFlow(node) {
+    return (
+      ts.isIfStatement(node) ||
+      ts.isIterationStatement(node, false) ||
+      ts.isSwitchStatement(node) ||
+      ts.isTryStatement(node)
+    );
+  }
+
+  function operationInitializer(statement) {
+    if (!ts.isVariableStatement(statement)) {
+      return;
+    }
+
+    const declarations = statement.declarationList.declarations;
+
+    if (declarations.length !== 1 || !declarations[0].initializer) {
+      return;
+    }
+
+    const initializer = ts.skipOuterExpressions(declarations[0].initializer);
+
+    if (ts.isAwaitExpression(initializer)) {
+      const expression = ts.skipOuterExpressions(initializer.expression);
+
+      if (
+        ts.isCallExpression(expression) ||
+        ts.isTaggedTemplateExpression(expression)
+      ) {
+        return initializer;
+      }
+    }
+
+    if (
+      ts.isCallExpression(initializer) ||
+      ts.isConditionalExpression(initializer) ||
+      ts.isBinaryExpression(initializer)
+    ) {
+      return initializer;
+    }
+  }
+
+  function requiresOperationGap(previous, node) {
+    const completed = operationInitializer(previous);
+    const next = operationInitializer(node);
+
+    if (!completed || !next) {
+      return false;
+    }
+
+    const isMultiline = (initializer) =>
+      source.getLineAndCharacterOfPosition(initializer.getStart(source))
+        .line !== source.getLineAndCharacterOfPosition(initializer.end).line;
+
+    if (ts.isAwaitExpression(completed) || ts.isAwaitExpression(next)) {
+      return isMultiline(completed) || isMultiline(next);
+    }
+
+    return (
+      !ts.isCallExpression(completed) &&
+      isMultiline(completed) &&
+      ts.isCallExpression(next)
+    );
+  }
+
+  function siblingBoundary(previous, node) {
     const end = node.getStart(source);
     const scanner = ts.createScanner(
       ts.ScriptTarget.Latest,
@@ -97,12 +162,13 @@ function boundaries(text, filename = "fixture.tsx") {
       ) {
         continue;
       }
+
       const commentStart = scanner.getTokenPos();
       const gap = { start, end: commentStart };
       whitespace.push(gap);
 
       // Keep trailing comments with the previous statement and leading comments
-      // with the guard. Never treat a blank line inside a comment as spacing.
+      // with the next statement. A blank line inside a comment is not spacing.
       if (
         !attachedComment &&
         source.getLineAndCharacterOfPosition(commentStart).line >
@@ -110,10 +176,12 @@ function boundaries(text, filename = "fixture.tsx") {
       ) {
         attachedComment = gap;
       }
+
       start = scanner.getTextPos();
     }
-    const beforeIf = { start, end };
-    whitespace.push(beforeIf);
+
+    const beforeStatement = { start, end };
+    whitespace.push(beforeStatement);
 
     if (
       whitespace.some((gap) =>
@@ -123,7 +191,7 @@ function boundaries(text, filename = "fixture.tsx") {
       return;
     }
 
-    return attachedComment ?? beforeIf;
+    return attachedComment ?? beforeStatement;
   }
 
   function inspect(nodes) {
@@ -134,8 +202,12 @@ function boundaries(text, filename = "fixture.tsx") {
 
       const previous = nodes[index - 1];
 
-      if (ts.isIfStatement(node)) {
-        const gap = ifBoundary(previous, node);
+      if (
+        controlFlow(previous) ||
+        controlFlow(node) ||
+        requiresOperationGap(previous, node)
+      ) {
+        const gap = siblingBoundary(previous, node);
 
         if (gap) {
           gaps.push(gap);
@@ -152,30 +224,19 @@ function boundaries(text, filename = "fixture.tsx") {
       ) {
         return;
       }
-      const importBoundary =
-        ts.isImportDeclaration(node) &&
-        ts.isImportDeclaration(previous) &&
-        node.importClause &&
-        previous.importClause &&
-        node.moduleSpecifier.text.startsWith(".") !==
-          previous.moduleSpecifier.text.startsWith(".");
+
       const functionVariable =
         ts.isVariableStatement(node) &&
         node.declarationList.declarations.some(({ initializer }) =>
           functionValue(initializer),
         );
       const required =
-        importBoundary ||
         functionVariable ||
         (ts.isFunctionDeclaration(node) && !!node.body) ||
         (ts.isFunctionDeclaration(previous) && !!previous.body) ||
         ts.isMethodDeclaration(node) ||
         ts.isConstructorDeclaration(node) ||
-        ts.isReturnStatement(node) ||
-        (ts.isVariableStatement(previous) &&
-          (ts.isTryStatement(node) ||
-            ts.isIterationStatement(node, false) ||
-            ts.isSwitchStatement(node)));
+        ts.isReturnStatement(node);
 
       if (!required) {
         return;

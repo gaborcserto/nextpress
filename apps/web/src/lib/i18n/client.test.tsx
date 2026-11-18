@@ -41,6 +41,7 @@ describe("localized visitor controls", () => {
     const toggle = screen.getByRole("button", { name: /Switch to/ });
     expect(toggle).toHaveAttribute("type", "button");
     expect(toggle).not.toHaveAttribute("aria-haspopup");
+
     for (const mode of ["light", "dark", "light"]) {
       fireEvent.click(toggle);
       expect(toggle).toHaveAttribute("data-mode", mode);
@@ -48,6 +49,7 @@ describe("localized visitor controls", () => {
       expect(document.cookie).toContain(`np-color-mode=${mode}`);
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     }
+
     expect(screen.queryByText("System")).not.toBeInTheDocument();
   });
   it.each([true, false])(

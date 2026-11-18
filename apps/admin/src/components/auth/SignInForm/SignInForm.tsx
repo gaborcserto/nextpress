@@ -118,7 +118,10 @@ export default function SignInForm({ providers }: SignInFormProps) {
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
 
-    if (submissionLock.current) return;
+    if (submissionLock.current) {
+      return;
+    }
+
     setErr(null);
     setFieldErrors({});
 
@@ -132,6 +135,7 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
     submissionLock.current = true;
     setLoading(true);
+
     try {
       const { error } = await signIn.email({
         email: form.email.trim().toLowerCase(),

@@ -9,7 +9,7 @@ Read the authoritative [source conventions](references/source-conventions.md) be
 
 Apply the [import-path policy](references/source-conventions.md#import-paths-and-public-entry-points): prefer relative paths within a component/feature and explicit public module entry points across boundaries. Do not replace local imports with broad barrels or add barrels just to shorten paths. IDE import-shortening suggestions are optional hints; review cycles and Server/Client boundaries before accepting them.
 
-Oxfmt owns layout, ESLint owns quality/imports and TypeScript owns types. Do not enable formatter import sorting or duplicate formatting rules. Run `npm run format:changed` on task-owned files and `npm run check:changed`; include `-- --base <ref>` for committed branch scope. Use explicit `-- --files path...` with formatter commands when unrelated user changes exist. Report contextual exceptions: green checks do not prove cohesive architecture.
+Oxfmt owns layout, shared ESLint owns braces, quality and imports, and TypeScript owns types. The readability checker owns structural blank lines, including the initializer boundaries described in the source conventions. Run `npm run format:changed` on task-owned files and `npm run check:changed`; include `-- --base <ref>` for committed branch scope. Use explicit `-- --files path...` when unrelated user changes exist. Report contextual exceptions because green checks cannot establish cohesive architecture.
 
 Make the control flow and domain intent easier to understand without introducing abstraction for its own sake. First inspect nearby code and follow its established naming and organization.
 

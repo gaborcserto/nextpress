@@ -146,11 +146,13 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
             limitAccountCreation();
             const email = emailSchema.safeParse(user.email);
 
-            if (!email.success)
+            if (!email.success) {
               throw new APIError("BAD_REQUEST", {
                 code: "INVALID_EMAIL",
                 message: "Invalid email",
               });
+            }
+
             const role = await prisma.role.findUniqueOrThrow({
               where: { name: "SUBSCRIBER" },
               select: { id: true },
@@ -182,7 +184,9 @@ async function readOAuthProviderRows(): Promise<OAuthProviderRow[]> {
     },
   });
 
-  if (rows.length) return rows;
+  if (rows.length) {
+    return rows;
+  }
 
   return OAUTH_PROVIDERS.map((provider) => ({
     provider,
@@ -223,9 +227,13 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
     select: { roleId: true },
   });
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
-  if (user.roleId) return readRoleName(userId);
+  if (user.roleId) {
+    return readRoleName(userId);
+  }
 
   const role = await prisma.role.findUniqueOrThrow({
     where: { name: "SUBSCRIBER" },
@@ -247,7 +255,9 @@ async function ensureDefaultRole(userId: string): Promise<RoleName | null> {
 export async function getUserRole(
   userId?: string | null,
 ): Promise<RoleName | null> {
-  if (!userId) return null;
+  if (!userId) {
+    return null;
+  }
 
   return readRoleName(userId);
 }
@@ -279,7 +289,9 @@ export async function getRequestSessionWithRole(
   const session = await getSession(requestHeaders);
   const userId = session?.user?.id;
 
-  if (!userId) return null;
+  if (!userId) {
+    return null;
+  }
 
   const role = await ensureDefaultRole(userId);
 
@@ -333,29 +345,43 @@ export function withAuth<
       bodyReadPending: req.method === "DELETE",
     });
 
-    if (rejection) return rejection;
+    if (rejection) {
+      return rejection;
+    }
+
     const params = await ctx.params;
 
     const session = await getSessionWithRole();
 
-    if (!session?.user?.id) return unauthorized();
+    if (!session?.user?.id) {
+      return unauthorized();
+    }
 
     const role = session.user.role;
 
-    if (!hasAnyRole(role, allowed)) return forbid();
+    if (!hasAnyRole(role, allowed)) {
+      return forbid();
+    }
 
     if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const throttled = limitMutation(session.user.id, mutationLimit);
 
-      if (throttled) return throttled;
+      if (throttled) {
+        return throttled;
+      }
     }
 
     const bounded = await readBoundedMutationRequest(req);
 
-    if (bounded.response) return bounded.response;
+    if (bounded.response) {
+      return bounded.response;
+    }
+
     const bodyRejection = requireTrustedMutation(bounded.request ?? req);
 
-    if (bodyRejection) return bodyRejection;
+    if (bodyRejection) {
+      return bodyRejection;
+    }
 
     return handler(
       bounded.request ?? req,

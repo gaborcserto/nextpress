@@ -73,6 +73,7 @@ function npm(args: string[]) {
         }
       }
     }
+
     throw new Error(`Verification command failed: npm ${args.join(" ")}`);
   }
 
@@ -177,12 +178,14 @@ async function verifyFamily(family: "content" | "security") {
     } catch {
       // Initialization has a bounded readiness deadline; no database mutation is retried.
     }
+
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   if (!ready) {
     throw new Error("Disposable cluster did not start");
   }
+
   const endpoints = z
     .record(z.string(), z.object({ IPAddress: z.string() }))
     .parse(
@@ -200,6 +203,7 @@ async function verifyFamily(family: "content" | "security") {
   if (!address) {
     throw new Error("Missing disposable endpoint");
   }
+
   const manifest: DisposableManifest = {
     run,
     container,
@@ -267,6 +271,7 @@ async function verifyFamily(family: "content" | "security") {
     if (family === "content") {
       await verifyEditorialMigration(prisma);
     }
+
     npm(["--workspace", "@nextpress/db", "run", "prisma:deploy"]);
     await verifyDisposableDatabase(database, prisma, manifest);
     sql(
@@ -299,6 +304,7 @@ async function verifyFamily(family: "content" | "security") {
         "--maxWorkers=1",
       ]);
     }
+
     await verifyDisposableDatabase(database, prisma, manifest);
     console.log(
       "Cleanup inventory",
@@ -316,6 +322,7 @@ async function verifyFamily(family: "content" | "security") {
     if (evidenceCreated) {
       unlinkSync(disposableManifestPath);
     }
+
     console.log("Disposable cluster, network and evidence removed");
   }
 }
@@ -325,6 +332,7 @@ const family = process.argv[2];
 if (family !== "content" && family !== "security") {
   throw new Error("Specify content or security");
 }
+
 verifyFamily(family).catch(() => {
   console.error(
     "Disposable PostgreSQL verification failed; database diagnostics withheld",

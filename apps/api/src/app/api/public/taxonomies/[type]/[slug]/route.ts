@@ -46,6 +46,7 @@ export async function GET(
       taxonomy.data,
       pagination.data,
     );
+
     const response = batch
       ? ok(PublicTaxonomyBatchSchema.parse(batch))
       : notfound();

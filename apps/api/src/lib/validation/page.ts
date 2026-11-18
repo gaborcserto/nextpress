@@ -17,16 +17,20 @@ export function parsePagination(searchParams: URLSearchParams) {
   if (
     searchParams.getAll("page").length > 1 ||
     searchParams.getAll("limit").length > 1
-  )
+  ) {
     return null;
+  }
+
   const pageValue = searchParams.get("page");
   const limitValue = searchParams.get("limit");
 
   if (
     (pageValue !== null && !/^\d+$/.test(pageValue)) ||
     (limitValue !== null && !/^\d+$/.test(limitValue))
-  )
+  ) {
     return null;
+  }
+
   const page = pageValue === null ? 1 : Number(pageValue);
   const limit = limitValue === null ? 50 : Number(limitValue);
 
@@ -37,8 +41,9 @@ export function parsePagination(searchParams: URLSearchParams) {
     !Number.isSafeInteger(limit) ||
     limit < 1 ||
     limit > MAX_PAGE_SIZE
-  )
+  ) {
     return null;
+  }
 
   return { page, limit };
 }

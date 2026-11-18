@@ -86,6 +86,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
       if (savingRef.current || !loadedRef.current || loading) {
         return false;
       }
+
       savingRef.current = true;
       setSaving(true);
       setError(null);

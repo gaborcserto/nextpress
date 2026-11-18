@@ -87,6 +87,7 @@ function npm(args: string[]) {
       if (existsSync(reportPath)) {
         unlinkSync(reportPath);
       }
+
       rmdirSync(reportDirectory);
     }
   }
@@ -151,6 +152,7 @@ function npm(args: string[]) {
         }
       }
     }
+
     throw new Error(
       `Verification command failed (${outcome}): npm ${args.join(" ")}`,
     );
@@ -222,6 +224,7 @@ function removeNetwork(network: string, run: string) {
       "Refusing cleanup of an unowned or shared disposable network",
     );
   }
+
   docker("network", "rm", network);
 }
 
@@ -291,6 +294,7 @@ async function verifyFamily(family: "content" | "security") {
     if (!address) {
       throw new Error("Missing disposable endpoint");
     }
+
     manifest = {
       run,
       container,
@@ -318,12 +322,14 @@ async function verifyFamily(family: "content" | "security") {
       } catch {
         // Initialization has a bounded readiness deadline; no database mutation is retried.
       }
+
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     if (!ready) {
       throw new Error("Disposable cluster did not start");
     }
+
     manifest.cluster = sql(
       container,
       database,
@@ -451,6 +457,7 @@ async function verifyFamily(family: "content" | "security") {
           "--maxWorkers=1",
         ]);
       }
+
       await verifyDisposableDatabase(database, prisma, manifest);
       console.log(
         "Cleanup inventory",
@@ -485,13 +492,16 @@ async function verifyFamily(family: "content" | "security") {
             JSON.parse(docker("network", "inspect", network)),
           );
         }
+
         docker("rm", "--force", container);
       }
+
       removeNetwork(network, run);
 
       if (evidenceCreated) {
         unlinkSync(disposableManifestPath);
       }
+
       console.log("Disposable cluster, network and evidence removed");
     } catch (error) {
       console.error(
@@ -510,6 +520,7 @@ const family = process.argv[2];
 if (family !== "content" && family !== "security") {
   throw new Error("Specify content or security");
 }
+
 verifyFamily(family).catch((error: unknown) => {
   console.error(
     redactVerificationOutput(

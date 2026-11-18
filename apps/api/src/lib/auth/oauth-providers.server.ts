@@ -90,7 +90,9 @@ export function buildSocialProviders(
   for (const provider of OAUTH_PROVIDERS) {
     const row = rowFor(rows, provider);
 
-    if (!row || !getOAuthProviderStatus(row).operational) continue;
+    if (!row || !getOAuthProviderStatus(row).operational) {
+      continue;
+    }
 
     const credentials = credentialsFor(row, provider);
     const config = {
@@ -98,17 +100,29 @@ export function buildSocialProviders(
       clientSecret: credentials.clientSecret!,
     };
 
-    if (provider === "apple") providers.apple = config;
+    if (provider === "apple") {
+      providers.apple = config;
+    }
 
-    if (provider === "discord") providers.discord = config;
+    if (provider === "discord") {
+      providers.discord = config;
+    }
 
-    if (provider === "facebook") providers.facebook = config;
+    if (provider === "facebook") {
+      providers.facebook = config;
+    }
 
-    if (provider === "github") providers.github = config;
+    if (provider === "github") {
+      providers.github = config;
+    }
 
-    if (provider === "google") providers.google = config;
+    if (provider === "google") {
+      providers.google = config;
+    }
 
-    if (provider === "twitter") providers.twitter = config;
+    if (provider === "twitter") {
+      providers.twitter = config;
+    }
   }
 
   return providers;

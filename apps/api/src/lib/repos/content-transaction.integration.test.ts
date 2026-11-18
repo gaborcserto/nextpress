@@ -31,6 +31,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     if (!db) {
       return;
     }
+
     await verifyDisposableDatabase(
       disposableDatabaseName(testUrl, process.env.DATABASE_URL, "content"),
       db,
@@ -149,6 +150,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
       const tag = await db.taxonomy.create({
         data: { type: "TAG", slug, name: "Tag" },
       });
+
       const category = await db.taxonomy.create({
         data: { type: "CATEGORY", slug: `${slug}-category`, name: "Category" },
       });
@@ -165,6 +167,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         data: { email: `${slug}@example.invalid`, name: "Transaction test" },
       });
       input.authorId = user.id;
+
       try {
         const page = await create(input, [tag.id]);
         expect(
@@ -198,6 +201,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         ).rejects.toThrow("Invalid tag IDs");
         await db.$executeRaw`CREATE FUNCTION phase1_fail_links() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''injected link failure''; END'`;
         await db.$executeRaw`CREATE TRIGGER phase1_fail_links BEFORE INSERT ON "PageOnTaxonomy" FOR EACH ROW EXECUTE FUNCTION phase1_fail_links()`;
+
         try {
           await expect(
             update(
@@ -215,6 +219,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
           await db.$executeRaw`DROP TRIGGER phase1_fail_links ON "PageOnTaxonomy"`;
           await db.$executeRaw`DROP FUNCTION phase1_fail_links()`;
         }
+
         expect(
           (await db.page.findUniqueOrThrow({ where: { id: page.id } })).title,
         ).toBe("Committed");

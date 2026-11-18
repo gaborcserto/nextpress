@@ -63,7 +63,10 @@ describe("PostForm", () => {
       .getByRole("button", { name: "Save post" })
       .closest("form");
 
-    if (!form) throw new Error("Expected a post form");
+    if (!form) {
+      throw new Error("Expected a post form");
+    }
+
     fireEvent.submit(form);
     expect(submit).toHaveBeenLastCalledWith(
       expect.objectContaining({ publishedAt: original }),

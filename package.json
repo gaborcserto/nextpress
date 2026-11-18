@@ -18,7 +18,7 @@
     "build": "turbo run build",
     "lint": "npm run lint:root && turbo run lint",
     "lint:readability": "node --test --test-reporter=spec scripts/readability.test.mjs scripts/readability-report.test.mjs && node scripts/readability.mjs --verbose",
-    "lint:root": "npm run lint:readability && eslint scripts/ e2e/ playwright.config.ts \"*.{mjs,cjs}\" --max-warnings 0",
+    "lint:root": "npm run lint:readability && eslint . --ignore-pattern \"apps/**\" --ignore-pattern \"packages/**\" --max-warnings 0",
     "lint:fix": "npm run lint:root -- --fix && turbo run lint -- --fix",
     "test": "turbo run test",
     "coverage": "turbo run test:coverage",

@@ -37,8 +37,10 @@ export async function reconcilePrivateDraftReadiness(
         include: { taxonomies: { include: { taxonomy: true } }, gallery: true },
         orderBy: { id: "asc" },
       });
+
       const sources = cohort.slice(0, options.limit);
       let complete = !options.afterId && cohort.length <= options.limit;
+
       const [targetBudget] = await tx.$queryRaw<{ exceeded: boolean }[]>`
         SELECT EXISTS(SELECT 1 FROM "Media" OFFSET 10000 LIMIT 1)
           OR EXISTS(SELECT 1 FROM "Taxonomy" OFFSET 10000 LIMIT 1)
@@ -52,6 +54,7 @@ export async function reconcilePrivateDraftReadiness(
           where: { pageId: source.id },
           select: { enrollmentState: true },
         });
+
         const enrollmentState = enrollment?.enrollmentState ?? "absent";
 
         if (enrollment && enrollment.enrollmentState !== "SHADOW") {
@@ -92,6 +95,7 @@ export async function reconcilePrivateDraftReadiness(
 
           issues.push(`LEGACY:${error.code}`);
         }
+
         const revisions = await tx.nPWorkingRevision.findMany({
           where: { pageId: source.id },
           orderBy: { version: "asc" },
@@ -115,6 +119,7 @@ export async function reconcilePrivateDraftReadiness(
           if (revision.version !== index + 1) {
             issues.push(`PRIVATE:${revision.version}:HISTORY_GAP`);
           }
+
           const parsed = WorkingAggregateSchema.safeParse(revision.aggregate);
 
           if (!parsed.success) {
@@ -129,6 +134,7 @@ export async function reconcilePrivateDraftReadiness(
           ) {
             issues.push(`PRIVATE:${revision.version}:IDENTITY_DRIFT`);
           }
+
           const { edges } = mapEditorialReferenceEdges(
             revision.id,
             parsed.data.snapshot,
@@ -173,6 +179,7 @@ export async function reconcilePrivateDraftReadiness(
         if (source.status === "PUBLISHED" && source.publishedAt === null) {
           issues.push("PUBLIC:LEGACY_UNDATED_ELIGIBILITY_DIVERGENCE");
         }
+
         records.push({
           id: source.id,
           kind: source.type,

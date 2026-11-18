@@ -10,7 +10,10 @@ it("keeps web source and manifest free of backend dependencies, including type i
   const root = new URL("../../", import.meta.url);
 
   for (const file of readdirSync(root, { recursive: true, encoding: "utf8" })) {
-    if (!/\.[cm]?[jt]sx?$/.test(file) || file.includes(".test.")) continue;
+    if (!/\.[cm]?[jt]sx?$/.test(file) || file.includes(".test.")) {
+      continue;
+    }
+
     expect(
       readFileSync(new URL(file.replaceAll("\\", "/"), root), "utf8"),
       file,

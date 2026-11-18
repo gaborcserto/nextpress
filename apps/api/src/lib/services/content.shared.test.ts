@@ -44,6 +44,7 @@ describe("content service validation", () => {
     expect(() => validateCreateBody({ title: "Missing fields" })).toThrow(
       PageValidationError,
     );
+
     try {
       validateUpdateBody({ slug: "   " });
       throw new Error("expected validation to fail");

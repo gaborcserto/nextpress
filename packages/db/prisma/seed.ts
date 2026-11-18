@@ -21,6 +21,7 @@ async function ensureDevelopmentContent() {
       where: { id: taxonomy.id },
       select: { slug: true },
     });
+
     const slugOwner = await prisma.taxonomy.findUnique({
       where: { slug: taxonomy.slug },
       select: { id: true },
@@ -37,6 +38,7 @@ async function ensureDevelopmentContent() {
         `Development seed taxonomy slug is already owned: ${taxonomy.slug}`,
       );
     }
+
     await prisma.taxonomy.upsert({
       where: { id: taxonomy.id },
       create: taxonomy,
@@ -49,6 +51,7 @@ async function ensureDevelopmentContent() {
       where: { id: page.id },
       select: { slug: true },
     });
+
     const slugOwner = await prisma.page.findUnique({
       where: { slug: page.slug },
       select: { id: true },
@@ -65,6 +68,7 @@ async function ensureDevelopmentContent() {
         `Development seed content slug is already owned: ${page.slug}`,
       );
     }
+
     const serialized = serializeDevelopmentContent(page);
     const values = {
       type: page.type === "POST" ? PageType.POST : PageType.PAGE,

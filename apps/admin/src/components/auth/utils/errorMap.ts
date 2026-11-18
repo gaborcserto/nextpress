@@ -1,5 +1,8 @@
 export function mapNextAuthError(code?: string | null): string | null {
-  if (!code) return null;
+  if (!code) {
+    return null;
+  }
+
   const map: Record<string, string> = {
     OAuthSignin: "OAuth sign-in failed.",
     OAuthCallback: "OAuth callback failed.",

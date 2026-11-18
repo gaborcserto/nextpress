@@ -9,14 +9,18 @@ import type { TagMultiSelectDropdownProps } from "./TagMultiSelect.types";
 function underlineMatch(label: string, query?: string) {
   const q = (query ?? "").trim();
 
-  if (!q) return label;
+  if (!q) {
+    return label;
+  }
 
   const lowerLabel = label.toLowerCase();
   const lowerQ = q.toLowerCase();
 
   const start = lowerLabel.indexOf(lowerQ);
 
-  if (start === -1) return label;
+  if (start === -1) {
+    return label;
+  }
 
   const end = start + q.length;
 

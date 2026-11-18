@@ -35,6 +35,7 @@ export function adminContentSecurityPolicy(
     ) {
       throw new Error("Invalid authentication application URL");
     }
+
     // The existing auth client supports a separately configured auth origin.
     authOrigin = ` ${url.origin}`;
   }

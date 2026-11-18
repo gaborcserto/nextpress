@@ -209,7 +209,9 @@ beforeEach(() => {
     async ({ where }: { where: Filter }) => {
       const item = records.find((item) => matches(item, where));
 
-      if (!item) throw new Error("Record not found");
+      if (!item) {
+        throw new Error("Record not found");
+      }
 
       return item;
     },
@@ -226,12 +228,16 @@ beforeEach(() => {
     }) => {
       const item = records.find((item) => matches(item, where));
 
-      if (!item)
+      if (!item) {
         throw Object.assign(new Error("Record not found"), { code: "P2025" });
+      }
+
       const { workingVersion, ...fields } = data;
       Object.assign(item, fields);
 
-      if (workingVersion) item.workingVersion += workingVersion.increment;
+      if (workingVersion) {
+        item.workingVersion += workingVersion.increment;
+      }
 
       return item;
     },
@@ -341,7 +347,10 @@ describe.each([
       role = "ADMIN";
       const headers = new Headers({ "content-type": "application/json" });
 
-      if (origin !== undefined) headers.set("origin", origin);
+      if (origin !== undefined) {
+        headers.set("origin", origin);
+      }
+
       expect(
         (
           await mutate(
@@ -418,8 +427,10 @@ describe.each(routes)(
         const response = await read(request(), context(ref));
         expect(response.status).toBe(404);
         expect(prisma.pageOnTaxonomy.findMany).not.toHaveBeenCalled();
-        for (const [args] of prisma.page.findUnique.mock.calls)
+
+        for (const [args] of prisma.page.findUnique.mock.calls) {
           expect(args.where.status).toBe("PUBLISHED");
+        }
       },
     );
 
@@ -439,9 +450,11 @@ describe.each(routes)(
           ]),
         );
         expect(listing.total).toBe(viewer === "AUTHOR" ? 2 : 1);
+
         for (const ref of [`${prefix}-scheduled`, `${prefix}-scheduled-slug`]) {
           expect((await read(request(), context(ref))).status).toBe(404);
         }
+
         expect(
           (
             await readLinks(
@@ -621,6 +634,7 @@ describe.each(routes)(
 
     it("allows owner editing, publishing, and unpublishing without clearing omitted tags", async () => {
       role = "AUTHOR";
+
       for (const [expectedVersion, status] of [
         "PUBLISHED",
         "DRAFT",
@@ -634,6 +648,7 @@ describe.each(routes)(
           ).status,
         ).toBe(200);
       }
+
       expect(prisma.page.update).toHaveBeenCalledWith({
         where: {
           id: `${prefix}-draft`,
@@ -744,6 +759,7 @@ describe.each(routes)(
 
     it("rejects category and missing tag IDs before creating or updating content", async () => {
       role = "AUTHOR";
+
       for (const tagId of ["category-1", "missing"]) {
         expect(
           (
@@ -772,6 +788,7 @@ describe.each(routes)(
           ).status,
         ).toBe(400);
       }
+
       expect(prisma.page.update).not.toHaveBeenCalled();
       expect(prisma.page.create).not.toHaveBeenCalled();
       expect(prisma.pageOnTaxonomy.deleteMany).not.toHaveBeenCalled();
@@ -985,8 +1002,9 @@ describe("parent and taxonomy access boundaries", () => {
       role = "ADMIN";
       prisma.taxonomy.delete.mockImplementation(
         async ({ where }: { where: { id: string; type: string } }) => {
-          if (where.id === "category-1" && where.type === "TAG")
+          if (where.id === "category-1" && where.type === "TAG") {
             throw { code: "P2025" };
+          }
 
           return { id: where.id, type: "CATEGORY" };
         },
@@ -1044,12 +1062,14 @@ describe("authorized mutation abuse limits", () => {
     "bounds %s content creation across page and post routes before persistence",
     async (viewer) => {
       role = viewer;
+
       for (let i = 0; i < 30; i++) {
         const route = i % 2 ? createPage : createPost;
         expect((await route(request("POST", {}), context(""))).status).toBe(
           400,
         );
       }
+
       const blocked = await createPage(request("POST", {}), context(""));
       expect(blocked.status).toBe(429);
       expect(blocked.headers.get("retry-after")).toBeTruthy();
@@ -1066,6 +1086,7 @@ describe("authorized mutation abuse limits", () => {
       name: "Tag",
       slug: "tag",
     });
+
     for (let i = 0; i < 120; i++) {
       const response =
         i % 2
@@ -1076,6 +1097,7 @@ describe("authorized mutation abuse limits", () => {
           : await deleteAdminTag(request("DELETE"), context("tag"));
       expect(response.status).toBe(200);
     }
+
     expect(
       (await deleteAdminTag(request("DELETE"), context("tag"))).status,
     ).toBe(429);
@@ -1084,10 +1106,13 @@ describe("authorized mutation abuse limits", () => {
 
   it("shares user-management limits across provisioning, role changes and deletion", async () => {
     role = "ADMIN";
-    for (let i = 0; i < 30; i++)
+
+    for (let i = 0; i < 30; i++) {
       expect((await createUser(request("POST", {}), context(""))).status).toBe(
         400,
       );
+    }
+
     expect(
       (
         await updateUserRole(
@@ -1114,7 +1139,10 @@ describe("public registration roles", () => {
       const options = configureAuth.mock.calls[0]?.[0];
       const before = options?.databaseHooks?.user?.create?.before;
 
-      if (!before) throw new Error("Missing registration authorization hook");
+      if (!before) {
+        throw new Error("Missing registration authorization hook");
+      }
+
       const result = await before(
         {
           id: "new",
@@ -1148,7 +1176,10 @@ describe("public registration roles", () => {
     const before =
       configureAuth.mock.calls[0]?.[0].databaseHooks?.user?.create?.before;
 
-    if (!before) throw new Error("Missing registration authorization hook");
+    if (!before) {
+      throw new Error("Missing registration authorization hook");
+    }
+
     await expect(
       before(
         {
@@ -1220,12 +1251,15 @@ describe.each(routes)(
       const created = await (await read(request(), context("created"))).json();
       expect(created.item.content).toEqual(blocks);
 
-      if (type === "PAGE")
+      if (type === "PAGE") {
         expect(created.item).toMatchObject({
           type: "CONTACT",
           inHeaderMenu: true,
         });
-      else expect(created.item.publishedAt).toBe("2024-02-01T12:00:00.000Z");
+      } else {
+        expect(created.item.publishedAt).toBe("2024-02-01T12:00:00.000Z");
+      }
+
       const edited = [
         {
           type: "paragraph" as const,
@@ -1244,7 +1278,9 @@ describe.each(routes)(
       const result = await (await read(request(), context("created"))).json();
       expect(result.item.content).toEqual(edited);
 
-      if (type === "POST") expect(result.item.excerpt).toEqual(blocks);
+      if (type === "POST") {
+        expect(result.item.excerpt).toEqual(blocks);
+      }
     });
 
     it.each([
@@ -1260,7 +1296,10 @@ describe.each(routes)(
           (item) => item.id === (type === "PAGE" ? "page-draft" : "post-draft"),
         );
 
-        if (!record) throw new Error("Missing legacy fixture");
+        if (!record) {
+          throw new Error("Missing legacy fixture");
+        }
+
         record.content = content;
         const response = await read(request(), context(record.id));
         expect(response.status).toBe(200);
@@ -1290,7 +1329,10 @@ describe.each(routes)(
         (item) => item.id === (type === "PAGE" ? "page-draft" : "post-draft"),
       );
 
-      if (!record) throw new Error("Expected fixture content");
+      if (!record) {
+        throw new Error("Expected fixture content");
+      }
+
       record.content = '{"version":99,"secret":"private-data"}';
       const response = await read(request(), context(record.id));
       expect(response.status).toBe(500);

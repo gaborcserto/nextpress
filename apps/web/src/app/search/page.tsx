@@ -22,6 +22,7 @@ export default async function SearchPage({
 }) {
   const query = parseSearchParams(await searchParams);
   const settings = await getPublicSiteSettings();
+
   const data = await fetchPublic(
     searchHref(query).slice(1),
     PublicSearchResultSchema,

@@ -26,7 +26,9 @@ export async function getPageById(
 ) {
   const ref = (idOrSlug ?? "").trim();
 
-  if (!ref) return null;
+  if (!ref) {
+    return null;
+  }
 
   // When type is not provided, default to PAGE
   const typeFilter = opts?.type ?? "PAGE";
@@ -37,7 +39,9 @@ export async function getPageById(
     include: { cover: { select: { id: true, url: true, alt: true } } },
   });
 
-  if (byId && byId.type === typeFilter) return byId;
+  if (byId && byId.type === typeFilter) {
+    return byId;
+  }
 
   // 2) Fallback: try by slug
   const bySlug = await prisma.page.findUnique({
@@ -49,7 +53,9 @@ export async function getPageById(
     include: { cover: { select: { id: true, url: true, alt: true } } },
   });
 
-  if (bySlug && bySlug.type === typeFilter) return bySlug;
+  if (bySlug && bySlug.type === typeFilter) {
+    return bySlug;
+  }
 
   return null;
 }
@@ -163,6 +169,7 @@ export async function updatePage(
     where: { id, type, ...contentWriteWhere(actor) },
     select: { status: true, publishedAt: true },
   });
+
   const publishedAt = resolvePublicationDate(current, next);
 
   return db.page.update({
@@ -214,7 +221,9 @@ export async function updatePageWithTags(
     return await prisma.$transaction(async (tx) => {
       const page = await updatePage(id, input, type, actor, tx);
 
-      if (tagIds !== undefined) await setTagsForPage(page.id, tagIds, tx);
+      if (tagIds !== undefined) {
+        await setTagsForPage(page.id, tagIds, tx);
+      }
 
       return page;
     });
@@ -224,8 +233,10 @@ export async function updatePageWithTags(
       error !== null &&
       "code" in error &&
       error.code === "P2025"
-    )
+    ) {
       throw new ContentVersionConflictError();
+    }
+
     throw error;
   }
 }

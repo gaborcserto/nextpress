@@ -43,6 +43,7 @@ export function redactVerificationOutput(
     if (!secret || !/secret|password|token|database_url/i.test(name)) {
       continue;
     }
+
     output = output.replaceAll(secret, "[redacted]");
 
     if (/database_url/i.test(name)) {
@@ -77,6 +78,7 @@ export function inspectVerificationProcess(
       // Preserve the process outcome even when a crash leaves invalid JSON.
     }
   }
+
   let outcome = "passed";
 
   if (

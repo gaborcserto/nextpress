@@ -12,7 +12,10 @@ export const PageDestinationSchema = z
   .string()
   .max(2048)
   .refine((value) => {
-    if (/^\/(?!\/)[^\\\s]*$/.test(value)) return true;
+    if (/^\/(?!\/)[^\\\s]*$/.test(value)) {
+      return true;
+    }
+
     try {
       const url = new URL(value);
 
@@ -75,15 +78,19 @@ export const PageDocumentSchema = z
     blocks: z.array(PageBlockSchema).max(100),
   })
   .superRefine((document, ctx) => {
-    if (JSON.stringify(document).length > 1_000_000)
+    if (JSON.stringify(document).length > 1_000_000) {
       ctx.addIssue({ code: "custom", message: "Page document is too large" });
+    }
+
     const ids = new Set<string>();
 
     for (const block of document.blocks.flatMap((block) =>
       block.type === "columns" ? [block, ...block.regions.flat()] : [block],
     )) {
-      if (ids.has(block.id))
+      if (ids.has(block.id)) {
         ctx.addIssue({ code: "custom", message: "Block IDs must be unique" });
+      }
+
       ids.add(block.id);
     }
   });
@@ -122,8 +129,9 @@ export const PAGE_DOCUMENT_CAPABILITIES = {
 export function serializePageDocument(value: unknown): string {
   const serialized = JSON.stringify(PageDocumentSchema.parse(value));
 
-  if (serialized.length > 1_000_000)
+  if (serialized.length > 1_000_000) {
     throw new Error("Page document is too large");
+  }
 
   return serialized;
 }
@@ -135,14 +143,17 @@ export function migratePageDocument(value: unknown): PageDocument {
 
 /** Preserve the original bytes for repair/export; never render unsupported data. */
 export function readPageDocument(serialized: string) {
-  if (serialized.length > 1_000_000)
+  if (serialized.length > 1_000_000) {
     throw new Error("Page document is too large");
+  }
+
   try {
     const value: unknown = JSON.parse(serialized);
     const result = PageDocumentSchema.safeParse(value);
 
-    if (result.success)
+    if (result.success) {
       return { supported: true as const, document: result.data };
+    }
   } catch {
     // Invalid stored JSON is also repairable, but cannot be rendered.
   }

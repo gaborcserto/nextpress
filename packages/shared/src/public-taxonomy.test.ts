@@ -52,6 +52,7 @@ it("bounds public tag collections and rejects invalid or internal entries", () =
       hasMore: true,
     }).success,
   ).toBe(false);
+
   for (const invalid of [
     { ...tag, type: "CATEGORY" },
     { ...tag, slug: "../bad" },

@@ -18,7 +18,6 @@ test("separates function values, named functions, methods, control flow and retu
     "namespace Example { function first() {}\nfunction second() {} }",
     "function a() { const x = 1;\nif (x) {}\nreturn x; }",
     "export const a = () => {};\nexport const b = () => {};",
-    "import x from 'x';\nimport y from './y';",
   ]) {
     assert.ok(boundaries(code).length);
     assert.equal(boundaries(format(code)).length, 0);
@@ -163,5 +162,76 @@ test("preserves first guards, existing blank lines, else if and non-statement te
   ]) {
     assert.equal(boundaries(code).length, 0, code);
     assert.equal(format(code), code);
+  }
+});
+
+test("separates complete control-flow statements from both siblings in TSX", () => {
+  for (const control of [
+    "if (ready) { run(); } else if (wait) { pause(); } else { stop(); }",
+    "try { run(); } catch (error) { handle(error); } finally { cleanup(); }",
+    "for (;;) { break; }",
+    "for (const item of items) { run(item); }",
+    "for (const key in items) { run(key); }",
+    "while (ready) { run(); }",
+    "do { run(); } while (ready);",
+    "switch (kind) { case 1: break; default: stop(); }",
+  ]) {
+    const before =
+      "  const view: React.ReactNode = render(\n    <main />,\n  ); // prepared";
+    const after = "  // return the original view\n  return view;";
+    const code = `function View() {\n${before}\n  ${control}\n${after}\n}`;
+    const expected = `function View() {\n${before}\n\n  ${control}\n\n${after}\n}`;
+
+    assert.equal(boundaries(code).length, 2, control);
+    assert.equal(format(code), expected);
+    assert.equal(boundaries(expected).length, 0);
+  }
+});
+
+test("separates multiline operation stages and preserves related declarations", () => {
+  const mediaQuery = `const mediaIds = parsed.pageDocument
+  ? pageMediaIds(parsed.pageDocument)
+  : [];
+
+const mediaCount = await tx.media.count({
+  where: {
+    id: { in: mediaIds },
+  },
+});`;
+
+  for (const [valid, gap] of [
+    [mediaQuery, "[];\n\nconst mediaCount"],
+    [
+      "const response = await fetch(url, {\n  signal,\n}); // request\n\n// Decode the response.\nconst body = await response.json();",
+      "// request\n\n// Decode",
+    ],
+    [
+      "async function save() {\n  const input = derive(\n    payload,\n  );\n\n  const saved = await (service.save(input) as Promise<Record>);\n}",
+      ");\n\n  const saved",
+    ],
+    [
+      "const url = suppliedUrl\n  ?? defaultUrl;\n\nconst endpoint = resolveEndpoint(url);",
+      "defaultUrl;\n\nconst endpoint",
+    ],
+    [
+      "const result = await lookup(id);\n\nconst summary = result\n  ? summarize(result)\n  : null;",
+      "lookup(id);\n\nconst summary",
+    ],
+  ]) {
+    const invalid = valid.replace(gap, gap.replace("\n\n", "\n"));
+    assert.equal(boundaries(invalid).length, 1, invalid);
+    assert.equal(format(invalid), valid);
+    assert.equal(boundaries(valid).length, 0, valid);
+  }
+
+  for (const valid of [
+    "const options = {\n  limit: 10,\n};\nconst result = await service.list(options);",
+    "const [value, setValue] = useState<string | null>(\n  null,\n);\nconst ref = useRef(null);",
+    "const response = await fetch(url);\nconst data = await response.json();",
+    "const { id } = await params;\nconst result = await service.get({\n  id,\n});",
+    "const first = Math.min(\n  start,\n  limit,\n);\nconst last = Math.max(end, limit);",
+    "const request = buildRequest(\n  input,\n);\nconst id = request.id;",
+  ]) {
+    assert.equal(boundaries(valid).length, 0, valid);
   }
 });

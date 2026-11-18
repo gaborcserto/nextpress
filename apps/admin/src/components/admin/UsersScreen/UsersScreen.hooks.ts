@@ -103,10 +103,14 @@ export function useUsersScreen() {
   }, []);
 
   const createUser = async () => {
-    if (creatingRef.current) return;
+    if (creatingRef.current) {
+      return;
+    }
+
     creatingRef.current = true;
     setCreating(true);
     setError(null);
+
     try {
       await jsonFetcher("/api/admin/users/create", {
         method: "POST",
@@ -143,7 +147,10 @@ export function useUsersScreen() {
   };
 
   const saveRole = async (userId: string) => {
-    if (savingRoleRef.current) return;
+    if (savingRoleRef.current) {
+      return;
+    }
+
     savingRoleRef.current = userId;
     setSavingRoleId(userId);
     setError(null);
@@ -173,10 +180,14 @@ export function useUsersScreen() {
   };
 
   const deleteUser = async (userId: string) => {
-    if (deletingRef.current) return;
+    if (deletingRef.current) {
+      return;
+    }
+
     deletingRef.current = userId;
     setDeletingId(userId);
     setError(null);
+
     try {
       await jsonFetcher(`/api/admin/users/${userId}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== userId));

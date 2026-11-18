@@ -36,6 +36,7 @@ async function main() {
   if (process.env.NODE_ENV !== "development") {
     throw new Error("DEVELOPMENT_MODE_REQUIRED");
   }
+
   const {
     executeLegacyBatches,
     inspectLegacyExecution,
@@ -60,6 +61,7 @@ async function main() {
 
     return;
   }
+
   const tokenPath = z.string().min(1).parse(process.argv[4]);
   await preflightLegacyExecution(prisma);
 
@@ -78,6 +80,7 @@ async function main() {
 
     return;
   }
+
   const ownership = ownershipSchema.parse(
     JSON.parse(readFileSync(tokenPath, "utf8")),
   );

@@ -30,6 +30,7 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
   await screen.findByRole("button", { name: "Delete tag Many" });
   const rows = screen.getAllByRole("row").slice(1);
   expect(rows).toHaveLength(3);
+
   for (const [index, name, slug, count] of [
     [0, "Many", "many-tag", "3"],
     [1, "One", "one-tag", "1"],
@@ -39,6 +40,7 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
     expect(within(rows[index]).getByText(slug)).toBeInTheDocument();
     expect(within(rows[index]).getByText(count)).toBeInTheDocument();
   }
+
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 

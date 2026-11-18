@@ -39,12 +39,17 @@ export const DELETE = withAuth(
 
       return ok({ ok: true });
     } catch (error) {
-      if (error instanceof ContentNotFoundError) return notfound();
+      if (error instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
-      if (error instanceof MediaReferencedError)
+      if (error instanceof MediaReferencedError) {
         return conflict("Media is referenced by content or revisions");
+      }
 
-      if (error instanceof ContentForbiddenError) return forbid();
+      if (error instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
       return oops(error);
     }

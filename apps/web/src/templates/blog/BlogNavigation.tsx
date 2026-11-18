@@ -208,6 +208,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
     if (navigation.current?.contains(document.activeElement)) {
       button.current?.focus();
     }
+
     setOpen(false);
   }
 
@@ -234,6 +235,7 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
           if (open && navigation.current?.contains(document.activeElement)) {
             button.current?.focus();
           }
+
           setOpen(!open);
         }}
       >

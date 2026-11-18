@@ -67,7 +67,9 @@ export async function GET(_req: Request, { params }: GetContext) {
     const actor = (await getSessionWithRole())?.user;
     const page = await getPageById(id, { actor });
 
-    if (!page) return notfound();
+    if (!page) {
+      return notfound();
+    }
 
     const tags = await getTagsForPage(page.id);
     const item = mapPageToFormValues(page, tags);
@@ -101,11 +103,17 @@ export const PUT = withAuth(
 
       return ok(updated);
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
-      if (err instanceof TaxonomyScopeError) return bad(err.message);
+      if (err instanceof TaxonomyScopeError) {
+        return bad(err.message);
+      }
 
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
@@ -136,9 +144,13 @@ export const DELETE = withAuth(
 
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
       console.error("DELETE /api/pages/[id] failed");
 

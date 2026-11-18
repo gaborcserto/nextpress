@@ -14,10 +14,12 @@ describe("Prisma schema", () => {
       new URL("../prisma/schema.prisma", import.meta.url),
       "utf8",
     );
+
     const auth = await readFile(
       new URL("../../../apps/api/src/lib/auth/auth-server.ts", import.meta.url),
       "utf8",
     );
+
     const migration = await readFile(
       new URL(
         "../prisma/migrations/20261006120000_add_refresh_token_expiry/migration.sql",

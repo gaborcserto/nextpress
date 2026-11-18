@@ -37,8 +37,12 @@ export function SignInFormOAuthRow({
   const [loading, setLoading] = useState<Provider | null>(null);
 
   const handleProviderClick = async (provider: Provider) => {
-    if (loading) return;
+    if (loading) {
+      return;
+    }
+
     setLoading(provider);
+
     try {
       await onProviderAction(provider);
     } finally {

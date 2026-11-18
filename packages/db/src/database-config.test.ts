@@ -7,6 +7,7 @@ describe("database configuration", () => {
     expect(() => getDatabaseConnectionString({})).toThrow(
       "DATABASE_URL is not set",
     );
+
     for (const value of [
       "not a url",
       "https://db.example.test/cms",

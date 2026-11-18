@@ -63,7 +63,9 @@ export function TagMultiSelect({
       (current) => current.id === tag.id,
     );
 
-    if (alreadySelected) return;
+    if (alreadySelected) {
+      return;
+    }
 
     onChangeAction([...selectedTags, tag]);
     resetSearch();
@@ -94,7 +96,9 @@ export function TagMultiSelect({
     if (event.key === "Enter" && trimmedQuery) {
       event.preventDefault();
 
-      if (loading || searchError || creatingRef.current) return;
+      if (loading || searchError || creatingRef.current) {
+        return;
+      }
 
       if (selectableOptions.length > 0) {
         addTag(selectableOptions[0]);
@@ -125,10 +129,14 @@ export function TagMultiSelect({
     );
 
   const handleCreateClick = async (): Promise<void> => {
-    if (!trimmedQuery || loading || searchError || creatingRef.current) return;
+    if (!trimmedQuery || loading || searchError || creatingRef.current) {
+      return;
+    }
+
     creatingRef.current = true;
     setCreating(true);
     setError(null);
+
     try {
       const newTag = await createTagAction(trimmedQuery);
       addTag(newTag);
@@ -144,7 +152,9 @@ export function TagMultiSelect({
     <div
       className="form-control w-full"
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+        }
       }}
     >
       {label && (

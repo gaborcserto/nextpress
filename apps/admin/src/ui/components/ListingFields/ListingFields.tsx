@@ -30,6 +30,7 @@ export default function ListingFields({
 
       return;
     }
+
     onChangeAction("listingKind", raw as ListingKind);
   };
 

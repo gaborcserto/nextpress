@@ -69,7 +69,9 @@ function LegacyPostEditorScreen({ postId }: PostEditorScreenProps) {
     );
   }
 
-  if (!item) return null;
+  if (!item) {
+    return null;
+  }
 
   return (
     <>

@@ -15,6 +15,7 @@ async function verifyTarget(db: PrismaClient) {
   if (process.env.NODE_ENV !== "test") {
     throw new Error("WORKING_PERSISTENCE_NOT_ACTIVATED");
   }
+
   await verifyDisposableDatabase(
     disposableDatabaseName(
       process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL,

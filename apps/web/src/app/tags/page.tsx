@@ -26,6 +26,7 @@ export async function generateMetadata({ searchParams }: TagsPageProps) {
 
 export default async function TagsPage({ searchParams }: TagsPageProps) {
   const page = parsePostsPage((await searchParams).page, TAGS_PER_PAGE);
+
   const [batch, settings] = await Promise.all([
     getPublishedTags({
       limit: TAGS_PER_PAGE,

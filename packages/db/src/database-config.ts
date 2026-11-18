@@ -3,7 +3,9 @@ export function getDatabaseConnectionString(
 ): string {
   const value = environment.DATABASE_URL?.trim();
 
-  if (!value) throw new Error("DATABASE_URL is not set");
+  if (!value) {
+    throw new Error("DATABASE_URL is not set");
+  }
 
   let url: URL;
 

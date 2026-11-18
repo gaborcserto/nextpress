@@ -34,6 +34,7 @@ describe.each([
         "deletePage" in result.current
           ? result.current.deletePage
           : result.current.deletePost;
+
       const first = deleteItem("item-1");
       const second = deleteItem("item-2");
       resolveRequest(new Response(null, { status: 204 }));

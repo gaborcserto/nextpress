@@ -335,6 +335,7 @@ describe("admin API route integration", () => {
         ([value]) => value.where.provider === "google",
       );
       expect(googleCall?.[0].update).not.toHaveProperty("clientSecret");
+
       for (const field of ["websiteTemplate", "stylePreset", "colorMode"]) {
         expect(
           prisma.siteSettings.upsert.mock.calls[0]?.[0].update,
@@ -531,6 +532,7 @@ describe("admin API route integration", () => {
       const deletion = await deleteUser(request("DELETE"), {
         params: { id: "last-admin" },
       });
+
       const demotion = await updateUserRole(
         request("PATCH", { role: "EDITOR" }),
         { params: { id: "last-admin" } },

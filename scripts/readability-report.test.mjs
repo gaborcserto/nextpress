@@ -75,6 +75,24 @@ test("reports actual file counts, deduplicated violations and source locations",
   );
 });
 
+test("workspace scope inspects public implementation and skips public assets", (t) => {
+  const cwd = path.join(fixture(t), "apps/api");
+  mkdirSync(path.join(cwd, "src/lib/public"), { recursive: true });
+  mkdirSync(path.join(cwd, "public"));
+  const implementation = "src/lib/public/handler.ts";
+  const asset = "public/script.js";
+  const source =
+    "prepare();\ntry { run(); } finally { cleanup(); }\nreturnResult();";
+
+  for (const file of [implementation, asset]) {
+    writeFileSync(path.join(cwd, file), source);
+  }
+
+  const result = inspectFiles([implementation, asset], { cwd, log: () => {} });
+  assert.equal(result.inspected, 1);
+  assert.equal(result.violations, 2);
+});
+
 test("parse errors fail with diagnostics rather than a false clean result", (t) => {
   const cwd = fixture(t);
   writeFileSync(path.join(cwd, "invalid.ts"), "const = ;");

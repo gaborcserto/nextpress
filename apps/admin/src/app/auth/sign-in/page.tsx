@@ -9,7 +9,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function SignInPageRoute() {
-  if ((await getSessionWithRole())?.user.id) redirect("/admin");
+  if ((await getSessionWithRole())?.user.id) {
+    redirect("/admin");
+  }
 
   const providers = await getOperationalOAuthProviders();
 

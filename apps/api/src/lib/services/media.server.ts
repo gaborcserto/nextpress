@@ -53,8 +53,10 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
   if (
     bytes.length > 2_097_152 ||
     (parsed.mime === "image/png" ? !isPng : !isJpeg)
-  )
+  ) {
     throw new MediaValidationError();
+  }
+
   let normalized: Buffer;
   let dimensions: Metadata;
 
@@ -69,10 +71,17 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
     throw new MediaValidationError();
   }
 
-  if (normalized.length > 8_388_608 || !dimensions.width || !dimensions.height)
+  if (
+    normalized.length > 8_388_608 ||
+    !dimensions.width ||
+    !dimensions.height
+  ) {
     throw new MediaValidationError();
+  }
+
   const key = `${randomUUID()}.png`;
   await mediaStorage.put(key, normalized);
+
   try {
     const id = randomUUID();
 
@@ -98,7 +107,10 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
 export async function serveMedia(id: string, actor?: ContentActor) {
   const media = await prisma.media.findUnique({ where: { id } });
 
-  if (!media?.key) throw new ContentNotFoundError();
+  if (!media?.key) {
+    throw new ContentNotFoundError();
+  }
+
   const canManage =
     actor &&
     (isEditor(actor) ||
@@ -116,8 +128,12 @@ export async function serveMedia(id: string, actor?: ContentActor) {
       },
       select: { coverId: true, pageDocument: true },
     });
+
     const referenced = published.some((page) => {
-      if (page.coverId === id) return true;
+      if (page.coverId === id) {
+        return true;
+      }
+
       const document = page.pageDocument
         ? readPageDocument(page.pageDocument)
         : null;
@@ -127,8 +143,11 @@ export async function serveMedia(id: string, actor?: ContentActor) {
       );
     });
 
-    if (!referenced) throw new ContentNotFoundError();
+    if (!referenced) {
+      throw new ContentNotFoundError();
+    }
   }
+
   const bytes = await mediaStorage.read(media.key);
 
   return new Response(new Uint8Array(bytes), {
@@ -148,10 +167,14 @@ export async function deleteMedia(id: string, actor: ContentActor) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(71520261111::bigint)`;
     const media = await tx.media.findUnique({ where: { id } });
 
-    if (!media) throw new ContentNotFoundError();
+    if (!media) {
+      throw new ContentNotFoundError();
+    }
 
-    if (!isEditor(actor) && media.uploadedById !== actor.id)
+    if (!isEditor(actor) && media.uploadedById !== actor.id) {
       throw new ContentForbiddenError();
+    }
+
     const references = await tx.page.count({
       where: {
         OR: [
@@ -161,17 +184,23 @@ export async function deleteMedia(id: string, actor: ContentActor) {
         ],
       },
     });
+
     const revisions = await tx.pageRevision.count({
       where: { pageDocument: { contains: JSON.stringify(id) } },
     });
 
-    if (references || revisions) throw new MediaReferencedError();
+    if (references || revisions) {
+      throw new MediaReferencedError();
+    }
+
     await tx.media.delete({ where: { id } });
 
     return media.key;
   });
 
-  if (!key) return;
+  if (!key) {
+    return;
+  }
 
   try {
     await mediaStorage.remove(key);

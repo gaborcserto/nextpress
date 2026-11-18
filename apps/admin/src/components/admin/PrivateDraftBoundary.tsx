@@ -81,6 +81,7 @@ export function PrivateDraftBoundary({
       </p>
     );
   }
+
   const editing = {
     draft: admission.draft,
     reloadAction: async () => {
@@ -89,6 +90,7 @@ export function PrivateDraftBoundary({
       if (draft.aggregate.kind !== kind) {
         throw new Error("Content type changed");
       }
+
       setAdmission({
         phase: "private",
         draft,

@@ -50,8 +50,11 @@ it("bounds hashing and verification concurrency together without queuing request
 
 it("releases capacity after password work throws", async () => {
   hash.mockRejectedValue(new Error("Hash failure"));
-  for (let i = 0; i < 5; i++)
+
+  for (let i = 0; i < 5; i++) {
     await expect(hashPassword("password")).rejects.toThrow("Hash failure");
+  }
+
   hash.mockResolvedValue("hash");
   await expect(hashPassword("retry")).resolves.toBe("hash");
 });

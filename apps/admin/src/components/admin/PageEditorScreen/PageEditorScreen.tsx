@@ -69,7 +69,9 @@ function LegacyPageEditorScreen({ id }: PageEditorScreenProps) {
     );
   }
 
-  if (!item) return null;
+  if (!item) {
+    return null;
+  }
 
   return (
     <>

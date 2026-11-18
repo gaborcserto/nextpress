@@ -53,6 +53,7 @@ it.each([
     if (hasTags) {
       expect(screen.getAllByText(tag.name)).toHaveLength(1);
     }
+
     expect(screen.queryAllByRole("link")).toHaveLength(
       Number(hasCategories) + Number(hasTags),
     );
@@ -84,6 +85,7 @@ it.each([0, 1, 6])(
 
       return;
     }
+
     const section = within(
       screen.getByRole("region", { name: "More articles" }),
     );

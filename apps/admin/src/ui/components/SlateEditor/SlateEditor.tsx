@@ -45,33 +45,37 @@ export default function SlateEditor({
       case "heading": {
         const level = element.level;
 
-        if (level === 2)
+        if (level === 2) {
           return (
             <h2 {...attributes} style={style}>
               {children}
             </h2>
           );
+        }
 
-        if (level === 3)
+        if (level === 3) {
           return (
             <h3 {...attributes} style={style}>
               {children}
             </h3>
           );
+        }
 
-        if (level === 4)
+        if (level === 4) {
           return (
             <h4 {...attributes} style={style}>
               {children}
             </h4>
           );
+        }
 
-        if (level === 5)
+        if (level === 5) {
           return (
             <h5 {...attributes} style={style}>
               {children}
             </h5>
           );
+        }
 
         return (
           <h6 {...attributes} style={style}>
@@ -122,20 +126,29 @@ export default function SlateEditor({
 
     let out = children;
 
-    if (leaf.bold) out = <strong>{out}</strong>;
+    if (leaf.bold) {
+      out = <strong>{out}</strong>;
+    }
 
-    if (leaf.italic) out = <em>{out}</em>;
+    if (leaf.italic) {
+      out = <em>{out}</em>;
+    }
 
-    if (leaf.underline) out = <u>{out}</u>;
+    if (leaf.underline) {
+      out = <u>{out}</u>;
+    }
 
-    if (leaf.strikethrough) out = <s>{out}</s>;
+    if (leaf.strikethrough) {
+      out = <s>{out}</s>;
+    }
 
-    if (leaf.code)
+    if (leaf.code) {
       out = (
         <code className="px-1 rounded bg-base-200 border border-base-300">
           {out}
         </code>
       );
+    }
 
     return <span {...attributes}>{out}</span>;
   }, []);
@@ -145,6 +158,7 @@ export default function SlateEditor({
       setCodeDraft(JSON.stringify(editor.children, null, 2));
       setCodeError(null);
     }
+
     setIsCodeView((previous) => !previous);
   };
 
@@ -175,6 +189,7 @@ export default function SlateEditor({
               aria-describedby={codeError ? `${codeId}-error` : undefined}
               onChange={(e) => {
                 setCodeDraft(e.target.value);
+
                 try {
                   const result = RichBlocksSchema.safeParse(
                     JSON.parse(e.target.value),
@@ -187,6 +202,7 @@ export default function SlateEditor({
 
                     return;
                   }
+
                   const parsed = result.data;
                   Transforms.deselect(editor);
                   Editor.withoutNormalizing(editor, () => {
@@ -197,6 +213,7 @@ export default function SlateEditor({
                     ) {
                       Transforms.removeNodes(editor, { at: [index] });
                     }
+
                     Transforms.insertNodes(editor, parsed, { at: [0] });
                   });
                   onChangeAction(parsed);

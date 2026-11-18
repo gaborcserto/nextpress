@@ -51,11 +51,13 @@ export async function transitionLegacyOwnership(
           data: { enrollmentState: "SHADOW" },
         });
       }
+
       const inspected = await inspectLegacyPage(tx, pageId);
 
       if (!inspected.populated || inspected.issues.length) {
         throw new BackfillConflictError("OWNERSHIP_PARITY_REQUIRED");
       }
+
       await tx.contentEditorialState.update({
         where: { pageId },
         data: { enrollmentState: target },

@@ -59,6 +59,7 @@ export function getAuthBaseURL(): string {
   if (!value && process.env.NODE_ENV === "production") {
     throw new Error("BETTER_AUTH_URL is required in production");
   }
+
   const resolved = value ?? "http://localhost:49101";
   applicationOrigin(resolved);
 
@@ -71,6 +72,7 @@ export function getTrustedOrigins(): string[] {
   if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_URL) {
     throw new Error("BETTER_AUTH_URL is required in production");
   }
+
   const origins = urls.map(applicationOrigin);
 
   if (process.env.NODE_ENV !== "production") {

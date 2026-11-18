@@ -12,18 +12,26 @@ function toLabel(seg: string, prev?: string) {
 
   // "new" / "create"
   if ((seg === "new" || seg === "create") && prev) {
-    if (prev === "pages") return "Create Page";
+    if (prev === "pages") {
+      return "Create Page";
+    }
 
-    if (prev === "posts") return "Create Post";
+    if (prev === "posts") {
+      return "Create Post";
+    }
 
     return "New";
   }
 
   // ID segments
   if (looksLikeId && prev) {
-    if (prev === "posts") return "Edit Post";
+    if (prev === "posts") {
+      return "Edit Post";
+    }
 
-    if (prev === "pages") return "Edit Page";
+    if (prev === "pages") {
+      return "Edit Page";
+    }
 
     return "Edit";
   }
@@ -54,7 +62,9 @@ export default function Breadcrumbs() {
 
   // Fetch title for the current detail item
   useEffect(() => {
-    if (!detailId) return;
+    if (!detailId) {
+      return;
+    }
 
     const controller = new AbortController();
     const basePath = isPostDetail ? "/api/post" : "/api/pages";

@@ -32,7 +32,10 @@ export function useToggle(
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const next = e.target.checked;
 
-    if (!isControlled) setUncontrolledChecked(next);
+    if (!isControlled) {
+      setUncontrolledChecked(next);
+    }
+
     props.onChangeAction?.(next, e);
   };
 

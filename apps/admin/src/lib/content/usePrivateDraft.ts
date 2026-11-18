@@ -119,12 +119,14 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       if (!(await controller.save("RESTORE", version))) {
         throw new Error("Private restore was not acknowledged");
       }
+
       await editing.reloadAction();
     },
     restoreLegacy: async (id: string) => {
       if (!(await controller.save("RESTORE_LEGACY", undefined, id))) {
         throw new Error("Legacy restore was not acknowledged");
       }
+
       await editing.reloadAction();
     },
     reload: editing.reloadAction,

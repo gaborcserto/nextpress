@@ -21,6 +21,7 @@ export async function executeDuePrivateReleases(
   const { after } = ExecutePrivateReleasesSchema.parse(input);
   let nextCursor = after ?? null;
   const started = Date.now();
+
   const candidates = await db.$transaction(
     (tx) => tx.$queryRaw<{ pageId: string; aggregate: unknown }[]>`
     SELECT "pageId", aggregate FROM (
@@ -44,11 +45,13 @@ export async function executeDuePrivateReleases(
     if (Date.now() - started > 30000) {
       break;
     }
+
     const release = WorkingAggregateSchema.parse(candidate.aggregate).release;
 
     if (!release) {
       continue;
     }
+
     nextCursor = {
       scheduledFor: release.scheduledFor,
       pageId: candidate.pageId,
@@ -64,6 +67,7 @@ export async function executeDuePrivateReleases(
       ) {
         continue;
       }
+
       await saveWorkingAggregate(
         db,
         {

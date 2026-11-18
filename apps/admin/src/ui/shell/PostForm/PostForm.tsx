@@ -75,7 +75,10 @@ export default function PostForm({
   const unsaved = useUnsavedChanges(form, false, privateDraft?.dirty);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(() => {
-    if (!initial.title || !initial.slug) return false;
+    if (!initial.title || !initial.slug) {
+      return false;
+    }
+
     const autoSlug = slugify(initial.title);
 
     return initial.slug !== autoSlug;
@@ -110,6 +113,7 @@ export default function PostForm({
     if (submitting) {
       return;
     }
+
     const errors = {
       ...(form.title.trim() ? {} : { title: "Title is required." }),
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),

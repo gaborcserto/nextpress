@@ -86,8 +86,10 @@ async function startApp(workspace: "api" | "admin", port: number) {
     } catch {
       // Bounded startup polling; no content operation is retried here.
     }
+
     await new Promise((done) => setTimeout(done, 250));
   }
+
   throw new Error("Isolated application readiness timed out");
 }
 
@@ -224,6 +226,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
           }
         }
       }
+
       await client?.end();
       await db?.$disconnect();
     }, 30000);
@@ -238,6 +241,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
           { id: tagId, name: "Rehearsal tag", slug: tagId },
         ]);
         const input = command(initial, { title: "Private HTTP title" });
+
         const first = await http(
           `/api/private-drafts/${page.id}`,
           "PUT",
@@ -333,6 +337,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
       "restores legacy %s through real sessions with replay and access refusal",
       async (kind) => {
         const page = await seed(kind);
+
         const historical = await db.pageRevision.create({
           data: {
             pageId: page.id,
@@ -384,6 +389,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
             data: { roleId: "b04-author" },
           });
         }
+
         expect(
           await db.pageRevision.findUnique({ where: { id: historical.id } }),
         ).toEqual(historical);
@@ -469,6 +475,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
         data: { title: "Live changed" },
       });
       const current = await load(page.id);
+
       const refused = await http(
         `/api/private-drafts/${page.id}`,
         "PUT",
@@ -553,6 +560,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
             operation === "UNPUBLISH" ? 404 : 200,
           );
         }
+
         expect(
           (await http("/api/private-drafts/execute", "POST", {})).status,
         ).toBe(403);
@@ -640,6 +648,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
 
         for (const kind of ["PAGE", "POST"] as const) {
           const source = await seed(kind);
+
           const legacy = await db.pageRevision.create({
             data: {
               pageId: source.id,
@@ -809,6 +818,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
             page.getByRole("button", { name: "Publish Changes", exact: true }),
           ).toBeEnabled();
         }
+
         await context.close();
       } finally {
         await browser.close();

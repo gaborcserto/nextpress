@@ -27,6 +27,7 @@ it.each(editorialFixtures)(
         not: null,
         lte: new Date(baselineInstant),
       });
+
       return fixture.status === where.status &&
         fixture.publishedAt &&
         fixture.publishedAt <= where.publishedAt.lte
@@ -36,10 +37,13 @@ it.each(editorialFixtures)(
     const result = await (
       fixture.type === "POST" ? getPublishedPost : getPublishedPage
     )(fixture.slug);
+
     if (!["past", "private-revision"].includes(fixture.scenario)) {
       expect(result).toBeNull();
+
       return;
     }
+
     expect(PublicContentSchema.safeParse(result).success).toBe(true);
     expect(result?.title).toBe(fixture.title);
     expect(result?.taxonomies.map((item) => item.type)).toEqual([

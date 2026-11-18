@@ -8,6 +8,7 @@ await new Promise((resolve, reject) => {
   stalled.once("error", reject);
   stalled.listen(49303, "localhost", resolve);
 });
+
 try {
   for (const scenario of ["unavailable", "timeout"]) {
     for (const [app, port] of [
@@ -46,13 +47,16 @@ try {
       child.stderr.on("data", (chunk) => {
         diagnostics += chunk;
       });
+
       try {
         const startedAt = Date.now();
         let response;
 
         for (let attempt = 0; attempt < 60; attempt++) {
-          if (child.exitCode !== null)
+          if (child.exitCode !== null) {
             throw new Error(`Isolated ${app} failed to start`);
+          }
+
           try {
             response = await fetch(
               `http://localhost:${port}${app === "admin" ? "/api/health" : "/en/"}`,
@@ -63,26 +67,33 @@ try {
             await new Promise((resolve) => setTimeout(resolve, 500));
           }
         }
+
         assert.ok(response, `Isolated ${app} never responded`);
         assert.equal(response.status, app === "admin" ? 502 : 500);
 
-        if (app === "admin")
+        if (app === "admin") {
           assert.deepEqual(await response.json(), { error: "API unavailable" });
-        else assert.match(diagnostics, /public\.upstream\.failed/);
+        } else {
+          assert.match(diagnostics, /public\.upstream\.failed/);
+        }
 
-        if (scenario === "timeout")
+        if (scenario === "timeout") {
           assert.ok(Date.now() - startedAt >= (app === "admin" ? 29000 : 9000));
+        }
+
         console.log(
           `Independent ${app} startup and real HTTP API ${scenario} behavior passed (${response.status})`,
         );
       } finally {
         if (child.exitCode === null && child.pid) {
-          if (process.platform === "win32")
+          if (process.platform === "win32") {
             spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
               stdio: "ignore",
               timeout: 10_000,
             });
-          else process.kill(-child.pid, "SIGKILL");
+          } else {
+            process.kill(-child.pid, "SIGKILL");
+          }
         }
       }
     }

@@ -12,6 +12,7 @@ const tag = {
   name: "Accessibility",
   id: "private-id",
 };
+
 const request = (query = "") =>
   new Request(`http://localhost/api/public/tags${query}`);
 

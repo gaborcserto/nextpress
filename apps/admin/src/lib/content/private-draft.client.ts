@@ -24,6 +24,7 @@ export async function requestPrivateDraft(
   command?: WorkingAggregateSave,
 ) {
   const { pageId: _pageId, ...body } = command ?? {};
+
   const response = await apiFetch(
     `/api/private-drafts/${encodeURIComponent(id)}`,
     {
@@ -37,6 +38,7 @@ export async function requestPrivateDraft(
         : {}),
     },
   );
+
   const data: unknown = await response.json();
 
   if (!response.ok) {

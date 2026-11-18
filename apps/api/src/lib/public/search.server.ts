@@ -85,6 +85,7 @@ export async function searchPublishedContent(
     // Two disjoint tiers keep ranking and pagination in PostgreSQL, without loading the corpus.
     const titleWhere = { AND: [where, title] };
     const titleCount = await prisma.page.count({ where: titleWhere });
+
     const titleRows =
       skip < titleCount
         ? await prisma.page.findMany({

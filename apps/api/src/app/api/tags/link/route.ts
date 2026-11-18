@@ -33,11 +33,18 @@ export async function GET(req: Request) {
 
     return ok(tags);
   } catch (err) {
-    if (err instanceof ContentForbiddenError) return forbid();
+    if (err instanceof ContentForbiddenError) {
+      return forbid();
+    }
 
-    if (err instanceof ContentNotFoundError) return notfound();
+    if (err instanceof ContentNotFoundError) {
+      return notfound();
+    }
 
-    if (err instanceof TaxonomyScopeError) return bad(err.message);
+    if (err instanceof TaxonomyScopeError) {
+      return bad(err.message);
+    }
+
     console.error("GET /api/tags/link failed");
 
     if (err instanceof ValidationError) {
@@ -84,11 +91,18 @@ export const PUT = withAuth(
 
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
-      if (err instanceof TaxonomyScopeError) return bad(err.message);
+      if (err instanceof TaxonomyScopeError) {
+        return bad(err.message);
+      }
+
       console.error("PUT /api/tags/link failed");
 
       if (err instanceof ValidationError) {

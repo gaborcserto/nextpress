@@ -54,40 +54,53 @@ function main() {
   if (baseIndex !== -1) {
     base = args[baseIndex + 1];
 
-    if (!base || base.startsWith("--"))
+    if (!base || base.startsWith("--")) {
       throw new Error("--base requires a revision");
+    }
+
     args.splice(baseIndex, 2);
   }
+
   const filesIndex = args.indexOf("--files");
   const explicitFiles = filesIndex === -1 ? null : args.splice(filesIndex + 1);
 
-  if (filesIndex !== -1) args.splice(filesIndex, 1);
+  if (filesIndex !== -1) {
+    args.splice(filesIndex, 1);
+  }
 
   if (
     args.some(
       (arg) => !["--full", "--ci", "--format", "--format-check"].includes(arg),
     )
-  )
+  ) {
     throw new Error(
       "Usage: check-changed.mjs [--full] [--base ref] [--format | --format-check] [--files paths...] [--ci]",
     );
+  }
+
   const ci = args.includes("--ci");
   const formatOnly =
     args.includes("--format") || args.includes("--format-check");
   const write = args.includes("--format");
 
-  if (write && args.includes("--format-check"))
+  if (write && args.includes("--format-check")) {
     throw new Error("Choose one formatting mode");
+  }
 
-  if (ci && base) throw new Error("CI uses BASE_SHA/HEAD_SHA, not --base");
+  if (ci && base) {
+    throw new Error("CI uses BASE_SHA/HEAD_SHA, not --base");
+  }
 
-  if (write && (ci || args.includes("--full")))
+  if (write && (ci || args.includes("--full"))) {
     throw new Error("Formatting writes cannot use --ci or --full");
+  }
 
-  if (explicitFiles && (!formatOnly || ci || !explicitFiles.length))
+  if (explicitFiles && (!formatOnly || ci || !explicitFiles.length)) {
     throw new Error(
       "--files requires a local format mode and at least one path",
     );
+  }
+
   let files;
   let selection;
 
@@ -95,7 +108,10 @@ function main() {
     if (ci) {
       const ciBase = process.env.BASE_SHA;
 
-      if (!ciBase) throw new Error("Missing base revision");
+      if (!ciBase) {
+        throw new Error("Missing base revision");
+      }
+
       git("cat-file", "-e", `${ciBase}^{commit}`);
       files = paths(
         git(
@@ -146,9 +162,13 @@ function main() {
   } catch (error) {
     // Only the output-only CI selector retains conservative full validation.
     // A formatter must never turn detection failure into an empty success/write.
-    if (!ci || formatOnly) throw error;
+    if (!ci || formatOnly) {
+      throw error;
+    }
+
     selection = selectChanges([], { full: true });
   }
+
   console.log(`[check:changed] ${selection.mode}: ${selection.reason}`);
 
   if (ci && !formatOnly) {
@@ -160,12 +180,19 @@ function main() {
 
     return;
   }
+
   formatFiles(files, { cwd: root, write });
 
-  if (formatOnly || selection.mode === "none") return;
+  if (formatOnly || selection.mode === "none") {
+    return;
+  }
+
   const npmCli = process.env.npm_execpath;
 
-  if (!npmCli) throw new Error("Run through npm run check:changed");
+  if (!npmCli) {
+    throw new Error("Run through npm run check:changed");
+  }
+
   for (const script of [
     "lint:root",
     "typecheck:e2e",
@@ -178,7 +205,9 @@ function main() {
       stdio: "inherit",
     });
 
-    if (check.error) throw check.error;
+    if (check.error) {
+      throw check.error;
+    }
 
     if (check.status !== 0) {
       process.exitCode = check.status ?? 1;
@@ -186,6 +215,7 @@ function main() {
       return;
     }
   }
+
   const filters = turboFilters(selection);
   console.log(
     `[check:changed] turbo run lint typecheck test ${filters.join(" ") || "(all workspaces)"}`,
@@ -205,9 +235,16 @@ function main() {
     { cwd: root, stdio: "inherit" },
   );
 
-  if (result.error) throw result.error;
+  if (result.error) {
+    throw result.error;
+  }
+
   process.exitCode = result.status ?? 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   main();
+}

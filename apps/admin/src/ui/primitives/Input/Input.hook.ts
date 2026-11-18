@@ -29,6 +29,7 @@ export function useInput({ id, value, type, onChange }: UseInputArgs) {
     if (!isControlled) {
       setInternalValue(e.target.value);
     }
+
     onChange?.(e);
   };
 

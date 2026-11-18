@@ -77,8 +77,10 @@ async function Block({ block }: { block: PageBlock }) {
         limit: String(block.props.limit),
       });
 
-      if (block.props.taxonomyId)
+      if (block.props.taxonomyId) {
         params.set("taxonomyId", block.props.taxonomyId);
+      }
+
       const listing = await fetchPublic(
         `content?${params}`,
         PublicContentIndexSchema,

@@ -35,7 +35,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       })),
     );
 
-    if (!batch.hasMore) return entries;
+    if (!batch.hasMore) {
+      return entries;
+    }
   }
+
   throw new Error("Sitemap exceeds the supported content index window");
 }

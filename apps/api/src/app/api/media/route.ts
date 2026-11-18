@@ -38,8 +38,9 @@ export const POST = withAuth(
         error instanceof ZodError ||
         error instanceof MediaValidationError ||
         error instanceof SyntaxError
-      )
+      ) {
         return bad("Invalid image upload");
+      }
 
       return oops(error);
     }

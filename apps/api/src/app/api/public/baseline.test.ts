@@ -39,6 +39,7 @@ it.each([page, post])(
       new Request("http://localhost/api/public/pages/baseline"),
       { params: Promise.resolve({ slug: "baseline" }) },
     );
+
     const baseline = await publicBaseline(response, (body) =>
       PublicContentSchema.parse(body),
     );

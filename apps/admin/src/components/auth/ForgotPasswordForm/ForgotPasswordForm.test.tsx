@@ -14,14 +14,16 @@ beforeEach(() => {
 it.each(["response", "network"])(
   "does not claim delivery after a %s failure",
   async (failure) => {
-    if (failure === "response")
+    if (failure === "response") {
       resetRequest.mockResolvedValue({
         error: { code: "ACCOUNT_EMAIL_UNAVAILABLE" },
       });
-    else
+    } else {
       resetRequest.mockImplementation(async () => {
         throw new Error("offline");
       });
+    }
+
     render(<ForgotPasswordForm />);
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "user@example.com" },

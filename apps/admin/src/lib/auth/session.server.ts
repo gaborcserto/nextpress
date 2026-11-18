@@ -12,11 +12,13 @@ import type { RoleName } from "./roles";
 
 async function discovery(path: string) {
   const incoming = await headers();
+
   const cookie = (incoming.get("cookie") ?? "")
     .split(";")
     .map((part) => part.trim())
     .filter((part) => /^(?:__Secure-)?better-auth[.]/.test(part))
     .join("; ");
+
   const response = await fetch(`${apiOrigin()}/api/discovery/${path}`, {
     headers: { cookie },
     cache: "no-store",
@@ -24,7 +26,10 @@ async function discovery(path: string) {
     signal: AbortSignal.timeout(10000),
   });
 
-  if (!response.ok) throw new Error("API discovery unavailable");
+  if (!response.ok) {
+    throw new Error("API discovery unavailable");
+  }
+
   const body: unknown = await response.json();
 
   return body;

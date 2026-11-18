@@ -8,7 +8,9 @@ import type { TagValue } from "@/lib/content/contracts";
  * Runtime type guard for a single TagValue.
  */
 function isTagValue(value: unknown): value is TagValue {
-  if (typeof value !== "object" || value === null) return false;
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
 
   const obj = value as { [key: string]: unknown };
 
@@ -33,7 +35,9 @@ function isTagValueArray(value: unknown): value is TagValue[] {
 function isPaginatedTagResponse(
   value: unknown,
 ): value is { items: TagValue[] } {
-  if (typeof value !== "object" || value === null) return false;
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
 
   const obj = value as { [key: string]: unknown };
   const items = obj.items;
@@ -48,7 +52,9 @@ function isPaginatedTagResponse(
  * This helper normalizes both wrapped and unwrapped responses.
  */
 function unwrapOkData(raw: unknown): unknown {
-  if (typeof raw !== "object" || raw === null) return raw;
+  if (typeof raw !== "object" || raw === null) {
+    return raw;
+  }
 
   const obj = raw as Record<string, unknown>;
 
@@ -64,7 +70,9 @@ function unwrapOkData(raw: unknown): unknown {
 export async function loadTagOptionsAction(query: string): Promise<TagValue[]> {
   const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`);
 
-  if (!res.ok) throw new Error("Failed to load tag options");
+  if (!res.ok) {
+    throw new Error("Failed to load tag options");
+  }
 
   const raw: unknown = await res.json();
   const unwrapped = unwrapOkData(raw);
@@ -142,12 +150,16 @@ export async function loadEntityTagsAction(
     `/api/tags/link?entityId=${encodeURIComponent(entityId)}`,
   );
 
-  if (!res.ok) throw new Error("Failed to load assigned tags");
+  if (!res.ok) {
+    throw new Error("Failed to load assigned tags");
+  }
 
   const raw: unknown = await res.json();
   const unwrapped = unwrapOkData(raw);
 
-  if (isTagValueArray(unwrapped)) return unwrapped;
+  if (isTagValueArray(unwrapped)) {
+    return unwrapped;
+  }
 
   return [];
 }
@@ -168,7 +180,9 @@ export async function updateEntityTagsAction(
     },
   );
 
-  if (!res.ok) throw new Error("Failed to save tags");
+  if (!res.ok) {
+    throw new Error("Failed to save tags");
+  }
 }
 
 /* ---------- Admin tag listing ---------- */
@@ -183,7 +197,9 @@ export type TagWithUsageValue = TagValue & { usedCount: number };
  * Runtime type guard for TagWithUsageValue.
  */
 function isTagWithUsageValue(value: unknown): value is TagWithUsageValue {
-  if (!isTagValue(value)) return false;
+  if (!isTagValue(value)) {
+    return false;
+  }
 
   const obj = value as Record<string, unknown>;
 
@@ -212,15 +228,20 @@ export async function loadTagsAdminAction(
     cache: "no-store",
     ...(signal ? { signal } : {}),
   });
+
   const unwrapped = unwrapOkData(raw);
 
-  if (isTagWithUsageArray(unwrapped)) return unwrapped;
+  if (isTagWithUsageArray(unwrapped)) {
+    return unwrapped;
+  }
 
   const obj = (
     typeof unwrapped === "object" && unwrapped !== null ? unwrapped : {}
   ) as Record<string, unknown>;
 
-  if (isTagWithUsageArray(obj.items)) return obj.items;
+  if (isTagWithUsageArray(obj.items)) {
+    return obj.items;
+  }
 
   throw new Error("Invalid tag response");
 }

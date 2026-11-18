@@ -61,12 +61,14 @@ export function usePageEditor(id?: string) {
 
     savingRef.current = true;
     setSaving(true);
+
     try {
       if (id && data?.item.workingVersion === undefined) {
         showToast("Reload the editor before saving.", "warning");
 
         return false;
       }
+
       const submittedValues = prepareLegacyUpdate(values, data?.item);
       const { ok, status } =
         id && data

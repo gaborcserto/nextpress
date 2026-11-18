@@ -100,6 +100,7 @@ test("validates workflow contents, nested references and Claude imports", async 
         fragment,
       );
     }
+
     await writeFile(path.join(root, "CLAUDE.md"), "@AGENTS.md\n");
     assert.ok(
       !(await validateAgentResources(root)).some((error) =>

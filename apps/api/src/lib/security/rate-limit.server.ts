@@ -20,13 +20,18 @@ export class RateLimiter {
     const digest = createHash("sha256").update(key).digest("hex");
 
     for (const [storedKey, entry] of this.entries) {
-      if (entry.expiresAt <= now) this.entries.delete(storedKey);
+      if (entry.expiresAt <= now) {
+        this.entries.delete(storedKey);
+      }
     }
+
     const existing = this.entries.get(digest);
 
     if (existing) {
-      if (existing.count >= max)
+      if (existing.count >= max) {
         return Math.max(1, Math.ceil((existing.expiresAt - now) / 1000));
+      }
+
       existing.count++;
 
       return null;
@@ -40,6 +45,7 @@ export class RateLimiter {
 
       return Math.max(1, Math.ceil((firstExpiry - now) / 1000));
     }
+
     this.entries.set(digest, { count: 1, expiresAt: now + windowMs });
 
     return null;
@@ -69,7 +75,10 @@ let nextLogAt = 0;
 export function logAbuseThrottle() {
   const now = Date.now();
 
-  if (now < nextLogAt) return;
+  if (now < nextLogAt) {
+    return;
+  }
+
   nextLogAt = now + 60_000;
   console.warn("Application abuse limit reached");
 }

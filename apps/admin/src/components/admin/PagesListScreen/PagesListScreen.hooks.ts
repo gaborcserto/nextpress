@@ -19,6 +19,7 @@ export function useDeletePage(onDeleted?: () => void) {
       if (deletingRef.current) {
         return;
       }
+
       deletingRef.current = true;
       setDeletingId(id);
 

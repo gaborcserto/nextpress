@@ -23,6 +23,7 @@ export function useConfirmDialog<TPayload = unknown>() {
     if (busy.current) {
       return;
     }
+
     setError(null);
     setPayload(nextPayload);
     setOpen(true);
@@ -32,6 +33,7 @@ export function useConfirmDialog<TPayload = unknown>() {
     if (busy.current) {
       return;
     }
+
     setOpen(false);
     setPayload(null);
     setError(null);
@@ -41,6 +43,7 @@ export function useConfirmDialog<TPayload = unknown>() {
     if (busy.current || payload === null) {
       return;
     }
+
     busy.current = true;
     setPending(true);
     setError(null);

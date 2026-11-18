@@ -31,6 +31,7 @@ export function useDeletePost(onDeleted?: () => void) {
       if (deletingRef.current) {
         return;
       }
+
       deletingRef.current = true;
       setDeletingId(id);
 

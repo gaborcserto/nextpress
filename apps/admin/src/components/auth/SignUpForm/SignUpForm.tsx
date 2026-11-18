@@ -55,7 +55,10 @@ export function SignUpForm({ providers }: SignUpFormProps) {
   const onSubmitAction = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
 
-    if (submissionLock.current) return;
+    if (submissionLock.current) {
+      return;
+    }
+
     setFieldErrors({});
     setFormError(null);
 
@@ -69,6 +72,7 @@ export function SignUpForm({ providers }: SignUpFormProps) {
 
     submissionLock.current = true;
     setLoading(true);
+
     try {
       const safeName = name.trim() || email.split("@")[0];
 

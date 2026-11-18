@@ -152,6 +152,7 @@ describe.each([
           await screen.findByRole("cell", { name: "\u2014" }),
         ).toBeInTheDocument();
       }
+
       expect(
         screen.queryByText(/Published:|Last modified:|Invalid Date/),
       ).not.toBeInTheDocument();

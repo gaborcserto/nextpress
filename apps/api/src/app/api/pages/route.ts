@@ -38,9 +38,13 @@ export const POST = withAuth(
 
       return ok(created, 201);
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof TaxonomyScopeError) return bad(err.message);
+      if (err instanceof TaxonomyScopeError) {
+        return bad(err.message);
+      }
 
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
@@ -66,8 +70,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const selectMode = url.searchParams.get("select");
 
-  if (url.searchParams.getAll("select").length > 1)
+  if (url.searchParams.getAll("select").length > 1) {
     return bad("Invalid selector");
+  }
 
   if (selectMode === "parent") {
     const pages = await prisma.page.findMany({
@@ -80,11 +85,15 @@ export async function GET(req: Request) {
     return ok(pages);
   }
 
-  if (selectMode !== null) return bad("Invalid selector");
+  if (selectMode !== null) {
+    return bad("Invalid selector");
+  }
 
   const pagination = parsePagination(url.searchParams);
 
-  if (!pagination) return bad("Invalid pagination");
+  if (!pagination) {
+    return bad("Invalid pagination");
+  }
 
   const result = await listPagesService(
     pagination.page,

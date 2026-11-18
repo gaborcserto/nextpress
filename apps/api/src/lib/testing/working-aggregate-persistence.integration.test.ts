@@ -96,6 +96,7 @@ describe.skipIf(!url)(
           };
         };
         await saveDisposableWorkingAggregate(db, await make(), publisher);
+
         for (const operation of ["PUBLISH", "SCHEDULE"]) {
           const input = await make(operation);
           await expect(
@@ -111,6 +112,7 @@ describe.skipIf(!url)(
             ),
           ).rejects.toThrow();
         }
+
         // Emulate an immutable schedule accepted by the historical permissive writer.
         const captured = await loadDisposableWorkingAggregate(
           db,
@@ -186,6 +188,7 @@ describe.skipIf(!url)(
           data: { id: publisher.id, roleId: "b04-admin" },
         });
       }
+
       const ids: string[] = [];
 
       const { loadWorkingAggregate, saveWorkingAggregate } =
@@ -194,6 +197,7 @@ describe.skipIf(!url)(
       const schedule = async (publisher: typeof blocked) => {
         const source = await seed();
         const current = await loadWorkingAggregate(db, source.id, publisher);
+
         const saved = await saveWorkingAggregate(
           db,
           {
@@ -237,6 +241,7 @@ describe.skipIf(!url)(
           )),
         );
       }
+
       ids.push(await schedule(allowed));
       await db.user.update({
         where: { id: blocked.id },
@@ -248,6 +253,7 @@ describe.skipIf(!url)(
       let result = await executeDuePrivateReleases(db);
       expect(result.results.some((row) => row.pageId === ids[20])).toBe(false);
       expect(result.nextCursor).not.toBeNull();
+
       for (let batch = 0; result.nextCursor && batch < 10; batch++) {
         result = await executeDuePrivateReleases(db, {
           after: result.nextCursor,
@@ -261,6 +267,7 @@ describe.skipIf(!url)(
           break;
         }
       }
+
       expect(result.results).toContainEqual({
         pageId: ids[20],
         outcome: "executed",
@@ -333,6 +340,7 @@ describe.skipIf(!url)(
       await new Promise((done) => setTimeout(done, 1100));
       const { executeDuePrivateReleases } =
         await import("../services/private-release-executor.server");
+
       const before = await db.page.findUniqueOrThrow({
         where: { id: source.id },
       });
@@ -431,6 +439,7 @@ describe.skipIf(!url)(
         await db.$executeRaw`DROP TRIGGER np_fail_publication ON "NPWorkingRevision"`;
         await db.$executeRaw`DROP FUNCTION np_fail_publication()`;
       }
+
       expect((await executeDuePrivateReleases(db)).results).toContainEqual({
         pageId: source.id,
         outcome: "executed",
@@ -468,6 +477,7 @@ describe.skipIf(!url)(
         const tag = await db.taxonomy.create({
           data: { type: "TAG", name: "Publication tag", slug: randomUUID() },
         });
+
         const category = await db.taxonomy.create({
           data: {
             type: "CATEGORY",
@@ -508,11 +518,13 @@ describe.skipIf(!url)(
           };
         };
         const publish = await make("PUBLISH");
+
         const published = await saveDisposableWorkingAggregate(
           db,
           publish,
           publicationActor,
         );
+
         const live = await db.page.findUniqueOrThrow({
           where: { id: source.id },
         });
@@ -560,6 +572,7 @@ describe.skipIf(!url)(
           (await db.page.findUniqueOrThrow({ where: { id: source.id } })).title,
         ).toBe("Private title");
         const concurrent = await make("PUBLISH");
+
         const attempts = await Promise.allSettled([
           saveDisposableWorkingAggregate(db, concurrent, publicationActor),
           saveDisposableWorkingAggregate(
@@ -578,6 +591,7 @@ describe.skipIf(!url)(
         const schedule = await make("SCHEDULE", {
           scheduledFor: new Date(Date.now() + 60000).toISOString(),
         });
+
         const scheduled = await saveDisposableWorkingAggregate(
           db,
           schedule,
@@ -588,6 +602,7 @@ describe.skipIf(!url)(
           (await db.page.findUniqueOrThrow({ where: { id: source.id } })).title,
         ).toBe("Published changes");
         const cancel = await make("CANCEL_SCHEDULE");
+
         const cancelled = await saveDisposableWorkingAggregate(
           db,
           cancel,
@@ -605,6 +620,7 @@ describe.skipIf(!url)(
           publicationActor,
         );
         const unpublish = await make("UNPUBLISH");
+
         const unpublished = await saveDisposableWorkingAggregate(
           db,
           unpublish,
@@ -631,6 +647,7 @@ describe.skipIf(!url)(
         await new Promise((done) => setTimeout(done, 3100));
         const { executeDuePrivateReleases } =
           await import("../services/private-release-executor.server");
+
         const executions = await Promise.all([
           executeDuePrivateReleases(db),
           executeDuePrivateReleases(db),
@@ -723,6 +740,7 @@ describe.skipIf(!url)(
       "restores partial legacy %s history privately and rejects stale, foreign and unsupported commands",
       async (type) => {
         const page = await seed(type);
+
         const historical = await db.pageRevision.create({
           data: {
             pageId: page.id,
@@ -736,6 +754,7 @@ describe.skipIf(!url)(
             status: "DRAFT",
           },
         });
+
         const unsupported = await db.pageRevision.create({
           data: {
             ...historical,
@@ -743,6 +762,7 @@ describe.skipIf(!url)(
             pageDocument: '{"version":99,"blocks":[]}',
           },
         });
+
         const initial = await command(page.id);
         const restore = {
           ...initial,
@@ -853,11 +873,13 @@ describe.skipIf(!url)(
       "restores %s history privately with durable replay, retained fields and stale-token rejection",
       async (type) => {
         const page = await seed(type);
+
         const first = await saveDisposableWorkingAggregate(
           db,
           await command(page.id),
           actor,
         );
+
         const second = await command(page.id);
         await saveDisposableWorkingAggregate(
           db,
@@ -930,6 +952,7 @@ describe.skipIf(!url)(
     it("restores content with the current baseline and no historical publication intent after reset", async () => {
       const page = await seed();
       const initial = await command(page.id);
+
       const old = await saveDisposableWorkingAggregate(
         db,
         {
@@ -947,6 +970,7 @@ describe.skipIf(!url)(
       });
       const { loadWorkingAggregate } =
         await import("../services/working-aggregate-persistence.server");
+
       const drifted = await loadWorkingAggregate(db, page.id, actor, {
         includeSourceMetadata: true,
       });
@@ -1024,6 +1048,7 @@ describe.skipIf(!url)(
       });
       const { loadWorkingAggregate } =
         await import("../services/working-aggregate-persistence.server");
+
       const latest = await loadWorkingAggregate(db, page.id, actor, {
         includeSourceMetadata: true,
       });
@@ -1066,6 +1091,7 @@ describe.skipIf(!url)(
     it("refuses rehearsal under the disposable harness schema-owner role", async () => {
       const { requirePrivateDraftAdmission, PrivateDraftUnavailableError } =
         await import("../services/private-draft-admission.server");
+
       const [privileges] = await db.$queryRaw<{ owner: boolean }[]>`
         SELECT has_schema_privilege('public', 'CREATE') AS owner`;
       expect(privileges?.owner).toBe(true);
@@ -1133,6 +1159,7 @@ describe.skipIf(!url)(
       "saves and reloads private %s state without changing public eligibility or source bytes",
       async (type) => {
         const page = await seed(type);
+
         const saved = await saveDisposableWorkingAggregate(
           db,
           await command(page.id),
@@ -1180,6 +1207,7 @@ describe.skipIf(!url)(
     it("allows only one concurrent save from a shared draft version", async () => {
       const page = await seed();
       const input = await command(page.id);
+
       const results = await Promise.allSettled([
         saveDisposableWorkingAggregate(db, input, actor),
         saveDisposableWorkingAggregate(
@@ -1261,6 +1289,7 @@ describe.skipIf(!url)(
 
     it("retains reference integrity after commit", async () => {
       const page = await seed();
+
       const tag = await db.taxonomy.create({
         data: {
           type: "TAG",
@@ -1268,6 +1297,7 @@ describe.skipIf(!url)(
           slug: `${prefix}-${randomUUID()}`,
         },
       });
+
       const input = await command(page.id);
       await saveDisposableWorkingAggregate(
         db,
@@ -1285,6 +1315,7 @@ describe.skipIf(!url)(
     it("replays duplicate concurrent requests exactly once", async () => {
       const page = await seed();
       const input = await command(page.id);
+
       const results = await Promise.all([
         saveDisposableWorkingAggregate(db, input, actor),
         saveDisposableWorkingAggregate(db, input, actor),
@@ -1370,6 +1401,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       expect(
         await saveDisposableWorkingAggregate(db, input, actor),
       ).toMatchObject({ version: 1 });
@@ -1377,6 +1409,7 @@ describe.skipIf(!url)(
 
     it("rejects deletion held during a save and allows a retry after rollback", async () => {
       const page = await seed();
+
       const tag = await db.taxonomy.create({
         data: {
           type: "TAG",
@@ -1384,6 +1417,7 @@ describe.skipIf(!url)(
           slug: `${prefix}-${randomUUID()}`,
         },
       });
+
       const input = await command(page.id);
       input.edit.patch = { title: "Private title", ...{ tagIds: [tag.id] } };
       const client = new Client({ connectionString: url });
@@ -1402,6 +1436,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       await saveDisposableWorkingAggregate(db, input, actor);
       await expect(
         db.taxonomy.update({
@@ -1413,6 +1448,7 @@ describe.skipIf(!url)(
 
     it("rolls back a failure after revision insertion and reuses the uncommitted request safely", async () => {
       const page = await seed();
+
       const tag = await db.taxonomy.create({
         data: {
           type: "TAG",
@@ -1420,6 +1456,7 @@ describe.skipIf(!url)(
           slug: `${prefix}-${randomUUID()}`,
         },
       });
+
       const input = await command(page.id);
       const candidate = {
         ...input,
@@ -1442,6 +1479,7 @@ describe.skipIf(!url)(
         await db.$executeRaw`DROP TRIGGER np_fail_working_reference ON "NPWorkingTaxonomy"`;
         await db.$executeRaw`DROP FUNCTION np_fail_working_reference()`;
       }
+
       const saved = await saveDisposableWorkingAggregate(db, candidate, actor);
       expect(saved.version).toBe(1);
       await expect(
@@ -1475,6 +1513,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       await setTagsForPage(page.id, [], undefined, actor);
       expect(
         (await db.page.findUniqueOrThrow({ where: { id: page.id } }))
@@ -1489,6 +1528,7 @@ describe.skipIf(!url)(
       const { updatePageWithTags } = await import("../repos/pageRepo");
       const { saveRevision } = await import("../services/revisions.server");
       const page = await seed();
+
       const results = await Promise.allSettled([
         updatePageWithTags(
           page.id,
@@ -1522,6 +1562,7 @@ describe.skipIf(!url)(
     it("preserves historical fields, ordered media, raw documents and intent across repeated saves", async () => {
       const page = await seed();
       const parent = await seed();
+
       const category = await db.taxonomy.create({
         data: {
           type: "CATEGORY",
@@ -1529,6 +1570,7 @@ describe.skipIf(!url)(
           slug: `${prefix}-${randomUUID()}`,
         },
       });
+
       const media = await db.media.create({
         data: { url: "/historical-media", mime: "image/png" },
       });
@@ -1555,6 +1597,7 @@ describe.skipIf(!url)(
         data: { pageId: page.id, mediaId: media.id, sort: 7 },
       });
       const before = await loadDisposableWorkingAggregate(db, page.id, actor);
+
       const first = await saveDisposableWorkingAggregate(
         db,
         {
@@ -1572,6 +1615,7 @@ describe.skipIf(!url)(
         },
         actor,
       );
+
       const second = await saveDisposableWorkingAggregate(
         db,
         await command(page.id),
@@ -1600,6 +1644,7 @@ describe.skipIf(!url)(
 
     it("fences gallery writes and media deletion cascades with the content token", async () => {
       const page = await seed();
+
       const media = await db.media.create({
         data: { url: "/gallery-media", mime: "image/png" },
       });
@@ -1629,6 +1674,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       await db.pageMedia.update({
         where: { pageId_mediaId: { pageId: page.id, mediaId: media.id } },
         data: { sort: 9 },
@@ -1680,6 +1726,7 @@ describe.skipIf(!url)(
     it("holds taxonomy classification stable for standalone tag assignment", async () => {
       const { setTagsForPage } = await import("../repos/tagRepo");
       const page = await seed();
+
       const tag = await db.taxonomy.create({
         data: {
           type: "TAG",
@@ -1706,6 +1753,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       await setTagsForPage(page.id, [tag.id], undefined, actor);
       expect(
         await db.pageOnTaxonomy.count({
@@ -1726,6 +1774,7 @@ describe.skipIf(!url)(
       } finally {
         await db.$executeRaw`ALTER TABLE "PageMedia" ENABLE ALWAYS TRIGGER private_source_mutation`;
       }
+
       await expect(
         saveDisposableWorkingAggregate(db, input, actor),
       ).resolves.toMatchObject({ version: 1 });
@@ -1733,6 +1782,7 @@ describe.skipIf(!url)(
 
     it("fences taxonomy reclassification even when the private patch removes that tag", async () => {
       const page = await seed();
+
       const tag = await db.taxonomy.create({
         data: {
           type: "TAG",
@@ -1763,6 +1813,7 @@ describe.skipIf(!url)(
         await client.query("ROLLBACK");
         await client.end();
       }
+
       await db.taxonomy.update({
         where: { id: tag.id },
         data: { type: "CATEGORY" },

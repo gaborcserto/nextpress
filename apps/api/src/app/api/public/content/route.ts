@@ -5,13 +5,21 @@ import { bad, ok, oops } from "@/lib/api";
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
-  if ([...params.keys()].some((key) => params.getAll(key).length > 1))
+
+  if ([...params.keys()].some((key) => params.getAll(key).length > 1)) {
     return bad("Duplicate query parameters");
+  }
+
   const parsed = PublicContentIndexQuerySchema.safeParse(
     Object.fromEntries(params),
   );
-  if (!parsed.success) return bad("Invalid content query");
+
+  if (!parsed.success) {
+    return bad("Invalid content query");
+  }
+
   const { kind, taxonomyId, limit, offset } = parsed.data;
+
   try {
     const rows = await prisma.page.findMany({
       where: {
@@ -25,6 +33,7 @@ export async function GET(req: Request) {
       skip: offset,
       select: { type: true, slug: true, title: true, updatedAt: true },
     });
+
     return ok({ items: rows.slice(0, limit), hasMore: rows.length > limit });
   } catch {
     return oops();

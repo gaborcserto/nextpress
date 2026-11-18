@@ -43,6 +43,7 @@ export default async function PostPage({ params }: PostPageProps) {
     getPublicSiteSettings(),
     getPublishedPosts({ limit: 5 }),
   ]);
+
   const appearance = resolveWebsiteAppearance(settings.appearance);
   const { Post } = appearance.views;
 

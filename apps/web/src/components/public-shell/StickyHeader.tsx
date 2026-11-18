@@ -17,7 +17,9 @@ export function StickyHeader({
   useEffect(() => {
     const sentinel = header.current?.previousElementSibling;
 
-    if (!sentinel) return;
+    if (!sentinel) {
+      return;
+    }
 
     const observer = new IntersectionObserver(([entry]) => {
       setScrolled(!entry.isIntersecting);

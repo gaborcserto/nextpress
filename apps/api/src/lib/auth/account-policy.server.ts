@@ -34,7 +34,10 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
 
   const body: unknown = ctx.body;
 
-  if (!isRecord(body)) return;
+  if (!isRecord(body)) {
+    return;
+  }
+
   const input = body;
 
   if (ctx.path === "/sign-up/email" && ("role" in input || "roleId" in input)) {
@@ -64,16 +67,24 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
 
   // The caller cannot opt out: Better Auth revokes all old sessions and issues
   // a fresh current session when this supported flag is true.
-  if (ctx.path === "/change-password") normalized.revokeOtherSessions = true;
+  if (ctx.path === "/change-password") {
+    normalized.revokeOtherSessions = true;
+  }
+
   for (const field of ["email", "newEmail"] as const) {
-    if (!(field in input)) continue;
+    if (!(field in input)) {
+      continue;
+    }
+
     const result = emailSchema.safeParse(input[field]);
 
-    if (!result.success)
+    if (!result.success) {
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_EMAIL",
         message: "Invalid email",
       });
+    }
+
     normalized[field] = result.data;
   }
 
@@ -83,11 +94,12 @@ export const accountPolicy = createAuthMiddleware(async (ctx) => {
   if (newPassword !== undefined) {
     const result = passwordSchema.safeParse(newPassword);
 
-    if (!result.success)
+    if (!result.success) {
       throw new APIError("BAD_REQUEST", {
         code: "INVALID_PASSWORD",
         message: result.error.issues[0]?.message ?? "Invalid password",
       });
+    }
   }
 
   for (const field of ["password", "currentPassword"] as const) {

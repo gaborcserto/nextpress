@@ -58,7 +58,9 @@ export function showToast(
   type: ToastType = "success",
   opts: ToastOptions = {},
 ) {
-  if (typeof window === "undefined") return () => {};
+  if (typeof window === "undefined") {
+    return () => {};
+  }
 
   const { desc, timeout = 2000, position = "top-right" } = opts;
 

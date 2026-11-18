@@ -34,9 +34,11 @@ it.each(["default", "compact"])(
       "/en/posts/hello",
     );
 
-    if (id === "compact")
+    if (id === "compact") {
       expect(screen.queryByText("Preview text")).not.toBeInTheDocument();
-    else expect(screen.getByText("Preview text")).toBeInTheDocument();
+    } else {
+      expect(screen.getByText("Preview text")).toBeInTheDocument();
+    }
   },
 );
 it.each(["default", "compact"])("preserves empty state in %s", (id) => {

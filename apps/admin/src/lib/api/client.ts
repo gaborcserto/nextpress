@@ -11,7 +11,9 @@ export class ApiRequestError extends Error {
 }
 
 function messageFromBody(body: string, status: number): string {
-  if (!body) return `Request failed: ${status}`;
+  if (!body) {
+    return `Request failed: ${status}`;
+  }
 
   try {
     const parsed: unknown = JSON.parse(body);

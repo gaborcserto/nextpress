@@ -59,6 +59,7 @@ export default function ContentList({
     if (!onDeleteAction) {
       return;
     }
+
     void confirm.run(({ id }) => onDeleteAction(id));
   };
 

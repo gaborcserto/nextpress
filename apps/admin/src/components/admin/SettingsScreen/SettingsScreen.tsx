@@ -61,7 +61,9 @@ function readCredentialUpdates(
         : {}),
     };
 
-    if (Object.keys(update).length) updates[provider] = update;
+    if (Object.keys(update).length) {
+      updates[provider] = update;
+    }
   }
 
   return updates;
@@ -88,7 +90,10 @@ export default function SettingsScreen() {
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!credentialForm.current || saving) return;
+    if (!credentialForm.current || saving) {
+      return;
+    }
+
     const credentials = readCredentialUpdates(
       credentialForm.current,
       form.oauthProviders.map((provider) => provider.provider),

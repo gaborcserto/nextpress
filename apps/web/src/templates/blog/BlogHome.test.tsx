@@ -230,6 +230,7 @@ it("orders latest and recent post taxonomy after each available excerpt", () => 
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
+
     expect(
       categoryLink.compareDocumentPosition(tagLink) &
         Node.DOCUMENT_POSITION_FOLLOWING,

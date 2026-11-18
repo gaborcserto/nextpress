@@ -15,7 +15,9 @@ export default function Alert({
   icon,
   className = "",
 }: AlertProps) {
-  if (!message) return null;
+  if (!message) {
+    return null;
+  }
 
   const variantClass = `alert alert-${status}`;
 

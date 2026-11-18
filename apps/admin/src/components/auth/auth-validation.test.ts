@@ -70,7 +70,9 @@ describe("authentication form validation", () => {
       confirm: "short",
     });
 
-    if (result.success) throw new Error("Expected invalid password values");
+    if (result.success) {
+      throw new Error("Expected invalid password values");
+    }
 
     expect(fieldErrorsFromIssues(result.error.issues)).toMatchObject({
       password: "Password must be at least 15 characters",

@@ -76,7 +76,9 @@ export function ToastHost() {
     };
   }, []);
 
-  if (typeof document === "undefined") return null;
+  if (typeof document === "undefined") {
+    return null;
+  }
 
   // Group toasts by position so each corner has a single <div class="toast ...">
   const groups: Record<ToastPosition, ActiveToast[]> = {
@@ -86,14 +88,18 @@ export function ToastHost() {
     "bottom-left": [],
   };
 
-  for (const t of toasts) groups[t.position].push(t);
+  for (const t of toasts) {
+    groups[t.position].push(t);
+  }
 
   return createPortal(
     <>
       {POSITIONS.map((pos) => {
         const list = groups[pos];
 
-        if (!list.length) return null;
+        if (!list.length) {
+          return null;
+        }
 
         return (
           <div key={pos} className={`toast z-[9999] ${getPosClass(pos)}`}>

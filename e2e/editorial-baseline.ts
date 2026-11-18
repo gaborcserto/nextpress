@@ -27,6 +27,7 @@ export function canonicalBaseline(value: unknown): string {
       .map(([key, item]) => `${JSON.stringify(key)}:${canonicalBaseline(item)}`)
       .join(",")}}`;
   }
+
   throw new Error(
     "Baseline values must be finite JSON; serialize dates explicitly",
   );

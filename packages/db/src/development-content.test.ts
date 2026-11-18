@@ -13,10 +13,15 @@ describe("development content fixtures", () => {
     expect(developmentTaxonomies.every(({ type }) => type === "TAG")).toBe(
       true,
     );
+
     for (const page of developmentPages) {
       expect(new Set(page.taxonomies).size).toBe(page.taxonomies.length);
-      for (const slug of page.taxonomies) expect(tagSlugs.has(slug)).toBe(true);
+
+      for (const slug of page.taxonomies) {
+        expect(tagSlugs.has(slug)).toBe(true);
+      }
     }
+
     for (const slug of tagSlugs) {
       expect(
         developmentPages.some(
@@ -24,6 +29,7 @@ describe("development content fixtures", () => {
         ),
       ).toBe(true);
     }
+
     expect(
       developmentPages.find(({ id }) => id === "dev-seed-post-quick-note")
         ?.taxonomies,
@@ -46,10 +52,11 @@ describe("development content fixtures", () => {
         RichDocumentSchema.parse(JSON.parse(serialized.content)).version,
       ).toBe(1);
 
-      if (serialized.excerpt)
+      if (serialized.excerpt) {
         expect(
           RichDocumentSchema.parse(JSON.parse(serialized.excerpt)).version,
         ).toBe(1);
+      }
     }
   });
 

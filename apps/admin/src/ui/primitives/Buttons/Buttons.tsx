@@ -275,6 +275,7 @@ export function LinkButton({
 
           return;
         }
+
         onClick?.(e);
       }}
       {...anchorProps}
@@ -373,6 +374,7 @@ export function LinkIconButton({
 
           return;
         }
+
         onClick?.(e);
       }}
       {...anchorProps}

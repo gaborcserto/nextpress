@@ -25,7 +25,10 @@ export function ConfirmDialog({
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
+
     returnFocusRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -38,11 +41,16 @@ export function ConfirmDialog({
   }, [open]);
 
   useEffect(() => {
-    if (loading) dialogRef.current?.focus();
+    if (loading) {
+      dialogRef.current?.focus();
+    }
   }, [loading]);
 
   const close = () => {
-    if (disableClose || loading) return;
+    if (disableClose || loading) {
+      return;
+    }
+
     onCancelAction();
   };
 
@@ -54,7 +62,9 @@ export function ConfirmDialog({
       return;
     }
 
-    if (event.key !== "Tab") return;
+    if (event.key !== "Tab") {
+      return;
+    }
 
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
       'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -66,6 +76,7 @@ export function ConfirmDialog({
 
       return;
     }
+
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
 
@@ -78,7 +89,9 @@ export function ConfirmDialog({
     }
   };
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <div

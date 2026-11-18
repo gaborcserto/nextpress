@@ -19,7 +19,10 @@ export function isEditor(actor?: ContentActor | null): boolean {
 export function contentReadWhere(
   actor?: ContentActor | null,
 ): Pick<Prisma.PageWhereInput, "OR" | "status"> {
-  if (isEditor(actor)) return {};
+  if (isEditor(actor)) {
+    return {};
+  }
+
   const published: Pick<Prisma.PageWhereInput, "OR" | "status"> = {
     status: "PUBLISHED",
     OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
@@ -33,9 +36,14 @@ export function contentReadWhere(
 }
 
 export function contentWriteWhere(actor: ContentActor) {
-  if (isEditor(actor)) return {};
+  if (isEditor(actor)) {
+    return {};
+  }
 
-  if (actor.role === "AUTHOR") return { authorId: actor.id };
+  if (actor.role === "AUTHOR") {
+    return { authorId: actor.id };
+  }
+
   throw new ContentForbiddenError();
 }
 
@@ -47,13 +55,19 @@ export async function requireContentWrite(
 ) {
   const scope = contentWriteWhere(actor);
 
-  if (deleting && !isEditor(actor)) throw new ContentForbiddenError();
+  if (deleting && !isEditor(actor)) {
+    throw new ContentForbiddenError();
+  }
+
   const item = await prisma.page.findUnique({ where: { id } });
 
-  if (!item || (type && item.type !== type)) throw new ContentNotFoundError();
+  if (!item || (type && item.type !== type)) {
+    throw new ContentNotFoundError();
+  }
 
-  if (scope.authorId && item.authorId !== scope.authorId)
+  if (scope.authorId && item.authorId !== scope.authorId) {
     throw new ContentForbiddenError();
+  }
 
   return item;
 }

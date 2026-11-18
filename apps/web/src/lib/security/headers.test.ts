@@ -58,6 +58,7 @@ describe("public web HTTP security policy", () => {
     ]) {
       expect(policy.split("; ")).toContain(directive);
     }
+
     expect(policy).not.toMatch(/unsafe-eval|\*|https:|data:|blob:/);
     expect(headers["X-Frame-Options"]).toBe("DENY");
     expect(headers["X-Content-Type-Options"]).toBe("nosniff");

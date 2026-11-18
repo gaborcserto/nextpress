@@ -27,8 +27,11 @@ export function isMarkActive(editor: Editor, format: MarkFormat): boolean {
 export function toggleMark(editor: Editor, format: MarkFormat): void {
   const active = isMarkActive(editor, format);
 
-  if (active) Editor.removeMark(editor, format);
-  else Editor.addMark(editor, format, true);
+  if (active) {
+    Editor.removeMark(editor, format);
+  } else {
+    Editor.addMark(editor, format, true);
+  }
 }
 
 export function isBlockActive(editor: Editor, type: BlockFormat): boolean {
@@ -52,7 +55,10 @@ export function getActiveAlign(editor: Editor): Align | null {
     match: (n) => SlateElement.isElement(n) && typeof n.align === "string",
   });
 
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
+
   const [node] = match;
 
   return (

@@ -20,6 +20,7 @@ export function assertDevelopmentSeedAllowed(
       "Development content seeding requires the local PostgreSQL database",
     );
   }
+
   const localDatabase =
     databaseUrl.pathname === "/cms" ||
     /^\/nextpress_dev_verify_[a-z0-9_]+$/.test(databaseUrl.pathname);

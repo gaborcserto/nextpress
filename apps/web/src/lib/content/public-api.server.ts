@@ -18,6 +18,7 @@ export function publicApiOrigin(): string {
   if (!configured && process.env.NODE_ENV === "production") {
     throw new PublicApiError(503, "transport");
   }
+
   const origin = new URL(configured || "http://localhost:49102");
 
   if (
@@ -54,13 +55,20 @@ export async function fetchPublic<T>(
       signal: AbortSignal.timeout(10_000),
     });
 
-    if (response.status === 404 && missingAllowed) return null;
+    if (response.status === 404 && missingAllowed) {
+      return null;
+    }
 
-    if (!response.ok) throw new PublicApiError(response.status, "upstream");
+    if (!response.ok) {
+      throw new PublicApiError(response.status, "upstream");
+    }
+
     const body: unknown = await response.json();
     const parsed = schema.safeParse(body);
 
-    if (!parsed.success) throw new PublicApiError(502, "contract");
+    if (!parsed.success) {
+      throw new PublicApiError(502, "contract");
+    }
 
     return parsed.data;
   } catch (error) {

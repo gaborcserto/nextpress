@@ -34,11 +34,13 @@ describe("RichContent", () => {
       "data-align",
       "center",
     );
+
     for (const level of [2, 3, 4, 5, 6]) {
       expect(
         screen.getByRole("heading", { level, name: `Heading ${level}` }),
       ).toBeInTheDocument();
     }
+
     expect(container.querySelector("h1")).toBeNull();
   });
 
@@ -82,8 +84,10 @@ describe("RichContent", () => {
     render(<RichContent content={content} />);
     const lists = screen.getAllByRole("list");
     expect(lists.map((list) => list.tagName)).toEqual(["UL", "OL", "UL"]);
-    for (const list of lists)
+
+    for (const list of lists) {
       expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+    }
   });
 
   it("renders blockquotes and preserves preformatted code as text without inline mark nesting", () => {
@@ -236,8 +240,11 @@ describe("RichContent", () => {
         /(?:^|[;{])\s*(?:color|background|border(?:-inline-start)?)\s*:[^;]+/gm,
       ) ?? [];
     expect(colorDeclarations.length).toBeGreaterThan(0);
-    for (const declaration of colorDeclarations)
+
+    for (const declaration of colorDeclarations) {
       expect(declaration).toContain("var(--color-");
+    }
+
     expect(css).not.toMatch(/#[\da-f]{3,8}\b|rgba?\(|hsla?\(/i);
   });
 });

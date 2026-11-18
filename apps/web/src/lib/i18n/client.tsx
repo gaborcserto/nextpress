@@ -88,6 +88,7 @@ export function VisitorControls() {
     if (!isLocale(value)) {
       return;
     }
+
     savePreference("np-locale", value);
     // A document navigation refreshes root HTML language and server-rendered metadata.
     window.location.assign(

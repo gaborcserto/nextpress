@@ -59,6 +59,7 @@ export async function preflightLegacyExecution(db: PrismaClient) {
     if (!result?.valid) {
       throw new BackfillFenceError("BACKFILL_PREFLIGHT_FAILED");
     }
+
     await db.$transaction(async (tx) => {
       await tx.$executeRaw`SET TRANSACTION READ ONLY`;
       await lockBackfillDomain(tx);
@@ -110,6 +111,7 @@ export async function executeLegacyBatches(
   if (records.some((record) => record.blocked)) {
     throw new BackfillConflictError("BACKFILL_PREFLIGHT_CONFLICT");
   }
+
   const pending = records.filter((record) => !record.completed);
   const selected = pending.slice(0, options.batchSize * options.maxBatches);
   const results = [];
@@ -130,9 +132,11 @@ export async function executeLegacyBatches(
         ) {
           throw error;
         }
+
         await renewBackfillOwnership(db, ownership);
       }
     }
+
     results.push({ pageId: record.pageId, state });
   }
 
@@ -142,6 +146,7 @@ export async function executeLegacyBatches(
   if (parity.some((record) => record.blocked)) {
     throw new BackfillConflictError("BACKFILL_FINAL_PARITY_FAILED");
   }
+
   await db.$transaction(async (tx) => {
     await lockBackfillDomain(tx);
     await assertBackfillOwnership(tx, ownership);

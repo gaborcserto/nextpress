@@ -70,6 +70,7 @@ export function mapEditorialReferenceEdges(
 
       return;
     }
+
     edges.media.push({ revisionId, mediaId, usage, path, position });
   };
 
@@ -79,6 +80,7 @@ export function mapEditorialReferenceEdges(
 
       return;
     }
+
     edges.taxonomies.push({ revisionId, taxonomyId, usage, position });
   };
   const { fields, relationships } = snapshot;
@@ -86,6 +88,7 @@ export function mapEditorialReferenceEdges(
   if (relationships.coverId) {
     addMedia(relationships.coverId, "COVER", "coverId", 0);
   }
+
   relationships.gallery.forEach((item, position) => {
     addMedia(item.mediaId, "GALLERY", `gallery.${position}`, position);
   });
@@ -164,6 +167,7 @@ export function mapLegacyRevisionHistory(
     if (source.pageId !== pageId || seen.has(source.id)) {
       throw new BackfillConflictError("INVALID_HISTORY_IDENTITY");
     }
+
     seen.add(source.id);
     const rawSource = canonicalEditorialJson({
       ...source,
@@ -188,6 +192,7 @@ export function mapLegacyRevisionHistory(
         issues.push("UNSUPPORTED_PAGE_DOCUMENT");
       }
     }
+
     const coverage = RevisionCoverageSchema.parse({
       kind: "legacy-partial",
       legacyRevisionId: source.id,
@@ -224,6 +229,7 @@ export function mapLegacyRevisionHistory(
     if (source.authorId && !targets.userIds.has(source.authorId)) {
       issues.push("MISSING_AUTHOR");
     }
+
     const imported = existing.find(
       (item) => item.legacyRevisionId === source.id,
     );
@@ -237,6 +243,7 @@ export function mapLegacyRevisionHistory(
     ) {
       issues.push("HISTORY_IMPORT_CONFLICT");
     }
+
     const revision = {
       id: revisionId,
       pageId,
@@ -371,6 +378,7 @@ export async function backfillLegacyContent(options: {
   if (!options.ownership || !options.pageIds?.length) {
     throw new BackfillConflictError("BACKFILL_FENCE_REQUIRED");
   }
+
   const { persistFencedLegacyPage } =
     await import("./legacy-backfill-persistence.server");
   const results = [];
@@ -393,6 +401,7 @@ export async function planLegacyPage(db: BackfillClient, pageId: string) {
     where: { id: pageId },
     include,
   });
+
   const [media, taxonomies, pages, users, sources, imports] = await Promise.all(
     [
       db.media.findMany({ select: { id: true } }),
@@ -427,6 +436,7 @@ export async function planLegacyPage(db: BackfillClient, pageId: string) {
   if (page.authorId && !targets.userIds.has(page.authorId)) {
     issues.push("MISSING_AUTHOR");
   }
+
   const baselineId = `legacy-baseline-${digest(pageId).slice(0, 48)}`;
   const references = mapEditorialReferenceEdges(
     baselineId,
@@ -605,6 +615,7 @@ export async function inspectLegacyPage(db: BackfillClient, pageId: string) {
       issues.push(`MISMATCH_${key.toUpperCase()}`);
     }
   }
+
   const extras = await Promise.all([
     db.contentScheduledRelease.count({ where }),
     db.contentEditLease.count({ where }),
@@ -616,6 +627,7 @@ export async function inspectLegacyPage(db: BackfillClient, pageId: string) {
     populated = true;
     issues.push("EXISTING_EDITORIAL_ACTIVITY");
   }
+
   const slugOwner = await db.contentSlugReservation.findUnique({
     where: { normalizedSlug: plan.slugs[0]?.normalizedSlug ?? "" },
   });
@@ -653,6 +665,7 @@ async function reconcileLegacySnapshot(db: Prisma.TransactionClient) {
       if (result.plan.issues.length && !result.populated) {
         state = "held";
       }
+
       records.push({
         id: page.id,
         state,
@@ -662,6 +675,7 @@ async function reconcileLegacySnapshot(db: Prisma.TransactionClient) {
       if (!(error instanceof BackfillConflictError)) {
         throw error;
       }
+
       records.push({ id: page.id, state: "held", issues: [error.code] });
     }
   }

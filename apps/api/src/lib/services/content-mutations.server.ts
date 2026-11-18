@@ -30,6 +30,7 @@ export async function createContentService(
       { path: "type", message: "Content type does not match endpoint" },
     ]);
   }
+
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
 

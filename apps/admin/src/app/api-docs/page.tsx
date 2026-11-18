@@ -9,7 +9,9 @@ import SwaggerUiLoader from "./swagger-ui-loader";
 export const dynamic = "force-dynamic";
 
 export default async function ApiDocsPage() {
-  if (process.env.NODE_ENV !== "development") notFound();
+  if (process.env.NODE_ENV !== "development") {
+    notFound();
+  }
 
   const requestHeaders = await headers();
   const nonce = requestHeaders

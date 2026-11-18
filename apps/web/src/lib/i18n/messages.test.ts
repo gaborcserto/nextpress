@@ -51,6 +51,7 @@ function translationIssues(
       issues.push(...translationIssues(value, candidate[key], messagePath));
     }
   }
+
   for (const key of Object.keys(candidate)) {
     if (!Object.hasOwn(reference, key)) {
       issues.push(`Extra key: ${path ? `${path}.` : ""}${key}`);
@@ -111,6 +112,7 @@ describe("visitor preferences", () => {
     for (const value of [null, "../../hu", "HU", "fr", {}]) {
       expect(isLocale(value)).toBe(false);
     }
+
     expect(isColorMode("system")).toBe(true);
     expect(isColorMode("auto")).toBe(false);
   });

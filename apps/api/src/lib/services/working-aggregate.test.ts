@@ -146,6 +146,7 @@ describe("inactive working aggregate preparation", () => {
         }),
       ).toThrow("UNSUPPORTED_LEGACY_REVISION");
     }
+
     expect(
       restoreLegacyWorkingAggregate(aggregate, {
         ...historical,
@@ -186,6 +187,7 @@ describe("inactive working aggregate preparation", () => {
           actor,
         );
       }
+
       expect(aggregate).toEqual(initial);
       expect(workingAggregateLegacyProjection(aggregate)).toMatchObject({
         type,
@@ -312,6 +314,7 @@ describe("inactive working aggregate preparation", () => {
         assertWorkingAggregateBase(aggregate, source(override)),
       ).toThrow();
     }
+
     expect(() =>
       assertWorkingAggregateBase(aggregate, source({ viewCount: 31 })),
     ).not.toThrow();

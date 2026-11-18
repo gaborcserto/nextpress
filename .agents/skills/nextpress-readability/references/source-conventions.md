@@ -16,15 +16,36 @@
 For maintained JavaScript, TypeScript, JSX and TSX, separate distinct stages with
 blank lines: guards, state setup/updates, data preparation, requests, response
 validation, result processing, error handling and returns where separation helps.
-Every `if` following another statement in the same block needs a blank line,
-including after expressions and other guards. Keep leading comments attached to
-the guard and trailing comments attached to the previous statement. First guards
-and `else if` do not need extra spacing. The authoritative readability checker
-enforces this rule.
+Separate `if`, loops, `switch` and `try` from adjacent sibling statements.
+Keep leading comments attached to the next statement and trailing comments
+attached to the preceding statement. An `else if`, `else`, `catch`, `finally`
+or the closing `while` of a `do` loop stays with its complete construct.
+[The readability checker](../../../../scripts/readability-core.mjs) checks sibling
+boundaries. [Shared ESLint](../../../../packages/eslint-config/base.js) requires
+braces.
 
-Keep tightly related statements together; do not space every declaration or setter.
-Always add a blank line before `try` when setup precedes it, and separate the
-`try/catch/finally` block from subsequent independent work.
+Keep tightly related declarations and setters together.
+
+Separate adjacent initialized declarations when an awaited call or tagged
+template meets another call or computation and either initializer spans
+multiple lines. Also separate a multiline conditional or binary computation
+from a following synchronous call. A later operation can consume the previous
+result and still mark a new stage.
+
+The checker recognizes these initializer shapes and leaves compact
+declarations, literal configuration, property reads and groups of synchronous
+calls to contextual review. Add spacing to clarify distinct stages outside the
+mechanical rule where it helps.
+
+```ts
+const mediaIds = parsed.pageDocument ? pageMediaIds(parsed.pageDocument) : [];
+
+const mediaCount = await tx.media.count({
+  where: {
+    id: { in: mediaIds },
+  },
+});
+```
 
 ```tsx
 setBusy(true);

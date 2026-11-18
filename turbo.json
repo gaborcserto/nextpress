@@ -156,6 +156,8 @@
     "packages/eslint-config/**",
     "eslint.config.mjs",
     ".oxfmtrc.json",
+    "scripts/readability.mjs",
+    "scripts/readability-core.mjs",
     "tsconfig.base.json"
   ]
 }

@@ -32,8 +32,9 @@ async function getContent(
   kind: "posts" | "pages",
   slug: string,
 ): Promise<PublicContent | null> {
-  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim())
+  if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) {
     return null;
+  }
 
   return fetchPublic(
     `${kind}/${encodeURIComponent(slug)}`,

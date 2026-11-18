@@ -15,7 +15,10 @@ const AVATAR_RULES: AvatarRule[] = [
   {
     match: (u) => u.includes(AVATAR_HOSTS.GOOGLE),
     normalize: (u, px) => {
-      if (/=s\d+/.test(u) || /[?&]sz=\d+/.test(u)) return u;
+      if (/=s\d+/.test(u) || /[?&]sz=\d+/.test(u)) {
+        return u;
+      }
+
       const join = u.includes("?") ? "&" : "?";
 
       return `${u}${join}sz=${px}`;
@@ -24,7 +27,10 @@ const AVATAR_RULES: AvatarRule[] = [
   {
     match: (u) => u.includes(AVATAR_HOSTS.GITHUB),
     normalize: (u, px) => {
-      if (/[?&]s=\d+/.test(u)) return u;
+      if (/[?&]s=\d+/.test(u)) {
+        return u;
+      }
+
       const join = u.includes("?") ? "&" : "?";
 
       return `${u}${join}s=${px}`;
@@ -33,7 +39,10 @@ const AVATAR_RULES: AvatarRule[] = [
   {
     match: (u) => u.includes(AVATAR_HOSTS.DISCORD),
     normalize: (u, px) => {
-      if (/[?&]size=\d+/.test(u)) return u;
+      if (/[?&]size=\d+/.test(u)) {
+        return u;
+      }
+
       const join = u.includes("?") ? "&" : "?";
 
       return `${u}${join}size=${px}`;
@@ -42,7 +51,10 @@ const AVATAR_RULES: AvatarRule[] = [
   {
     match: (u) => u.includes(AVATAR_HOSTS.FACEBOOK),
     normalize: (u, px) => {
-      if (/[?&](height|width)=\d+/.test(u)) return u;
+      if (/[?&](height|width)=\d+/.test(u)) {
+        return u;
+      }
+
       const join = u.includes("?") ? "&" : "?";
 
       return `${u}${join}height=${px}&width=${px}`;
@@ -51,7 +63,9 @@ const AVATAR_RULES: AvatarRule[] = [
   {
     match: (u) => u.includes(AVATAR_HOSTS.X),
     normalize: (u, px) => {
-      if (/[?&]name=/.test(u)) return u;
+      if (/[?&]name=/.test(u)) {
+        return u;
+      }
 
       const name = px <= 48 ? "small" : px <= 96 ? "normal" : "bigger";
 

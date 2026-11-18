@@ -65,13 +65,18 @@ export function Dropdown({
   const menuRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
+
     menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
   }, [open]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (!wrapperRef.current) return;
+      if (!wrapperRef.current) {
+        return;
+      }
 
       if (!wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -160,7 +165,9 @@ export function DropdownMenu({
     return () => setOnAction?.(undefined);
   }, [onAction, setOnAction]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const items = Array.from(
@@ -171,15 +178,21 @@ export function DropdownMenu({
     const index = items.indexOf(document.activeElement as HTMLElement);
     let nextIndex: number | undefined;
 
-    if (event.key === "ArrowDown")
+    if (event.key === "ArrowDown") {
       nextIndex = index < items.length - 1 ? index + 1 : 0;
+    }
 
-    if (event.key === "ArrowUp")
+    if (event.key === "ArrowUp") {
       nextIndex = index > 0 ? index - 1 : items.length - 1;
+    }
 
-    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "Home") {
+      nextIndex = 0;
+    }
 
-    if (event.key === "End") nextIndex = items.length - 1;
+    if (event.key === "End") {
+      nextIndex = items.length - 1;
+    }
 
     if (nextIndex !== undefined) {
       event.preventDefault();
@@ -225,7 +238,10 @@ export function DropdownItem({
   const { setOpen, onAction, triggerRef } = useDropdownContext();
 
   const handleClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
+
     onClick?.(e);
     onAction?.(itemKey);
     setOpen(false);

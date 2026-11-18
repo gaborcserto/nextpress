@@ -110,14 +110,20 @@ export default function AppShell({
         mobileTriggerRef.current.focus();
       }
     }
+
     wasDrawerOpenRef.current = false;
   }, [drawerOpen, isDesktop, pathname]);
 
   useEffect(() => {
-    if (!drawerOpen) return;
+    if (!drawerOpen) {
+      return;
+    }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape") {
+        return;
+      }
+
       event.preventDefault();
       setDrawerPath(null);
     };
@@ -134,6 +140,7 @@ export default function AppShell({
 
       return;
     }
+
     const next = !collapsed;
     setCollapsedOverride(next);
 
@@ -227,7 +234,10 @@ export default function AppShell({
                     "a, button:not([disabled])",
                   );
 
-                if (!links?.length) return;
+                if (!links?.length) {
+                  return;
+                }
+
                 const first = links[0];
                 const last = links[links.length - 1];
 

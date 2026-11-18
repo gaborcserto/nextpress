@@ -38,15 +38,20 @@ test("Quality Gates propagates upstream failures and permits only the expected v
   );
   const gates = workflow.split("  quality-gates:")[1];
   assert.ok(gates.includes("if: always()"));
-  for (const job of ["changes", "validate", "dependency-audit"])
+
+  for (const job of ["changes", "validate", "dependency-audit"]) {
     assert.ok(gates.includes(`      - ${job}`));
+  }
+
   for (const expression of [
     "needs.changes.result",
     "needs.validate.result",
     "needs.changes.outputs.should_validate",
     "needs.dependency-audit.result",
-  ])
+  ]) {
     assert.ok(gates.includes(`\${{ ${expression} }}`));
+  }
+
   const match = / {8}run: \|\r?\n((?: {10}[^\n]*(?:\n|$))+)/.exec(gates);
   assert.ok(match, "Quality Gates shell script must be present");
   const script = match[1].replace(/^ {10}/gm, "");
@@ -58,9 +63,9 @@ test("Quality Gates propagates upstream failures and permits only the expected v
         }).trim()
       : "bash";
 
-  for (const changes of ["success", "failure", "cancelled", "skipped"])
-    for (const audit of ["success", "failure", "cancelled", "skipped"])
-      for (const required of ["true", "false"])
+  for (const changes of ["success", "failure", "cancelled", "skipped"]) {
+    for (const audit of ["success", "failure", "cancelled", "skipped"]) {
+      for (const required of ["true", "false"]) {
         for (const validation of [
           "success",
           "failure",
@@ -71,6 +76,7 @@ test("Quality Gates propagates upstream failures and permits only the expected v
             changes === "success" &&
             audit === "success" &&
             validation === (required === "true" ? "success" : "skipped");
+
           const result = spawnSync(shell, ["-c", script], {
             env: {
               ...process.env,
@@ -88,6 +94,9 @@ test("Quality Gates propagates upstream failures and permits only the expected v
             `${changes}/${audit}/${required}/${validation}: ${result.stderr}`,
           );
         }
+      }
+    }
+  }
 });
 
 test("one application selects its directory", () => {
@@ -111,8 +120,9 @@ test("Turbo expands shared package changes to dependent applications", () => {
   );
   const { packages } = JSON.parse(output);
 
-  for (const name of ["@nextpress/shared", "@nextpress/db", "web", "admin"])
+  for (const name of ["@nextpress/shared", "@nextpress/db", "web", "admin"]) {
     assert.ok(packages.includes(name), name);
+  }
 });
 
 for (const file of [
@@ -192,11 +202,17 @@ test("base selection includes committed branch work alongside local changes", ()
   const runGit = (...args) => {
     calls.push(args);
 
-    if (args[0] === "merge-base") return "ancestor\n";
+    if (args[0] === "merge-base") {
+      return "ancestor\n";
+    }
 
-    if (args.includes("ancestor")) return "apps/admin/committed.ts\0";
+    if (args.includes("ancestor")) {
+      return "apps/admin/committed.ts\0";
+    }
 
-    if (args.includes("--cached")) return "apps/web/staged.ts\0";
+    if (args.includes("--cached")) {
+      return "apps/web/staged.ts\0";
+    }
 
     return "";
   };
@@ -267,6 +283,7 @@ test("CI revision selection emits the local workspace filters", () => {
     ) {
       selection = selectChanges([], { full: true });
     }
+
     execFileSync(process.execPath, ["scripts/check-changed.mjs", "--ci"], {
       env: {
         ...process.env,
@@ -375,6 +392,7 @@ test("CI database integrations use the ownership-verifying runner in the API cwd
       ),
     );
   }
+
   assert.ok(!workflow.includes("createdb"));
   assert.ok(!workflow.includes("bootstrap:admin"));
 });

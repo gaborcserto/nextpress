@@ -30,6 +30,7 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
 
         return;
       }
+
       router.replace("/auth/sign-in");
     } catch {
       showToast("Sign out failed", "error");

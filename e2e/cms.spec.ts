@@ -33,6 +33,7 @@ test("disposable editorial publication, public rendering and session lifecycle",
   });
   expect(anonymous.status()).toBe(401);
   const cookies = await page.context().cookies();
+
   const session = cookies.find((cookie) =>
     cookie.name.includes("session_token"),
   );
@@ -72,12 +73,14 @@ test("disposable editorial publication, public rendering and session lifecycle",
   await expect(
     preview.getByRole("heading", { name: "Unsaved preview title" }),
   ).toBeVisible({ timeout: 30_000 });
+
   for (const viewport of ["Tablet", "Mobile", "Desktop"]) {
     await page.getByLabel("Viewport").selectOption({ label: viewport });
     await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
       "Unsaved preview title",
     );
   }
+
   await page.getByRole("button", { name: "Close Live Preview" }).click();
   await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
     "Unsaved preview title",
@@ -99,7 +102,10 @@ test("disposable editorial publication, public rendering and session lifecycle",
   const asset = assets[0];
   expect(asset).toBeDefined();
 
-  if (!asset) throw new Error("Missing uploaded fixture");
+  if (!asset) {
+    throw new Error("Missing uploaded fixture");
+  }
+
   expect(
     (
       await request.get(`http://localhost:49202/api/public/media/${asset.id}`)

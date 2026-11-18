@@ -24,6 +24,7 @@ describe("Content field labels", () => {
         onChangeAction={vi.fn()}
       />,
     );
+
     for (const label of [
       "Start date/time",
       "End date/time",
@@ -51,6 +52,7 @@ describe("Content field labels", () => {
         <RedirectField value={null} onChangeAction={vi.fn()} />
       </>,
     );
+
     for (const label of [
       "Content type to list",
       "Filter by taxonomy (optional)",

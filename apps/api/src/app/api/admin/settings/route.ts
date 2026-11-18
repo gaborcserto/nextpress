@@ -27,7 +27,10 @@ function isSettingsPayload(value: unknown): value is SettingsApiPayload {
 }
 
 function validOptionalUrl(value: string) {
-  if (!value.trim()) return true;
+  if (!value.trim()) {
+    return true;
+  }
+
   try {
     const url = new URL(value);
 
@@ -71,6 +74,7 @@ async function ensureSettings() {
 export const GET = withAuth(["ADMIN"], async () => {
   try {
     const settings = await ensureSettings();
+
     const providers = await prisma.oAuthProvider.findMany({
       where: {
         settingsId: settings.id,
@@ -131,7 +135,9 @@ export const PUT = withAuth(
       return bad("Invalid JSON");
     }
 
-    if (!isSettingsPayload(body)) return bad("Invalid settings payload");
+    if (!isSettingsPayload(body)) {
+      return bad("Invalid settings payload");
+    }
 
     if (!body.siteName.trim() || body.siteName.length > 200) {
       return bad("Site name is required and must not exceed 200 characters");

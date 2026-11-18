@@ -45,16 +45,21 @@ export default function TagsField({
   useEffect(() => {
     const id = entityId?.trim();
 
-    if (!id || !loadEntityTagsAction) return;
+    if (!id || !loadEntityTagsAction) {
+      return;
+    }
 
     let cancelled = false;
 
     (async () => {
       setLoadingInitial(true);
+
       try {
         const loaded = await loadEntityTagsAction(id);
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         // If controlled, notify parent; otherwise store internally.
         if (isControlled) {
@@ -64,9 +69,13 @@ export default function TagsField({
           onChangeRef.current?.(loaded);
         }
       } catch {
-        if (!cancelled) setError("Unable to load tags. Please try again.");
+        if (!cancelled) {
+          setError("Unable to load tags. Please try again.");
+        }
       } finally {
-        if (!cancelled) setLoadingInitial(false);
+        if (!cancelled) {
+          setLoadingInitial(false);
+        }
       }
     })();
 
@@ -76,11 +85,16 @@ export default function TagsField({
   }, [entityId, isControlled, loadEntityTagsAction]);
 
   const setTags = async (next: TagValue[]) => {
-    if (savingRef.current) return;
+    if (savingRef.current) {
+      return;
+    }
+
     setError(null);
 
     // Update local state (or delegate to controlled parent)
-    if (!isControlled) setInternalTags(next);
+    if (!isControlled) {
+      setInternalTags(next);
+    }
 
     // Notify parent callback
     onChangeAction?.(next);
@@ -91,13 +105,17 @@ export default function TagsField({
     if (id && persist && updateEntityTagsAction) {
       savingRef.current = true;
       setSaving(true);
+
       try {
         await updateEntityTagsAction(
           id,
           next.map((t) => t.id),
         );
       } catch {
-        if (!isControlled) setInternalTags(tags);
+        if (!isControlled) {
+          setInternalTags(tags);
+        }
+
         onChangeAction?.(tags);
         setError("Unable to save tags. Please try again.");
       } finally {

@@ -17,7 +17,10 @@ export default function HierarchyField({
     let cancelled = false;
 
     jsonResult<PageOption[]>("/api/pages?select=parent").then(([data, err]) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
+
       setOptions(!err && data ? data : []);
     });
 

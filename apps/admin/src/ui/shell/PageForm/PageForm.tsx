@@ -113,6 +113,7 @@ export default function PageForm({
     if (submitting) {
       return;
     }
+
     const errors = {
       ...(form.title.trim() ? {} : { title: "Title is required." }),
       ...(form.slug.trim() ? {} : { slug: "Slug is required." }),

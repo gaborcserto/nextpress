@@ -88,6 +88,7 @@ it("repairs legacy account identity on repeated runs while preserving the usable
       preservedPassword: true,
     });
   }
+
   expect(prisma.account.update).toHaveBeenCalledTimes(2);
   expect(prisma.account.update).toHaveBeenCalledWith({
     where: { id: "legacy-account" },

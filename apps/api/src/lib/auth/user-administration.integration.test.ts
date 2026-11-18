@@ -29,6 +29,7 @@ describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
         "Concurrency test requires a disposable database without administrators",
       );
     }
+
     for (const name of ["ADMIN", "EDITOR"]) {
       await db.role.upsert({ where: { name }, create: { name }, update: {} });
     }
@@ -38,6 +39,7 @@ describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
     if (!db) {
       return;
     }
+
     await verifyDisposableDatabase(
       disposableDatabaseName(testUrl, process.env.DATABASE_URL, "content"),
       db,
@@ -57,7 +59,10 @@ describe.skipIf(!testUrl)("isolated last-administrator concurrency", () => {
     const first = users[0];
     const second = users[1];
 
-    if (!first || !second) throw new Error("Missing fixtures");
+    if (!first || !second) {
+      throw new Error("Missing fixtures");
+    }
+
     const results = await Promise.allSettled([
       administer({ id: first.id, role: "ADMIN" }, first.id, null),
       administer({ id: second.id, role: "ADMIN" }, second.id, "EDITOR"),

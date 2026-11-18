@@ -245,10 +245,11 @@ function operation(
         ? { description: errors[code] }
         : response(errors[code], ref("Error"));
 
-    if (code === 429)
+    if (code === 429) {
       responses[code].headers = {
         "Retry-After": { description: "Seconds until retry.", schema: integer },
       };
+    }
   }
 
   return {
@@ -502,12 +503,13 @@ for (const [path, result, operationId] of [
     path === "discovery/session" ? "optional" : "public",
   );
 
-  if (path.includes("{slug}"))
+  if (path.includes("{slug}")) {
     read.parameters = [
       parameter("slug", "path", string, "Canonical content slug."),
     ];
+  }
 
-  if (path === "public/posts")
+  if (path === "public/posts") {
     read.parameters = Object.entries(PublicPaginationSchema.shape).map(
       ([key, value]) =>
         parameter(
@@ -517,8 +519,11 @@ for (const [path, result, operationId] of [
           "Single bounded decimal integer; duplicates rejected.",
         ),
     );
+  }
+
   paths[`/api/${path}`] = { get: read };
 }
+
 const publishedTags = operation(
   "publicTags",
   "Delivery and discovery",
@@ -631,6 +636,7 @@ for (const [path, kind, detail] of [
     ),
   };
 }
+
 paths["/api/tags"] = {
   get: {
     ...operation(

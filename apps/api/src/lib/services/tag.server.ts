@@ -63,7 +63,9 @@ function getValidationMessage(error: unknown): string {
 export async function searchTagsService(query: string): Promise<TagDto[]> {
   const trimmed = query.trim();
 
-  if (trimmed.length < 2) return [];
+  if (trimmed.length < 2) {
+    return [];
+  }
 
   const slugified =
     slugify(trimmed) || trimmed.toLowerCase().replace(/\s+/g, "-");
@@ -93,7 +95,9 @@ export async function createTagService(rawName: string): Promise<TagDto> {
   // 2) Return existing if one matches case-insensitively
   const existing = await findTagByNameInsensitive(name);
 
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
 
   // 3) Generate unique slug
   const slugBase = slugify(name) || name.toLowerCase().replace(/\s+/g, "-");
@@ -103,12 +107,16 @@ export async function createTagService(rawName: string): Promise<TagDto> {
   while (counter <= 10) {
     const found = await findTagBySlug(slug);
 
-    if (!found) break;
+    if (!found) {
+      break;
+    }
+
     slug = `${slugBase}-${++counter}`;
   }
 
-  if (counter > 10)
+  if (counter > 10) {
     throw new ValidationError("Unable to create tag with this name");
+  }
 
   // 4) Create and return tag
   return createTagRecord(name, slug);
@@ -120,11 +128,15 @@ export async function createTagService(rawName: string): Promise<TagDto> {
 export async function deleteTagService(rawId: string): Promise<void> {
   const id = rawId.trim();
 
-  if (!id) throw new ValidationError("ID is required");
+  if (!id) {
+    throw new ValidationError("ID is required");
+  }
 
   const deleted = await deleteTagRecord(id);
 
-  if (!deleted) throw new NotFoundError("Tag not found");
+  if (!deleted) {
+    throw new NotFoundError("Tag not found");
+  }
 }
 
 /**
@@ -139,7 +151,9 @@ export async function getTagsForPageService(
     select: { id: true },
   });
 
-  if (!page) throw new ContentNotFoundError();
+  if (!page) {
+    throw new ContentNotFoundError();
+  }
 
   return unwrapResult(
     await tryCatch(getTagsForPage(pageId)),
@@ -159,7 +173,10 @@ export async function setTagsForPageService(
   await requireContentWrite(pageId, actor);
   const parsed = TagIdsSchema.safeParse(rawTagIds);
 
-  if (!parsed.success) throw new ValidationError("Invalid tag IDs");
+  if (!parsed.success) {
+    throw new ValidationError("Invalid tag IDs");
+  }
+
   await setTagsForPage(pageId, parsed.data, undefined, actor);
 }
 

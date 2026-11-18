@@ -75,7 +75,11 @@ beforeEach(() => {
     "BETTER_AUTH_SECRET",
     "test-only-auth-secret-with-at-least-32-characters",
   );
-  for (const rows of Object.values(db)) rows.length = 0;
+
+  for (const rows of Object.values(db)) {
+    rows.length = 0;
+  }
+
   vi.clearAllMocks();
   prisma.oAuthProvider.findMany.mockResolvedValue([]);
   prisma.role.findUniqueOrThrow.mockResolvedValue({ id: "subscriber-role" });
@@ -120,7 +124,10 @@ async function signIn(auth: AppAuth, cookie?: string, requestOrigin = origin) {
     .getSetCookie()
     .find((entry) => entry.startsWith(`${name}=`));
 
-  if (!value) throw new Error("Missing session cookie");
+  if (!value) {
+    throw new Error("Missing session cookie");
+  }
+
   const body: unknown = await response.json();
 
   if (
@@ -184,6 +191,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         email: i % 2 ? " USER@Example.com " : "user@example.com",
         password: "wrong password",
       });
+
       const missing = await sessionRequest(auth, "/sign-in/email", {
         email: i % 2 ? " MISSING@Example.com " : "missing@example.com",
         password: "wrong password",
@@ -192,11 +200,13 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       failure = await known.json();
       expect(await missing.json()).toEqual(failure);
     }
+
     expect(verify).toHaveBeenCalledTimes(5);
     const throttled = await sessionRequest(auth, "/sign-in/email", {
       email: "user@example.com",
       password,
     });
+
     const missing = await sessionRequest(auth, "/sign-in/email", {
       email: "missing@example.com",
       password,
@@ -227,11 +237,13 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("resets account attempts after success while retaining the process work budget", async () => {
     const { auth } = await registeredAuthWithFastPasswords();
 
-    for (let i = 0; i < 4; i++)
+    for (let i = 0; i < 4; i++) {
       await sessionRequest(auth, "/sign-in/email", {
         email: "user@example.com",
         password: "wrong",
       });
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-in/email", {
@@ -240,7 +252,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         })
       ).status,
     ).toBe(200);
-    for (let i = 0; i < 5; i++)
+
+    for (let i = 0; i < 5; i++) {
       expect(
         (
           await sessionRequest(auth, "/sign-in/email", {
@@ -249,6 +262,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
           })
         ).status,
       ).toBe(401);
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-in/email", {
@@ -257,8 +272,11 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         })
       ).status,
     ).toBe(429);
-    for (let i = 0; i < 60; i++)
+
+    for (let i = 0; i < 60; i++) {
       authBudgets.consume("credential-work", 60, 60_000);
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-in/email", {
@@ -286,7 +304,10 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const verify = vi
       .spyOn((await auth.$context).password, "verify")
       .mockImplementation(async (input) => {
-        if (verify.mock.calls.length === 5) signalReserved();
+        if (verify.mock.calls.length === 5) {
+          signalReserved();
+        }
+
         await passwordGate;
 
         return verifyCredentialPassword(input);
@@ -303,6 +324,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     } finally {
       release();
     }
+
     const responses = await Promise.all(requests);
     expect(
       responses.filter((response) => response.status === 401),
@@ -322,6 +344,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         auth.api.signInEmail({ body: { email: "bad-email", password } }),
       ).rejects.toMatchObject({ statusCode: 400 });
     }
+
     await expect(
       auth.api.signInEmail({ body: { email: "other-invalid", password } }),
     ).rejects.toMatchObject({ statusCode: 429 });
@@ -333,6 +356,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     vi.spyOn((await auth.$context).password, "hash").mockResolvedValue(
       "test-hash",
     );
+
     for (let i = 0; i < 60; i++) {
       const response = await auth.handler(
         new Request(`${origin}/api/auth/sign-in/email`, {
@@ -349,6 +373,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       );
       expect(response.status).toBe(401);
     }
+
     const blocked = await sessionRequest(auth, "/sign-in/email", {
       email: "another@example.com",
       password,
@@ -375,6 +400,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         ).status,
       ).toBe(200);
     }
+
     const blocked = await sessionRequest(auth, "/sign-up/email", {
       name: "User",
       email: "user@example.com",
@@ -384,7 +410,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     expect(blocked.headers.get("retry-after")).toBe("600");
     expect(db.User).toHaveLength(1);
     expect(db.User[0]).toMatchObject({ roleId: "subscriber-role" });
-    for (let i = 0; i < 3; i++)
+
+    for (let i = 0; i < 3; i++) {
       expect(
         (
           await sessionRequest(auth, "/sign-up/email", {
@@ -394,6 +421,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
           })
         ).status,
       ).toBe(400);
+    }
+
     const invalidBlocked = await sessionRequest(auth, "/sign-up/email", {
       name: "User",
       email: "missing@example.com",
@@ -417,7 +446,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const auth = await getAuth();
     const hash = vi.spyOn((await auth.$context).password, "hash");
 
-    for (let i = 0; i < 10; i++)
+    for (let i = 0; i < 10; i++) {
       expect(
         (
           await sessionRequest(auth, "/sign-up/email", {
@@ -427,6 +456,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
           })
         ).status,
       ).toBe(400);
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-up/email", {
@@ -453,6 +484,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       );
       expect(response.status).toBe(400);
     }
+
     expect(
       (
         await sessionRequest(
@@ -490,7 +522,10 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     ]);
     const auth = await getAuth();
 
-    for (let i = 0; i < 60; i++) authBudgets.consume("oauth-work", 60, 60_000);
+    for (let i = 0; i < 60; i++) {
+      authBudgets.consume("oauth-work", 60, 60_000);
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-in/social", {
@@ -500,8 +535,11 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       ).status,
     ).toBe(429);
     expect(db.verification).toHaveLength(0);
-    for (let i = 0; i < 30; i++)
+
+    for (let i = 0; i < 30; i++) {
       authBudgets.consume("account-creation", 30, 3_600_000);
+    }
+
     expect(
       (
         await sessionRequest(auth, "/sign-up/email", {
@@ -517,19 +555,22 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
   it("keeps recovery disabled without tokens regardless of exhausted budgets", async () => {
     const auth = await getAuth();
 
-    for (let i = 0; i < 120; i++)
+    for (let i = 0; i < 120; i++) {
       authBudgets.consume("auth-ingress", 120, 60_000);
+    }
+
     for (const email of ["user@example.com", "missing@example.com"]) {
       expect(
         (await sessionRequest(auth, "/request-password-reset", { email }))
           .status,
       ).toBe(503);
     }
+
     expect(db.verification).toHaveLength(0);
   });
 
   it("bounds raw malformed HTTP requests before provider/database work", async () => {
-    for (let i = 0; i < 120; i++)
+    for (let i = 0; i < 120; i++) {
       await authRoute(
         new Request(`${origin}/api/auth/sign-in/email`, {
           method: "POST",
@@ -537,6 +578,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
           body: "{",
         }),
       );
+    }
+
     prisma.oAuthProvider.findMany.mockClear();
     const response = await authRoute(
       new Request(`${origin}/api/auth/sign-in/email`, {
@@ -578,6 +621,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
         ).status,
       ).toBe(400);
     }
+
     expect(db.User).toHaveLength(0);
   });
 
@@ -587,12 +631,17 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const options: BetterAuthOptions = auth.options;
     const log = options.logger?.log;
 
-    if (!log) throw new Error("Missing safe authentication logger");
-    for (let i = 0; i < 100; i++)
+    if (!log) {
+      throw new Error("Missing safe authentication logger");
+    }
+
+    for (let i = 0; i < 100; i++) {
       log("error", "OAuth code=secret", {
         password: "secret",
         token: "secret",
       });
+    }
+
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith("Authentication operation failed");
   });
@@ -602,8 +651,10 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const { cookie } = await signIn(auth);
     const headers = new Headers({ cookie });
 
-    for (let i = 0; i < 30; i++)
+    for (let i = 0; i < 30; i++) {
       await expect(auth.api.listSessions({ headers })).resolves.toHaveLength(1);
+    }
+
     await expect(auth.api.listSessions({ headers })).rejects.toMatchObject({
       statusCode: 429,
     });
@@ -620,7 +671,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     const auth = await registeredAuth();
     const { cookie } = await signIn(auth);
 
-    for (let i = 0; i < 30; i++)
+    for (let i = 0; i < 30; i++) {
       expect(
         (
           await sessionRequest(
@@ -631,6 +682,8 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
           )
         ).status,
       ).toBe(200);
+    }
+
     expect(
       (
         await sessionRequest(
@@ -669,6 +722,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       );
       expect((await getSessionWithRole())?.user.role).toBe("ADMIN");
     }
+
     requestHeaders.mockResolvedValue(new Headers({ cookie }));
     expect((await getSessionWithRole())?.user.role).toBe("ADMIN");
     expect(db.Session).toHaveLength(1);
@@ -690,6 +744,7 @@ describe("session lifecycle with the installed Better Auth", () => {
     const request = new Request(`${origin}/api/admin/tags`);
     requestHeaders.mockResolvedValue(new Headers({ cookie }));
     expect((await protectedRoute(request, { params: {} })).status).toBe(403);
+
     for (const cookieHeader of [
       "theme=dark",
       "better-auth.session_token=invalid",
@@ -699,6 +754,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       expect(await getSessionWithRole()).toBeNull();
       expect((await protectedRoute(request, { params: {} })).status).toBe(401);
     }
+
     expect(handler).not.toHaveBeenCalled();
     prisma.user.findUnique.mockResolvedValue({
       roleId: "author-role",
@@ -711,6 +767,7 @@ describe("session lifecycle with the installed Better Auth", () => {
 
   it("preserves credential callbacks and library-managed OAuth destination validation", async () => {
     const auth = await registeredAuth();
+
     const credentials = await sessionRequest(auth, "/sign-in/email", {
       email: "user@example.com",
       password,
@@ -742,6 +799,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       );
       expect(providerURL.searchParams.get("state")).toBeTruthy();
     }
+
     for (const callbackURL of [
       "//evil.example",
       "https://evil.example/admin",
@@ -776,6 +834,7 @@ describe("session lifecycle with the installed Better Auth", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BETTER_AUTH_URL", "https://admin.example.com");
     const auth = await getAuth();
+
     const { response } = await signIn(
       auth,
       undefined,
@@ -793,10 +852,12 @@ describe("session lifecycle with the installed Better Auth", () => {
 
   it("uses fresh tokens at sign-in instead of adopting an incoming session identifier", async () => {
     const auth = await registeredAuth();
+
     const first = await signIn(
       auth,
       "better-auth.session_token=attacker-chosen",
     );
+
     const second = await signIn(auth, first.cookie);
     expect(first.token).not.toBe("attacker-chosen");
     expect(second.token).not.toBe(first.token);
@@ -840,6 +901,7 @@ describe("session lifecycle with the installed Better Auth", () => {
 
   it("honors rememberMe=false with a browser-session cookie and one-day server expiry", async () => {
     const auth = await registeredAuth();
+
     const response = await sessionRequest(auth, "/sign-in/email", {
       email: "user@example.com",
       password,
@@ -920,6 +982,7 @@ describe("session lifecycle with the installed Better Auth", () => {
     const auth = await registeredAuth();
     const first = await signIn(auth);
     const second = await signIn(auth);
+
     const response = await sessionRequest(
       auth,
       "/change-password",
@@ -935,11 +998,13 @@ describe("session lifecycle with the installed Better Auth", () => {
     expect(replacement.token).not.toBe(first.token);
     expect(replacement.token).not.toBe(second.token);
     expect(db.Session).toHaveLength(1);
+
     for (const { cookie } of [first, second]) {
       expect(
         await auth.api.getSession({ headers: new Headers({ cookie }) }),
       ).toBeNull();
     }
+
     const cookie = response.headers.getSetCookie()[0].split(";", 1)[0];
     expect(
       await auth.api.getSession({ headers: new Headers({ cookie }) }),
@@ -991,6 +1056,7 @@ describe("session lifecycle with the installed Better Auth", () => {
           .status,
       ).toBe(403);
     }
+
     expect(
       (
         await auth.handler(
@@ -1026,6 +1092,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       },
     ]);
     const auth = await getAuth();
+
     const initiation = await sessionRequest(auth, "/sign-in/social", {
       provider: "google",
       callbackURL: `${origin}/admin`,
@@ -1035,6 +1102,7 @@ describe("session lifecycle with the installed Better Auth", () => {
       "state",
     );
     expect(state).toBeTruthy();
+
     for (const query of [
       "code=test",
       `code=test&state=${state}`,
@@ -1048,6 +1116,7 @@ describe("session lifecycle with the installed Better Auth", () => {
         /state_(not_found|mismatch)/,
       );
     }
+
     expect(db.Session).toHaveLength(0);
   });
 
@@ -1249,7 +1318,10 @@ describe("configured authentication policy with real Better Auth", () => {
     });
     const cookie = login.headers.get("set-cookie")?.split(";")[0];
 
-    if (!cookie) throw new Error("Missing sign-in cookie");
+    if (!cookie) {
+      throw new Error("Missing sign-in cookie");
+    }
+
     const headers = new Headers({ cookie });
     await expect(
       auth.api.setPassword({ headers, body: { newPassword: "😀".repeat(8) } }),
@@ -1301,7 +1373,10 @@ describe("configured authentication policy with real Better Auth", () => {
     });
     const cookie = login.headers.get("set-cookie")?.split(";")[0];
 
-    if (!cookie) throw new Error("Missing admin cookie");
+    if (!cookie) {
+      throw new Error("Missing admin cookie");
+    }
+
     requestHeaders.mockResolvedValue(new Headers({ cookie }));
     prisma.user.findUnique
       .mockResolvedValueOnce({ roleId: "admin-role" })
@@ -1377,6 +1452,7 @@ describe("configured authentication policy with real Better Auth", () => {
       email: "oauth@example.com",
       password,
     });
+
     const missing = await call("/sign-in/email", {
       email: "missing@example.com",
       password,
@@ -1422,6 +1498,7 @@ describe("configured authentication policy with real Better Auth", () => {
           ).status,
         ).toBe(401);
       }
+
       prisma.user.findUnique.mockImplementation(
         async () => db.User.find((user) => user.email === email) ?? null,
       );
@@ -1436,13 +1513,14 @@ describe("configured authentication policy with real Better Auth", () => {
       prisma.siteSettings.upsert.mockResolvedValue({ id: "default" });
       prisma.role.findUniqueOrThrow.mockResolvedValue({ id: "admin-role" });
       prisma.user.upsert.mockImplementation(async () => {
-        if (!db.User.length)
+        if (!db.User.length) {
           db.User.push({
             id: "bootstrap-admin",
             name: "Admin",
             email,
             emailVerified: true,
           });
+        }
 
         return { id: "bootstrap-admin", email };
       });
@@ -1469,7 +1547,10 @@ describe("configured authentication policy with real Better Auth", () => {
         password: storedHash,
       });
 
-      if (originalHash) expect(storedHash).toBe(originalHash);
+      if (originalHash) {
+        expect(storedHash).toBe(originalHash);
+      }
+
       expect(
         (await call("/sign-in/email", { email, password: configuredPassword }))
           .status,

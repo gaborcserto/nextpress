@@ -15,6 +15,7 @@ export default async function AdminLayout({
   if (!session?.user?.id) {
     redirect("/auth/sign-in?callbackUrl=%2Fadmin");
   }
+
   const role = session.user.role;
 
   return <AppShell role={role}>{children}</AppShell>;

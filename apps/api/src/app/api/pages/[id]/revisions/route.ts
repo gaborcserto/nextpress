@@ -16,22 +16,30 @@ import {
 } from "@/lib/services/revisions.server";
 
 function failure(error: unknown) {
-  if (error instanceof ZodError) return bad("Invalid revision request");
+  if (error instanceof ZodError) {
+    return bad("Invalid revision request");
+  }
 
-  if (error instanceof ContentForbiddenError) return forbid();
+  if (error instanceof ContentForbiddenError) {
+    return forbid();
+  }
 
-  if (error instanceof ContentNotFoundError) return notfound();
+  if (error instanceof ContentNotFoundError) {
+    return notfound();
+  }
 
-  if (error instanceof RevisionConflictError)
+  if (error instanceof RevisionConflictError) {
     return conflict("Content changed; reload before saving");
+  }
 
   if (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
     error.code === "P2002"
-  )
+  ) {
     return conflict("Slug already exists");
+  }
 
   return oops(error);
 }
@@ -44,6 +52,7 @@ export const GET = withAuth(
       const result = revisionId
         ? await previewRevision(ctx.params.id, revisionId, session.user)
         : await listRevisions(ctx.params.id, session.user);
+
       const response = ok(result);
       response.headers.set("Cache-Control", "private, no-store");
 
@@ -64,6 +73,7 @@ export const POST = withAuth(
     } catch {
       return bad("Invalid JSON");
     }
+
     try {
       const revision = await saveRevision(ctx.params.id, input, session.user);
       console.info(
@@ -93,6 +103,7 @@ export const PATCH = withAuth(
     } catch {
       return bad("Invalid JSON");
     }
+
     try {
       const action = RevisionActionSchema.parse(input);
       const result = await revisionAction(ctx.params.id, action, session.user);

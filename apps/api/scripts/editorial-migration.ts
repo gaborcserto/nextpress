@@ -33,11 +33,13 @@ export async function verifyEditorialMigration(db: typeof prisma) {
     resolve(source, "migration_lock.toml"),
     resolve(migrations, "migration_lock.toml"),
   );
+
   for (const name of names) {
     cpSync(resolve(source, name), resolve(migrations, name), {
       recursive: true,
     });
   }
+
   const config = resolve(temporary, "prisma.config.ts");
   writeFileSync(
     config,
@@ -68,6 +70,7 @@ export default defineConfig({ schema: ${JSON.stringify(resolve(root, "packages/d
     { migration_name: string; checksum: string; finished_at: Date }[]
   >`SELECT migration_name,checksum,finished_at FROM "_prisma_migrations" ORDER BY migration_name`;
   assert.equal(history.length, 11);
+
   for (const row of history) {
     assert.equal(
       row.checksum,
@@ -91,6 +94,7 @@ export default defineConfig({ schema: ${JSON.stringify(resolve(root, "packages/d
       }[]
     >`SELECT table_name,column_name,data_type,is_nullable,column_default,datetime_precision FROM information_schema.columns WHERE table_schema='public' ORDER BY table_name,ordinal_position`;
   const beforeColumns = await columns();
+
   const fixture = await db.page.create({
     data: {
       id: "b043-preservation",
@@ -102,6 +106,7 @@ export default defineConfig({ schema: ${JSON.stringify(resolve(root, "packages/d
       publishedAt: new Date("2020-01-01T00:00:00Z"),
     },
   });
+
   const sql = readFileSync(
     resolve(source, migrationName, "migration.sql"),
     "utf8",

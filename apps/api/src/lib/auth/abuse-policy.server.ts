@@ -15,7 +15,10 @@ import {
 } from "@/lib/security/rate-limit.server";
 
 function enforce(retry: number | null) {
-  if (retry === null) return;
+  if (retry === null) {
+    return;
+  }
+
   logAbuseThrottle();
   throw new APIError(
     "TOO_MANY_REQUESTS",
@@ -32,6 +35,7 @@ function accountKey(body: unknown): string {
     typeof body === "object" && body !== null && "email" in body
       ? body.email
       : undefined;
+
   const parsed = emailSchema.safeParse(email);
 
   return parsed.success ? `credential:${parsed.data}` : "credential:invalid";
@@ -81,18 +85,20 @@ export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
   ) {
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
 
-    if (session)
+    if (session) {
       enforce(
         actionLimits.consume(`account-mutation:${session.user.id}`, 30, 60_000),
       );
+    }
   } else if (ctx.path === "/list-sessions" || ctx.path === "/list-accounts") {
     // Better Auth returns the complete account-owned set rather than pagination.
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
 
-    if (session)
+    if (session) {
       enforce(
         actionLimits.consume(`account-list:${session.user.id}`, 30, 60_000),
       );
+    }
   }
 });
 

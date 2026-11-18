@@ -31,6 +31,7 @@ test.beforeAll(async ({ request }) => {
   ) {
     throw new Error("Public layout fixtures require the disposable E2E runner");
   }
+
   const login = await request.post(
     "http://localhost:49201/api/auth/sign-in/email",
     {
@@ -57,6 +58,7 @@ test.beforeAll(async ({ request }) => {
     });
     expect(created.status()).toBe(201);
   }
+
   const settings = await request.put(
     "http://localhost:49201/api/admin/settings",
     {
@@ -104,7 +106,9 @@ for (const width of [320, 393, 768, 1440]) {
       if (response.url().includes("/_next/static/")) {
         chunks.push({ url: response.url(), status: response.status() });
 
-        if (response.status() >= 400) resourceFailures.push(response.url());
+        if (response.status() >= 400) {
+          resourceFailures.push(response.url());
+        }
       }
     });
     page.on("requestfailed", (request) => {
@@ -206,6 +210,7 @@ for (const width of [320, 393, 768, 1440]) {
     if (process.env.NEXTPRESS_E2E_WEB_PRODUCTION === "1") {
       expect(developmentMessages).toEqual([]);
     }
+
     const observations = testInfo.outputPath("resource-observations.json");
     await writeFile(
       observations,

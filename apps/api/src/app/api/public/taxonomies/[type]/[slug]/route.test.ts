@@ -24,9 +24,11 @@ const post = {
   taxonomies: [{ taxonomy }],
   cover: null,
 };
+
 const context = (type = "TAG", slug = "news") => ({
   params: Promise.resolve({ type, slug }),
 });
+
 const request = (query = "") =>
   new Request(`http://localhost/api/public/taxonomies/TAG/news${query}`);
 

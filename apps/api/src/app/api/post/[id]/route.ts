@@ -72,6 +72,7 @@ export async function GET(_req: Request, { params }: GetContext) {
     if (err instanceof PageNotFoundError) {
       return notfound();
     }
+
     console.error("GET /api/post/[id] failed");
 
     return oops(err);
@@ -98,11 +99,17 @@ export const PUT = withAuth(
 
       return ok(updated);
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
-      if (err instanceof TaxonomyScopeError) return bad(err.message);
+      if (err instanceof TaxonomyScopeError) {
+        return bad(err.message);
+      }
 
       if (err instanceof PageValidationError) {
         return bad(err.message, { issues: err.issues });
@@ -133,9 +140,13 @@ export const DELETE = withAuth(
 
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof ContentForbiddenError) return forbid();
+      if (err instanceof ContentForbiddenError) {
+        return forbid();
+      }
 
-      if (err instanceof ContentNotFoundError) return notfound();
+      if (err instanceof ContentNotFoundError) {
+        return notfound();
+      }
 
       console.error("DELETE /api/post/[id] failed");
 

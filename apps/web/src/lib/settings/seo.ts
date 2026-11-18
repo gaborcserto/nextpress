@@ -7,8 +7,10 @@ import type { Locale } from "@/lib/i18n/messages";
 export function siteOrigin(): URL {
   const configured = process.env.SITE_URL;
 
-  if (!configured && process.env.NODE_ENV === "production")
+  if (!configured && process.env.NODE_ENV === "production") {
     throw new Error("SITE_URL is required for public canonical URLs");
+  }
+
   const origin = new URL(configured || "http://localhost:49100");
 
   if (
@@ -18,8 +20,9 @@ export function siteOrigin(): URL {
     origin.pathname !== "/" ||
     origin.search ||
     origin.hash
-  )
+  ) {
     throw new Error("SITE_URL must be a canonical HTTP(S) origin");
+  }
 
   return origin;
 }

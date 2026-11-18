@@ -64,8 +64,10 @@ describe("admin HTTP security policy", () => {
       "base-uri 'none'",
       "form-action 'self'",
       "upgrade-insecure-requests",
-    ])
+    ]) {
       expect(policy.split("; ")).toContain(directive);
+    }
+
     expect(policy).not.toMatch(
       /unsafe-eval|script-src[^;]*unsafe-inline|\*|data:|blob:|http:|ws:/,
     );
@@ -83,6 +85,7 @@ describe("admin HTTP security policy", () => {
     expect(standardPolicy).toContain("img-src 'self' https:");
     expect(standardPolicy).not.toContain("data:");
     expect(docsPolicy).toContain("img-src 'self' https: data:");
+
     for (const directive of [
       "script-src 'self' 'nonce-test-nonce' 'strict-dynamic'",
       "connect-src 'self'",
@@ -91,6 +94,7 @@ describe("admin HTTP security policy", () => {
     ]) {
       expect(docsPolicy.split("; ")).toContain(directive);
     }
+
     expect(docsPolicy).not.toContain("img-src 'self' https: data: blob:");
   });
 
@@ -111,6 +115,7 @@ describe("admin HTTP security policy", () => {
         "https://auth.example/api/auth",
       ),
     ).toContain("connect-src 'self' https://auth.example;");
+
     for (const url of [
       "http://auth.example",
       "javascript:alert(1)",

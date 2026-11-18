@@ -89,6 +89,7 @@ it("keeps preset roles scoped and supplies Modern mode overrides", () => {
   expect(preset).toContain("--blog-article-title-size:");
   expect(css).not.toContain(":root");
   expect(palettes[1]).toBeDefined();
+
   for (const token of [
     "page",
     "surface",
@@ -157,6 +158,7 @@ it("keeps Modern text and focus contrast on paper, cards and inverse footer", ()
       }
     }
   }
+
   expect(
     (luminance("#f4f0e9") + 0.05) / (luminance("#1d1c32") + 0.05),
   ).toBeGreaterThanOrEqual(4.5);

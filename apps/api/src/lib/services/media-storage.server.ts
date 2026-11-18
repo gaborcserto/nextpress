@@ -4,7 +4,9 @@ import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 function storagePath(key: string) {
-  if (!/^[a-f0-9-]{36}\.png$/.test(key)) throw new Error("Invalid storage key");
+  if (!/^[a-f0-9-]{36}\.png$/.test(key)) {
+    throw new Error("Invalid storage key");
+  }
 
   // Runtime media is mutable private data, never a deployment-tracing input.
   const root = path.resolve(
@@ -12,8 +14,9 @@ function storagePath(key: string) {
       ".media",
   );
 
-  if (root.split(path.sep).some((part) => part.toLowerCase() === "public"))
+  if (root.split(path.sep).some((part) => part.toLowerCase() === "public")) {
     throw new Error("Media storage must be outside public directories");
+  }
 
   return path.join(/* turbopackIgnore: true */ root, key);
 }

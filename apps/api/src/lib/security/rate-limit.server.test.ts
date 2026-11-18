@@ -26,8 +26,11 @@ describe("bounded process-local limiter", () => {
     const limiter = new RateLimiter(2);
     expect(limiter.consume("first", 1, 60_000, 0)).toBeNull();
     expect(limiter.consume("second", 1, 120_000, 0)).toBeNull();
-    for (let i = 0; i < 100; i++)
+
+    for (let i = 0; i < 100; i++) {
       expect(limiter.consume(`rotated-${i}`, 1, 60_000, 1000)).toBe(59);
+    }
+
     expect(limiter.size).toBe(2);
     expect(limiter.consume("first", 1, 60_000, 1000)).toBe(59);
     expect(limiter.consume("third", 1, 60_000, 60_000)).toBeNull();
@@ -59,9 +62,12 @@ describe("bounded process-local limiter", () => {
 
   it("isolates authenticated users and action scopes", () => {
     vi.spyOn(Date, "now").mockReturnValue(1000);
+
     try {
-      for (let i = 0; i < 30; i++)
+      for (let i = 0; i < 30; i++) {
         expect(limitMutation("admin", "users")).toBeNull();
+      }
+
       expect(limitMutation("admin", "users")?.status).toBe(429);
       expect(limitMutation("editor", "users")).toBeNull();
       expect(limitMutation("admin", "content")).toBeNull();

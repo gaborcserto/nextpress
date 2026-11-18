@@ -59,16 +59,19 @@ export async function bootstrapAdmin(environment: NodeJS.ProcessEnv) {
   const { getAdminBootstrapCredentials } =
     await import("./admin-bootstrap-policy");
   const email = emailSchema.parse(environment.ADMIN_EMAIL);
+
   const existing = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
   });
+
   const credential = existing
     ? await prisma.account.findFirst({
         where: { userId: existing.id, provider: "credential" },
         select: { id: true, password: true },
       })
     : null;
+
   const { password: pass } = getAdminBootstrapCredentials(
     environment,
     !!credential?.password,

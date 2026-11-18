@@ -61,12 +61,14 @@ export function usePostEditor(postId?: string) {
 
     savingRef.current = true;
     setSaving(true);
+
     try {
       if (postId && data?.item.workingVersion === undefined) {
         showToast("Reload the editor before saving.", "warning");
 
         return false;
       }
+
       const submittedValues = prepareLegacyUpdate(values, data?.item);
       const { ok, status } =
         postId && data

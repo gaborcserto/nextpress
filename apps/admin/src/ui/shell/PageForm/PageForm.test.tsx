@@ -185,6 +185,7 @@ describe("PageForm", () => {
       expect(save).toHaveBeenCalledWith({ ...legacy, title: "Edited title" });
       const dto = pageValuesToDto({ ...legacy, title: "Edited title" });
       expect(dto.layout).toBe(type);
+
       for (const field of [
         "parentId",
         "listingKind",

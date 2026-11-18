@@ -12,7 +12,10 @@ it("keeps the admin free of database dependencies, backend implementation and se
     /@nextpress\/db|@prisma\/|generated\/prisma|apps\/api\/|api\/src\/|BETTER_AUTH_SECRET|DATABASE_URL|CLIENT_SECRET/;
 
   for (const file of readdirSync(root, { recursive: true, encoding: "utf8" })) {
-    if (!/\.[cm]?[jt]sx?$/.test(file) || file.includes(".test.")) continue;
+    if (!/\.[cm]?[jt]sx?$/.test(file) || file.includes(".test.")) {
+      continue;
+    }
+
     expect(
       readFileSync(new URL(file.replaceAll("\\", "/"), root), "utf8"),
       file,

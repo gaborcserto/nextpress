@@ -11,10 +11,12 @@ import { parseEnv } from "node:util";
 
 const directory = process.argv[2];
 
-if (!directory)
+if (!directory) {
   throw new Error(
     "Usage: node scripts/scan-artifacts.mjs <packaged-directory>",
   );
+}
+
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifactRoot = realpathSync(path.resolve(directory));
 const sources = [process.env];
@@ -27,8 +29,11 @@ for (const file of [
 ]) {
   const source = path.join(root, file);
 
-  if (existsSync(source)) sources.push(parseEnv(readFileSync(source, "utf8")));
+  if (existsSync(source)) {
+    sources.push(parseEnv(readFileSync(source, "utf8")));
+  }
 }
+
 const secretValues = [
   ...new Set(
     sources.flatMap((source) =>
@@ -63,10 +68,12 @@ function scan(folder) {
       if (
         path.isAbsolute(readlinkSync(file)) ||
         (target !== artifactRoot && !target.startsWith(artifactRoot + path.sep))
-      )
+      ) {
         throw new Error(
           "Packaged artifact contains a nonportable or escaping symbolic link",
         );
+      }
+
       // Its real target is scanned through the ordinary directory traversal.
       continue;
     }
@@ -75,6 +82,7 @@ function scan(folder) {
       scan(file);
       continue;
     }
+
     files++;
     const bytes = readFileSync(file);
 
@@ -84,8 +92,9 @@ function scan(folder) {
       /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----(?:\r?\n|\\n|\\r\\n)(?:[A-Za-z0-9+/=]+(?:\r?\n|\\n|\\r\\n))+-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(
         bytes.toString("utf8"),
       )
-    )
+    ) {
       violations.push(file);
+    }
   }
 }
 
@@ -95,9 +104,14 @@ if (violations.length) {
   console.error(
     `Artifact secret check failed in ${violations.length} files. Values are redacted.`,
   );
-  for (const file of violations) console.error(file);
+
+  for (const file of violations) {
+    console.error(file);
+  }
+
   process.exitCode = 1;
-} else
+} else {
   console.log(
     `Artifact secret check passed: ${files} files; no environment files, known configured secrets or private keys found.`,
   );
+}

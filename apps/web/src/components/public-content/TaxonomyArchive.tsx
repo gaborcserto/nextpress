@@ -26,7 +26,9 @@ async function readArchive({
     searchParams,
     getPublicSiteSettings(),
   ]);
+
   const page = parsePostsPage(query.page, settings.postsPerPage);
+
   const batch = await getPublishedTaxonomyPosts(
     type,
     slug,

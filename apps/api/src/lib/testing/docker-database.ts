@@ -154,6 +154,7 @@ export function verifyDockerEvidence(
   if (!container || !network) {
     throw new Error("Missing Docker evidence");
   }
+
   const endpoints = Object.values(container.NetworkSettings.Networks);
   const ports = container.HostConfig.PortBindings;
   const bindings = ports["5432/tcp"];
@@ -310,6 +311,7 @@ export async function verifyDisposableDatabase(
       "Database URL is not approved by the provisioning manifest",
     );
   }
+
   verifyDockerTarget(manifest);
   const [identity] = await candidate.$queryRaw<
     DatabaseIdentity[]

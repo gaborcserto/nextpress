@@ -26,14 +26,19 @@ describe("OpenAPI contract", () => {
       recursive: true,
       encoding: "utf8",
     })) {
-      if (!file.endsWith("route.ts")) continue;
+      if (!file.endsWith("route.ts")) {
+        continue;
+      }
+
       const normalized = file.replaceAll("\\", "/");
 
       if (
         normalized === "auth/[...all]/route.ts" ||
         normalized === "openapi/route.ts"
-      )
+      ) {
         continue;
+      }
+
       const path = `/api/${normalized.replace(/\/route\.ts$/, "").replace(/\[([^\]]+)\]/g, "{$1}")}`;
       const source = readFileSync(new URL(normalized, apiRoot), "utf8");
 
@@ -47,6 +52,7 @@ describe("OpenAPI contract", () => {
         }
       }
     }
+
     const documented = Object.entries(openApiDocument.paths).flatMap(
       ([path, item]) =>
         methods

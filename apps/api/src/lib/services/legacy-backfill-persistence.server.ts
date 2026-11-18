@@ -42,6 +42,7 @@ export async function persistFencedLegacyPage(
         if (plan.issues.length || issues.includes("SLUG_CONFLICT")) {
           throw new BackfillConflictError("UNRESOLVED_SOURCE");
         }
+
         const capturedAt = new Date();
 
         for (const revision of plan.revisions) {
@@ -51,6 +52,7 @@ export async function persistFencedLegacyPage(
             data: { ...data, ...(aggregate === null ? {} : { aggregate }) },
           });
         }
+
         await tx.contentEditorialState.create({ data: plan.state });
         await tx.contentDraft.create({ data: plan.draft });
         await tx.contentPublication.createMany({ data: plan.publications });
@@ -111,6 +113,7 @@ export async function persistFencedLegacyPage(
           );
         }
       }
+
       throw new BackfillConflictError("BACKFILL_DATABASE_FAILURE");
     });
 }

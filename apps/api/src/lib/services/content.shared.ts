@@ -60,12 +60,14 @@ export async function runWithContentConflictHandling<T>(
   try {
     return await fn();
   } catch (err) {
-    if (err instanceof ContentVersionConflictError)
+    if (err instanceof ContentVersionConflictError) {
       throw new PageConflictError("Content changed; reload before saving");
+    }
 
     if (isSlugConflictError(err)) {
       throw new PageConflictError();
     }
+
     throw err;
   }
 }

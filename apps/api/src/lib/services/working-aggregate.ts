@@ -42,6 +42,7 @@ export function restoreLegacyWorkingAggregate(
   if (revision.pageId !== current.pageId) {
     throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
   }
+
   let pageDocument = null;
 
   if (revision.pageDocument !== null) {
@@ -51,6 +52,7 @@ export function restoreLegacyWorkingAggregate(
       if (!parsed.supported) {
         throw new Error("Unsupported document");
       }
+
       pageDocument = parsed.document;
     } catch {
       throw new WorkingAggregateConflictError("UNSUPPORTED_LEGACY_REVISION");
@@ -84,6 +86,7 @@ export function captureWorkingAggregate(
   if (source.pageDocument !== null && !source.pageDocument.trim()) {
     throw new Error("UNSUPPORTED_PAGE_DOCUMENT");
   }
+
   const snapshot = EditorialSnapshotSchema.parse(
     legacyPageMapping(source).snapshot,
   );
@@ -119,6 +122,7 @@ export function prepareWorkingAggregateEdit(
   if (scope.authorId && current.ownerId !== scope.authorId) {
     throw new ContentForbiddenError();
   }
+
   const edit = WorkingAggregateEditSchema.parse(input);
 
   if (
@@ -127,6 +131,7 @@ export function prepareWorkingAggregateEdit(
   ) {
     throw new WorkingAggregateConflictError();
   }
+
   const { tagIds, ...fields } = edit.patch;
 
   return WorkingAggregateSchema.parse({

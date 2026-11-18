@@ -84,6 +84,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
     const media = await db.media.create({
       data: { id: prefix + "media", url: "/synthetic", mime: "image/png" },
     });
+
     const taxonomy = await db.taxonomy.create({
       data: {
         id: prefix + "tag",
@@ -92,6 +93,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
         slug: prefix + "tag",
       },
     });
+
     const parent = await seed(prefix + "parent");
     await db.page.update({
       where: { id },
@@ -128,6 +130,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
         },
       });
     }
+
     await persistLegacyPageInDisposableDatabase(db, id);
     await persistLegacyPageInDisposableDatabase(db, id);
     const revisions = await db.contentRevision.findMany({
@@ -225,6 +228,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
       );
       await db.$executeRawUnsafe(`DROP FUNCTION b052b_reject_checkpoint()`);
     }
+
     expect(await persistLegacyPageInDisposableDatabase(db, id)).toBe("created");
   });
 
@@ -331,6 +335,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
           await db.contentMigrationCheckpoint.delete({ where: { pageId: id } });
           break;
       }
+
       expect(await diagnostic(id)).toMatchObject({ state: "conflict" });
       await expect(
         persistLegacyPageInDisposableDatabase(db, id),

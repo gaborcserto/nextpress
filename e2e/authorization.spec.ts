@@ -17,8 +17,9 @@ test.beforeAll(() => {
     url.hostname !== "localhost" ||
     url.port !== "55441" ||
     url.pathname !== "/nextpress_e2e"
-  )
+  ) {
     throw new Error("Authorization tests require the disposable E2E runner");
+  }
 });
 
 test("author ownership, publishing rights and direct revision authorization", async ({
@@ -27,6 +28,7 @@ test("author ownership, publishing rights and direct revision authorization", as
   const admin = await playwright.request.newContext({
     baseURL: "http://localhost:49201",
   });
+
   const author = await playwright.request.newContext({
     baseURL: "http://localhost:49201",
   });
@@ -166,7 +168,10 @@ test("author ownership, publishing rights and direct revision authorization", as
     ]);
     const saved = results.find((response) => response.status() === 201);
 
-    if (!saved) throw new Error("Missing successful revision");
+    if (!saved) {
+      throw new Error("Missing successful revision");
+    }
+
     const revision = RevisionRecordSchema.parse(await saved.json());
     expect(
       (

@@ -64,6 +64,7 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
   if (failure === "TRANSACTION_RETRY_REQUIRED") {
     return conflict("Content write conflict; retry the operation");
   }
+
   const kind = databaseConflictKind(error);
 
   if (kind === "maintenance") {

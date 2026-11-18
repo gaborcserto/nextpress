@@ -182,6 +182,7 @@ export function readEditorialSnapshot(raw: string): SnapshotReadResult {
       unsupported: ["invalid-json"],
     };
   }
+
   const result = EditorialSnapshotSchema.safeParse(value);
 
   if (!result.success) {
@@ -228,6 +229,7 @@ export function canonicalEditorialJson(value: unknown): string {
       )
       .join(",")}}`;
   }
+
   throw new Error("Canonical editorial values must be finite JSON");
 }
 

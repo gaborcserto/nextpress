@@ -21,7 +21,9 @@ export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
   });
 
   useEffect(() => {
-    if (typeof document === "undefined") return;
+    if (typeof document === "undefined") {
+      return;
+    }
 
     const curr = currentTheme();
     const next = { mounted: true, isDark: curr === "dark" };
@@ -34,7 +36,9 @@ export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
   }, []);
 
   const handleToggle = () => {
-    if (typeof document === "undefined") return;
+    if (typeof document === "undefined") {
+      return;
+    }
 
     const curr = currentTheme();
     const nextTheme = curr === "dark" ? "light" : "dark";

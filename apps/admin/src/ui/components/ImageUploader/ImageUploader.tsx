@@ -26,7 +26,9 @@ export default function ImageUploader({
   const imageURL = value ? safeImageUrl(value.url) : null;
 
   const handleFiles = async (files: FileList | null) => {
-    if (!files?.length || !uploaderAction) return;
+    if (!files?.length || !uploaderAction) {
+      return;
+    }
 
     const file = files[0];
 
@@ -38,6 +40,7 @@ export default function ImageUploader({
 
     setError(null);
     setUploading(true);
+
     try {
       onChangeAction(await uploaderAction(file));
     } catch {
@@ -54,14 +57,20 @@ export default function ImageUploader({
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
 
-    if (unavailable) return;
+    if (unavailable) {
+      return;
+    }
+
     void handleFiles(event.dataTransfer.files);
   };
 
   const onDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
 
-    if (unavailable) return;
+    if (unavailable) {
+      return;
+    }
+
     setDragOver(true);
   };
 

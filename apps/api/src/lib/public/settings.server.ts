@@ -32,6 +32,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
   const postListingMode = PostListingModeSchema.safeParse(
     settings?.postListingMode,
   );
+
   return {
     appearance: normalizeAppearance(
       settings && {

@@ -36,7 +36,9 @@ function sessionCookie(response: Response) {
     .getSetCookie()
     .find((header) => header.startsWith("better-auth.session_token="));
 
-  if (!value) throw new Error("Expected a development session cookie");
+  if (!value) {
+    throw new Error("Expected a development session cookie");
+  }
 
   return value.split(";", 1)[0];
 }
@@ -62,8 +64,10 @@ describe.skipIf(!testDatabaseUrl)(
     beforeAll(async () => {
       const configuredTestDatabaseUrl = testDatabaseUrl;
 
-      if (!configuredTestDatabaseUrl)
+      if (!configuredTestDatabaseUrl) {
         throw new Error("Missing isolated integration database URL");
+      }
+
       const expectedName = disposableDatabaseName(
         configuredTestDatabaseUrl,
         process.env.DATABASE_URL,
@@ -83,10 +87,11 @@ describe.skipIf(!testDatabaseUrl)(
         select: { name: true },
       });
 
-      if (roles.length !== 4)
+      if (roles.length !== 4) {
         throw new Error(
           "Seed the standard roles before running the PostgreSQL security integration test",
         );
+      }
     });
 
     afterAll(async () => {
@@ -95,6 +100,7 @@ describe.skipIf(!testDatabaseUrl)(
       if (!prisma) {
         return;
       }
+
       await verifyDisposableDatabase(
         disposableDatabaseName(
           testDatabaseUrl,
@@ -103,6 +109,7 @@ describe.skipIf(!testDatabaseUrl)(
         ),
         prisma,
       );
+
       try {
         await prisma.page.deleteMany({
           where: { slug: { in: [pageSlug, invalidPageSlug] } },
@@ -118,6 +125,7 @@ describe.skipIf(!testDatabaseUrl)(
 
     it("persists credentials, roles, sessions, password-change revocation, and logout", async () => {
       const auth = await getAuth();
+
       const signup = await auth.handler(
         authRequest("/sign-up/email", {
           name: "Integration User",
@@ -132,7 +140,10 @@ describe.skipIf(!testDatabaseUrl)(
         include: { role: true, accounts: true },
       });
 
-      if (!user) throw new Error("Expected signup to persist its user");
+      if (!user) {
+        throw new Error("Expected signup to persist its user");
+      }
+
       expect(user).toMatchObject({
         role: { name: "SUBSCRIBER" },
         accounts: [{ provider: "credential" }],
@@ -203,7 +214,10 @@ describe.skipIf(!testDatabaseUrl)(
 
       const author = users.at(2);
 
-      if (!author) throw new Error("Expected an AUTHOR role user");
+      if (!author) {
+        throw new Error("Expected an AUTHOR role user");
+      }
+
       const page = await prisma.page.create({
         data: {
           type: "PAGE",
@@ -214,6 +228,7 @@ describe.skipIf(!testDatabaseUrl)(
           authorId: author.id,
         },
       });
+
       const tag = await prisma.taxonomy.create({
         data: { type: "TAG", slug: tagSlug, name: "Integration" },
       });

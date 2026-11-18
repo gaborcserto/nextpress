@@ -43,6 +43,7 @@ describe.skipIf(!url)(
 
     beforeEach(async () => {
       await client.query("BEGIN");
+
       for (const page of ["b043-a", "b043-b"]) {
         await client.query(
           `INSERT INTO "Page" (id,type,slug,title,content,"updatedAt") VALUES ($1,'PAGE',$1,$1,'',now())`,

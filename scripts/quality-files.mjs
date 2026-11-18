@@ -20,9 +20,13 @@ export function reportFormatterOutput(result, { log, verbose = false }) {
     .join("\n")
     .trimEnd();
 
-  if (output) log(output);
+  if (output) {
+    log(output);
+  }
 
-  if (result.stderr) log(result.stderr.trimEnd());
+  if (result.stderr) {
+    log(result.stderr.trimEnd());
+  }
 }
 
 export function formatFiles(
@@ -30,17 +34,25 @@ export function formatFiles(
   { cwd, write = false, log, verbose = false } = {},
 ) {
   const selected = [...new Set(files)].filter((file) => {
-    if (!/\.(?:[cm]?[jt]sx?|css|scss|jsonc?|ya?ml|mdx?|html)$/.test(file))
+    if (!/\.(?:[cm]?[jt]sx?|css|scss|jsonc?|ya?ml|mdx?|html)$/.test(file)) {
       return false;
+    }
+
     try {
       return statSync(path.resolve(cwd, file)).isFile();
     } catch (error) {
-      if (error.code === "ENOENT") return false;
+      if (error.code === "ENOENT") {
+        return false;
+      }
+
       throw error;
     }
   });
 
-  if (!selected.length) return selected;
+  if (!selected.length) {
+    return selected;
+  }
+
   // CI selects workspaces before installing dependencies.
   let formatter;
 
@@ -55,6 +67,7 @@ export function formatFiles(
       { cause: error },
     );
   }
+
   // Without paths the CLI targets cwd. Never allow that implicit full write.
   let failureStatus;
 
@@ -81,18 +94,25 @@ export function formatFiles(
           : { cwd, stdio: "inherit" },
       );
 
-      if (log) reportFormatterOutput(result, { log, verbose });
+      if (log) {
+        reportFormatterOutput(result, { log, verbose });
+      }
 
-      if (result.error) throw result.error;
+      if (result.error) {
+        throw result.error;
+      }
 
-      if (result.status !== 0) failureStatus = result.status ?? 1;
+      if (result.status !== 0) {
+        failureStatus = result.status ?? 1;
+      }
     }
   }
 
-  if (failureStatus !== undefined)
+  if (failureStatus !== undefined) {
     throw new Error(
       `Formatting ${write ? "write" : "check"} failed (${failureStatus}).`,
     );
+  }
 
   return selected;
 }

@@ -131,6 +131,7 @@ export class PrivateDraftController<T> {
     if (this.flight || this.attempt || this.blocked || this.disposed) {
       return;
     }
+
     clearTimeout(this.timer);
     this.publish({ phase: dirty ? "unsaved" : "saved", message: "" });
 
@@ -190,6 +191,7 @@ export class PrivateDraftController<T> {
       ) {
         return Promise.resolve(true);
       }
+
       const delta = Object.fromEntries(
         Object.entries(this.current.patch).filter(
           ([key, value]) =>
@@ -212,6 +214,7 @@ export class PrivateDraftController<T> {
 
         return Promise.resolve(false);
       }
+
       this.attempt = {
         values: this.current.values,
         patch: this.current.patch,
@@ -238,6 +241,7 @@ export class PrivateDraftController<T> {
         },
       };
     }
+
     const attempt = this.attempt;
     this.publish({ phase: "saving", pending: true, dirty: true, message: "" });
     this.flight = this.send(attempt).finally(() => {
@@ -257,6 +261,7 @@ export class PrivateDraftController<T> {
       if (this.disposed) {
         return false;
       }
+
       this.draft = result;
 
       if (
@@ -285,6 +290,7 @@ export class PrivateDraftController<T> {
 
         return true;
       }
+
       this.acknowledged = { values: attempt.values, patch: attempt.patch };
       this.attempt = null;
       const dirty = this.hasLocalChanges();
@@ -308,6 +314,7 @@ export class PrivateDraftController<T> {
       if (this.disposed) {
         return false;
       }
+
       const initialAdmissionRefusal =
         error instanceof PrivateDraftRequestError &&
         error.code === "PRIVATE_DRAFT_DISABLED" &&
@@ -325,6 +332,7 @@ export class PrivateDraftController<T> {
           ([401, 403, 404, 409].includes(error.status) ||
             error.code === "PRIVATE_DRAFT_DISABLED");
       }
+
       this.publish({
         phase: this.blocked ? "conflict" : "error",
         dirty: true,
@@ -347,6 +355,7 @@ export class PrivateDraftController<T> {
     if (this.flight || this.attempt) {
       return null;
     }
+
     clearTimeout(this.timer);
     this.current = this.acknowledged;
     this.publish({

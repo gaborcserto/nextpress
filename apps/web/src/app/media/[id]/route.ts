@@ -6,8 +6,10 @@ export async function GET(
 ) {
   const { id } = await ctx.params;
 
-  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id))
+  if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) {
     return new Response(null, { status: 404 });
+  }
+
   try {
     const response = await fetch(
       `${publicApiOrigin()}/api/public/media/${id}`,
@@ -19,10 +21,11 @@ export async function GET(
       },
     );
 
-    if (!response.ok)
+    if (!response.ok) {
       return new Response(null, {
         status: response.status === 404 ? 404 : 503,
       });
+    }
 
     return new Response(response.body, {
       headers: {

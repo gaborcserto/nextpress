@@ -6,11 +6,13 @@ export function disposableDatabaseName(
   if (!testUrl || testUrl !== actualUrl) {
     throw new Error("Explicit matching disposable database URLs required");
   }
+
   const url = new URL(testUrl);
   const pattern =
     family === "content"
       ? /^nextpress_phase1_verify_[a-z0-9_]+$/
       : /^nextpress_security_verify_[a-z0-9_]+$/;
+
   const name = url.pathname.slice(1);
 
   if (

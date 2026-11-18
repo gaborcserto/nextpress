@@ -12,7 +12,9 @@ export async function readBoundedMutationRequest(
   req: Request,
   maxBytes = MAX_MUTATION_BODY_BYTES,
 ): Promise<{ request?: Request; response?: Response }> {
-  if (!req.body) return { request: req };
+  if (!req.body) {
+    return { request: req };
+  }
 
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -21,7 +23,10 @@ export async function readBoundedMutationRequest(
   while (true) {
     const { done, value } = await reader.read();
 
-    if (done) break;
+    if (done) {
+      break;
+    }
+
     size += value.byteLength;
 
     if (size > maxBytes) {
@@ -34,6 +39,7 @@ export async function readBoundedMutationRequest(
         ),
       };
     }
+
     chunks.push(value);
   }
 
@@ -59,14 +65,17 @@ export function requireTrustedMutation(
   req: Request,
   { bodyReadPending = false }: { bodyReadPending?: boolean } = {},
 ): Response | null {
-  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return null;
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return null;
+  }
 
   const origin = req.headers.get("origin");
 
   // Compare serialized origins, not URL prefixes or client-controlled Host /
   // forwarded headers. Missing Origin has no browser or server exception.
-  if (!origin || !getTrustedOrigins().includes(origin))
+  if (!origin || !getTrustedOrigins().includes(origin)) {
     return forbid("Untrusted request origin");
+  }
 
   const contentType = req.headers.get("content-type");
   const needsJSON =
