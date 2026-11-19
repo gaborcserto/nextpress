@@ -91,6 +91,19 @@ export function createBaseConfig({ registerPlugins = true } = {}) {
       },
     },
     {
+      files: ["**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      rules: {
+        "no-restricted-syntax": [
+          "error",
+          {
+            selector:
+              "CallExpression[callee.object.name=/^(describe|it|test)$/][callee.property.name='only']",
+            message: "Focused tests must not be committed.",
+          },
+        ],
+      },
+    },
+    {
       files: ["**/*.{js,mjs,cjs}"],
       languageOptions: { globals: globals.node },
     },

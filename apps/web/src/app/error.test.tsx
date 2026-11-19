@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 import PublicError from "./error";
 import GlobalError from "./global-error";
@@ -46,22 +46,33 @@ describe("Public error recovery", () => {
     );
   });
 
-  it("provides the same safe recovery when the root layout fails", () => {
+  it("redacts root layout errors and lets visitors retry or navigate away", () => {
     const reset = vi.fn();
-    render(
+    // The root error renders its own <html> and needs a document with a window.
+    const frame = document.body.appendChild(document.createElement("iframe"));
+    onTestFinished(() => frame.remove());
+    const errorDocument = frame.contentDocument;
+
+    if (!errorDocument) {
+      throw new Error("Expected a document for the global error page");
+    }
+
+    const page = render(
       <GlobalError error={new Error("private root failure")} reset={reset} />,
+      { container: errorDocument, baseElement: errorDocument },
     );
 
     expect(
-      screen.getByRole("heading", { name: "This page could not be loaded" }),
+      page.getByRole("heading", { name: "This page could not be loaded" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("private root failure")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Try again" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Posts" })).toHaveAttribute(
+    expect(page.queryByText("private root failure")).not.toBeInTheDocument();
+    expect(page.getByRole("link", { name: "Posts" })).toHaveAttribute(
       "href",
       "/en/posts",
     );
+
+    fireEvent.click(page.getByRole("button", { name: "Try again" }));
+
+    expect(reset).toHaveBeenCalledOnce();
   });
 });

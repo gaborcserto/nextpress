@@ -57,11 +57,16 @@ describe("development seed persistence", () => {
 
     try {
       for (let run = 0; run < 2; run++) {
+        // The CLI reports success after the seed work and disconnect complete.
+        const seedResult = new Promise<string>((resolve) => {
+          log.mockImplementationOnce((message: string) => resolve(message));
+        });
+
         vi.resetModules();
         await import("../prisma/seed");
-        await vi.waitFor(() =>
-          expect(prisma.$disconnect).toHaveBeenCalledTimes(run + 1),
-        );
+
+        expect(await seedResult).toMatch(/^Seed OK:/);
+        expect(prisma.$disconnect).toHaveBeenCalledTimes(run + 1);
       }
 
       expect(prisma.taxonomy.upsert).toHaveBeenCalledTimes(

@@ -1422,6 +1422,47 @@ test("owning lint configs reject incorrect import ordering", async () => {
   }
 });
 
+test("owning lint configs reject focused tests and allow ordinary tests", async () => {
+  for (const workspace of [
+    ".",
+    "apps/api",
+    "apps/admin",
+    "apps/web",
+    "packages/db",
+    "packages/shared",
+  ]) {
+    const eslint = new ESLint({ cwd: path.join(root, workspace) });
+    const filePath =
+      workspace === "." ? "scripts/fixture.test.mjs" : "src/fixture.test.ts";
+
+    const ordinarySource = `import { describe, it, test } from "node:test";
+
+describe("suite", () => {
+  it("case", () => {});
+  test("another case", () => {});
+});
+`;
+    const focusedSource = ordinarySource.replaceAll(
+      /^(\s*)(describe|it|test)\(/gm,
+      "$1$2.only(",
+    );
+
+    const [focused] = await eslint.lintText(focusedSource, { filePath });
+    assert.deepEqual(
+      focused.messages.map(({ ruleId, line }) => [ruleId, line]),
+      [
+        ["no-restricted-syntax", 3],
+        ["no-restricted-syntax", 4],
+        ["no-restricted-syntax", 5],
+      ],
+      workspace,
+    );
+
+    const [ordinary] = await eslint.lintText(ordinarySource, { filePath });
+    assert.deepEqual(ordinary.messages, [], workspace);
+  }
+});
+
 test("formatter checks Markdown and typed module extensions rather than skipping them", (t) => {
   const cwd = fixture(t);
 

@@ -39,6 +39,8 @@ vi.mock("@/ui/utils", async (importOriginal) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  apiFetch.mockReset();
+  fetcher.mockReset();
 
   navigation.query = "";
 
@@ -69,11 +71,22 @@ beforeEach(() => {
 });
 
 describe.each([
-  { name: "Posts", Component: PostsListScreen, endpoint: "/api/post" },
-
-  { name: "Pages", Component: PagesListScreen, endpoint: "/api/pages" },
-])("$name pagination", ({ name, Component, endpoint }) => {
-  function setup() {
+  {
+    name: "Posts",
+    Component: PostsListScreen,
+    endpoint: "/api/post",
+    kind: "POST",
+    editHref: "/admin/posts/item-1",
+  },
+  {
+    name: "Pages",
+    Component: PagesListScreen,
+    endpoint: "/api/pages",
+    kind: "PAGE",
+    editHref: "/admin/pages/item-1",
+  },
+])("$name list", ({ name, Component, endpoint, kind, editHref }) => {
+  function renderList() {
     const cache = new Map();
 
     return render(
@@ -89,34 +102,54 @@ describe.each([
     );
   }
 
+  function mockSingleItem(item: {
+    status: "DRAFT" | "PUBLISHED";
+    updatedAt: string | null | undefined;
+    publishedAt?: string | null | undefined;
+  }) {
+    fetcher.mockResolvedValue({
+      items: [
+        {
+          id: "item-1",
+          type: kind,
+          title: "Example",
+          slug: "example",
+          excerpt: null,
+          ...item,
+        },
+      ],
+      page: 1,
+      limit: 50,
+      total: 1,
+      pages: 1,
+    });
+  }
+
   it.each([
-    { status: "DRAFT", publishedAt: null },
-    { status: "PUBLISHED", publishedAt: "2020-01-01T00:00:00.000Z" },
-    { status: "PUBLISHED", publishedAt: "2099-01-01T00:00:00.000Z" },
-    { status: "PUBLISHED", publishedAt: undefined },
-  ])(
-    "labels updatedAt honestly for $status with publication date $publishedAt",
+    { scenario: "draft", status: "DRAFT", publishedAt: null },
+    {
+      scenario: "past publication date",
+      status: "PUBLISHED",
+      publishedAt: "2020-01-01T00:00:00.000Z",
+    },
+    {
+      scenario: "future publication date",
+      status: "PUBLISHED",
+      publishedAt: "2099-01-01T00:00:00.000Z",
+    },
+    {
+      scenario: "missing publication date",
+      status: "PUBLISHED",
+      publishedAt: undefined,
+    },
+  ] as const)(
+    "shows the last modification timestamp for $scenario",
     async ({ status, publishedAt }) => {
       const updatedAt = "2026-11-16T12:34:56.000Z";
-      fetcher.mockResolvedValue({
-        items: [
-          {
-            id: "item-1",
-            type: name === "Posts" ? "POST" : "PAGE",
-            title: "Example",
-            slug: "example",
-            status,
-            excerpt: null,
-            updatedAt,
-            publishedAt,
-          },
-        ],
-        page: 1,
-        limit: 50,
-        total: 1,
-        pages: 1,
-      });
-      setup();
+      mockSingleItem({ status, updatedAt, publishedAt });
+
+      renderList();
+
       expect(
         await screen.findByRole("columnheader", { name: "Last modified" }),
       ).toBeInTheDocument();
@@ -131,24 +164,9 @@ describe.each([
   it.each([null, undefined])(
     "does not invent a timestamp when updatedAt is %s",
     async (updatedAt) => {
-      fetcher.mockResolvedValue({
-        items: [
-          {
-            id: "item-1",
-            type: name === "Posts" ? "POST" : "PAGE",
-            title: "Example",
-            slug: "example",
-            status: "PUBLISHED",
-            excerpt: null,
-            updatedAt,
-          },
-        ],
-        page: 1,
-        limit: 50,
-        total: 1,
-        pages: 1,
-      });
-      setup();
+      mockSingleItem({ status: "PUBLISHED", updatedAt });
+
+      renderList();
 
       if (name === "Posts") {
         expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -167,7 +185,7 @@ describe.each([
   );
 
   it("renders API metadata, boundaries and forward navigation", async () => {
-    setup();
+    renderList();
 
     expect(
       screen
@@ -193,14 +211,14 @@ describe.each([
 
     expect(screen.getByRole("link", { name: "Edit Example" })).toHaveAttribute(
       "href",
-      `${name === "Posts" ? "/admin/posts" : "/admin/pages"}/item-1`,
+      editHref,
     );
   });
 
   it("loads a last-page deep link and navigates backward", async () => {
     navigation.query = "page=2";
 
-    setup();
+    renderList();
 
     await screen.findByText(/Page 2 of 2/);
 
@@ -234,7 +252,7 @@ describe.each([
       ].map((item) => ({
         ...item,
         slug: item.id,
-        type: name === "Posts" ? "POST" : "PAGE",
+        type: kind,
         excerpt: null,
       })),
       page: 2,
@@ -242,22 +260,23 @@ describe.each([
       total: 52,
       pages: 2,
     });
-    setup();
+    renderList();
 
     const table = await screen.findByRole("table", { name });
+    const tableQueries = within(table);
 
     const firstTitle = (title: string) =>
-      within(within(table).getAllByRole("row")[1]).getByRole("link", {
+      within(tableQueries.getAllByRole("row")[1]).getByRole("link", {
         name: title,
       });
 
     expect(firstTitle("Alpha")).toBeInTheDocument();
     fireEvent.click(
-      within(table).getByRole("button", { name: "Last modified" }),
+      tableQueries.getByRole("button", { name: "Last modified" }),
     );
     expect(firstTitle("Zulu")).toBeInTheDocument();
 
-    const title = within(table).getByRole("button", { name: "Title" });
+    const title = tableQueries.getByRole("button", { name: "Title" });
     fireEvent.click(title);
     expect(firstTitle("Alpha")).toBeInTheDocument();
     fireEvent.click(title);
@@ -265,7 +284,7 @@ describe.each([
     expect(table.querySelectorAll("[aria-sort]")).toHaveLength(1);
     expect(title.closest("th")).toHaveAttribute("aria-sort", "descending");
 
-    const status = within(table).getByRole("button", { name: "Status" });
+    const status = tableQueries.getByRole("button", { name: "Status" });
     fireEvent.click(status);
     expect(firstTitle("Zulu")).toBeInTheDocument();
     fireEvent.click(status);
@@ -276,7 +295,7 @@ describe.each([
     });
     fireEvent.click(status);
     expect(firstTitle("Alpha")).toBeInTheDocument();
-    expect(within(table).getAllByRole("row")).toHaveLength(2);
+    expect(tableQueries.getAllByRole("row")).toHaveLength(2);
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(fetcher).toHaveBeenCalledWith(`${endpoint}?page=2`);
     expect(navigation.push).not.toHaveBeenCalled();
@@ -292,7 +311,7 @@ describe.each([
       pages: 0,
     });
 
-    setup();
+    renderList();
 
     await screen.findByText("No items found.");
 
@@ -306,7 +325,7 @@ describe.each([
   it("retries a failed load", async () => {
     fetcher.mockRejectedValueOnce(new Error("offline"));
 
-    setup();
+    renderList();
 
     await screen.findByRole("alert");
 
@@ -320,7 +339,7 @@ describe.each([
 
     apiFetch.mockResolvedValue(new Response(null, { status: 204 }));
 
-    setup();
+    renderList();
 
     await screen.findByRole("button", { name: "Delete Example" });
 

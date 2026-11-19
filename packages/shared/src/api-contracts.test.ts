@@ -9,11 +9,13 @@ import {
   PublicPostSummarySchema,
 } from "./api-contracts";
 import { readRichContent, serializeRichContent } from "./content";
+
 describe("portable CMS contracts", () => {
   it("preserves current write defaults, strips forged identity, and accepts versioned rich documents", () => {
     const content = serializeRichContent([
       { type: "paragraph", children: [{ text: "Body" }] },
     ]);
+
     const parsed = PageSchema.parse({
       type: "POST",
       status: "DRAFT",
@@ -23,6 +25,7 @@ describe("portable CMS contracts", () => {
       authorId: "forged",
       role: "ADMIN",
     });
+
     expect(parsed).not.toHaveProperty("authorId");
     expect(parsed).not.toHaveProperty("role");
     expect(parsed.tagIds).toEqual([]);
@@ -31,10 +34,12 @@ describe("portable CMS contracts", () => {
       expectedVersion: 0,
     });
   });
+
   it("keeps legacy editorial arrays distinct from delivery documents", () => {
     const content = readRichContent(
       '[{"type":"paragraph","children":[{"text":"legacy"}]}]',
     );
+
     const item = {
       status: "DRAFT",
       workingVersion: 0,
@@ -46,9 +51,11 @@ describe("portable CMS contracts", () => {
       publishedAt: null,
       cover: null,
     };
+
     expect(EditorialPostSchema.safeParse(item).success).toBe(true);
     expect(PublicContentSchema.safeParse(item).success).toBe(false);
   });
+
   it("preserves structured validation and simple errors", () => {
     expect(
       ApiErrorSchema.parse({
@@ -71,40 +78,46 @@ describe("summary cover compatibility", () => {
     author: null,
     taxonomies: [],
   };
+
   it.each([
-    undefined,
-    null,
-    { url: "/media/public-cover", alt: "Landscape", width: 800, height: 600 },
-  ])("accepts old and expanded responses %j", (cover) => {
-    expect(
-      PublicPostSummarySchema.safeParse({
+    { scenario: "an omitted cover", response: summary },
+    { scenario: "a null cover", response: { ...summary, cover: null } },
+    {
+      scenario: "public cover metadata",
+      response: {
         ...summary,
-        ...(cover === undefined ? {} : { cover }),
-      }).success,
-    ).toBe(true);
+        cover: {
+          url: "/media/public-cover",
+          alt: "Landscape",
+          width: 800,
+          height: 600,
+        },
+      },
+    },
+  ])("accepts $scenario", ({ response }) => {
+    expect(PublicPostSummarySchema.safeParse(response).success).toBe(true);
   });
+
   it("rejects private fields and external cover URLs", () => {
-    for (const cover of [
-      { url: "https://external.test/a", alt: "", width: 1, height: 1 },
-      { url: "/media/a", alt: "", width: 1, height: 1, key: "secret" },
-    ]) {
-      expect(
-        PublicPostSummarySchema.safeParse({ ...summary, cover }).success,
-      ).toBe(false);
-    }
+    const cover = { url: "/media/a", alt: "", width: 1, height: 1 };
+    const withExternalUrl = { ...cover, url: "https://external.test/a" };
+    const withPrivateKey = { ...cover, key: "secret" };
+
+    expect(
+      PublicPostSummarySchema.safeParse({ ...summary, cover: withExternalUrl })
+        .success,
+    ).toBe(false);
+    expect(
+      PublicPostSummarySchema.safeParse({ ...summary, cover: withPrivateKey })
+        .success,
+    ).toBe(false);
   });
-});
-it("requires a consumer-first rollout because old strict consumers reject cover", () => {
-  const oldConsumer = PublicPostSummarySchema.omit({ cover: true });
-  const expanded = {
-    slug: "post",
-    title: "Title",
-    summary: "",
-    publishedAt: "2026-01-01T00:00:00Z",
-    author: null,
-    taxonomies: [],
-    cover: null,
-  };
-  expect(PublicPostSummarySchema.safeParse(expanded).success).toBe(true);
-  expect(oldConsumer.safeParse(expanded).success).toBe(false);
+
+  it("requires a consumer-first rollout because old strict consumers reject cover", () => {
+    const oldConsumer = PublicPostSummarySchema.omit({ cover: true });
+    const expanded = { ...summary, cover: null };
+
+    expect(PublicPostSummarySchema.safeParse(expanded).success).toBe(true);
+    expect(oldConsumer.safeParse(expanded).success).toBe(false);
+  });
 });

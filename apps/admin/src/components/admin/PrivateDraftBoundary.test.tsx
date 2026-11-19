@@ -17,8 +17,10 @@ import { privateDraftFixture } from "@/lib/content/private-draft.fixtures";
 
 import { PrivateDraftBoundary } from "./PrivateDraftBoundary";
 
+type DraftKind = ReturnType<typeof privateDraftFixture>["aggregate"]["kind"];
+
 const { fetchMock, push } = vi.hoisted(() => ({
-  fetchMock: vi.fn(),
+  fetchMock: vi.fn<typeof import("@/lib/api").apiFetch>(),
   push: vi.fn(),
 }));
 vi.mock("@/lib/api", () => ({ apiFetch: fetchMock }));
@@ -35,67 +37,110 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-describe("server-admitted private editors", () => {
+function renderDraftBoundary(kind: DraftKind, wrapper?: typeof StrictMode) {
+  render(
+    <PrivateDraftBoundary id="page" kind={kind}>
+      <button>Legacy Save</button>
+    </PrivateDraftBoundary>,
+    { wrapper },
+  );
+}
+
+function draftRequests(method: "GET" | "PUT") {
+  return fetchMock.mock.calls.filter(([, init]) => init?.method === method);
+}
+
+function readDraftRequestBody(init?: RequestInit): unknown {
+  if (typeof init?.body !== "string") {
+    throw new Error("Expected a JSON body for the private draft request");
+  }
+
+  return JSON.parse(init.body);
+}
+
+function startSaveDiagnostics(kind: DraftKind) {
+  const startedAt = performance.now();
+
+  return (stage: string) => {
+    console.info(
+      `[private-draft-test] kind=${kind} stage=${stage} elapsedMs=${Math.round(performance.now() - startedAt)}`,
+    );
+  };
+}
+
+describe("private editor values", () => {
   it("uses current tag labels while retaining canonical relationship identities", () => {
     const draft = privateDraftFixture();
     draft.aggregate.snapshot.relationships.tagIds = ["tag"];
     draft.tagLabels = [
       { id: "tag", name: "Readable tag", slug: "readable-tag" },
     ];
+
     expect(privatePageValues(draft).tags).toEqual(draft.tagLabels);
     expect(privatePostValues(draft).tags).toEqual(draft.tagLabels);
   });
-  it("uses legacy editing only after an explicit server gate refusal", async () => {
+});
+
+describe("private editor admission", () => {
+  it("shows legacy Save only after the server explicitly disables private drafts", async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ code: "PRIVATE_DRAFT_DISABLED" }), {
-        status: 503,
-      }),
+      Response.json(
+        { code: "PRIVATE_DRAFT_DISABLED" },
+        {
+          status: 503,
+        },
+      ),
     );
-    render(
-      <PrivateDraftBoundary id="page" kind="PAGE">
-        <button>Legacy Save</button>
-      </PrivateDraftBoundary>,
-    );
+
+    renderDraftBoundary("PAGE");
+
     expect(screen.queryByText("Legacy Save")).not.toBeInTheDocument();
-    expect(await screen.findByText("Legacy Save")).toBeVisible();
+    expect(
+      await screen.findByRole("button", { name: "Legacy Save" }),
+    ).toBeVisible();
     expect(
       screen.queryByRole("region", { name: "Private draft" }),
     ).not.toBeInTheDocument();
   });
 
-  it("does not expose legacy Save after an uncertain admission or authorization failure", async () => {
-    fetchMock.mockResolvedValue(new Response("{}", { status: 403 }));
-    render(
-      <PrivateDraftBoundary id="page" kind="PAGE">
-        <button>Legacy Save</button>
-      </PrivateDraftBoundary>,
-    );
+  it("keeps legacy Save hidden when admission returns 403", async () => {
+    fetchMock.mockResolvedValue(Response.json({}, { status: 403 }));
+
+    renderDraftBoundary("PAGE");
+
     expect(
       await screen.findByText(/Private editing could not be loaded/),
     ).toBeVisible();
     expect(screen.queryByText("Legacy Save")).not.toBeInTheDocument();
   });
+});
 
+describe("private draft changes", () => {
   it.each(["PAGE", "POST"] as const)(
-    "loads and explicitly saves %s only through private PUT, preserving public controls",
+    "saves %s privately and keeps publication controls separate",
     async (kind) => {
+      const reportStage = startSaveDiagnostics(kind);
       const initial = privateDraftFixture(kind, 2);
-      fetchMock.mockImplementation(async (_path: string, init: RequestInit) => {
-        const draft =
-          init.method === "PUT" ? privateDraftFixture(kind, 3) : initial;
 
-        return new Response(JSON.stringify(draft), { status: 200 });
+      fetchMock.mockImplementation(async (_path, init) => {
+        const method = init?.method ?? "GET";
+        reportStage(`request.${method}.received`);
+        const draft = method === "PUT" ? privateDraftFixture(kind, 3) : initial;
+
+        reportStage(`request.${method}.response`);
+
+        return Response.json(draft);
       });
-      render(
-        <StrictMode>
-          <PrivateDraftBoundary id="page" kind={kind}>
-            <button>Legacy Save</button>
-          </PrivateDraftBoundary>
-        </StrictMode>,
-      );
+
+      reportStage("render.start");
+      renderDraftBoundary(kind, StrictMode);
+      reportStage("render.complete");
+
       expect(
         await screen.findByRole("region", { name: "Private draft" }),
       ).toHaveTextContent("require an explicit publication command");
+      reportStage("editor.available");
+
       expect(
         screen.getByRole("button", { name: "Publish Changes" }),
       ).toBeEnabled();
@@ -104,60 +149,58 @@ describe("server-admitted private editors", () => {
       expect(
         screen.getByLabelText("Publish date", { exact: true }),
       ).toBeDisabled();
-      fireEvent.change(screen.getByLabelText("Title", { exact: true }), {
+      reportStage("public.controls.verified");
+
+      const titleInput = screen.getByLabelText("Title", { exact: true });
+      fireEvent.change(titleInput, {
         target: { value: "Private changed" },
       });
+      reportStage("title.edited");
       fireEvent.click(
         screen.getByRole("button", {
           name: "Save private draft",
         }),
       );
-      await waitFor(() => {
-        expect(
-          fetchMock.mock.calls.filter((call) => call[1]?.method === "PUT"),
-        ).toHaveLength(1);
-      });
+      reportStage("save.clicked");
 
-      const calls = fetchMock.mock.calls.filter(
-        (call) => call[1]?.method === "PUT",
-      );
-      expect(calls).toHaveLength(1);
-      expect(calls[0]?.[0]).toBe("/api/private-drafts/page");
-      expect(JSON.parse(calls[0]?.[1].body)).toMatchObject({
+      await waitFor(() => {
+        expect(draftRequests("PUT")).toHaveLength(1);
+      });
+      reportStage("put.observed");
+
+      const [saveRequest] = draftRequests("PUT");
+      expect(saveRequest?.[0]).toBe("/api/private-drafts/page");
+      const body = readDraftRequestBody(saveRequest?.[1]);
+      expect(body).toMatchObject({
         expectedDraftVersion: 2,
         edit: { patch: { title: "Private changed" } },
       });
-      expect(JSON.parse(calls[0]?.[1].body).edit.patch).not.toHaveProperty(
-        "content",
-      );
+      expect(body).not.toHaveProperty("edit.patch.content");
       expect(screen.queryByText("Legacy Save")).not.toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
-          "Private changed",
-        );
-      });
+
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "Private draft saved · revision 3",
+      );
+      expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
+        "Private changed",
+      );
+      reportStage("saved.title.verified");
     },
   );
 
-  it("confirms local discard, cancels autosave, and warns on refresh before acknowledgment", async () => {
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(privateDraftFixture("PAGE", 1)), {
-        status: 200,
-      }),
-    );
-    render(
-      <PrivateDraftBoundary id="page" kind="PAGE">
-        <button>Legacy Save</button>
-      </PrivateDraftBoundary>,
-    );
+  it("warns about unsaved edits and cancels autosave after confirmed discard", async () => {
+    fetchMock.mockResolvedValue(Response.json(privateDraftFixture("PAGE", 1)));
+    renderDraftBoundary("PAGE");
     await screen.findByRole("region", { name: "Private draft" });
+
     vi.useFakeTimers();
     fireEvent.change(screen.getByLabelText("Title", { exact: true }), {
       target: { value: "Unsent" },
     });
-    const event = new Event("beforeunload", { cancelable: true });
-    window.dispatchEvent(event);
-    expect(event.defaultPrevented).toBe(true);
+    const refresh = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(refresh);
+    expect(refresh.defaultPrevented).toBe(true);
+
     fireEvent.click(
       screen.getByRole("button", {
         name: "Discard local changes",
@@ -166,6 +209,7 @@ describe("server-admitted private editors", () => {
     expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
       "Unsent",
     );
+
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
         name: "Confirm",
@@ -175,52 +219,44 @@ describe("server-admitted private editors", () => {
     expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
       "Original",
     );
+
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
-    expect(
-      fetchMock.mock.calls.filter((call) => call[1]?.method === "PUT"),
-    ).toHaveLength(0);
+    expect(draftRequests("PUT")).toHaveLength(0);
   });
 
-  it("confirms persisted reset with retained history and remounts from the server snapshot", async () => {
-    fetchMock.mockImplementation(
-      async (_path: string, init: RequestInit) =>
-        new Response(
-          JSON.stringify(
-            privateDraftFixture("POST", init.method === "PUT" ? 3 : 2),
-          ),
-          { status: 200 },
-        ),
-    );
-    render(
-      <PrivateDraftBoundary id="page" kind="POST">
-        <button>Legacy Save</button>
-      </PrivateDraftBoundary>,
-    );
+  it("warns that history is retained and reloads the server snapshot after reset", async () => {
+    const reloadedDraft = privateDraftFixture("POST", 3);
+    reloadedDraft.aggregate.snapshot.fields.title = "Live title";
+    fetchMock
+      .mockResolvedValueOnce(Response.json(privateDraftFixture("POST", 2)))
+      .mockResolvedValueOnce(Response.json(privateDraftFixture("POST", 3)))
+      .mockResolvedValueOnce(Response.json(reloadedDraft));
+
+    renderDraftBoundary("POST");
     await screen.findByRole("region", { name: "Private draft" });
+
     fireEvent.click(
       screen.getByRole("button", {
         name: "Reset private draft to live source",
       }),
     );
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "immutable historical storage",
+    const resetDialog = screen.getByRole("dialog");
+    expect(resetDialog).toHaveTextContent("immutable historical storage");
+
+    fireEvent.click(
+      within(resetDialog).getByRole("button", { name: "Confirm" }),
     );
-    await act(async () =>
-      fireEvent.click(
-        within(screen.getByRole("dialog")).getByRole("button", {
-          name: "Confirm",
-        }),
-      ),
+
+    expect(await screen.findByDisplayValue("Live title")).toBe(
+      screen.getByLabelText("Title", { exact: true }),
     );
-    const call = fetchMock.mock.calls.find((item) => item[1]?.method === "PUT");
-    expect(JSON.parse(call?.[1].body)).toMatchObject({
+    const [resetRequest] = draftRequests("PUT");
+    expect(readDraftRequestBody(resetRequest?.[1])).toMatchObject({
       operation: "RESET",
       edit: { patch: {} },
     });
-    expect(
-      fetchMock.mock.calls.filter((item) => item[1]?.method === "GET"),
-    ).toHaveLength(2);
+    expect(draftRequests("GET")).toHaveLength(2);
   });
 });

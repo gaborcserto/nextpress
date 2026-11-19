@@ -87,10 +87,12 @@ it("does not schedule schema retries and allows manual recovery", async () => {
   );
   expect(retries).toHaveLength(0);
   expect(fetch).toHaveBeenCalledTimes(1);
+
   await act(async () => {
     await result.current.mutate();
   });
-  await waitFor(() => expect(result.current.items[0]?.title).toBe("Recovered"));
+
+  expect(result.current.items[0]?.title).toBe("Recovered");
   expect(result.current.error).toBeUndefined();
 });
 
@@ -111,12 +113,15 @@ it.each(["network", "http", "malformed JSON"])(
     vi.stubGlobal("fetch", fetch);
     const { wrapper, retries } = setup();
     const { result } = renderHook(() => usePostsList(), { wrapper });
+
     await waitFor(() => expect(retries).toHaveLength(1));
     expect(fetch).toHaveBeenCalledTimes(1);
-    act(() => retries[0]?.());
-    await waitFor(() =>
-      expect(result.current.items[0]?.title).toBe("Recovered"),
-    );
+
+    await act(async () => {
+      retries[0]?.();
+    });
+
+    expect(result.current.items[0]?.title).toBe("Recovered");
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(result.current.error).toBeUndefined();
   },
@@ -132,9 +137,14 @@ it("retains retry behavior for another content list consumer", async () => {
   const { result } = renderHook(() => useContentList("/api/pages"), {
     wrapper,
   });
+
   await waitFor(() => expect(retries).toHaveLength(1));
-  act(() => retries[0]?.());
-  await waitFor(() => expect(result.current.items[0]?.title).toBe("Recovered"));
+
+  await act(async () => {
+    retries[0]?.();
+  });
+
+  expect(result.current.items[0]?.title).toBe("Recovered");
   expect(fetch).toHaveBeenCalledTimes(2);
 });
 
@@ -156,9 +166,8 @@ it("retains cached data after invalid revalidation and replaces it after recover
   await act(async () => {
     await result.current.mutate();
   });
-  await waitFor(() =>
-    expect(result.current.error).toBeInstanceOf(PostListResponseError),
-  );
+
+  expect(result.current.error).toBeInstanceOf(PostListResponseError);
   expect(result.current.items[0]?.title).toBe("Original");
   expect(result.current.pagination.metadata).toMatchObject({
     total: 1,
@@ -169,7 +178,8 @@ it("retains cached data after invalid revalidation and replaces it after recover
   await act(async () => {
     await result.current.mutate();
   });
-  await waitFor(() => expect(result.current.items[0]?.title).toBe("Updated"));
+
+  expect(result.current.items[0]?.title).toBe("Updated");
   expect(result.current.error).toBeUndefined();
   expect(cache.get("/api/post?page=1").data).toEqual(list("Updated"));
 });

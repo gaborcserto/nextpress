@@ -1,19 +1,42 @@
 import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { normalizeSettingsForm } from "@/lib/settings/admin-settings";
 
 import SettingsScreen from "./SettingsScreen";
 
+import type { SettingsScreenState } from "./SettingsScreen.types";
+
 const { useSettingsScreen, jsonFetcher } = vi.hoisted(() => ({
-  useSettingsScreen: vi.fn(),
+  useSettingsScreen:
+    vi.fn<typeof import("./SettingsScreen.hooks").useSettingsScreen>(),
   jsonFetcher: vi.fn(),
 }));
 vi.mock("./SettingsScreen.hooks", () => ({ useSettingsScreen }));
 vi.mock("@/lib/api", () => ({ jsonFetcher }));
 
+function mockLoadedSettings(overrides: Partial<SettingsScreenState> = {}) {
+  useSettingsScreen.mockReturnValue({
+    form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
+    setForm: vi.fn(),
+    loaded: true,
+    loadError: null,
+    retry: vi.fn(),
+    loading: false,
+    saving: false,
+    error: null,
+    save: vi.fn(),
+    ...overrides,
+  });
+}
+
 describe("SettingsScreen", () => {
+  beforeEach(() => {
+    useSettingsScreen.mockReset();
+    jsonFetcher.mockReset();
+  });
+
   afterEach(() => {
     window.history.replaceState(null, "", window.location.pathname);
   });
@@ -27,9 +50,10 @@ describe("SettingsScreen", () => {
       ...normalizeSettingsForm(undefined, "SUBSCRIBER"),
       siteName: "NextPress",
     };
-    jsonFetcher.mockReset().mockResolvedValueOnce(settings);
+    jsonFetcher.mockResolvedValueOnce(settings);
 
     render(<SettingsScreen />);
+
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load settings. Please try again.",
     );
@@ -49,7 +73,9 @@ describe("SettingsScreen", () => {
         operational: false,
       })),
     });
+
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
     expect(
       await screen.findByRole("button", { name: "Save site settings" }),
     ).toBeEnabled();
@@ -62,15 +88,7 @@ describe("SettingsScreen", () => {
       "",
       "/admin/settings#settings-appearance",
     );
-    useSettingsScreen.mockReturnValue({
-      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
-      setForm: vi.fn(),
-      loaded: true,
-      loading: false,
-      saving: false,
-      error: null,
-      save: vi.fn(),
-    });
+    mockLoadedSettings();
 
     render(<SettingsScreen />);
 
@@ -87,7 +105,7 @@ describe("SettingsScreen", () => {
   });
 
   it("names provider controls and disables them during save", () => {
-    useSettingsScreen.mockReturnValue({
+    mockLoadedSettings({
       form: normalizeSettingsForm(
         {
           oauthProviders: [
@@ -103,14 +121,11 @@ describe("SettingsScreen", () => {
         },
         "SUBSCRIBER",
       ),
-      setForm: vi.fn(),
-      loaded: true,
-      loading: false,
       saving: true,
-      error: null,
-      save: vi.fn(),
     });
+
     render(<SettingsScreen />);
+
     fireEvent.click(screen.getByRole("tab", { name: "Authentication" }));
     fireEvent.click(screen.getByText("github", { exact: true }));
     expect(
@@ -124,7 +139,7 @@ describe("SettingsScreen", () => {
 
   it("keeps a submitted secret after failure and clears it on a successful retry", async () => {
     const save = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
-    useSettingsScreen.mockReturnValue({
+    mockLoadedSettings({
       form: normalizeSettingsForm(
         {
           siteName: "NextPress",
@@ -141,43 +156,42 @@ describe("SettingsScreen", () => {
         },
         "SUBSCRIBER",
       ),
-      loaded: true,
-      loading: false,
-      saving: false,
       save,
     });
+
     render(<SettingsScreen />);
+
     fireEvent.click(screen.getByRole("tab", { name: "Authentication" }));
     const provider = screen.getByText("github", { exact: true });
     fireEvent.click(provider);
     const secret = screen.getByLabelText("github new secret");
     expect(secret).toHaveValue("");
+
     fireEvent.change(secret, { target: { value: "replacement" } });
     fireEvent.click(provider);
     fireEvent.click(screen.getByRole("tab", { name: "General" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
-
-    await waitFor(() => {
-      expect(save).toHaveBeenCalledExactlyOnceWith({
-        github: { clientSecret: "replacement" },
-      });
-      expect(secret).toHaveValue("replacement");
+    const saveButton = screen.getByRole("button", {
+      name: "Save site settings",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
-    await waitFor(() => expect(secret).toHaveValue(""));
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    expect(save).toHaveBeenCalledExactlyOnceWith({
+      github: { clientSecret: "replacement" },
+    });
+    expect(secret).toHaveValue("replacement");
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    expect(secret).toHaveValue("");
     expect(save).toHaveBeenCalledTimes(2);
   });
 
   it("exposes bounded public listing mode and batch controls", () => {
-    useSettingsScreen.mockReturnValue({
-      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
-      setForm: vi.fn(),
-      loaded: true,
-      loading: false,
-      saving: false,
-      error: null,
-      save: vi.fn(),
-    });
+    mockLoadedSettings();
 
     render(<SettingsScreen />);
 
@@ -201,19 +215,12 @@ describe("SettingsScreen", () => {
     form.siteName = "NextPress";
     form.postsPerPage = 51;
     const save = vi.fn();
-    useSettingsScreen.mockReturnValue({
-      form,
-      setForm: vi.fn(),
-      loaded: true,
-      loading: false,
-      saving: false,
-      error: null,
-      save,
-    });
+    mockLoadedSettings({ form, save });
 
     render(<SettingsScreen />);
 
     fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
+
     expect(screen.getByRole("tabpanel", { name: "Publishing" })).toBeVisible();
     expect(save).not.toHaveBeenCalled();
     expect(

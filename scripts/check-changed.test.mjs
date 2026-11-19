@@ -70,50 +70,43 @@ test("Quality Gates propagates upstream failures and permits only the expected v
         }).trim()
       : "bash";
 
-  for (const changes of ["success", "failure", "cancelled", "skipped"]) {
-    for (const audit of ["success", "failure", "cancelled", "skipped"]) {
-      for (const required of ["true", "false"]) {
-        for (const agentsRequired of ["true", "false"]) {
-          for (const validation of [
-            "success",
-            "failure",
-            "cancelled",
-            "skipped",
-          ]) {
-            for (const agentResult of [
-              "success",
-              "failure",
-              "cancelled",
-              "skipped",
-            ]) {
-              const expected =
-                changes === "success" &&
-                audit === "success" &&
-                validation === (required === "true" ? "success" : "skipped") &&
-                agentResult ===
-                  (agentsRequired === "true" ? "success" : "skipped");
+  const jobResults = ["success", "failure", "cancelled", "skipped"];
+  const upstreamResults = jobResults.flatMap((changes) =>
+    jobResults.map((audit) => ({ changes, audit })),
+  );
+  const optionalJobStates = jobResults.flatMap((result) => [
+    { result, required: "true", expectedResult: "success" },
+    { result, required: "false", expectedResult: "skipped" },
+  ]);
 
-              const result = spawnSync(shell, ["-c", script], {
-                env: {
-                  ...process.env,
-                  CHANGES_RESULT: changes,
-                  AUDIT_RESULT: audit,
-                  VALIDATE_REQUIRED: required,
-                  VALIDATE_RESULT: validation,
-                  AGENT_REQUIRED: agentsRequired,
-                  AGENT_RESULT: agentResult,
-                },
-                encoding: "utf8",
-              });
-              assert.ifError(result.error);
-              assert.equal(
-                result.status,
-                expected ? 0 : 1,
-                `${changes}/${audit}/${required}/${validation}/${agentsRequired}/${agentResult}: ${result.stderr}`,
-              );
-            }
-          }
-        }
+  for (const { changes, audit } of upstreamResults) {
+    for (const validation of optionalJobStates) {
+      for (const agents of optionalJobStates) {
+        const gateInputs = {
+          CHANGES_RESULT: changes,
+          AUDIT_RESULT: audit,
+          VALIDATE_REQUIRED: validation.required,
+          VALIDATE_RESULT: validation.result,
+          AGENT_REQUIRED: agents.required,
+          AGENT_RESULT: agents.result,
+        };
+        const shouldPass =
+          changes === "success" &&
+          audit === "success" &&
+          validation.result === validation.expectedResult &&
+          agents.result === agents.expectedResult;
+
+        const result = spawnSync(shell, ["-c", script], {
+          env: { ...process.env, ...gateInputs },
+          encoding: "utf8",
+        });
+
+        assert.ifError(result.error);
+        assert.equal(
+          result.status,
+          shouldPass ? 0 : 1,
+          `${JSON.stringify(gateInputs)}: ${result.stderr}`,
+        );
       }
     }
   }
