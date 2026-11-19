@@ -193,6 +193,203 @@ test("existing page and post forms create and edit content with Slate preserved"
   }
 });
 
+test("Page publication can be withdrawn and restored without exposing drafts", async ({
+  page,
+  request,
+}) => {
+  const slug = `publication-page-${crypto.randomUUID()}`;
+  const title = "Disposable publication Page";
+  const endpoint = "/api/pages";
+  const createdResponse = await page.request.post(endpoint, {
+    headers,
+    data: {
+      type: "PAGE",
+      status: "DRAFT",
+      slug,
+      title,
+      tagIds: [],
+      inHeaderMenu: true,
+    },
+  });
+  expect(createdResponse.status()).toBe(201);
+  const created = ContentRecordSchema.parse(await createdResponse.json());
+  const publicPage = `http://localhost:49200/pages/${slug}`;
+  const anonymousPage = await request.get(publicPage);
+  expect(anonymousPage.status()).toBe(404);
+
+  const publishResponse = await page.request.put(`${endpoint}/${created.id}`, {
+    headers,
+    data: {
+      expectedVersion: created.workingVersion,
+      status: "PUBLISHED",
+      publishedAt: new Date().toISOString(),
+    },
+  });
+  expect(publishResponse.status()).toBe(200);
+  const published = ContentRecordSchema.parse(await publishResponse.json());
+  await expect
+    .poll(async () => (await request.get(publicPage)).status())
+    .toBe(200);
+  await expect
+    .poll(async () => {
+      const response = await request.get(
+        "http://localhost:49202/api/public/navigation",
+      );
+
+      return (await response.json()).header.some(
+        (item: { slug: string }) => item.slug === slug,
+      );
+    })
+    .toBe(true);
+
+  const editResponse = await page.request.put(`${endpoint}/${created.id}`, {
+    headers,
+    data: {
+      expectedVersion: published.workingVersion,
+      title: "Live Page update acknowledged",
+    },
+  });
+  expect(editResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPage)).text())
+    .toContain("Live Page update acknowledged");
+
+  const withdrawnResponse = await page.request.put(
+    `${endpoint}/${created.id}`,
+    {
+      headers,
+      data: {
+        expectedVersion: published.workingVersion + 1,
+        status: "DRAFT",
+      },
+    },
+  );
+  expect(withdrawnResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPage)).status())
+    .toBe(404);
+  await expect
+    .poll(async () => {
+      const response = await request.get(
+        "http://localhost:49202/api/public/navigation",
+      );
+
+      return (await response.json()).header.some(
+        (item: { slug: string }) => item.slug === slug,
+      );
+    })
+    .toBe(false);
+
+  const republishResponse = await page.request.put(
+    `${endpoint}/${created.id}`,
+    {
+      headers,
+      data: {
+        expectedVersion: published.workingVersion + 2,
+        status: "PUBLISHED",
+        publishedAt: new Date().toISOString(),
+      },
+    },
+  );
+  expect(republishResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPage)).status())
+    .toBe(200);
+});
+
+test("Post publication can be withdrawn and restored in public discovery", async ({
+  page,
+  request,
+}) => {
+  const slug = `publication-post-${crypto.randomUUID()}`;
+  const endpoint = "/api/post";
+  const createdResponse = await page.request.post(endpoint, {
+    headers,
+    data: {
+      type: "POST",
+      status: "DRAFT",
+      slug,
+      title: "Disposable publication Post",
+      tagIds: [],
+    },
+  });
+  expect(createdResponse.status()).toBe(201);
+  const created = ContentRecordSchema.parse(await createdResponse.json());
+  const publicPost = `http://localhost:49200/posts/${slug}`;
+  expect((await request.get(publicPost)).status()).toBe(404);
+
+  const publishResponse = await page.request.put(`${endpoint}/${created.id}`, {
+    headers,
+    data: {
+      expectedVersion: created.workingVersion,
+      status: "PUBLISHED",
+      publishedAt: new Date().toISOString(),
+    },
+  });
+  expect(publishResponse.status()).toBe(200);
+  const published = ContentRecordSchema.parse(await publishResponse.json());
+  await expect
+    .poll(async () => (await request.get(publicPost)).status())
+    .toBe(200);
+  await expect
+    .poll(async () => {
+      const response = await request.get("http://localhost:49200/posts");
+
+      return (await response.text()).includes(slug);
+    })
+    .toBe(true);
+
+  const editResponse = await page.request.put(`${endpoint}/${created.id}`, {
+    headers,
+    data: {
+      expectedVersion: published.workingVersion,
+      title: "Live Post update acknowledged",
+    },
+  });
+  expect(editResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPost)).text())
+    .toContain("Live Post update acknowledged");
+
+  const withdrawnResponse = await page.request.put(
+    `${endpoint}/${created.id}`,
+    {
+      headers,
+      data: {
+        expectedVersion: published.workingVersion + 1,
+        status: "DRAFT",
+      },
+    },
+  );
+  expect(withdrawnResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPost)).status())
+    .toBe(404);
+  await expect
+    .poll(async () => {
+      const response = await request.get("http://localhost:49200/posts");
+
+      return (await response.text()).includes(slug);
+    })
+    .toBe(false);
+
+  const republishResponse = await page.request.put(
+    `${endpoint}/${created.id}`,
+    {
+      headers,
+      data: {
+        expectedVersion: published.workingVersion + 2,
+        status: "PUBLISHED",
+        publishedAt: new Date().toISOString(),
+      },
+    },
+  );
+  expect(republishResponse.status()).toBe(200);
+  await expect
+    .poll(async () => (await request.get(publicPost)).status())
+    .toBe(200);
+});
+
 test("published posts, pagination and load more use real HTTP settings", async ({
   page,
   request,

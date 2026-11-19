@@ -22,7 +22,19 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/api", () => ({ jsonFetcher: fetcher }));
 
 const response = (page = 1, total = 101) => ({
-  items: [{ id: `item-${page}` }],
+  items: [
+    {
+      id: `item-${page}`,
+      type: "POST",
+      status: "DRAFT",
+      publishedAt: null,
+      publicationState: "DRAFT",
+      slug: `item-${page}`,
+      title: `Item ${page}`,
+      excerpt: null,
+      updatedAt: "2026-11-16T12:00:00.000Z",
+    },
+  ],
   page,
   limit: 50,
   total,
@@ -195,6 +207,8 @@ it("rejects invalid post data and recovers on retry", async () => {
         id: "post-1",
         type: "POST",
         status: "DRAFT",
+        publishedAt: null,
+        publicationState: "DRAFT",
         slug: "post",
         title: "Post",
         excerpt: null,

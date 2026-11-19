@@ -13,6 +13,8 @@ export default function PagesListScreen() {
     title: p.title,
     slug: p.slug,
     status: p.status,
+    publishedAt: p.publishedAt,
+    publicationState: p.publicationState,
     updatedAt: p.updatedAt,
     dateLabel: p.updatedAt ? new Date(p.updatedAt).toLocaleString() : undefined,
   }));

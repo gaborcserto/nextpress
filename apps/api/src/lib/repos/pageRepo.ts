@@ -5,7 +5,10 @@ import {
   contentWriteWhere,
   type ContentActor,
 } from "@/lib/auth/content-access";
-import { resolvePublicationDate } from "@/lib/publication";
+import {
+  editorialPublicationState,
+  resolvePublicationDate,
+} from "@/lib/publication";
 import { ContentVersionConflictError, slugify } from "@/lib/utils";
 
 import { setTagsForPage } from "./tagRepo";
@@ -83,6 +86,7 @@ export async function listPages(
         id: true,
         type: true,
         status: true,
+        publishedAt: true,
         slug: true,
         title: true,
         excerpt: true,
@@ -92,7 +96,19 @@ export async function listPages(
     prisma.page.count({ where }),
   ]);
 
-  return { items, total };
+  const now = new Date();
+
+  return {
+    items: items.map((item) => ({
+      ...item,
+      publicationState: editorialPublicationState(
+        item.status,
+        item.publishedAt,
+        now,
+      ),
+    })),
+    total,
+  };
 }
 
 /**

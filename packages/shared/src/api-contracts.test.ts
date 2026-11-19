@@ -7,10 +7,53 @@ import {
   ApiErrorSchema,
   PublicContentSchema,
   PublicPostSummarySchema,
+  ContentListSchema,
 } from "./api-contracts";
 import { readRichContent, serializeRichContent } from "./content";
 
 describe("portable CMS contracts", () => {
+  it("requires persisted publication date and the API publication projection in list rows", () => {
+    const item = {
+      id: "item",
+      type: "PAGE",
+      status: "PUBLISHED",
+      publishedAt: null,
+      publicationState: "MISSING_DATE",
+      slug: "legacy",
+      title: "Legacy",
+      excerpt: null,
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+
+    expect(
+      ContentListSchema.safeParse({
+        items: [item],
+        page: 1,
+        limit: 50,
+        total: 1,
+        pages: 1,
+      }).success,
+    ).toBe(true);
+    expect(
+      ContentListSchema.safeParse({
+        items: [{ ...item, publishedAt: "invalid" }],
+        page: 1,
+        limit: 50,
+        total: 1,
+        pages: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      ContentListSchema.safeParse({
+        items: [{ ...item, publishedAt: undefined }],
+        page: 1,
+        limit: 50,
+        total: 1,
+        pages: 1,
+      }).success,
+    ).toBe(false);
+  });
+
   it("preserves current write defaults, strips forged identity, and accepts versioned rich documents", () => {
     const content = serializeRichContent([
       { type: "paragraph", children: [{ text: "Body" }] },

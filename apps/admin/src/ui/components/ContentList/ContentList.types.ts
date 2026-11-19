@@ -5,6 +5,8 @@ export type ContentListItem = {
   title: string;
   slug: string;
   status: "DRAFT" | "PUBLISHED";
+  publishedAt: string | null;
+  publicationState: "DRAFT" | "PUBLISHED" | "SCHEDULED" | "MISSING_DATE";
   author?: string | null;
   categories?: string[];
   tags?: string[];

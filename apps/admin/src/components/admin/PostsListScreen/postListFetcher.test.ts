@@ -8,6 +8,8 @@ const valid = {
       id: "one",
       type: "POST",
       status: "DRAFT",
+      publishedAt: null,
+      publicationState: "DRAFT",
       slug: "one",
       title: "One",
       excerpt: null,

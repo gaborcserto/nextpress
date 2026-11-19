@@ -1,9 +1,12 @@
 "use client";
 
+import { SessionDiscoverySchema } from "@nextpress/shared/api-contracts";
 import Link from "next/link";
 import { useState } from "react";
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import useSWR from "swr";
 
+import { jsonFetcher } from "@/lib/api";
 import {
   DataListEmptyRow,
   DataListLoading,
@@ -28,7 +31,7 @@ import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import ContentListPagination from "./ContentListPagination";
 
-import type { ContentListProps } from "./ContentList.types";
+import type { ContentListItem, ContentListProps } from "./ContentList.types";
 
 type ConfirmPayload = { id: string; title: string };
 
@@ -56,6 +59,11 @@ export default function ContentList({
 }: ContentListProps) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const { data: account } = useSWR("/api/discovery/session", async (url) =>
+    SessionDiscoverySchema.parse(await jsonFetcher<unknown>(url)),
+  );
+  const role = account?.user?.role;
+  const canDelete = role === "ADMIN" || role === "EDITOR";
   const sort = useTableSort<"title" | "author" | "status" | "updatedAt">(
     "updatedAt",
     "descending",
@@ -123,7 +131,7 @@ export default function ContentList({
           options={[
             { value: "all", label: "All statuses" },
             { value: "DRAFT", label: "Draft" },
-            { value: "PUBLISHED", label: "Published" },
+            { value: "PUBLISHED", label: "Published status" },
           ]}
           onChangeAction={setStatus}
         />
@@ -224,8 +232,9 @@ export default function ContentList({
                         <span
                           className="badge badge-soft"
                           data-content-status={item.status}
+                          title="Publication status reflects the API response time and updates when this list refreshes."
                         >
-                          {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                          {publicationLabel(item.publicationState)}
                         </span>
                       </td>
 
@@ -251,7 +260,7 @@ export default function ContentList({
                             Edit
                           </LinkIconButton>
 
-                          {onDeleteAction && (
+                          {onDeleteAction && canDelete && (
                             <IconButton
                               icon={FaTrash}
                               size="sm"
@@ -299,10 +308,22 @@ export default function ContentList({
         {confirm.payload ? (
           <p>
             You are about to delete{" "}
-            <span className="font-medium">{confirm.payload.title}</span>.
+            <span className="font-medium">{confirm.payload.title}</span>. This
+            action is permanent.
           </p>
         ) : null}
       </ConfirmDialog>
     </AdminPageLayout>
   );
+}
+
+function publicationLabel(state: ContentListItem["publicationState"]) {
+  const labels = {
+    DRAFT: "Draft",
+    PUBLISHED: "Published",
+    SCHEDULED: "Scheduled",
+    MISSING_DATE: "Publication date missing",
+  } as const;
+
+  return labels[state];
 }

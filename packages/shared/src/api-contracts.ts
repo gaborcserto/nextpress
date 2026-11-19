@@ -125,6 +125,13 @@ export const ContentListSchema = z.object({
       id: z.string(),
       type: z.enum(["PAGE", "POST"]),
       status: z.enum(["DRAFT", "PUBLISHED"]),
+      publishedAt: date.nullable(),
+      publicationState: z.enum([
+        "DRAFT",
+        "PUBLISHED",
+        "SCHEDULED",
+        "MISSING_DATE",
+      ]),
       slug: z.string(),
       title: z.string(),
       excerpt: nullableString,

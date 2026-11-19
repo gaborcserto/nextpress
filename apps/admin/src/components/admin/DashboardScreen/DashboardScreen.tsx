@@ -92,8 +92,15 @@ function CollectionOverview({
                   <span
                     className="badge badge-soft"
                     data-content-status={item.status}
+                    title="Publication status reflects the API response time and updates when this dashboard refreshes."
                   >
-                    {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                    {item.publicationState === "DRAFT"
+                      ? "Draft"
+                      : item.publicationState === "SCHEDULED"
+                        ? "Scheduled"
+                        : item.publicationState === "MISSING_DATE"
+                          ? "Publication date missing"
+                          : "Published"}
                   </span>
                   <FaArrowRight aria-hidden="true" />
                 </Link>

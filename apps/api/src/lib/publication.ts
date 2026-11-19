@@ -8,6 +8,28 @@ type PublicationChange = {
   publishedAt?: string | null;
 };
 
+export type EditorialPublicationState =
+  | "DRAFT"
+  | "PUBLISHED"
+  | "SCHEDULED"
+  | "MISSING_DATE";
+
+export function editorialPublicationState(
+  status: PublicationState["status"],
+  publishedAt: Date | null,
+  now = new Date(),
+): EditorialPublicationState {
+  if (status === "DRAFT") {
+    return "DRAFT";
+  }
+
+  if (publishedAt === null) {
+    return "MISSING_DATE";
+  }
+
+  return publishedAt.getTime() > now.getTime() ? "SCHEDULED" : "PUBLISHED";
+}
+
 /** Omission preserves history/schedules; explicit null requests immediate publication. */
 export function resolvePublicationDate(
   current: PublicationState | null,

@@ -30,7 +30,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: navigation.push, replace: navigation.replace }),
 }));
 
-vi.mock("@/lib/api", () => ({ jsonFetcher: fetcher, apiFetch }));
+vi.mock("@/lib/api", () => ({
+  jsonFetcher: (url: string) =>
+    url === "/api/discovery/session"
+      ? Promise.resolve({ user: { id: "user", name: "User", role: "ADMIN" } })
+      : fetcher(url),
+  apiFetch,
+}));
 
 vi.mock("@/ui/utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/ui/utils")>()),
@@ -56,6 +62,8 @@ beforeEach(() => {
           title: "Example",
           slug: "example",
           status: "DRAFT",
+          publishedAt: null,
+          publicationState: "DRAFT",
           type: "POST",
           excerpt: null,
           updatedAt: "2026-01-01T00:00:00.000Z",
@@ -107,6 +115,7 @@ describe.each([
     updatedAt: string | null | undefined;
     publishedAt?: string | null | undefined;
   }) {
+    const publishedAt = item.publishedAt ?? null;
     fetcher.mockResolvedValue({
       items: [
         {
@@ -116,6 +125,15 @@ describe.each([
           slug: "example",
           excerpt: null,
           ...item,
+          publishedAt,
+          publicationState:
+            item.status === "DRAFT"
+              ? "DRAFT"
+              : publishedAt === null
+                ? "MISSING_DATE"
+                : publishedAt > new Date().toISOString()
+                  ? "SCHEDULED"
+                  : "PUBLISHED",
         },
       ],
       page: 1,
@@ -157,7 +175,6 @@ describe.each([
         screen.getByText(new Date(updatedAt).toLocaleString()),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Published:/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Scheduled/i)).not.toBeInTheDocument();
     },
   );
 
@@ -241,12 +258,16 @@ describe.each([
           id: "new",
           title: "Alpha",
           status: "PUBLISHED",
+          publishedAt: "2099-01-01T00:00:00Z",
+          publicationState: "SCHEDULED",
           updatedAt: "2026-12-01T00:00:00Z",
         },
         {
           id: "old",
           title: "Zulu",
           status: "DRAFT",
+          publishedAt: null,
+          publicationState: "DRAFT",
           updatedAt: "2025-02-01T00:00:00Z",
         },
       ].map((item) => ({

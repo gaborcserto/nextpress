@@ -24,12 +24,26 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
+vi.mock("@/lib/api", async (importOriginal) => {
+  const api = await importOriginal<typeof import("@/lib/api")>();
+
+  return {
+    ...api,
+    jsonFetcher: (url: string, init?: RequestInit) =>
+      url === "/api/discovery/session"
+        ? Promise.resolve({ user: { id: "user", name: "User", role: "ADMIN" } })
+        : api.jsonFetcher(url, init),
+  };
+});
+
 const list = (title: string) => ({
   items: [
     {
       id: "one",
       type: "POST",
       status: "DRAFT",
+      publishedAt: null,
+      publicationState: "DRAFT",
       slug: "one",
       title,
       excerpt: null,

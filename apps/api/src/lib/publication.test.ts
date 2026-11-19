@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { resolvePublicationDate } from "./publication";
+import {
+  editorialPublicationState,
+  resolvePublicationDate,
+} from "./publication";
 
 const now = new Date("2026-11-17T12:00:00.000Z");
 const past = new Date("2026-01-01T12:00:00.000Z");
@@ -9,6 +12,24 @@ const future = new Date("2026-12-01T12:00:00.000Z");
 afterEach(() => vi.useRealTimers());
 
 describe("publication timestamp contract for Posts and Pages", () => {
+  it.each([
+    ["draft ignores any publication date", "DRAFT", future, "DRAFT"],
+    ["past publication is due", "PUBLISHED", past, "PUBLISHED"],
+    ["publication at the threshold is due", "PUBLISHED", now, "PUBLISHED"],
+    ["future publication is scheduled", "PUBLISHED", future, "SCHEDULED"],
+    [
+      "missing publication time stays distinct",
+      "PUBLISHED",
+      null,
+      "MISSING_DATE",
+    ],
+  ] as const)(
+    "projects editorial state when %s",
+    (_case, status, date, expected) => {
+      expect(editorialPublicationState(status, date, now)).toBe(expected);
+    },
+  );
+
   it("creates private drafts without inventing a publication date", () => {
     expect(resolvePublicationDate(null, { status: "DRAFT" }, now)).toBeNull();
   });

@@ -21,9 +21,24 @@ export function prepareLegacyUpdate<T extends { publishedAt?: string | null }>(
 }
 
 export function reportLegacySaveFailure(status: number, isEdit: boolean): void {
+  if (status === 401 || status === 403) {
+    showToast("You are not authorized to save this content.", "error");
+
+    return;
+  }
+
   if (status === 409) {
     showToast(
       "Content changed elsewhere. Your edits are preserved; reload before retrying.",
+      "warning",
+    );
+
+    return;
+  }
+
+  if (status === 400 || status === 422) {
+    showToast(
+      "Please correct the content errors and try saving again.",
       "warning",
     );
 

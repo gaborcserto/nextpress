@@ -228,10 +228,12 @@ export default function PageForm({
                     </FormGrid12>
                     {!privateEditing && (
                       <p className="mt-3 text-sm text-(--text-muted)">
-                        Saving Published content updates public content when its
-                        publish date is due. Choose Draft and save to withdraw
-                        it. Autosave is unavailable; use Save to persist
-                        changes.
+                        Draft saves stay private. Published content is public
+                        only when its date is due; a future date is scheduled,
+                        and a missing date is not publicly visible. Saving due
+                        Published content updates the live page immediately.
+                        Choose Draft and save to withdraw it. Use Save to
+                        persist changes.
                       </p>
                     )}
                   </Section>
