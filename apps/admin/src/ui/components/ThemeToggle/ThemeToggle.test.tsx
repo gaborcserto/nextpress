@@ -1,85 +1,55 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import ThemeToggle from "./ThemeToggle";
 
 afterEach(() => {
   document.documentElement.removeAttribute("data-theme");
   document.cookie = "theme=; path=/; max-age=0";
-  vi.unstubAllGlobals();
 });
 
-function mockSystemTheme(dark: boolean) {
-  const preference = Object.assign(new EventTarget(), { matches: dark });
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue(preference));
-
-  return preference;
-}
-
-it.each([true, false])(
-  "toggles from the effective OS mode and persists only appearance (dark=%s)",
-  async (dark) => {
-    mockSystemTheme(dark);
-    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
-      callback(0);
-
-      return 0;
-    });
-    await act(async () => {
-      render(<ThemeToggle />);
-    });
-    const button = screen.getByRole("button", {
-      name: dark ? "Switch to light theme" : "Switch to dark theme",
-    });
-    expect(button).toHaveAttribute("aria-pressed", String(dark));
-    fireEvent.click(button);
-    const next = dark ? "light" : "dark";
-    expect(document.documentElement).toHaveAttribute("data-theme", next);
-    expect(document.cookie).toContain(`theme=${next}`);
-    expect(screen.getByRole("button")).toHaveAttribute("type", "button");
-  },
-);
-
-it("uses the explicit theme instead of the OS preference", async () => {
-  document.documentElement.setAttribute("data-theme", "light");
-  mockSystemTheme(true);
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
-    callback(0);
-
-    return 0;
-  });
-  await act(async () => {
+describe("Theme preference", () => {
+  it("opens on ArrowDown and marks the saved preference", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
     render(<ThemeToggle />);
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
-  expect(document.documentElement).toHaveAttribute("data-theme", "dark");
-});
+    const trigger = screen.getByRole("button", { name: "Theme: Dark" });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    const menu = screen.getByRole("menu", { name: "Theme" });
 
-it("follows system changes until the user chooses an explicit theme", async () => {
-  const preference = mockSystemTheme(false);
-  render(<ThemeToggle />);
-  const lightModeButton = await screen.findByRole("button", {
-    name: "Switch to dark theme",
+    expect(
+      within(menu).getByRole("menuitemradio", { name: "Dark", checked: true }),
+    ).toBeInTheDocument();
+    expect(
+      within(menu).getByRole("menuitemradio", { name: "Light" }),
+    ).toHaveFocus();
+    fireEvent.keyDown(menu, { key: "ArrowDown" });
+    expect(
+      within(menu).getByRole("menuitemradio", { name: "Dark" }),
+    ).toHaveFocus();
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(menu).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
-  expect(lightModeButton).toHaveAttribute("aria-pressed", "false");
 
-  act(() => {
-    preference.matches = true;
-    preference.dispatchEvent(new Event("change"));
-  });
-  const darkModeButton = screen.getByRole("button", {
-    name: "Switch to light theme",
-  });
-  expect(darkModeButton).toHaveAttribute("aria-pressed", "true");
-  expect(document.documentElement).not.toHaveAttribute("data-theme");
-  fireEvent.click(darkModeButton);
+  it("persists an explicit choice and restores system mode by removing the override", async () => {
+    render(<ThemeToggle />);
+    fireEvent.click(screen.getByRole("button", { name: "Theme: System" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Light" }));
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(document.cookie).toContain("theme=light");
 
-  act(() => {
-    preference.matches = false;
-    preference.dispatchEvent(new Event("change"));
-    preference.matches = true;
-    preference.dispatchEvent(new Event("change"));
+    const trigger = await screen.findByRole("button", { name: "Theme: Light" });
+    expect(trigger).toHaveFocus();
+    fireEvent.click(trigger);
+    expect(
+      screen.getByRole("menuitemradio", { name: "Light", checked: true }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "System" }));
+    expect(document.documentElement).not.toHaveAttribute("data-theme");
+    expect(document.cookie).not.toContain("theme=");
+    expect(
+      await screen.findByRole("button", { name: "Theme: System" }),
+    ).toHaveFocus();
   });
-  expect(lightModeButton).toHaveAttribute("aria-pressed", "false");
-  expect(document.documentElement).toHaveAttribute("data-theme", "light");
 });

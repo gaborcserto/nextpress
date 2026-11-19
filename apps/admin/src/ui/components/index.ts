@@ -15,3 +15,4 @@ export * from "./TagMultiSelect";
 export * from "./TagsField";
 export * from "./ThemeToggle";
 export * from "./UserAvatar";
+export { default as PublicationDatePicker } from "./PublicationDatePicker/PublicationDatePicker";

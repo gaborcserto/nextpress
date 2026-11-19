@@ -15,8 +15,6 @@
   "dependencies": {
     "@nextpress/shared": "*",
     "better-auth": "^1.7.18",
-    "boring-avatars": "^2.0.4",
-    "framer-motion": "^13.4.4",
     "next": "^16.4.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

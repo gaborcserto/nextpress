@@ -2,7 +2,7 @@
 
 import { ImageUploader } from "@/ui/components/ImageUploader";
 import { SlateEditor, EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
-import { Field, FormGrid12, Input } from "@/ui/primitives";
+import { Field, Input } from "@/ui/primitives";
 
 import type { PostIntroFieldsProps } from "./PostIntroFields.types";
 
@@ -16,13 +16,13 @@ export function PostIntroFields({
   uploaderAction,
 }: PostIntroFieldsProps) {
   return (
-    <FormGrid12>
+    <div className="grid min-w-0 gap-5">
       <Field
         label="Excerpt (lead)"
         hint="Short intro used on listing pages and social previews."
-        span={7}
       >
         <SlateEditor
+          compact
           readOnly={disabled}
           label="Excerpt (lead)"
           value={excerpt ?? EMPTY_SLATE_VALUE}
@@ -33,7 +33,6 @@ export function PostIntroFields({
       <Field
         label="Cover image"
         hint="Cover image editing is not available yet."
-        span={5}
       >
         <ImageUploader
           disabled
@@ -59,6 +58,6 @@ export function PostIntroFields({
           </div>
         )}
       </Field>
-    </FormGrid12>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
 
 import { ApiRequestError } from "@/lib/api/client";
 import {
@@ -16,7 +16,11 @@ import {
   DataListSurface,
 } from "@/ui/components/DataList";
 import {
-  Box,
+  SortableHeader,
+  useTableSort,
+} from "@/ui/components/DataList/SortableHeader";
+import { useModalDialog } from "@/ui/hooks/useModalDialog";
+import {
   Button,
   IconButton,
   ConfirmDialog,
@@ -24,9 +28,8 @@ import {
   FormGrid12,
   Field,
   Input,
-  Section,
 } from "@/ui/primitives";
-import { AdminPageColumns, AdminPageLayout } from "@/ui/shell";
+import { AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
 import type { TagUsageRow } from "./TaxonomyScreen.types";
@@ -38,6 +41,8 @@ export default function TaxonomyScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const [createOpen, setCreateOpen] = useState(false);
+  const createDialogRef = useModalDialog(createOpen);
   const [name, setName] = useState("");
   const slug = slugify(name);
 
@@ -48,9 +53,12 @@ export default function TaxonomyScreen() {
 
   const confirm = useConfirmDialog<ConfirmPayload>();
 
-  const sorted = useMemo(() => {
-    return [...items].sort((a, b) => b.usedCount - a.usedCount);
-  }, [items]);
+  const sort = useTableSort<"name" | "slug" | "posts">("posts", "descending");
+  const sorted = sort.sortRows(items, {
+    name: (tag) => tag.name,
+    slug: (tag) => tag.slug,
+    posts: (tag) => tag.usedCount,
+  });
 
   const loadRequest = useRef<AbortController | null>(null);
 
@@ -127,7 +135,7 @@ export default function TaxonomyScreen() {
       ]);
 
       setName("");
-
+      setCreateOpen(false);
       reload();
       showToast("Tag created.", "success");
     } catch (e) {
@@ -158,134 +166,171 @@ export default function TaxonomyScreen() {
     });
   };
 
+  function closeCreateDialog() {
+    if (!creatingRef.current) {
+      setCreateOpen(false);
+      setName("");
+      setError(null);
+    }
+  }
+
   return (
     <AdminPageLayout
       title="Taxonomy"
-      description="Manage tags and track usage."
-    >
-      <AdminPageColumns
-        sidebar={
-          <>
-            <Section title="Create tag" desc="Add a new tag.">
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void onCreate();
-                }}
-              >
-                <fieldset disabled={creating}>
-                  <FormGrid12>
-                    <Field label="Name" htmlFor="tag-name" span={12}>
-                      <Input
-                        id="tag-name"
-                        fullWidth
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                      />
-                    </Field>
-
-                    <Field
-                      label="Slug"
-                      htmlFor="tag-slug"
-                      hint="Generated from the tag name."
-                      span={12}
-                    >
-                      <Input id="tag-slug" fullWidth value={slug} readOnly />
-                    </Field>
-                  </FormGrid12>
-
-                  <Box bare className="mt-3 flex justify-end">
-                    <div className="flex items-center gap-2">
-                      {error ? (
-                        <div role="alert" className="text-sm text-error">
-                          {error}
-                        </div>
-                      ) : null}
-
-                      <IconButton
-                        type="submit"
-                        icon={FaPlus}
-                        color="primary"
-                        variant="solid"
-                        size="sm"
-                        loading={creating}
-                        disabled={!canCreate}
-                        aria-label="Create tag"
-                      >
-                        Create
-                      </IconButton>
-                    </div>
-                  </Box>
-                </fieldset>
-              </form>
-            </Section>
-          </>
-        }
-      >
-        <Section title="Tags" desc="Used = number of posts linked to the tag.">
-          {loading ? (
-            <DataListLoading label="tags" />
-          ) : loadError ? (
-            <div role="alert" className="text-sm text-error">
-              {loadError}
-            </div>
-          ) : (
-            <DataListSurface>
-              <table className="table min-w-[520px] table-zebra w-full">
-                <thead className="bg-base-200">
-                  <tr>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th className="text-right">Used</th>
-                    <th className="whitespace-nowrap text-right">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sorted.length ? (
-                    sorted.map((t) => (
-                      <tr key={t.id}>
-                        <td className="font-medium">{t.name}</td>
-                        <td className="opacity-80">{t.slug}</td>
-                        <td className="text-right tabular-nums font-medium">
-                          <div className="badge badge-soft badge-primary">
-                            {t.usedCount}
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap text-right">
-                          <IconButton
-                            icon={FaTrash}
-                            size="sm"
-                            color="error"
-                            variant="solid"
-                            loading={deletingId === t.id}
-                            disabled={Boolean(deletingId)}
-                            aria-label={`Delete tag ${t.name}`}
-                            onClick={() => onAskDelete(t)}
-                          >
-                            Delete
-                          </IconButton>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <DataListEmptyRow colSpan={4}>
-                      No tags found.
-                    </DataListEmptyRow>
-                  )}
-                </tbody>
-              </table>
-            </DataListSurface>
-          )}
-        </Section>
-
-        <div className="flex justify-end">
-          <Button variant="ghost" color="neutral" onClick={reload}>
+      description="Manage tags and see how many posts use each one. Sorting applies to the loaded tags."
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={reload} disabled={loading}>
+            <FaSyncAlt aria-hidden="true" />
             Refresh
           </Button>
+          <IconButton
+            aria-label="Create tag"
+            icon={FaPlus}
+            color="primary"
+            onClick={() => setCreateOpen(true)}
+          >
+            Create tag
+          </IconButton>
         </div>
-      </AdminPageColumns>
+      }
+    >
+      {loading ? (
+        <DataListLoading label="tags" />
+      ) : loadError ? (
+        <div role="alert" className="text-sm text-error">
+          {loadError}
+        </div>
+      ) : (
+        <DataListSurface>
+          <table
+            className="table admin-responsive-table"
+            role="table"
+            aria-label="Tags"
+          >
+            <thead role="rowgroup">
+              <tr role="row">
+                <SortableHeader column="name" sort={sort}>
+                  Name
+                </SortableHeader>
+                <SortableHeader column="slug" sort={sort}>
+                  Slug
+                </SortableHeader>
+                <SortableHeader column="posts" sort={sort}>
+                  Posts
+                </SortableHeader>
+                <th role="columnheader" scope="col" className="text-right">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody role="rowgroup">
+              {sorted.length ? (
+                sorted.map((tag) => (
+                  <tr key={tag.id} role="row">
+                    <td
+                      role="cell"
+                      className="admin-table-identity font-semibold"
+                    >
+                      {tag.name}
+                    </td>
+                    <td role="cell">
+                      <span aria-hidden="true" className="admin-cell-label">
+                        Slug
+                      </span>
+                      {tag.slug}
+                    </td>
+                    <td role="cell" className="tabular-nums">
+                      <span aria-hidden="true" className="admin-cell-label">
+                        Posts
+                      </span>
+                      {tag.usedCount}
+                    </td>
+                    <td role="cell" className="admin-table-actions">
+                      <div className="flex justify-end">
+                        <IconButton
+                          icon={FaTrash}
+                          size="sm"
+                          color="error"
+                          variant="soft"
+                          loading={deletingId === tag.id}
+                          disabled={Boolean(deletingId)}
+                          aria-label={`Delete tag ${tag.name}`}
+                          onClick={() => onAskDelete(tag)}
+                        >
+                          Delete
+                        </IconButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <DataListEmptyRow colSpan={4}>No tags found.</DataListEmptyRow>
+              )}
+            </tbody>
+          </table>
+        </DataListSurface>
+      )}
+
+      <dialog
+        ref={createDialogRef}
+        className="admin-dialog"
+        aria-labelledby="create-tag-title"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeCreateDialog();
+        }}
+      >
+        <h2 id="create-tag-title" className="mb-4 text-lg font-semibold">
+          Create tag
+        </h2>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onCreate();
+          }}
+        >
+          <fieldset disabled={creating}>
+            <FormGrid12>
+              <Field label="Name" htmlFor="tag-name" span={12}>
+                <Input
+                  id="tag-name"
+                  fullWidth
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                />
+              </Field>
+              <Field
+                label="Slug"
+                htmlFor="tag-slug"
+                hint="Generated from the tag name."
+                span={12}
+              >
+                <Input id="tag-slug" fullWidth value={slug} readOnly />
+              </Field>
+            </FormGrid12>
+            {error && (
+              <p role="alert" className="mt-3 text-sm text-error">
+                {error}
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={closeCreateDialog}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                color="primary"
+                disabled={!canCreate}
+                loading={creating}
+              >
+                Create tag
+              </Button>
+            </div>
+          </fieldset>
+        </form>
+      </dialog>
 
       <ConfirmDialog
         open={confirm.open}

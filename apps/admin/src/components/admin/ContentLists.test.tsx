@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -112,9 +118,10 @@ describe.each([
       });
       setup();
       expect(
-        await screen.findByText(
-          `Last modified: ${new Date(updatedAt).toLocaleString()}`,
-        ),
+        await screen.findByRole("columnheader", { name: "Last modified" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(new Date(updatedAt).toLocaleString()),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Published:/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Scheduled/i)).not.toBeInTheDocument();
@@ -206,6 +213,74 @@ describe.each([
     expect(navigation.push).toHaveBeenCalledWith("/admin/content", {
       scroll: false,
     });
+  });
+
+  it("sorts the loaded page by title, date and status without changing pagination", async () => {
+    navigation.query = "page=2&view=compact";
+    fetcher.mockResolvedValue({
+      items: [
+        {
+          id: "new",
+          title: "Alpha",
+          status: "PUBLISHED",
+          updatedAt: "2026-12-01T00:00:00Z",
+        },
+        {
+          id: "old",
+          title: "Zulu",
+          status: "DRAFT",
+          updatedAt: "2025-02-01T00:00:00Z",
+        },
+      ].map((item) => ({
+        ...item,
+        slug: item.id,
+        type: name === "Posts" ? "POST" : "PAGE",
+        excerpt: null,
+      })),
+      page: 2,
+      limit: 50,
+      total: 52,
+      pages: 2,
+    });
+    setup();
+
+    const table = await screen.findByRole("table", { name });
+
+    const firstTitle = (title: string) =>
+      within(within(table).getAllByRole("row")[1]).getByRole("link", {
+        name: title,
+      });
+
+    expect(firstTitle("Alpha")).toBeInTheDocument();
+    fireEvent.click(
+      within(table).getByRole("button", { name: "Last modified" }),
+    );
+    expect(firstTitle("Zulu")).toBeInTheDocument();
+
+    const title = within(table).getByRole("button", { name: "Title" });
+    fireEvent.click(title);
+    expect(firstTitle("Alpha")).toBeInTheDocument();
+    fireEvent.click(title);
+    expect(firstTitle("Zulu")).toBeInTheDocument();
+    expect(table.querySelectorAll("[aria-sort]")).toHaveLength(1);
+    expect(title.closest("th")).toHaveAttribute("aria-sort", "descending");
+
+    const status = within(table).getByRole("button", { name: "Status" });
+    fireEvent.click(status);
+    expect(firstTitle("Zulu")).toBeInTheDocument();
+    fireEvent.click(status);
+    expect(firstTitle("Alpha")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
+      target: { value: "PUBLISHED" },
+    });
+    fireEvent.click(status);
+    expect(firstTitle("Alpha")).toBeInTheDocument();
+    expect(within(table).getAllByRole("row")).toHaveLength(2);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith(`${endpoint}?page=2`);
+    expect(navigation.push).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
   });
 
   it("shows an empty result without inventing a page", async () => {

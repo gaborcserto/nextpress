@@ -18,5 +18,9 @@ export default async function AdminLayout({
 
   const role = session.user.role;
 
-  return <AppShell role={role}>{children}</AppShell>;
+  return (
+    <AppShell role={role} accountName={session.user.name}>
+      {children}
+    </AppShell>
+  );
 }

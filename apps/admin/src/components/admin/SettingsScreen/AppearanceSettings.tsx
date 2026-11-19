@@ -5,7 +5,8 @@ import {
   AppearanceSchema,
   PublicAppearanceSchema,
 } from "@nextpress/shared";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { FaSave } from "react-icons/fa";
 
 import { jsonFetcher } from "@/lib/api";
 import { Alert, Button, Section, Select } from "@/ui/primitives";
@@ -75,9 +76,7 @@ export default function AppearanceSettings() {
     setSaveError(null);
   }
 
-  async function saveAppearance(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function saveAppearance() {
     if (!selection || saving) {
       return;
     }
@@ -105,7 +104,7 @@ export default function AppearanceSettings() {
 
   return (
     <Section
-      title="Appearance"
+      title="Website appearance"
       desc="Choose the appearance used on the public website."
     >
       {loadFailed && (
@@ -123,11 +122,11 @@ export default function AppearanceSettings() {
       )}
       {!loadFailed && !selection && <p role="status">Loading appearance…</p>}
       {selection && template && (
-        <form
-          className="space-y-4"
-          onSubmit={(event) => void saveAppearance(event)}
-        >
-          <fieldset className="grid gap-4 sm:grid-cols-3" disabled={saving}>
+        <div className="admin-appearance-settings-form">
+          <fieldset
+            className="grid min-w-0 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]"
+            disabled={saving}
+          >
             <Select
               label="Website template"
               fullWidth
@@ -180,11 +179,17 @@ export default function AppearanceSettings() {
             />
           </fieldset>
           <Alert status="error" message={saveError} />
-          <Button type="submit" color="primary" loading={saving}>
-            Save appearance
+          <Button
+            type="button"
+            color="primary"
+            loading={saving}
+            onClick={() => void saveAppearance()}
+          >
+            <FaSave aria-hidden="true" />
+            <span className="min-w-0">Save appearance</span>
           </Button>
           <p role="status">{saved ? "Appearance saved." : ""}</p>
-        </form>
+        </div>
       )}
     </Section>
   );

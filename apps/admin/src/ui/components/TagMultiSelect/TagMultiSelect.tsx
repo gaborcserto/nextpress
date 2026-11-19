@@ -167,7 +167,7 @@ export function TagMultiSelect({
         <div
           className={cx(
             "input input-bordered w-full flex items-center gap-2",
-            "min-h-12 px-2 py-1 focus-within:outline-2 focus-within:outline-primary",
+            "min-h-12 px-2 py-1",
           )}
           onClick={() => {
             inputRef.current?.focus();

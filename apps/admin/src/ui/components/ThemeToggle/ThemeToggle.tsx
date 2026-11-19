@@ -1,93 +1,81 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useState } from "react";
-import { FiMoon, FiSun } from "react-icons/fi";
+import { useSyncExternalStore } from "react";
+import { FiCheck, FiMonitor, FiMoon, FiSun } from "react-icons/fi";
+
+import {
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@/ui/primitives/Dropdown";
 
 import type { ThemeToggleProps } from "./ThemeToggle.types";
 
-function currentTheme() {
-  return (
-    document.documentElement.getAttribute("data-theme") ||
-    (window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light")
-  );
+const modes = [
+  { value: "light", label: "Light", icon: FiSun },
+  { value: "dark", label: "Dark", icon: FiMoon },
+  { value: "system", label: "System", icon: FiMonitor },
+] as const;
+
+function subscribeToTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
+  return () => observer.disconnect();
+}
+
+function themePreference() {
+  return document.documentElement.getAttribute("data-theme") ?? "system";
+}
+
+function changePreference(value: (typeof modes)[number]["value"]) {
+  if (value === "system") {
+    document.documentElement.removeAttribute("data-theme");
+    document.cookie = "theme=; path=/; max-age=0; SameSite=Lax";
+
+    return;
+  }
+
+  document.documentElement.setAttribute("data-theme", value);
+  document.cookie = `theme=${value}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 export default function ThemeToggle({ className = "" }: ThemeToggleProps) {
-  const [{ mounted, isDark }, setUi] = useState({
-    mounted: false,
-    isDark: false,
-  });
-
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const syncTheme = () => {
-      setUi({ mounted: true, isDark: currentTheme() === "dark" });
-    };
-
-    const raf = requestAnimationFrame(syncTheme);
-    preference.addEventListener("change", syncTheme);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      preference.removeEventListener("change", syncTheme);
-    };
-  }, []);
-
-  const handleToggle = () => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    const curr = currentTheme();
-    const nextTheme = curr === "dark" ? "light" : "dark";
-
-    document.documentElement.setAttribute("data-theme", nextTheme);
-    document.cookie = `theme=${nextTheme}; path=/; max-age=31536000`;
-
-    setUi((prev) => ({ ...prev, isDark: nextTheme === "dark" }));
-  };
-
-  if (!mounted) {
-    return (
-      <button
-        type="button"
-        aria-label="Toggle theme"
-        aria-pressed={false}
-        className={`btn btn-ghost btn-circle ${className}`}
-        onClick={handleToggle}
-      >
-        <FiMoon size={18} aria-hidden="true" />
-      </button>
-    );
-  }
-
-  const ariaLabel = isDark ? "Switch to light theme" : "Switch to dark theme";
+  const preference = useSyncExternalStore(
+    subscribeToTheme,
+    themePreference,
+    () => "system",
+  );
+  const mode = modes.find(({ value }) => value === preference) ?? modes[2];
+  const Icon = mode.icon;
 
   return (
-    <button
-      type="button"
-      onClick={handleToggle}
-      aria-label={ariaLabel}
-      aria-pressed={isDark}
-      className={[
-        "btn btn-ghost btn-circle",
-        "swap swap-rotate",
-        isDark ? "swap-active" : "",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span className="swap-on h-5 w-5 flex items-center justify-center">
-        <FiSun size={18} aria-hidden="true" />
-      </span>
-
-      <span className="swap-off h-5 w-5 flex items-center justify-center">
-        <FiMoon size={18} aria-hidden="true" />
-      </span>
-    </button>
+    <Dropdown className={className}>
+      <DropdownTrigger
+        ariaLabel={`Theme: ${mode.label}`}
+        className="admin-theme-trigger btn-square"
+      >
+        <Icon size={19} aria-hidden="true" />
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Theme">
+        {modes.map(({ value, label, icon: ModeIcon }) => (
+          <DropdownItem
+            itemKey={value}
+            key={value}
+            role="menuitemradio"
+            aria-checked={value === mode.value}
+            startIcon={<ModeIcon />}
+            endIcon={value === mode.value ? <FiCheck /> : undefined}
+            onClick={() => changePreference(value)}
+          >
+            {label}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </Dropdown>
   );
 }

@@ -2,13 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 
-import LivePreview from "@/components/admin/LivePreview";
-import { PrivateDraftStatus } from "@/components/admin/PrivateDraftStatus";
 import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
-  publicationDateToLocal,
 } from "@/lib/content/editor";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
@@ -19,20 +16,17 @@ import {
   ListingFields,
   MenuPlacementField,
   PageTypeField,
+  PublicationDatePicker,
   RedirectField,
   SlateEditor,
   TagsField,
 } from "@/ui/components";
-import {
-  Button,
-  Field,
-  FormGrid12,
-  Input,
-  Select,
-  Section,
-  StickyWrapper,
-} from "@/ui/primitives";
+import { Field, FormGrid12, Input, Select, Section } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import { EditorActions } from "../EditorActions";
+import LivePreview from "../LivePreview";
+import { PrivateDraftStatus } from "../PrivateDraftStatus";
 
 import type { PageFormValues } from "@/lib/content/contracts";
 
@@ -48,6 +42,7 @@ const PAGE_STATUS_OPTIONS: readonly {
 
 export default function PageForm({
   privateEditing,
+  contentId,
   initial,
   onSubmitAction,
   submitting = false,
@@ -140,7 +135,7 @@ export default function PageForm({
     }
   };
 
-  const entityId = getEntityId(initial);
+  const entityId = contentId ?? getEntityId(initial);
   let saveStatus = hasSaved ? "Saved" : "No unsaved changes";
 
   if (submitting) {
@@ -152,13 +147,38 @@ export default function PageForm({
   }
 
   return (
-    <LivePreview id={entityId} savedContent={initial} values={form}>
+    <form id="admin-content-editor" onSubmit={handleSubmit}>
       {unsaved.dialog}
-      <form onSubmit={handleSubmit}>
-        {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
-        <AdminPageLayout
-          title={sidebarTitle ?? "Page"}
-          description={sidebarSubtitle}
+      <AdminPageLayout
+        title={sidebarTitle ?? "Page"}
+        description={sidebarSubtitle}
+        workspace="editor"
+      >
+        <LivePreview
+          kind="pages"
+          id={entityId}
+          savedContent={initial}
+          values={form}
+          renderHeader={(preview) => (
+            <EditorActions
+              status={privateDraft?.publicStatus ?? form.status}
+              saveStatus={saveStatus}
+              submitLabel={submitLabel}
+              saving={
+                privateDraft ? privateDraft.phase === "saving" : submitting
+              }
+              revisionsHref={
+                entityId && !privateEditing
+                  ? `/admin/pages/${entityId}/revisions`
+                  : undefined
+              }
+              privateDraft={privateDraft}
+              preview={preview}
+              onCancelAction={() =>
+                unsaved.requestNavigation(() => history.back())
+              }
+            />
+          )}
         >
           <fieldset
             disabled={submitting && !privateEditing}
@@ -167,6 +187,54 @@ export default function PageForm({
             <AdminPageColumns
               sidebar={
                 <>
+                  {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
+                  <Section
+                    title={privateEditing ? "Public details" : "Publishing"}
+                  >
+                    <FormGrid12>
+                      <Field label="Status" htmlFor="page-status" span={12}>
+                        <Select
+                          id="page-status"
+                          disabled={!!privateEditing}
+                          fullWidth
+                          value={form.status}
+                          options={PAGE_STATUS_OPTIONS}
+                          onChangeAction={(value) =>
+                            setField(
+                              "status",
+                              value as PageFormValues["status"],
+                            )
+                          }
+                        />
+                      </Field>
+
+                      <Field
+                        label="Publish date"
+                        htmlFor="page-published-at"
+                        hint={
+                          privateEditing
+                            ? "Current public date. Use the private draft publication controls to publish or schedule."
+                            : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                        }
+                        span={12}
+                      >
+                        <PublicationDatePicker
+                          id="page-published-at"
+                          disabled={!!privateEditing}
+                          value={form.publishedAt ?? null}
+                          onChange={(value) => setField("publishedAt", value)}
+                        />
+                      </Field>
+                    </FormGrid12>
+                    {!privateEditing && (
+                      <p className="mt-3 text-sm text-(--text-muted)">
+                        Saving Published content updates public content when its
+                        publish date is due. Choose Draft and save to withdraw
+                        it. Autosave is unavailable; use Save to persist
+                        changes.
+                      </p>
+                    )}
+                  </Section>
                   <Section title="Tags" desc="Categorize page with tags.">
                     <p className="text-sm mb-3">
                       Tag assignments save with the form. Cancel discards
@@ -205,12 +273,9 @@ export default function PageForm({
                 </>
               }
             >
-              <Section
-                title="Basic info"
-                desc="Set title, status, slug and layout."
-              >
+              <Section title="Document details">
                 <FormGrid12>
-                  <Field label="Title" htmlFor="page-title" span={8}>
+                  <Field label="Title" htmlFor="page-title" span={12}>
                     <Input
                       id="page-title"
                       fullWidth
@@ -225,19 +290,6 @@ export default function PageForm({
                       }}
                       required
                       error={fieldErrors.title}
-                    />
-                  </Field>
-
-                  <Field label="Status" htmlFor="page-status" span={4}>
-                    <Select
-                      id="page-status"
-                      disabled={!!privateEditing}
-                      fullWidth
-                      value={form.status}
-                      options={PAGE_STATUS_OPTIONS}
-                      onChangeAction={(value) =>
-                        setField("status", value as PageFormValues["status"])
-                      }
                     />
                   </Field>
 
@@ -261,34 +313,6 @@ export default function PageForm({
                       }}
                       required
                       error={fieldErrors.slug}
-                    />
-                  </Field>
-
-                  <Field
-                    label="Publish date"
-                    htmlFor="page-published-at"
-                    hint={
-                      privateEditing
-                        ? "Current public date. Use the private draft publication controls to publish or schedule."
-                        : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
-                    }
-                    span={4}
-                  >
-                    <Input
-                      id="page-published-at"
-                      disabled={!!privateEditing}
-                      type="datetime-local"
-                      step="0.001"
-                      fullWidth
-                      value={publicationDateToLocal(form.publishedAt) ?? ""}
-                      onChange={(event) =>
-                        setField(
-                          "publishedAt",
-                          event.target.value
-                            ? new Date(event.target.value).toISOString()
-                            : null,
-                        )
-                      }
                     />
                   </Field>
 
@@ -350,7 +374,7 @@ export default function PageForm({
                 </Section>
               )}
 
-              <Section title="Content" desc="Write your content.">
+              <Section title="Content" variant="plain">
                 <SlateEditor
                   key={privateDraft?.contentKey ?? 0}
                   readOnly={submitting}
@@ -358,45 +382,10 @@ export default function PageForm({
                   onChangeAction={(val) => setField("content", val)}
                 />
               </Section>
-
-              {!privateEditing && (
-                <p className="text-sm">
-                  Saving Published content updates public content when its
-                  publish date is due. Choose Draft and save to withdraw it.
-                  Autosave is unavailable; use Save to persist changes.
-                </p>
-              )}
-              <StickyWrapper>
-                <p role="status" aria-live="polite">
-                  {privateDraft
-                    ? "Save affects only the private working copy."
-                    : saveStatus}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  color="neutral"
-                  onClick={() =>
-                    unsaved.requestNavigation(() => history.back())
-                  }
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  color="primary"
-                  className="min-w-30"
-                  loading={
-                    privateDraft ? privateDraft.phase === "saving" : submitting
-                  }
-                >
-                  {submitLabel}
-                </Button>
-              </StickyWrapper>
             </AdminPageColumns>
           </fieldset>
-        </AdminPageLayout>
-      </form>
-    </LivePreview>
+        </LivePreview>
+      </AdminPageLayout>
+    </form>
   );
 }

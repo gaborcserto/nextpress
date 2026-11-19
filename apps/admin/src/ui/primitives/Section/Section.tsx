@@ -12,21 +12,27 @@ export default function Section({
   const wrap =
     variant === "plain"
       ? "rounded-none bg-transparent border-none shadow-none px-0"
-      : "bg-base-100 border border-base-300 rounded-[var(--radius-surface)] shadow-sm";
+      : "bg-base-100 border border-base-300 rounded-[var(--radius-surface)]";
 
   return (
     <section className={[wrap, className].filter(Boolean).join(" ")}>
       <header
         className={
           variant === "plain"
-            ? "mb-3"
-            : "px-6 pt-5 pb-4 border-b border-base-300"
+            ? "mb-3.5"
+            : "px-4 sm:px-6 pt-4 pb-3 border-b border-base-300"
         }
       >
-        <h2 className="text-base font-semibold">{title}</h2>
-        {desc && <p className="text-sm text-base-content/70 mt-1">{desc}</p>}
+        <h2 className="text-lg leading-snug font-semibold wrap-anywhere">
+          {title}
+        </h2>
+        {desc && (
+          <p className="mt-1 text-sm leading-relaxed text-(--text-muted)">
+            {desc}
+          </p>
+        )}
       </header>
-      <div className={variant === "plain" ? "" : "p-6"}>{children}</div>
+      <div className={variant === "plain" ? "" : "p-4 sm:p-6"}>{children}</div>
     </section>
   );
 }

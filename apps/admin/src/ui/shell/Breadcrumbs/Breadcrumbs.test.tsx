@@ -27,6 +27,15 @@ describe("Breadcrumbs", () => {
     );
   });
 
+  it.each([
+    ["/admin/taxonomy", "Taxonomy"],
+    ["/admin/pages/123/revisions", "Revisions"],
+  ])("labels the current route %s", (path, label) => {
+    usePathname.mockReturnValue(path);
+    render(<Breadcrumbs />);
+    expect(screen.getByText(label)).toHaveAttribute("aria-current", "page");
+  });
+
   it("keeps the full detail title available when the displayed breadcrumb is truncated", async () => {
     const title =
       "A long article title that remains available on narrow mobile screens";

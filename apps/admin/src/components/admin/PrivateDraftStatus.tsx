@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/ui/primitives/Buttons";
 import { ConfirmDialog } from "@/ui/primitives/ConfirmDialog";
+import { Select } from "@/ui/primitives/Select";
 
 import type { PrivateDraftControls } from "@/lib/content/usePrivateDraft";
 
@@ -162,11 +163,14 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
   };
 
   return (
-    <section className="alert alert-info block mb-4" aria-label="Private draft">
+    <section
+      className="admin-private-draft"
+      id="private-publication"
+      aria-label="Private draft"
+    >
+      <h2 className="font-semibold">Private draft</h2>
       <p>
-        Private editing. The live source is{" "}
-        {draft.publicStatus === "PUBLISHED" ? "Published" : "Draft"}. These
-        private changes require an explicit publication command. Save pending
+        Private changes require an explicit publication command. Save pending
         edits before publishing.
       </p>
       <p>
@@ -195,144 +199,149 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
         >
           Unpublish
         </Button>
-        <label htmlFor="private-schedule">Publication time (UTC)</label>
-        <input
-          id="private-schedule"
-          type="datetime-local"
-          className="input input-bordered"
-          value={scheduledFor}
-          onChange={(event) => changeSchedule(event.target.value)}
-        />
-        <Button
-          type="button"
-          disabled={publicationDisabled || !scheduleIsFuture}
-          onClick={requestSchedule}
-        >
-          {draft.release?.state === "PENDING" ? "Reschedule" : "Schedule"}
-        </Button>
-        <Button
-          type="button"
-          disabled={publicationDisabled || draft.release?.state !== "PENDING"}
-          onClick={() => setConfirmation("cancelSchedule")}
-        >
-          Cancel Schedule
-        </Button>
       </div>
-      <p role="status" aria-live="polite">
-        {draft.phase === "saving"
-          ? "Saving private draft…"
-          : draft.phase === "unsaved"
-            ? "Unsaved private changes"
-            : draft.phase === "saved"
-              ? draft.version === 0
-                ? "Loaded live source. No private revision saved yet."
-                : `Private draft saved · revision ${draft.version}`
-              : draft.message}
-        {draft.savedAt && ` · Last acknowledged at ${draft.savedAt}`}
-      </p>
+      <details
+        className="admin-editor-disclosure"
+        open={draft.release?.state === "PENDING" || undefined}
+      >
+        <summary>Schedule publication</summary>
+        <div className="space-y-2 pt-2">
+          <label htmlFor="private-schedule" className="block">
+            Publication time (UTC)
+          </label>
+          <input
+            id="private-schedule"
+            type="datetime-local"
+            className="input w-full"
+            value={scheduledFor}
+            onChange={(event) => changeSchedule(event.target.value)}
+          />
+          <Button
+            type="button"
+            disabled={publicationDisabled || !scheduleIsFuture}
+            onClick={requestSchedule}
+          >
+            {draft.release?.state === "PENDING" ? "Reschedule" : "Schedule"}
+          </Button>
+          <Button
+            type="button"
+            disabled={publicationDisabled || draft.release?.state !== "PENDING"}
+            onClick={() => setConfirmation("cancelSchedule")}
+          >
+            Cancel Schedule
+          </Button>
+        </div>
+      </details>
+      {draft.savedAt && (
+        <p>
+          Last acknowledged at{" "}
+          <time dateTime={draft.savedAt}>{draft.savedAt}</time>
+        </p>
+      )}
       {draft.pending && draft.phase === "error" && (
         <p>
           Resolve the outstanding save with Retry before discarding or
           reloading. It may already have been stored.
         </p>
       )}
-      <div className="flex flex-wrap gap-2 mt-2">
-        {draft.phase === "error" && (
+      <details
+        className="admin-editor-disclosure"
+        open={draft.phase === "error" || undefined}
+      >
+        <summary>Draft recovery and history</summary>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {draft.phase === "error" && (
+            <Button
+              type="button"
+              onClick={() => {
+                void draft.save();
+              }}
+            >
+              Retry private save
+            </Button>
+          )}
           <Button
             type="button"
-            onClick={() => {
-              void draft.save();
-            }}
+            disabled={draft.pending || busy}
+            onClick={() => setConfirmation("local")}
           >
-            Retry private save
+            Discard local changes
           </Button>
-        )}
-        <Button
-          type="button"
-          disabled={draft.pending || busy}
-          onClick={() => setConfirmation("local")}
-        >
-          Discard local changes
-        </Button>
-        <Button
-          type="button"
-          disabled={draft.pending || busy}
-          onClick={() => setConfirmation("reset")}
-        >
-          Reset private draft to live source
-        </Button>
-        <Button
-          type="button"
-          disabled={draft.pending || busy}
-          onClick={() => setConfirmation("reload")}
-        >
-          Reload private draft
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <label htmlFor="private-revision">
-          Private revision history (latest 100 at load)
-        </label>
-        <select
-          id="private-revision"
-          className="select select-bordered"
-          value={restoreVersion}
-          disabled={busy || draft.pending}
-          onChange={(event) => setRestoreVersion(event.target.value)}
-        >
-          <option value="">Select a revision</option>
-          {draft.history.map((revision) => (
-            <option key={revision.version} value={revision.version}>
-              {revision.version}: {revision.title}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          disabled={
-            !restoreVersion ||
-            busy ||
-            draft.pending ||
-            draft.dirty ||
-            draft.phase !== "saved"
-          }
-          onClick={() => setConfirmation("restore")}
-        >
-          Restore to Draft
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mt-2">
-        <label htmlFor="legacy-revision">
-          Supported legacy history (from latest 100 at load)
-        </label>
-        <select
-          id="legacy-revision"
-          className="select select-bordered"
-          value={legacyRevisionId}
-          disabled={busy || draft.pending}
-          onChange={(event) => setLegacyRevisionId(event.target.value)}
-        >
-          <option value="">Select a legacy revision</option>
-          {draft.legacyHistory.map((revision) => (
-            <option key={revision.id} value={revision.id}>
-              {revision.createdAt}: {revision.title}
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          disabled={
-            !legacyRevisionId ||
-            busy ||
-            draft.pending ||
-            draft.dirty ||
-            draft.phase !== "saved"
-          }
-          onClick={() => setConfirmation("legacy")}
-        >
-          Restore Legacy to Draft
-        </Button>
-      </div>
+          <Button
+            type="button"
+            disabled={draft.pending || busy}
+            onClick={() => setConfirmation("reset")}
+          >
+            Reset private draft to live source
+          </Button>
+          <Button
+            type="button"
+            disabled={draft.pending || busy}
+            onClick={() => setConfirmation("reload")}
+          >
+            Reload private draft
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <Select
+            id="private-revision"
+            label="Private revision history (latest 100 at load)"
+            fullWidth
+            value={restoreVersion}
+            disabled={busy || draft.pending}
+            options={[
+              { value: "", label: "Select a revision" },
+              ...draft.history.map((revision) => ({
+                value: String(revision.version),
+                label: `${revision.version}: ${revision.title}`,
+              })),
+            ]}
+            onChangeAction={setRestoreVersion}
+          />
+          <Button
+            type="button"
+            disabled={
+              !restoreVersion ||
+              busy ||
+              draft.pending ||
+              draft.dirty ||
+              draft.phase !== "saved"
+            }
+            onClick={() => setConfirmation("restore")}
+          >
+            Restore to Draft
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <Select
+            id="legacy-revision"
+            label="Supported legacy history (from latest 100 at load)"
+            value={legacyRevisionId}
+            disabled={busy || draft.pending}
+            options={[
+              { value: "", label: "Select a legacy revision" },
+              ...draft.legacyHistory.map((revision) => ({
+                value: revision.id,
+                label: `${revision.createdAt}: ${revision.title}`,
+              })),
+            ]}
+            onChangeAction={setLegacyRevisionId}
+          />
+          <Button
+            type="button"
+            disabled={
+              !legacyRevisionId ||
+              busy ||
+              draft.pending ||
+              draft.dirty ||
+              draft.phase !== "saved"
+            }
+            onClick={() => setConfirmation("legacy")}
+          >
+            Restore Legacy to Draft
+          </Button>
+        </div>
+      </details>
       <ConfirmDialog
         open={confirmation !== null}
         title={dialog.title}

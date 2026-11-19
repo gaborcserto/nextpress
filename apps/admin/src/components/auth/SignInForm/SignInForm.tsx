@@ -8,13 +8,12 @@ import {
   useSyncExternalStore,
   type FormEvent,
 } from "react";
-import { FaUserAlt } from "react-icons/fa";
 
 import { AuthSubmitButton } from "@/components/auth/AuthSubmitButton";
 import { signIn } from "@/lib/auth/auth-client";
 import { EmailField, PasswordField } from "@/ui/components";
 import { Alert } from "@/ui/primitives";
-import { AuthShell } from "@/ui/shell";
+import { AuthShell } from "@/ui/shell/AuthShell";
 
 import { signInSchema, type SignInFormValues } from "./SignInForm.validation";
 import SignInFormFooter from "./SignInFormFooter";
@@ -197,9 +196,8 @@ export default function SignInForm({ providers }: SignInFormProps) {
 
   return (
     <AuthShell
-      title="Welcome back"
-      description="Please enter your details to sign in."
-      icon={<FaUserAlt size={20} />}
+      title="Sign in"
+      description="Use your account to access the publishing workspace."
       asForm
       onSubmitAction={onSubmitAction}
     >
@@ -219,47 +217,41 @@ export default function SignInForm({ providers }: SignInFormProps) {
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <fieldset disabled={loading} className="contents">
-          <EmailField
-            id="signin-email"
-            name="email"
-            label="Email"
-            value={form.email}
-            onChangeAction={(value) => updateField("email", value)}
-            fullWidth
-            rounded="lg"
-            color="neutral"
-            autoComplete="username"
-            error={fieldErrors.email}
-            required
-          />
+      <fieldset disabled={loading} className="grid min-w-0 gap-4">
+        <EmailField
+          id="signin-email"
+          name="email"
+          label="Email"
+          value={form.email}
+          onChangeAction={(value) => updateField("email", value)}
+          fullWidth
+          autoComplete="username"
+          error={fieldErrors.email}
+          required
+        />
 
-          <PasswordField
-            id="signin-password"
-            name="password"
-            label="Password"
-            value={form.password}
-            onChangeAction={(value) => updateField("password", value)}
-            fullWidth
-            rounded="lg"
-            color="neutral"
-            autoComplete="current-password"
-            error={fieldErrors.password}
-            required
-            minLength={6}
-          />
+        <PasswordField
+          id="signin-password"
+          name="password"
+          label="Password"
+          value={form.password}
+          onChangeAction={(value) => updateField("password", value)}
+          fullWidth
+          autoComplete="current-password"
+          error={fieldErrors.password}
+          required
+          minLength={6}
+        />
 
-          <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
-            Sign in
-          </AuthSubmitButton>
+        <AuthSubmitButton type="submit" loading={loading} disabled={loading}>
+          Sign in
+        </AuthSubmitButton>
 
-          <SignInFormFooter
-            rememberEmail={rememberEmail}
-            onRememberEmailChangeAction={handleRememberEmailChange}
-          />
-        </fieldset>
-      </div>
+        <SignInFormFooter
+          rememberEmail={rememberEmail}
+          onRememberEmailChangeAction={handleRememberEmailChange}
+        />
+      </fieldset>
     </AuthShell>
   );
 }

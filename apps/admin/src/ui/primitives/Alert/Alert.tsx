@@ -33,8 +33,11 @@ export default function Alert({
     );
 
   return (
-    <div role="alert" className={`${variantClass} mb-3 ${className}`}>
-      {icon || defaultIcon}
+    <div
+      role={status === "error" || status === "warning" ? "alert" : "status"}
+      className={`${variantClass} mb-3 ${className}`}
+    >
+      <span aria-hidden="true">{icon || defaultIcon}</span>
       {message}
     </div>
   );

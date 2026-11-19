@@ -1,7 +1,9 @@
-"use client";
+﻿"use client";
 
-import { useEffect, useId, useRef, type KeyboardEvent } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
+import { FaCheck, FaTimes, FaTrash } from "react-icons/fa";
 
+import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import { Button } from "@/ui/primitives/Buttons";
 
 import type { ConfirmDialogProps } from "./ConfirmDialog.types";
@@ -21,133 +23,111 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const dialogRef = useModalDialog(open);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const canDismiss = !disableClose && !loading;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) {
       return;
     }
 
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    dialogRef.current
-      ?.querySelector<HTMLButtonElement>("button:not([disabled])")
-      ?.focus();
-
-    return () => returnFocusRef.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (loading) {
-      dialogRef.current?.focus();
-    }
-  }, [loading]);
-
-  const close = () => {
-    if (disableClose || loading) {
-      return;
-    }
-
-    onCancelAction();
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
+    if (!canDismiss) {
+      titleRef.current?.focus();
 
       return;
     }
 
-    if (event.key !== "Tab") {
-      return;
+    actionsRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [open, canDismiss]);
+
+  function dismiss() {
+    if (canDismiss) {
+      onCancelAction();
     }
-
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
-
-    if (!focusable?.length) {
-      event.preventDefault();
-      dialogRef.current?.focus();
-
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  if (!open) {
-    return null;
   }
 
   return (
-    <div
-      className="modal modal-open"
-      role="dialog"
+    <dialog
+      ref={dialogRef}
+      className="admin-dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       aria-describedby={children ? descriptionId : undefined}
-      onKeyDown={handleKeyDown}
+      onCancel={(event) => {
+        event.preventDefault();
+        dismiss();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          const { left, top, right, bottom } =
+            event.currentTarget.getBoundingClientRect();
+
+          if (
+            event.clientX < left ||
+            event.clientX > right ||
+            event.clientY < top ||
+            event.clientY > bottom
+          ) {
+            dismiss();
+          }
+        }
+      }}
     >
-      <div
-        className="modal-box max-w-[calc(100vw-2rem)] break-words"
-        ref={dialogRef}
-        tabIndex={-1}
-      >
-        <h3 id={titleId} className="font-semibold text-lg">
-          {title}
-        </h3>
-
-        {children ? (
-          <div id={descriptionId} className="mt-3 text-base-content/80">
-            {children}
+      {open && (
+        <>
+          <h2
+            id={titleId}
+            ref={titleRef}
+            tabIndex={-1}
+            className="font-semibold text-lg"
+          >
+            {title}
+          </h2>
+          {children && (
+            <div id={descriptionId} className="mt-3 text-(--text-muted)">
+              {children}
+            </div>
+          )}
+          {error && (
+            <p role="alert" className="mt-3 text-error">
+              {error}
+            </p>
+          )}
+          {loading && (
+            <p role="status" className="mt-3">
+              Please wait…
+            </p>
+          )}
+          <div
+            ref={actionsRef}
+            className="mt-6 flex flex-wrap justify-end gap-2"
+          >
+            <Button
+              variant="ghost"
+              color="neutral"
+              onClick={dismiss}
+              disabled={!canDismiss}
+            >
+              <FaTimes aria-hidden="true" />
+              {cancelLabel}
+            </Button>
+            <Button
+              color={confirmColor}
+              loading={loading}
+              onClick={onConfirmAction}
+            >
+              {confirmColor === "error" ? (
+                <FaTrash aria-hidden="true" />
+              ) : (
+                <FaCheck aria-hidden="true" />
+              )}
+              {confirmLabel}
+            </Button>
           </div>
-        ) : null}
-
-        {error && (
-          <p role="alert" className="mt-3 text-error break-words">
-            {error}
-          </p>
-        )}
-        {loading && (
-          <p role="status" className="mt-3">
-            Please wait?
-          </p>
-        )}
-        <div className="modal-action flex-wrap gap-2">
-          <Button
-            variant="ghost"
-            color="neutral"
-            onClick={close}
-            disabled={loading}
-          >
-            {cancelLabel}
-          </Button>
-
-          <Button
-            color={confirmColor}
-            loading={loading}
-            onClick={onConfirmAction}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
-      </div>
-
-      <div className="modal-backdrop" onClick={close} aria-hidden="true" />
-    </div>
+        </>
+      )}
+    </dialog>
   );
 }

@@ -82,7 +82,8 @@ test("Slate formatting is visible in both themes and survives publication", asyn
     }),
   ).toBe(true);
 
-  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await page.getByRole("button", { name: /^Theme:/ }).click();
+  await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(marked).toHaveCSS("font-weight", "700");
   const save = page.waitForResponse(
@@ -141,14 +142,6 @@ test("Settings selects a persisted Blog variant used by published pages and prev
   const { id } = ContentRecordSchema.parse(await created.json());
 
   await page.goto("/admin/settings");
-  const template = page.getByRole("combobox", { name: "Website template" });
-  const variant = page.getByRole("combobox", { name: "Style variant" });
-  await expect(template).toHaveValue("blog");
-  await expect(variant.locator("option")).toHaveText([
-    "Classic",
-    "Modern",
-    "Minimal",
-  ]);
   const siteName = page.getByRole("textbox", { name: "Site name" });
   await siteName.fill("Appearance testing publication");
   const saveSettings = page.waitForResponse(
@@ -161,6 +154,16 @@ test("Settings selects a persisted Blog variant used by published pages and prev
     .click();
   expect((await saveSettings).status()).toBe(200);
 
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  const template = page.getByRole("combobox", { name: "Website template" });
+  const variant = page.getByRole("combobox", { name: "Style variant" });
+  await expect(template).toHaveValue("blog");
+  await expect(variant.locator("option")).toHaveText([
+    "Classic",
+    "Modern",
+    "Minimal",
+  ]);
+
   for (const preset of ["modern", "minimal", "classic"]) {
     await variant.selectOption(preset);
     await page.getByRole("button", { name: "Save appearance" }).click();
@@ -169,6 +172,7 @@ test("Settings selects a persisted Blog variant used by published pages and prev
     ).toBeVisible();
     await page.reload();
     await expect(variant).toHaveValue(preset);
+    await page.getByRole("tab", { name: "General" }).click();
     await expect(siteName).toHaveValue("Appearance testing publication");
 
     const published = await page.context().newPage();
@@ -204,6 +208,6 @@ test("Settings selects a persisted Blog variant used by published pages and prev
       ),
     );
     await published.close();
-    await page.goto("/admin/settings");
+    await page.goto("/admin/settings#settings-appearance");
   }
 });

@@ -7,8 +7,10 @@ import {
   type RevisionSnapshotSchema,
 } from "@nextpress/shared/revisions";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { FaEye, FaEyeSlash, FaExternalLinkAlt } from "react-icons/fa";
 
 import { slateToString, type SlateLike } from "@/lib/content/editor";
+import { Select } from "@/ui/primitives/Select";
 
 import styles from "./LivePreview.module.css";
 
@@ -25,6 +27,7 @@ type PreviewValues = {
 };
 type LivePreviewProps = {
   children?: ReactNode;
+  renderHeader?: (previewAction: ReactNode) => ReactNode;
   kind?: "pages" | "posts";
   id?: string;
   savedContent?: { title: string; slug: string };
@@ -34,6 +37,7 @@ type LivePreviewProps = {
 
 export default function LivePreview({
   children,
+  renderHeader,
   kind = "pages",
   id,
   values,
@@ -41,7 +45,7 @@ export default function LivePreview({
   savedContent,
 }: LivePreviewProps) {
   const [open, setOpen] = useState(Boolean(snapshot));
-  const [mobilePreview, setMobilePreview] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(Boolean(snapshot));
   const [width, setWidth] = useState("100%");
   const [saved, setSaved] = useState<PreviewSnapshot | null>(snapshot ?? null);
   const [live, setLive] = useState(true);
@@ -200,54 +204,75 @@ export default function LivePreview({
     previewWindow.current = window.open(url, "nextpress-preview");
   }
 
+  const previewAction = (
+    <button
+      type="button"
+      className="btn btn-ghost"
+      aria-expanded={open}
+      onClick={() => {
+        setOpen(!open);
+        setMobilePreview(!open);
+      }}
+    >
+      {open ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+      {open ? "Close Live Preview" : "Live Preview"}
+    </button>
+  );
+
   return (
     <>
-      <div role="toolbar" aria-label="Live Preview controls">
-        <button type="button" className="btn" onClick={() => setOpen(!open)}>
-          {open ? "Close Live Preview" : "Live Preview"}
-        </button>
-        {open && (
-          <>
+      {renderHeader ? renderHeader(previewAction) : previewAction}
+      {open && (
+        <div
+          className="admin-preview-controls"
+          role="group"
+          aria-label="Live Preview controls"
+        >
+          {children && (
             <button
               type="button"
-              className="btn"
+              className="btn btn-ghost min-[1001px]:hidden"
               onClick={() => setMobilePreview(!mobilePreview)}
             >
               {mobilePreview ? "Show editing" : "Show preview"}
             </button>
+          )}
+          <Select
+            label="Viewport"
+            value={width}
+            options={[
+              { value: "100%", label: "Desktop" },
+              { value: "768px", label: "Tablet" },
+              { value: "375px", label: "Mobile" },
+            ]}
+            onChangeAction={setWidth}
+          />
+          {values && (
             <label>
-              Viewport{" "}
-              <select
-                value={width}
-                onChange={(event) => setWidth(event.target.value)}
-              >
-                <option value="100%">Desktop</option>
-                <option value="768px">Tablet</option>
-                <option value="375px">Mobile</option>
-              </select>
+              <input
+                type="checkbox"
+                checked={live}
+                disabled={!saved}
+                onChange={(event) => setLive(event.target.checked)}
+              />{" "}
+              Unsaved live updates
             </label>
-            {values && (
-              <label>
-                <input
-                  type="checkbox"
-                  checked={live}
-                  disabled={!saved}
-                  onChange={(event) => setLive(event.target.checked)}
-                />{" "}
-                Unsaved live updates
-              </label>
-            )}
-            {origin && (
-              <button type="button" className="btn" onClick={openPreviewTab}>
-                Open preview in new tab
-              </button>
-            )}
-          </>
-        )}
-      </div>
+          )}
+          {origin && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={openPreviewTab}
+            >
+              <FaExternalLinkAlt aria-hidden="true" />
+              Open preview in new tab
+            </button>
+          )}
+        </div>
+      )}
       <div
-        className={open ? styles.split : undefined}
-        data-preview={mobilePreview}
+        className={open && children ? styles.split : undefined}
+        data-preview={open && mobilePreview}
       >
         <div className={styles.editor}>{children}</div>
         {open && (

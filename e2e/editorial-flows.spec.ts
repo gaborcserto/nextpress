@@ -22,11 +22,13 @@ test("system appearance, explicit theme and settings/taxonomy navigation", async
 }) => {
   await page.emulateMedia({ colorScheme: "dark" });
   await page.reload();
-  await page.getByRole("button", { name: "Switch to light theme" }).click();
+  await page.getByRole("button", { name: /^Theme:/ }).click();
+  await page.getByRole("menuitemradio", { name: "Light", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await page.getByRole("button", { name: /^Theme:/ }).click();
+  await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.goto("/admin/taxonomy");
   await expect(
@@ -297,7 +299,7 @@ test("unsaved editors keep safe dialog actions usable at supported viewport widt
       await expect(dialog).toBeVisible();
       const stay = dialog.getByRole("button", { name: "Stay and edit" });
       await expect(stay).toBeFocused();
-      const box = await dialog.locator(".modal-box").boundingBox();
+      const box = await dialog.boundingBox();
       expect(box).not.toBeNull();
       expect(box?.x).toBeGreaterThanOrEqual(0);
       expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);

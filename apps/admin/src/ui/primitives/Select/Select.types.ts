@@ -15,12 +15,15 @@ export type SelectProps = {
   id?: string;
   fullWidth?: boolean;
 
-  value: OptionValue | "";
+  value?: OptionValue;
+  defaultValue?: OptionValue;
+  name?: string;
+  required?: boolean;
   options: readonly SelectOption[];
 
   placeholder?: string;
 
-  onChangeAction?: (value: OptionValue | "") => void;
+  onChangeAction?: (value: string) => void;
 
   className?: string;
   disabled?: boolean;

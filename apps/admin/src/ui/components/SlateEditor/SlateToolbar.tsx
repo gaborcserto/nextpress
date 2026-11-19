@@ -59,7 +59,10 @@ function SlateToolbarButton({
         e.preventDefault();
       }}
       onClick={onClick}
-      className={["btn btn-sm", active ? "btn-primary" : "btn-ghost"].join(" ")}
+      className={[
+        "btn btn-sm btn-square",
+        active ? "btn-primary" : "btn-ghost",
+      ].join(" ")}
     >
       {children}
     </button>
@@ -77,7 +80,7 @@ export default function SlateToolbar({
     <div className="border-b border-base-300 bg-base-100 p-2 rounded-t-md">
       <div className="flex flex-wrap items-center gap-2">
         {/* MARKS */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <SlateToolbarButton
             title="Bold"
             active={isMarkActive(editor, "bold")}
@@ -119,10 +122,13 @@ export default function SlateToolbar({
           </SlateToolbarButton>
         </div>
 
-        <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
+        <div
+          className="hidden h-6 w-px shrink-0 bg-base-300 sm:block"
+          aria-hidden="true"
+        />
 
         {/* HEADINGS */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <SlateToolbarButton
             title="Heading 2"
             active={isHeadingActive(editor, 2)}
@@ -164,10 +170,13 @@ export default function SlateToolbar({
           </SlateToolbarButton>
         </div>
 
-        <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
+        <div
+          className="hidden h-6 w-px shrink-0 bg-base-300 sm:block"
+          aria-hidden="true"
+        />
 
         {/* BLOCKS */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <SlateToolbarButton
             title="Quote"
             active={isBlockActive(editor, "blockquote")}
@@ -193,10 +202,13 @@ export default function SlateToolbar({
           </SlateToolbarButton>
         </div>
 
-        <div className="mx-1 h-6 w-px bg-base-300 shrink-0" />
+        <div
+          className="hidden h-6 w-px shrink-0 bg-base-300 sm:block"
+          aria-hidden="true"
+        />
 
         {/* ALIGN */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <SlateToolbarButton
             title="Align left"
             active={activeAlign === "left"}
@@ -233,7 +245,7 @@ export default function SlateToolbar({
         <div className="ml-auto shrink-0" />
 
         {/* CODE VIEW */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
           <SlateToolbarButton
             title={isCodeView ? "Back to editor" : "JSON code view"}
             active={isCodeView}

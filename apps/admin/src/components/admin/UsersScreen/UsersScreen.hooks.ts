@@ -10,6 +10,7 @@ import type { CreateUserValues, UserRow } from "./UsersScreen.types";
 export function useUsersScreen() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [defaultRole, setDefaultRole] = useState<RoleName>("SUBSCRIBER");
 
@@ -104,12 +105,12 @@ export function useUsersScreen() {
 
   const createUser = async () => {
     if (creatingRef.current) {
-      return;
+      return false;
     }
 
     creatingRef.current = true;
     setCreating(true);
-    setError(null);
+    setCreateError(null);
 
     try {
       await jsonFetcher("/api/admin/users/create", {
@@ -126,10 +127,14 @@ export function useUsersScreen() {
       setCreateForm({ email: "", name: "", role: defaultRole, password: "" });
       await reload();
       showToast("User created.", "success");
+
+      return true;
     } catch (caught) {
-      setError(
+      setCreateError(
         caught instanceof Error ? caught.message : "Failed to create user.",
       );
+
+      return false;
     } finally {
       creatingRef.current = false;
       setCreating(false);
@@ -213,6 +218,8 @@ export function useUsersScreen() {
     createForm,
     setCreateForm,
     createUser,
+    createError,
+    clearCreateError: () => setCreateError(null),
 
     // edit role
     editingId,

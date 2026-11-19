@@ -11,7 +11,7 @@ export function AuthSubmitButton({
       color="primary"
       size="md"
       fullWidth
-      className={["mt-2 h-12 rounded-xl", className].filter(Boolean).join(" ")}
+      className={["mt-2 min-h-11", className].filter(Boolean).join(" ")}
       {...props}
     >
       {children}

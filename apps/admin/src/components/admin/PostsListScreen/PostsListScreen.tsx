@@ -13,9 +13,8 @@ export default function PostsListScreen() {
     title: p.title,
     slug: p.slug,
     status: p.status,
-    dateLabel: p.updatedAt
-      ? `Last modified: ${new Date(p.updatedAt).toLocaleString()}`
-      : undefined,
+    updatedAt: p.updatedAt,
+    dateLabel: p.updatedAt ? new Date(p.updatedAt).toLocaleString() : undefined,
   }));
 
   return (

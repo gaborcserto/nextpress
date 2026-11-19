@@ -83,6 +83,18 @@ Use Node.js 24.x ([`.nvmrc`](.nvmrc) pins 24.22.2), npm 12.2.2 and Docker with C
 
    Open the [admin sign-in](http://localhost:49101/auth/sign-in), [public website](http://localhost:49100) or [API health endpoint](http://localhost:49102/api/health). A fresh database has no published pages or posts. Health reports API liveness, not database readiness.
 
+### Start with the existing editorial database
+
+If the API and Prisma `DATABASE_URL` settings point to the local editorial database at `127.0.0.1:55434`, start its existing container before starting the apps:
+
+```sh
+docker start nextpress-dev-editorial-db && docker exec nextpress-dev-editorial-db pg_isready -h 127.0.0.1 -p 5432 -d nextpress_dev_editorial && npm run dev
+```
+
+This requires a running Docker daemon and the previously provisioned `nextpress-dev-editorial-db` container with its `nextpress_dev_editorial_pg18` volume. If PostgreSQL is still starting, rerun the command once it is ready. If the container is missing, recover the existing editorial database before launching the apps.
+
+`npm run db:up` and `npm run bootstrap` use the default Compose database at `127.0.0.1:5432`. For the editorial configuration, check [public settings](http://localhost:49102/api/public/settings) and [session discovery](http://localhost:49102/api/discovery/session) after startup to confirm the API can serve both applications.
+
 These steps describe local development, not production provisioning. Environment templates contain local example credentials; keep real `.env` files out of Git.
 
 ## Documentation

@@ -33,6 +33,7 @@ it("expires the schedule control and refuses confirmation after the selected tim
   const { unmount } = render(<PrivateDraftStatus draft={draft} />);
 
   try {
+    fireEvent.click(screen.getByText("Schedule publication", { exact: true }));
     const schedule = screen.getByRole("button", {
       name: "Schedule",
     });

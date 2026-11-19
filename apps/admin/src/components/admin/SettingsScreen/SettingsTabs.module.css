@@ -1,0 +1,61 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.25rem 1.25rem;
+  min-inline-size: 0;
+  border-block-end: 1px solid var(--surface-border);
+}
+
+.tabs button {
+  position: relative;
+  flex: 0 1 auto;
+  min-block-size: var(--target-touch);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding: 0.5rem 0.125rem;
+  color: var(--text-muted);
+  font-size: var(--text-ui-size);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: color var(--motion-fast) ease;
+}
+
+.tabs button::after {
+  position: absolute;
+  inset: auto 0 -1px;
+  block-size: 2px;
+  background: var(--accent-text);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--motion-fast) ease;
+}
+
+.tabs button:hover {
+  color: var(--accent-text);
+}
+
+.tabs button[aria-selected="true"] {
+  color: var(--accent-text);
+}
+
+.tabs button[aria-selected="true"]::after {
+  transform: scaleX(1);
+}
+
+.tabs button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs button,
+  .tabs button::after {
+    transition: none;
+  }
+}

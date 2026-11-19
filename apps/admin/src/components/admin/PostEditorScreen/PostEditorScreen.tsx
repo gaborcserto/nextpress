@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { PrivateDraftBoundary } from "@/components/admin/PrivateDraftBoundary";
 import { ApiRequestError } from "@/lib/api/client";
 import {
@@ -11,9 +9,10 @@ import {
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
 import { Alert } from "@/ui/primitives";
-import { AdminPageLayout, PostForm } from "@/ui/shell";
+import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { usePostEditor } from "./PostEditorScreen.hooks";
+import { PostForm } from "../PostForm";
 
 import type { PostEditorScreenProps } from "./PostEditorScreen.types";
 
@@ -74,25 +73,19 @@ function LegacyPostEditorScreen({ postId }: PostEditorScreenProps) {
   }
 
   return (
-    <>
-      {isEdit && (
-        <Link className="btn" href={`/admin/posts/${postId}/revisions`}>
-          Working revisions
-        </Link>
-      )}
-      <PostForm
-        key={postId ?? "new"}
-        initial={item}
-        submitting={saving}
-        submitLabel={submitLabel}
-        onSubmitAction={handleSubmit}
-        loadTagOptionsAction={loadTagOptionsAction}
-        createTagAction={createTagAction}
-        loadEntityTagsAction={loadEntityTagsAction}
-        updateEntityTagsAction={updateEntityTagsAction}
-        sidebarTitle={title}
-        sidebarSubtitle={subtitle}
-      />
-    </>
+    <PostForm
+      key={postId ?? "new"}
+      contentId={postId}
+      initial={item}
+      submitting={saving}
+      submitLabel={submitLabel}
+      onSubmitAction={handleSubmit}
+      loadTagOptionsAction={loadTagOptionsAction}
+      createTagAction={createTagAction}
+      loadEntityTagsAction={loadEntityTagsAction}
+      updateEntityTagsAction={updateEntityTagsAction}
+      sidebarTitle={title}
+      sidebarSubtitle={subtitle}
+    />
   );
 }

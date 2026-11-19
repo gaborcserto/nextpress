@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type ChangeEvent } from "react";
+import { FiChevronDown } from "react-icons/fi";
 
 import type { SelectProps } from "./Select.types";
 
@@ -16,6 +17,9 @@ export default function Select({
   fullWidth,
   className,
   value,
+  defaultValue,
+  name,
+  required,
   options,
   onChangeAction,
   disabled,
@@ -43,27 +47,37 @@ export default function Select({
         </label>
       )}
 
-      <select
-        id={selectId}
-        aria-invalid={!!error}
-        aria-describedby={describedBy}
-        disabled={disabled}
-        className={cx("select select-bordered", widthCls, className)}
-        value={value}
-        onChange={handleChange}
-      >
-        {placeholder && (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        )}
+      <div className={cx("admin-select-trigger", widthCls)}>
+        <select
+          id={selectId}
+          aria-invalid={!!error}
+          aria-describedby={describedBy}
+          disabled={disabled}
+          className={cx("select", className)}
+          name={name}
+          required={required}
+          defaultValue={
+            value === undefined
+              ? (defaultValue ?? (placeholder ? "" : undefined))
+              : undefined
+          }
+          value={value}
+          onChange={handleChange}
+        >
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
 
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} disabled={opt.disabled}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <FiChevronDown className="admin-select-chevron" aria-hidden="true" />
+      </div>
 
       {hint && !error && (
         <span id={`${selectId}-hint`} className="label-text-alt">

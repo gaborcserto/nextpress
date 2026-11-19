@@ -6,8 +6,19 @@ import {
   RevisionListSchema,
   RevisionRecordSchema,
 } from "@nextpress/shared/revisions";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  FaArrowLeft,
+  FaCheck,
+  FaEye,
+  FaEyeSlash,
+  FaHistory,
+  FaSave,
+  FaUndo,
+} from "react-icons/fa";
 
+import { Button, Field, Input, Section, Select } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell";
 
 import LivePreview from "./LivePreview";
@@ -80,6 +91,7 @@ export default function RevisionEditor({
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("Loading revisions...");
   const [busy, setBusy] = useState(false);
+  const activeAction = useRef(false);
   const [preview, setPreview] = useState<RevisionRecord | null>(null);
 
   const load = useCallback(
@@ -126,12 +138,13 @@ export default function RevisionEditor({
   }, [load, showRevisions]);
 
   async function perform(action: RevisionAction) {
-    if (!revisions) {
+    if (!revisions || activeAction.current) {
       return;
     }
 
     const feedback = revisionActions[action];
 
+    activeAction.current = true;
     setBusy(true);
     setMessage("");
 
@@ -192,6 +205,7 @@ export default function RevisionEditor({
           : feedback.error,
       );
     } finally {
+      activeAction.current = false;
       setBusy(false);
     }
   }
@@ -208,57 +222,185 @@ export default function RevisionEditor({
     setPreview(null);
   }
 
+  const selectedRevision = revisions?.revisions.find(
+    (revision) => revision.id === selectedRevisionId,
+  );
+
   return (
     <AdminPageLayout
       title="Working revisions"
-      description="Save drafts independently from published content."
+      description="Manage the working copy and saved snapshots for this document."
+      actions={
+        <Link href={`/admin/${kind}/${pageId}`} className="btn btn-ghost">
+          <FaArrowLeft aria-hidden="true" />
+          Back to editor
+        </Link>
+      }
     >
-      <p role="status">{message}</p>
-      <fieldset disabled={busy || !revisions}>
-        <legend>Working revision</legend>
-        <label htmlFor="revision-title">Working title</label>
-        <input
-          id="revision-title"
-          className="input"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        <button
-          className="btn"
-          disabled={busy || !revisions}
-          onClick={() => void perform("save")}
+      <p role="status" className="text-sm text-(--text-muted) empty:hidden">
+        {message}
+      </p>
+      {revisions && (
+        <div
+          className="admin-revisions-layout"
+          data-has-revisions={revisions.revisions.length > 0}
         >
-          Save working revision
-        </button>
-        <label htmlFor="revision-select">Saved revision</label>
-        <select
-          id="revision-select"
-          className="select"
-          value={selectedRevisionId}
-          onChange={(event) => selectRevision(event.target.value)}
-        >
-          <option value="">Choose a revision</option>
-          {revisions?.revisions.map((revision) => (
-            <option key={revision.id} value={revision.id}>
-              {revision.workingVersion}: {revision.title}
-            </option>
-          ))}
-        </select>
-        {(["preview", "restore", "publish", "unpublish"] as const).map(
-          (action) => (
-            <button
-              className="btn"
-              key={action}
-              disabled={busy || !selectedRevisionId}
-              onClick={() => void perform(action)}
+          <Section
+            title="Working copy"
+            desc="The current editable document state. Save it to create a snapshot in revision history."
+          >
+            <dl className="admin-revision-meta">
+              <div>
+                <dt>Current title</dt>
+                <dd>{revisions.current.title}</dd>
+              </div>
+              <div>
+                <dt>Working version</dt>
+                <dd>{revisions.version}</dd>
+              </div>
+            </dl>
+            <form
+              className="mt-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void perform("save");
+              }}
             >
-              {revisionActions[action].label}
-            </button>
-          ),
-        )}
-      </fieldset>
+              <fieldset disabled={busy} className="min-w-0 space-y-4">
+                <Field label="Working title" htmlFor="revision-title">
+                  <Input
+                    id="revision-title"
+                    fullWidth
+                    required
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                  />
+                </Field>
+                <p className="text-sm text-(--text-muted)">
+                  The saved snapshot uses content from{" "}
+                  {selectedRevision
+                    ? `version ${selectedRevision.workingVersion}`
+                    : "the current working copy"}
+                  .
+                </p>
+                <Button
+                  type="submit"
+                  color="primary"
+                  disabled={!title.trim() || busy}
+                >
+                  <FaSave aria-hidden="true" />
+                  Save working revision
+                </Button>
+              </fieldset>
+            </form>
+          </Section>
+          <Section
+            title="Revision history"
+            desc={
+              revisions.revisions.length
+                ? "Select a saved snapshot to preview, restore, or publish it."
+                : "Saved snapshots will appear here after you save the working copy."
+            }
+            className={
+              revisions.revisions.length ? undefined : "admin-revision-empty"
+            }
+            variant={revisions.revisions.length ? "soft" : "plain"}
+          >
+            {revisions.revisions.length ? (
+              <fieldset disabled={busy} className="min-w-0 space-y-4">
+                <Select
+                  id="revision-select"
+                  label="Saved revision"
+                  fullWidth
+                  value={selectedRevisionId}
+                  options={[
+                    { value: "", label: "Choose a revision" },
+                    ...revisions.revisions.map((revision) => ({
+                      value: revision.id,
+                      label: `${revision.workingVersion}: ${revision.title}`,
+                    })),
+                  ]}
+                  onChangeAction={selectRevision}
+                />
+                {selectedRevision && (
+                  <dl className="admin-revision-meta">
+                    <div>
+                      <dt>Saved</dt>
+                      <dd>
+                        <time dateTime={selectedRevision.createdAt}>
+                          {new Date(
+                            selectedRevision.createdAt,
+                          ).toLocaleString()}
+                        </time>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Slug</dt>
+                      <dd>{selectedRevision.slug}</dd>
+                    </div>
+                  </dl>
+                )}
+                <p className="text-sm text-(--text-muted)">
+                  {selectedRevision
+                    ? "Preview, restore, and publish use the selected revision. Unpublish removes this document from public view."
+                    : "Choose a saved revision to enable its actions."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    className="min-w-0 max-w-full"
+                    variant="soft"
+                    color="info"
+                    disabled={!selectedRevisionId || busy}
+                    onClick={() => void perform("preview")}
+                  >
+                    <FaEye aria-hidden="true" />
+                    {revisionActions.preview.label}
+                  </Button>
+                  <Button
+                    className="min-w-0 max-w-full"
+                    variant="outline"
+                    color="neutral"
+                    disabled={!selectedRevisionId || busy}
+                    onClick={() => void perform("restore")}
+                  >
+                    <FaUndo aria-hidden="true" />
+                    {revisionActions.restore.label}
+                  </Button>
+                  <Button
+                    className="min-w-0 max-w-full"
+                    color="primary"
+                    disabled={!selectedRevisionId || busy}
+                    onClick={() => void perform("publish")}
+                  >
+                    <FaCheck aria-hidden="true" />
+                    {revisionActions.publish.label}
+                  </Button>
+                  <Button
+                    className="min-w-0 max-w-full"
+                    variant="ghost"
+                    color="neutral"
+                    disabled={!selectedRevisionId || busy}
+                    onClick={() => void perform("unpublish")}
+                  >
+                    <FaEyeSlash aria-hidden="true" />
+                    {revisionActions.unpublish.label}
+                  </Button>
+                </div>
+              </fieldset>
+            ) : (
+              <div className="admin-revision-empty-state">
+                <FaHistory aria-hidden="true" />
+                <p>No saved revisions yet.</p>
+                <span>Save the working copy above to start a history.</span>
+              </div>
+            )}
+          </Section>
+        </div>
+      )}
       {preview && (
-        <LivePreview kind={kind} key={preview.id} snapshot={preview} />
+        <Section title="Revision preview" desc={preview.title}>
+          <LivePreview kind={kind} key={preview.id} snapshot={preview} />
+        </Section>
       )}
     </AdminPageLayout>
   );

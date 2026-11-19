@@ -1,96 +1,76 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+﻿import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfirmDialog } from "./ConfirmDialog";
 
 describe("ConfirmDialog", () => {
-  it("focuses Cancel, closes on Escape, and restores focus to its trigger", () => {
-    const trigger = document.createElement("button");
-    trigger.textContent = "Delete user";
-    document.body.append(trigger);
-    trigger.focus();
+  it("names the open modal, focuses Cancel and restores the trigger after dismissal", () => {
     const onCancelAction = vi.fn();
-    const view = render(
-      <ConfirmDialog
-        open
-        title="Delete user?"
-        onConfirmAction={vi.fn()}
-        onCancelAction={onCancelAction}
-      >
-        This action cannot be undone.
-      </ConfirmDialog>,
+    const onConfirmAction = vi.fn();
+    const view = render(<button>Delete user</button>);
+    const trigger = screen.getByRole("button", { name: "Delete user" });
+    trigger.focus();
+
+    view.rerender(
+      <>
+        <button>Delete user</button>
+        <ConfirmDialog
+          open
+          title="Delete user?"
+          onCancelAction={onCancelAction}
+          onConfirmAction={onConfirmAction}
+        >
+          This action cannot be undone.
+        </ConfirmDialog>
+      </>,
     );
 
     const dialog = screen.getByRole("dialog", {
       name: "Delete user?",
       description: "This action cannot be undone.",
     });
-    const cancel = screen.getByRole("button", { name: "Cancel" });
-    expect(cancel).toHaveFocus();
     expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
 
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(fireEvent(dialog, new Event("cancel", { cancelable: true }))).toBe(
+      false,
+    );
     expect(onCancelAction).toHaveBeenCalledOnce();
     view.rerender(
-      <ConfirmDialog
-        open={false}
-        onConfirmAction={vi.fn()}
-        onCancelAction={onCancelAction}
-      />,
+      <>
+        <button>Delete user</button>
+        <ConfirmDialog
+          open={false}
+          onCancelAction={onCancelAction}
+          onConfirmAction={onConfirmAction}
+        />
+      </>,
     );
-    expect(trigger).toHaveFocus();
-    trigger.remove();
+    expect(screen.getByRole("button", { name: "Delete user" })).toHaveFocus();
   });
 
-  it("keeps Tab navigation inside the dialog", () => {
-    render(
-      <ConfirmDialog open onConfirmAction={vi.fn()} onCancelAction={vi.fn()} />,
-    );
-    const confirm = screen.getByRole("button", { name: "Confirm" });
-    confirm.focus();
-    fireEvent.keyDown(confirm, { key: "Tab" });
-    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
-  });
-
-  it("keeps focus in the dialog while a destructive action is pending", () => {
-    const trigger = document.createElement("button");
-    trigger.textContent = "Delete user";
-    document.body.append(trigger);
-    trigger.focus();
-    const onConfirmAction = vi.fn();
+  it("keeps focus in the dialog and disables dismissal while a destructive action is pending", () => {
     const onCancelAction = vi.fn();
-    const view = render(
+    const onConfirmAction = vi.fn();
+
+    render(
       <ConfirmDialog
         open
-        title="Delete user?"
         loading
-        onConfirmAction={onConfirmAction}
+        title="Delete user?"
         onCancelAction={onCancelAction}
+        onConfirmAction={onConfirmAction}
       />,
     );
-
     const dialog = screen.getByRole("dialog", { name: "Delete user?" });
-    const confirm = screen.getByRole("button", { name: /Confirm/ });
-    const cancel = screen.getByRole("button", { name: "Cancel" });
-    expect(confirm).toBeDisabled();
-    expect(cancel).toBeDisabled();
-    expect(dialog.querySelector(".modal-box")).toHaveFocus();
-
-    fireEvent.keyDown(dialog, { key: "Tab" });
-    expect(dialog.querySelector(".modal-box")).toHaveFocus();
-    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.getByRole("heading", { name: "Delete user?" })).toHaveFocus();
+    expect(screen.getByRole("status")).toHaveTextContent("Please wait");
+    expect(screen.getByRole("button", { name: /Confirm/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(fireEvent(dialog, new Event("cancel", { cancelable: true }))).toBe(
+      false,
+    );
     expect(onCancelAction).not.toHaveBeenCalled();
     expect(onConfirmAction).not.toHaveBeenCalled();
-    expect(trigger).not.toHaveFocus();
-
-    view.rerender(
-      <ConfirmDialog
-        open={false}
-        onConfirmAction={onConfirmAction}
-        onCancelAction={onCancelAction}
-      />,
-    );
-    expect(trigger).toHaveFocus();
-    trigger.remove();
   });
 });

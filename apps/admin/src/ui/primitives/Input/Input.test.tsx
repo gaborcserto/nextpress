@@ -56,3 +56,20 @@ it("allows an editable default value of zero to be cleared", () => {
   expect(count).toHaveValue(null);
   expect(screen.queryByRole("button", { name: "Clear input" })).toBeNull();
 });
+
+it("retains an external description alongside its validation message", () => {
+  render(
+    <>
+      <p id="format-hint">Use a canonical URL.</p>
+      <Input
+        label="Site URL"
+        type="url"
+        aria-describedby="format-hint"
+        error="Enter a URL."
+      />
+    </>,
+  );
+  expect(
+    screen.getByRole("textbox", { name: "Site URL" }),
+  ).toHaveAccessibleDescription("Use a canonical URL. Enter a URL.");
+});

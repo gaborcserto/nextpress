@@ -5,6 +5,7 @@ import {
   MAX_DISPLAY_NAME_LENGTH,
 } from "@nextpress/shared/auth-policy";
 import { useState, type FormEvent } from "react";
+import { FaSave } from "react-icons/fa";
 
 import { authClient, useSession } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components";
@@ -13,12 +14,14 @@ import { AdminPageLayout } from "@/ui/shell";
 
 export default function ProfileScreen() {
   const { data, isPending } = useSession();
+  const [saving, setSaving] = useState(false);
 
   if (isPending) {
     return (
       <Box bare>
         <div
           className="p-6 animate-pulse space-y-3"
+          role="status"
           aria-label="Loading profile"
         >
           <div className="h-8 w-2/3 bg-base-300 rounded" />
@@ -33,24 +36,42 @@ export default function ProfileScreen() {
   return (
     <AdminPageLayout
       title="Profile"
+      workspace="focused"
       description="Manage your display name and review your account details."
+      actions={
+        user ? (
+          <Button
+            type="submit"
+            form="admin-profile-form"
+            color="primary"
+            loading={saving}
+          >
+            <FaSave aria-hidden="true" />
+            Save profile
+          </Button>
+        ) : undefined
+      }
     >
       <Section title="Account">
         {user ? (
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <UserAvatar
-              name={user.name}
-              image={user.image}
-              size="lg"
-              className="ring-0"
-            />
-            <div className="min-w-0 space-y-4 wrap-anywhere">
+          <div className="admin-profile-layout">
+            <div className="space-y-3 wrap-anywhere">
+              <UserAvatar
+                name={user.name}
+                image={user.image}
+                size="lg"
+                className="shrink-0"
+              />
               <dl className="text-sm">
-                <dt className="text-base-content/60">Email</dt>
+                <dt className="text-(--text-muted)">Email</dt>
                 <dd className="font-medium">{user.email}</dd>
               </dl>
-              <DisplayNameForm key={user.id} initialName={user.name ?? ""} />
             </div>
+            <DisplayNameForm
+              key={user.id}
+              initialName={user.name ?? ""}
+              onSavingChangeAction={setSaving}
+            />
           </div>
         ) : (
           <Alert status="error" message="Unable to load your profile." />
@@ -60,7 +81,13 @@ export default function ProfileScreen() {
   );
 }
 
-function DisplayNameForm({ initialName }: { initialName: string }) {
+function DisplayNameForm({
+  initialName,
+  onSavingChangeAction,
+}: {
+  initialName: string;
+  onSavingChangeAction: (saving: boolean) => void;
+}) {
   const [name, setName] = useState(initialName);
   const [saving, setSaving] = useState(false);
   const [fieldError, setFieldError] = useState<string>();
@@ -85,6 +112,7 @@ function DisplayNameForm({ initialName }: { initialName: string }) {
     }
 
     setSaving(true);
+    onSavingChangeAction(true);
 
     try {
       const { error } = await authClient.updateUser({ name: parsed.data });
@@ -101,11 +129,16 @@ function DisplayNameForm({ initialName }: { initialName: string }) {
       );
     } finally {
       setSaving(false);
+      onSavingChangeAction(false);
     }
   }
 
   return (
-    <form className="space-y-3" onSubmit={(event) => void saveProfile(event)}>
+    <form
+      id="admin-profile-form"
+      className="min-w-0 space-y-3"
+      onSubmit={(event) => void saveProfile(event)}
+    >
       <Input
         autoComplete="nickname"
         disabled={saving}
@@ -120,9 +153,6 @@ function DisplayNameForm({ initialName }: { initialName: string }) {
         value={name}
       />
       <Alert status="error" message={saveError} />
-      <Button type="submit" color="primary" loading={saving}>
-        Save profile
-      </Button>
       <p role="status">{saved ? "Profile saved." : ""}</p>
     </form>
   );

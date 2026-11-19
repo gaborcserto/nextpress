@@ -6,40 +6,18 @@ import { useState, useEffect } from "react";
 
 import type { DetailTitle } from "./Breadcrumbs.types";
 
-// Build a readable label for each segment
-function toLabel(seg: string, prev?: string) {
-  const looksLikeId = /^[0-9a-z-]{8,}$/i.test(seg);
+function toLabel(segment: string, parent?: string) {
+  if (parent === "pages" || parent === "posts") {
+    const contentType = parent === "pages" ? "Page" : "Post";
+    const action =
+      segment === "new" || segment === "create" ? "Create" : "Edit";
 
-  // "new" / "create"
-  if ((seg === "new" || seg === "create") && prev) {
-    if (prev === "pages") {
-      return "Create Page";
-    }
-
-    if (prev === "posts") {
-      return "Create Post";
-    }
-
-    return "New";
+    return `${action} ${contentType}`;
   }
 
-  // ID segments
-  if (looksLikeId && prev) {
-    if (prev === "posts") {
-      return "Edit Post";
-    }
+  const words = segment.replace(/-/g, " ");
 
-    if (prev === "pages") {
-      return "Edit Page";
-    }
-
-    return "Edit";
-  }
-
-  // Slug to readable text
-  const spaced = seg.replace(/-/g, " ");
-
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 export default function Breadcrumbs() {
@@ -89,7 +67,8 @@ export default function Breadcrumbs() {
     const prev = segments[i - 1];
 
     // Default label from segment
-    let label = toLabel(seg, prev);
+    let label =
+      seg === "admin" ? (isLast ? "Dashboard" : "Admin") : toLabel(seg, prev);
 
     // Override with loaded title when it matches the current detail id
     if (detailId && seg === detailId && detailTitle?.id === seg) {
@@ -101,47 +80,35 @@ export default function Breadcrumbs() {
 
   if (items.length === 0) {
     return (
-      <nav
-        aria-label="Breadcrumb"
-        tabIndex={0}
-        className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <ul className="w-max pr-1">
+      <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
+        <ol>
           <li>
-            <Link href="/admin" className="link link-hover">
+            <Link href="/admin" className="truncate">
               Dashboard
             </Link>
           </li>
-        </ul>
+        </ol>
       </nav>
     );
   }
 
   return (
-    <nav
-      aria-label="Breadcrumb"
-      tabIndex={0}
-      className="breadcrumbs ms-0 min-w-0 flex-1 overflow-y-hidden text-sm focus-visible:outline-2 focus-visible:outline-primary"
-    >
-      <ul className="w-max pr-1">
+    <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
+      <ol>
         {items.map(({ href, label, isLast }) => (
-          <li key={href} className="max-w-[20ch] shrink-0 sm:max-w-[28ch]">
+          <li key={href} className="max-w-[28ch]">
             {isLast ? (
-              <span
-                aria-current="page"
-                title={label}
-                className="truncate text-base-content/70"
-              >
+              <span aria-current="page" title={label} className="truncate">
                 {label}
               </span>
             ) : (
-              <Link href={href} className="link link-hover truncate">
+              <Link href={href} className="truncate">
                 {label}
               </Link>
             )}
           </li>
         ))}
-      </ul>
+      </ol>
     </nav>
   );
 }

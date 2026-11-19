@@ -23,6 +23,8 @@ describe("UsersScreen creation form", () => {
       createForm: { email: "", name: "", role: "SUBSCRIBER", password: "" },
       setCreateForm: vi.fn(),
       createUser: createUserMock,
+      createError: null,
+      clearCreateError: vi.fn(),
       editingId: null,
       editingRole: "SUBSCRIBER",
       setEditingRole: vi.fn(),
@@ -36,9 +38,10 @@ describe("UsersScreen creation form", () => {
   });
 
   it("submits user creation from a required email form", () => {
-    const { container } = render(<UsersScreen />);
+    render(<UsersScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "Add user" }));
     const submit = screen.getByRole("button", { name: "Create user" });
-    const email = container.querySelector('input[type="email"]');
+    const email = screen.getByLabelText("Email");
 
     expect(email).toBeRequired();
     fireEvent.submit(submit.closest("form")!);

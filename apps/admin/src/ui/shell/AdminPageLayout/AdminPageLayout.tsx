@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
+
+import { AdminHeaderActions } from "../AdminHeaderActions";
 
 type AdminPageLayoutProps = {
   title: string;
-  description?: string;
+  description?: ReactNode;
   actions?: ReactNode;
+  workspace?: "wide" | "editor" | "settings" | "focused";
   children: ReactNode;
 };
 
@@ -11,17 +14,20 @@ export function AdminPageLayout({
   title,
   description,
   actions,
+  workspace = "wide",
   children,
 }: AdminPageLayoutProps) {
   return (
-    <div className="mx-auto w-full max-w-screen-2xl space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">{title}</h1>
-          {description && <p className="text-base-content/70">{description}</p>}
+    <div className="admin-page" data-workspace={workspace}>
+      <header className="admin-page-header">
+        <div className="min-w-0 space-y-1">
+          <h1 className="admin-page-title">{title}</h1>
+          {description && (
+            <div className="admin-page-description">{description}</div>
+          )}
         </div>
-        {actions}
       </header>
+      {actions && <AdminHeaderActions>{actions}</AdminHeaderActions>}
       {children}
     </div>
   );
@@ -34,9 +40,11 @@ type AdminPageColumnsProps = {
 
 export function AdminPageColumns({ sidebar, children }: AdminPageColumnsProps) {
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-      <aside className="space-y-6 lg:col-span-4">{sidebar}</aside>
-      <div className="min-w-0 space-y-6 lg:col-span-8">{children}</div>
+    <div className="admin-writing-workspace">
+      <div className="admin-writing-layout">
+        <div className="min-w-0 space-y-5">{children}</div>
+        <aside className="min-w-0 space-y-5">{sidebar}</aside>
+      </div>
     </div>
   );
 }

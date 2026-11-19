@@ -16,6 +16,7 @@ describe("Live Preview editing", () => {
     fireEvent.change(screen.getByRole("combobox"), {
       target: { value: "375px" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Show editing" }));
     fireEvent.click(screen.getByRole("button", { name: "Show preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Close Live Preview" }));
     expect(input).toHaveValue("Unsaved");

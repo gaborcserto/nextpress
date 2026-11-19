@@ -638,6 +638,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
       try {
         const context = await browser.newContext();
         const page = await context.newPage();
+        page.setDefaultTimeout(20_000);
         await page.goto(`${adminOrigin}/auth/sign-in`);
         await page.getByLabel("Email", { exact: true }).fill(email);
         await page.getByLabel("Password", { exact: true }).fill(password);
@@ -681,6 +682,9 @@ describe.skipIf(!ownerUrl || !appUrl)(
             page.getByLabel("Title", { exact: true }),
           ).toHaveValue(`Browser private ${kind}`);
           await page
+            .getByText("Draft recovery and history", { exact: true })
+            .click();
+          await page
             .getByRole("button", {
               name: "Reset private draft to live source",
               exact: true,
@@ -702,6 +706,9 @@ describe.skipIf(!ownerUrl || !appUrl)(
             await db.nPWorkingRevision.count({ where: { pageId: source.id } }),
           ).toBe(2);
           await page
+            .getByText("Draft recovery and history", { exact: true })
+            .click();
+          await page
             .getByLabel("Private revision history (latest 100 at load)")
             .selectOption("1");
           await page
@@ -722,6 +729,9 @@ describe.skipIf(!ownerUrl || !appUrl)(
           expect(
             await db.nPWorkingRevision.count({ where: { pageId: source.id } }),
           ).toBe(3);
+          await page
+            .getByText("Draft recovery and history", { exact: true })
+            .click();
           await page
             .getByLabel("Supported legacy history (from latest 100 at load)")
             .selectOption(legacy.id);
@@ -762,6 +772,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
             (await db.page.findUniqueOrThrow({ where: { id: source.id } }))
               .title,
           ).toBe(legacy.title);
+          await page.getByText("Schedule publication", { exact: true }).click();
           await page
             .getByLabel("Publication time (UTC)")
             .fill("2099-01-01T12:00");

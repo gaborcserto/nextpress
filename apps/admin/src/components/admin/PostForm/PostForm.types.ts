@@ -1,23 +1,30 @@
 import type {
-  PageFormValues,
+  PostFormValues,
   TagCreateFn,
   TagLoadEntityFn,
   TagLoadOptionsFn,
   TagUpdateEntityFn,
+  UploadFn,
 } from "@/lib/content/contracts";
 import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
 
-export type PageFormProps = {
+export type { PostFormValues, PostStatus } from "@/lib/content/contracts";
+
+export type PostFormProps = {
   privateEditing?: PrivateEditing;
-  initial: PageFormValues;
-  onSubmitAction: (values: PageFormValues) => Promise<boolean> | boolean;
+  contentId?: string;
+  initial: PostFormValues;
+  onSubmitAction: (values: PostFormValues) => Promise<boolean> | boolean;
   submitting?: boolean;
   submitLabel?: string;
 
-  /** Async tag search (required) */
+  /** Optional: alternate storage backend for cover image upload */
+  imageUploadAction?: UploadFn;
+
+  /** Async tag search (Taxonomy type = TAG) */
   loadTagOptionsAction: TagLoadOptionsFn;
 
-  /** Create new tag (required) */
+  /** Create a new tag (Taxonomy type = TAG) */
   createTagAction: TagCreateFn;
   loadEntityTagsAction: TagLoadEntityFn;
   updateEntityTagsAction: TagUpdateEntityFn;

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { normalizeSettingsForm } from "@/lib/settings/admin-settings";
 
@@ -11,6 +11,10 @@ const { useSettingsScreen } = vi.hoisted(() => ({
 vi.mock("./SettingsScreen.hooks", () => ({ useSettingsScreen }));
 
 describe("SettingsScreen", () => {
+  afterEach(() => {
+    window.history.replaceState(null, "", window.location.pathname);
+  });
+
   it("shows retry instead of a writable form after load failure", () => {
     const retry = vi.fn();
     useSettingsScreen.mockReturnValue({
@@ -22,11 +26,41 @@ describe("SettingsScreen", () => {
     });
     render(<SettingsScreen />);
     expect(
-      screen.queryByRole("button", { name: "Save settings" }),
+      screen.queryByRole("button", { name: "Save site settings" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Site name")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("keeps legacy Appearance links in the General tab", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/admin/settings#settings-appearance",
+    );
+    useSettingsScreen.mockReturnValue({
+      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
+      setForm: vi.fn(),
+      loaded: true,
+      loading: false,
+      saving: false,
+      error: null,
+      save: vi.fn(),
+    });
+
+    render(<SettingsScreen />);
+
+    expect(screen.getByRole("tab", { name: "General" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.queryByRole("tab", { name: "Appearance" })).toBeNull();
+    expect(document.getElementById("settings-appearance")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save site settings" }),
+    ).toBeVisible();
+    expect(document.querySelectorAll("form")).toHaveLength(1);
   });
 
   it("names provider controls and disables them during save", () => {
@@ -54,6 +88,8 @@ describe("SettingsScreen", () => {
       save: vi.fn(),
     });
     render(<SettingsScreen />);
+    fireEvent.click(screen.getByRole("tab", { name: "Authentication" }));
+    fireEvent.click(screen.getByText("github", { exact: true }));
     expect(
       screen.getByRole("checkbox", { name: "Enable github" }),
     ).toBeDisabled();
@@ -61,6 +97,49 @@ describe("SettingsScreen", () => {
       screen.getByRole("textbox", { name: "github client ID" }),
     ).toBeDisabled();
     expect(screen.getByLabelText("github new secret")).toBeDisabled();
+  });
+
+  it("submits a new provider secret even after its disclosure is closed", async () => {
+    const save = vi.fn().mockResolvedValue(true);
+    useSettingsScreen.mockReturnValue({
+      form: normalizeSettingsForm(
+        {
+          siteName: "NextPress",
+          oauthProviders: [
+            {
+              provider: "github",
+              enabled: true,
+              clientId: "example-client",
+              hasClientId: true,
+              hasClientSecret: true,
+              operational: true,
+            },
+          ],
+        },
+        "SUBSCRIBER",
+      ),
+      loaded: true,
+      loading: false,
+      saving: false,
+      save,
+    });
+    render(<SettingsScreen />);
+    fireEvent.click(screen.getByRole("tab", { name: "Authentication" }));
+    const provider = screen.getByText("github", { exact: true });
+    fireEvent.click(provider);
+    const secret = screen.getByLabelText("github new secret");
+    expect(secret).toHaveValue("");
+    fireEvent.change(secret, { target: { value: "replacement" } });
+    fireEvent.click(provider);
+    fireEvent.click(screen.getByRole("tab", { name: "General" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
+
+    await waitFor(() => {
+      expect(save).toHaveBeenCalledExactlyOnceWith({
+        github: { clientSecret: "replacement" },
+      });
+      expect(secret).toHaveValue("");
+    });
   });
 
   it("exposes bounded public listing mode and batch controls", () => {
@@ -76,6 +155,7 @@ describe("SettingsScreen", () => {
 
     render(<SettingsScreen />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "Publishing" }));
     expect(screen.getByRole("combobox", { name: "Listing mode" })).toHaveValue(
       "PAGINATION",
     );
@@ -92,7 +172,9 @@ describe("SettingsScreen", () => {
 
   it("shows inline feedback for an invalid batch size", () => {
     const form = normalizeSettingsForm(undefined, "SUBSCRIBER");
+    form.siteName = "NextPress";
     form.postsPerPage = 51;
+    const save = vi.fn();
     useSettingsScreen.mockReturnValue({
       form,
       setForm: vi.fn(),
@@ -100,11 +182,14 @@ describe("SettingsScreen", () => {
       loading: false,
       saving: false,
       error: null,
-      save: vi.fn(),
+      save,
     });
 
     render(<SettingsScreen />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
+    expect(screen.getByRole("tabpanel", { name: "Publishing" })).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
     expect(
       screen.getByRole("spinbutton", { name: "Posts per page / batch" }),
     ).toHaveAttribute("aria-invalid", "true");

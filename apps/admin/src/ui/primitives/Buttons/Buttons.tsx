@@ -189,27 +189,24 @@ export function IconButton({
 
   let content: ReactNode;
 
-  if (loading) {
+  if (loading || children) {
     content = (
-      <span className="inline-flex items-center gap-2">
-        <span
-          className={cx("loading loading-spinner", spinnerSize(size))}
-          aria-hidden="true"
-        />
-        <span className="sr-only">Loading</span>
+      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
+        {loading ? (
+          <span
+            className="loading loading-spinner shrink-0"
+            style={{ inlineSize: iconSize, blockSize: iconSize }}
+            aria-hidden="true"
+          />
+        ) : (
+          Icon && <Icon size={iconSize} aria-hidden="true" />
+        )}
         {children && <span>{children}</span>}
-      </span>
-    );
-  } else if (children) {
-    content = (
-      <span className="inline-flex items-center gap-2">
-        {Icon && <Icon size={iconSize} />}
-        <span>{children}</span>
-        {RightIcon && <RightIcon size={iconSize} />}
+        {RightIcon && <RightIcon size={iconSize} aria-hidden="true" />}
       </span>
     );
   } else if (Icon) {
-    content = <Icon size={iconSize} />;
+    content = <Icon size={iconSize} aria-hidden="true" />;
   } else {
     content = null;
   }

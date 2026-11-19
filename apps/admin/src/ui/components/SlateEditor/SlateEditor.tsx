@@ -23,6 +23,7 @@ import type { SlateEditorProps } from "./slate.types";
 export default function SlateEditor({
   label = "Content",
   readOnly = false,
+  compact = false,
   value,
   onChangeAction,
 }: SlateEditorProps) {
@@ -252,7 +253,10 @@ export default function SlateEditor({
             placeholder="Write your content..."
             renderElement={renderElement}
             renderLeaf={renderLeaf}
-            className={`${styles.content} min-h-75 p-4 focus-visible:outline-2 focus-visible:outline-primary`}
+            className={`${styles.content} p-4 focus-visible:outline-2 focus-visible:outline-primary`}
+            style={{
+              minHeight: compact ? "5rem" : "clamp(13rem, 34dvh, 24rem)",
+            }}
           />
         )}
       </Slate>

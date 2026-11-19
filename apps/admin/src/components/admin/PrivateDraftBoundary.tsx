@@ -14,8 +14,9 @@ import {
   loadTagOptionsAction,
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
-import { PageForm } from "@/ui/shell/PageForm";
-import { PostForm } from "@/ui/shell/PostForm";
+
+import { PageForm } from "./PageForm";
+import { PostForm } from "./PostForm";
 
 import type { WorkingAggregateEnvelope } from "@nextpress/shared/working-aggregate";
 import type { ReactNode } from "react";

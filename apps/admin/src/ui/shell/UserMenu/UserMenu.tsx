@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 
 import { signOut } from "@/lib/auth/auth-client";
-import { UserAvatar } from "@/ui/components";
+import { UserAvatar } from "@/ui/components/UserAvatar";
 import {
   Dropdown,
   DropdownTrigger,
@@ -13,7 +13,7 @@ import {
   DropdownItem,
   DropdownDivider,
   DropdownLabel,
-} from "@/ui/primitives/Dropdown/Dropdown";
+} from "@/ui/primitives/Dropdown";
 import { showToast } from "@/ui/utils";
 
 import type { UserMenuProps } from "./UserMenu.types";
@@ -42,16 +42,16 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
     <Dropdown align="end">
       <DropdownTrigger
         ariaLabel="Open user menu"
-        className="btn btn-ghost btn-circle"
+        className="admin-account-trigger btn-square"
       >
         <UserAvatar name={name} image={image} size="sm" />
       </DropdownTrigger>
 
-      <DropdownMenu aria-label="User menu">
+      <DropdownMenu aria-label="User menu" className="admin-account-menu">
         <DropdownLabel>
           <div className="flex flex-col">
-            <span className="text-sm truncate">{name}</span>
-            <span className="text-xs text-base-content/60 truncate">
+            <span className="text-sm wrap-anywhere">{name}</span>
+            <span className="text-xs text-(--text-muted) wrap-anywhere">
               {role ?? "User"}
             </span>
           </div>

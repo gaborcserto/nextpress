@@ -1,27 +1,45 @@
 :root {
   color-scheme: light dark;
 
-  --surface-bg: light-dark(white, #1f2937);
-  --surface-border: light-dark(rgb(0 0 0 / 20%), rgb(255 255 255 / 30%));
-  --text-muted: light-dark(#4b5563, #9ca3af);
-  --accent-solid: light-dark(#2563eb, #93c5fd);
-  --accent-soft: light-dark(#eff6ff, rgb(255 255 255 / 10%));
-  --control-icon: light-dark(#4b5563, #9ca3af);
-  --control-icon-hover: light-dark(#18181b, #e5e7eb);
+  --surface-bg: var(--color-base-100);
+  --surface-border: light-dark(#dedfe3, #3b4250);
+  --surface-rail: light-dark(#f4f5f7, #1b2028);
+  --text-muted: light-dark(#4b5563, #b2bdca);
+  --accent-text: light-dark(var(--color-primary), #95c8ff);
+  --danger-text: light-dark(#a82628, #ff9e99);
+  --accent-solid: var(--color-primary);
+  --accent-soft: light-dark(#e9f1fc, #283953);
+  --control-icon: var(--text-muted);
+  --control-icon-hover: var(--color-base-content);
+  --field-border: light-dark(#cbd2dc, #566171);
+  --control-border: light-dark(#aeb8c5, #737f90);
+  --overlay-backdrop: rgb(17 24 39 / 55%);
+  --status-success-text: light-dark(#24543a, #a9d9b6);
+  --status-warning-text: light-dark(#6c4b12, #f5d89b);
 
+  --font-admin: var(--font-sans);
   --text-ui-size: 0.875rem;
   --text-ui-leading: 1.25rem;
   --space-control-inline: 1rem;
   --radius-surface: 0.75rem;
-  --radius-control: 0.375rem;
-  --shadow-topbar: 0 8px 24px rgb(0 0 0 / 8%);
+  --radius-control: 0.5rem;
+  --shadow-control-picker: 0 4px 14px rgb(10 16 30 / 14%);
+  --shadow-overlay: 0 10px 30px rgb(10 16 30 / 16%);
   --focus-color: var(--accent-solid);
   --focus-width: 2px;
   --focus-offset: 2px;
   --target-min: 24px;
+  --target-touch: 44px;
+  --motion-fast: 150ms;
   --motion-spinner: 750ms;
   --layout-auth-gutter: 1rem;
-  --layout-auth-max-width: 28rem;
+  --layout-auth-max-width: 25rem;
+  --admin-topbar-height: 3.75rem;
+  --workspace-wide: 112rem;
+  --workspace-editor: 94rem;
+  --workspace-settings: 74rem;
+  --workspace-focused: 56rem;
+  --layout-page-gutter: clamp(0.875rem, 2.6vw, 2.5rem);
 }
 
 :root[data-theme="light"] {

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import {
@@ -8,11 +10,18 @@ import {
   DataListSurface,
 } from "@/ui/components/DataList";
 import {
+  SortableHeader,
+  useTableSort,
+  sortableTimestamp,
+} from "@/ui/components/DataList/SortableHeader";
+import {
   Alert,
   Button,
   IconButton,
+  Input,
   LinkIconButton,
   ConfirmDialog,
+  Select,
   useConfirmDialog,
 } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
@@ -45,13 +54,33 @@ export default function ContentList({
   showCategories = false,
   showTags = false,
 }: ContentListProps) {
-  // Calculate colspan for the "empty" row based on enabled columns
-  const baseCols = 5; // Title, Slug, Status, Date, Actions
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const sort = useTableSort<"title" | "author" | "status" | "updatedAt">(
+    "updatedAt",
+    "descending",
+  );
+  const baseCols = 4;
   const extraCols =
     Number(showAuthor) + Number(showCategories) + Number(showTags);
   const colSpan = baseCols + extraCols;
 
   const confirm = useConfirmDialog<ConfirmPayload>();
+  const query = search.trim().toLocaleLowerCase();
+  const filteredItems = items.filter((item) => {
+    const matchesQuery = [item.title, item.slug].some((value) =>
+      value.toLocaleLowerCase().includes(query),
+    );
+
+    return matchesQuery && (status === "all" || item.status === status);
+  });
+
+  const visibleItems = sort.sortRows(filteredItems, {
+    title: (item) => item.title,
+    author: (item) => item.author || null,
+    status: (item) => item.status,
+    updatedAt: (item) => sortableTimestamp(item.updatedAt),
+  });
 
   const askDelete = (id: string, title: string) => confirm.show({ id, title });
 
@@ -66,6 +95,7 @@ export default function ContentList({
   return (
     <AdminPageLayout
       title={heading}
+      description="Search, status filtering, and sorting apply to the current page."
       actions={
         <LinkIconButton
           href={createHref}
@@ -77,96 +107,179 @@ export default function ContentList({
         </LinkIconButton>
       }
     >
-      {error ? (
+      <div className="admin-list-toolbar">
+        <Input
+          label="Search this page"
+          placeholder="Title or slug"
+          fullWidth
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <Select
+          label="Status"
+          fullWidth
+          value={status}
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "DRAFT", label: "Draft" },
+            { value: "PUBLISHED", label: "Published" },
+          ]}
+          onChangeAction={setStatus}
+        />
+      </div>
+
+      {error && (
         <div className="space-y-3">
           <Alert status="error" message={error} />
           {onRetryAction && <Button onClick={onRetryAction}>Retry</Button>}
         </div>
-      ) : isLoading ? (
+      )}
+      {isLoading ? (
         <DataListLoading label={heading.toLowerCase()} />
       ) : (
-        <DataListSurface>
-          <table className="table min-w-[900px] table-zebra w-full">
-            <thead className="bg-base-200">
-              <tr>
-                <th>Title</th>
-                <th>Slug</th>
-                {showAuthor && <th>Author</th>}
-                {showCategories && <th>Categories</th>}
-                {showTags && <th>Tags</th>}
-                <th>Status</th>
-                <th>Date</th>
-                <th className="whitespace-nowrap text-right">Actions</th>
-              </tr>
-            </thead>
+        !error && (
+          <DataListSurface>
+            <table
+              className="table admin-responsive-table w-full"
+              role="table"
+              aria-label={heading}
+            >
+              <thead role="rowgroup">
+                <tr role="row">
+                  <SortableHeader column="title" sort={sort}>
+                    Title
+                  </SortableHeader>
+                  {showAuthor && (
+                    <SortableHeader column="author" sort={sort}>
+                      Author
+                    </SortableHeader>
+                  )}
+                  {showCategories && (
+                    <th role="columnheader" scope="col">
+                      Categories
+                    </th>
+                  )}
+                  {showTags && (
+                    <th role="columnheader" scope="col">
+                      Tags
+                    </th>
+                  )}
+                  <SortableHeader column="status" sort={sort}>
+                    Status
+                  </SortableHeader>
+                  <SortableHeader column="updatedAt" sort={sort}>
+                    Last modified
+                  </SortableHeader>
+                  <th role="columnheader" scope="col" className="text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody>
-              {items.length ? (
-                items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.title}</td>
-                    <td>{item.slug}</td>
-
-                    {showAuthor && <td>{item.author || "—"}</td>}
-
-                    {showCategories && (
-                      <td>{item.categories?.join(", ") || "—"}</td>
-                    )}
-
-                    {showTags && <td>{item.tags?.join(", ") || "—"}</td>}
-
-                    <td>
-                      <span
-                        className={`badge ${
-                          item.status === "PUBLISHED"
-                            ? "badge-success"
-                            : "badge-warning"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-
-                    <td>{item.dateLabel ?? "—"}</td>
-
-                    <td className="whitespace-nowrap text-right">
-                      <div className="flex justify-end gap-2">
-                        <LinkIconButton
+              <tbody role="rowgroup">
+                {visibleItems.length ? (
+                  visibleItems.map((item) => (
+                    <tr key={item.id} role="row">
+                      <td role="cell" className="admin-table-identity">
+                        <Link
                           href={editHrefAction(item.id)}
-                          size="sm"
-                          variant="soft"
-                          icon={FaEdit}
-                          aria-label={`Edit ${item.title}`}
+                          className="font-semibold"
                         >
-                          Edit
-                        </LinkIconButton>
+                          {item.title}
+                        </Link>
+                        <div className="text-sm text-(--text-muted)">
+                          /{item.slug}
+                        </div>
+                      </td>
 
-                        {onDeleteAction && (
-                          <IconButton
-                            icon={FaTrash}
+                      {showAuthor && (
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Author
+                          </span>
+                          {item.author || "—"}
+                        </td>
+                      )}
+
+                      {showCategories && (
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Categories
+                          </span>
+                          {item.categories?.join(", ") || "—"}
+                        </td>
+                      )}
+
+                      {showTags && (
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Tags
+                          </span>
+                          {item.tags?.join(", ") || "—"}
+                        </td>
+                      )}
+
+                      <td role="cell">
+                        <span
+                          className="badge badge-soft"
+                          data-content-status={item.status}
+                        >
+                          {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                        </span>
+                      </td>
+
+                      <td role="cell" className="text-(--text-muted)">
+                        <span className="admin-cell-label" aria-hidden="true">
+                          Last modified
+                        </span>
+                        {item.dateLabel ?? "—"}
+                      </td>
+
+                      <td
+                        role="cell"
+                        className="admin-table-actions text-right"
+                      >
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <LinkIconButton
+                            href={editHrefAction(item.id)}
                             size="sm"
-                            color="error"
-                            variant="solid"
-                            loading={deletingId === item.id}
-                            disabled={Boolean(deletingId)}
-                            aria-label={`Delete ${item.title}`}
-                            onClick={() => askDelete(item.id, item.title)}
+                            variant="soft"
+                            icon={FaEdit}
+                            aria-label={`Edit ${item.title}`}
                           >
-                            Delete
-                          </IconButton>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <DataListEmptyRow colSpan={colSpan}>
-                  No items found.
-                </DataListEmptyRow>
-              )}
-            </tbody>
-          </table>
-        </DataListSurface>
+                            Edit
+                          </LinkIconButton>
+
+                          {onDeleteAction && (
+                            <IconButton
+                              icon={FaTrash}
+                              size="sm"
+                              color="error"
+                              variant="soft"
+                              loading={deletingId === item.id}
+                              disabled={Boolean(deletingId)}
+                              aria-label={`Delete ${item.title}`}
+                              onClick={() => askDelete(item.id, item.title)}
+                            >
+                              Delete
+                            </IconButton>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <DataListEmptyRow colSpan={colSpan}>
+                    {query || status !== "all"
+                      ? "No matches on this page."
+                      : "No items found."}
+                  </DataListEmptyRow>
+                )}
+              </tbody>
+            </table>
+          </DataListSurface>
+        )
       )}
 
       {pagination && (

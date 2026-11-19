@@ -8,24 +8,14 @@ const { useSessionMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/auth-client", () => ({ useSession: useSessionMock }));
-vi.mock("@/ui/components", () => ({
-  ThemeToggle: () => null,
-  UserAvatar: () => <span>Admin avatar</span>,
-}));
+vi.mock("@/ui/components/ThemeToggle", () => ({ ThemeToggle: () => null }));
 vi.mock("@/ui/shell/Breadcrumbs", () => ({ Breadcrumbs: () => null }));
 vi.mock("@/ui/shell/UserMenu", () => ({ UserMenu: () => null }));
 
 describe("Topbar mobile navigation", () => {
   it("provides an accessible trigger for opening mobile navigation", () => {
     const onOpen = vi.fn();
-    render(
-      <Topbar
-        scrolled={false}
-        mobileNavOpen={false}
-        mobileNavTriggerRef={() => {}}
-        onMobileNavOpenAction={onOpen}
-      />,
-    );
+    render(<Topbar mobileNavOpen={false} onMobileNavOpenAction={onOpen} />);
 
     const trigger = screen.getByRole("button", {
       name: "Open navigation",

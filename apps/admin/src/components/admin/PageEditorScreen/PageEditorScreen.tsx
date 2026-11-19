@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { PrivateDraftBoundary } from "@/components/admin/PrivateDraftBoundary";
 import { ApiRequestError } from "@/lib/api/client";
 import {
@@ -11,9 +9,10 @@ import {
   updateEntityTagsAction,
 } from "@/lib/services/tag.client";
 import { Alert } from "@/ui/primitives";
-import { AdminPageLayout, PageForm } from "@/ui/shell";
+import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { usePageEditor } from "./PageEditorScreen.hooks";
+import { PageForm } from "../PageForm";
 
 import type { PageEditorScreenProps } from "./PageEditorScreen.types";
 
@@ -74,25 +73,19 @@ function LegacyPageEditorScreen({ id }: PageEditorScreenProps) {
   }
 
   return (
-    <>
-      {isEdit && (
-        <Link className="btn" href={`/admin/pages/${id}/revisions`}>
-          Working revisions
-        </Link>
-      )}
-      <PageForm
-        key={id ?? "new"}
-        initial={item}
-        submitting={saving}
-        submitLabel={submitLabel}
-        onSubmitAction={handleSubmit}
-        loadTagOptionsAction={loadTagOptionsAction}
-        createTagAction={createTagAction}
-        loadEntityTagsAction={loadEntityTagsAction}
-        updateEntityTagsAction={updateEntityTagsAction}
-        sidebarTitle={title}
-        sidebarSubtitle={subtitle}
-      />
-    </>
+    <PageForm
+      key={id ?? "new"}
+      contentId={id}
+      initial={item}
+      submitting={saving}
+      submitLabel={submitLabel}
+      onSubmitAction={handleSubmit}
+      loadTagOptionsAction={loadTagOptionsAction}
+      createTagAction={createTagAction}
+      loadEntityTagsAction={loadEntityTagsAction}
+      updateEntityTagsAction={updateEntityTagsAction}
+      sidebarTitle={title}
+      sidebarSubtitle={subtitle}
+    />
   );
 }

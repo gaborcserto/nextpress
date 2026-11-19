@@ -1,41 +1,32 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import {
+  FaCog,
   FaCopy,
   FaHome,
   FaTags,
   FaThumbtack,
-  FaUsers,
-  FaCog,
   FaTimes,
+  FaUsers,
 } from "react-icons/fa";
 import {
   TbLayoutSidebarLeftCollapseFilled,
   TbLayoutSidebarRightExpandFilled,
 } from "react-icons/tb";
 
-import { IconButton } from "@/ui/primitives";
 import { NavItem } from "@/ui/shell/NavItem";
-
-import type { IconType } from "react-icons";
 
 import type { NavConfig, SidebarProps } from "./Sidebar.types";
 
-const MotionSpan = motion.span;
-const MotionDiv = motion.div;
-
-type ItemInput = { href: string; label: string; icon: IconType };
-
-const ITEMS: readonly ItemInput[] = [
+const publishingItems: readonly NavConfig[] = [
   { href: "/admin", label: "Dashboard", icon: FaHome },
   { href: "/admin/pages", label: "Pages", icon: FaCopy },
   { href: "/admin/posts", label: "Posts", icon: FaThumbtack },
   { href: "/admin/taxonomy", label: "Taxonomy", icon: FaTags },
 ];
 
-const ADMIN_ITEMS: readonly ItemInput[] = [
+const administrationItems: readonly NavConfig[] = [
   { href: "/admin/users", label: "Users", icon: FaUsers },
   { href: "/admin/settings", label: "Settings", icon: FaCog },
 ];
@@ -48,103 +39,71 @@ export default function Sidebar({
   onToggleCollapsedAction,
 }: SidebarProps) {
   const pathname = usePathname();
-
-  const isActive = (href: string) =>
-    href === "/admin"
-      ? pathname === "/admin"
-      : pathname === href || pathname.startsWith(href + "/");
-
-  const renderItem = (it: NavConfig) => (
-    <div
-      key={it.href}
-      className={collapsed ? "tooltip tooltip-right" : undefined}
-      data-tip={collapsed ? it.label : undefined}
-    >
-      <NavItem
-        href={it.href}
-        label={it.label}
-        IconAction={it.icon}
-        active={isActive(it.href)}
-        collapsed={collapsed}
-        onClickAction={onItemClickAction}
-      />
-    </div>
-  );
+  const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  const groups =
+    role === "ADMIN"
+      ? [
+          { label: "Publishing", items: publishingItems },
+          { label: "Administration", items: administrationItems },
+        ]
+      : [{ label: "Publishing", items: publishingItems }];
 
   return (
-    <aside className="h-full overflow-visible flex flex-col">
-      <div
-        className={`h-14 shrink-0 px-3 flex items-center gap-2 ${onCloseAction ? "sticky top-0 z-10 bg-base-100" : ""}`}
-      >
-        <MotionDiv
-          layout
-          initial={false}
-          className="min-w-0 flex-1 font-semibold whitespace-nowrap"
-          transition={{ type: "spring", stiffness: 260, damping: 22 }}
-        >
-          <MotionSpan
-            layout
-            initial={false}
-            className={
-              collapsed ? "block w-full text-center" : "block w-full text-left"
-            }
-            animate={{
-              scale: collapsed ? 1.03 : 1,
-              letterSpacing: collapsed ? "0.08em" : "0em",
-            }}
-            transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            suppressHydrationWarning
-          >
-            {collapsed ? "NP" : "NextPress"}
-          </MotionSpan>
-        </MotionDiv>
+    <div className="admin-sidebar" data-collapsed={collapsed}>
+      <div className="admin-sidebar-heading">
+        <span className="admin-wordmark" aria-label="NextPress">
+          {collapsed ? "NP" : "NextPress"}
+        </span>
         {onCloseAction && (
           <button
             type="button"
             aria-label="Close navigation"
-            className="btn btn-square size-11 shrink-0"
+            className="btn btn-ghost btn-square admin-nav-trigger"
             onClick={onCloseAction}
           >
-            <FaTimes aria-hidden="true" />
+            <FaTimes size={18} aria-hidden="true" />
           </button>
         )}
       </div>
-
-      <nav
-        aria-label="Admin navigation"
-        className="flex-1 px-2 py-2 flex flex-col gap-1"
-      >
-        {ITEMS.map((it) => renderItem(it))}
-
-        {role === "ADMIN" && (
-          <>
-            <div className="divider my-2" />
-            {ADMIN_ITEMS.map((it) => renderItem(it))}
-          </>
-        )}
-      </nav>
-
-      {onToggleCollapsedAction && (
-        <div className="px-2 pb-2">
-          <div className="divider my-2" />
-          <div
-            className="tooltip tooltip-right w-full flex justify-start h-10"
-            data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <IconButton
-              icon={
-                collapsed
-                  ? TbLayoutSidebarLeftCollapseFilled
-                  : TbLayoutSidebarRightExpandFilled
-              }
-              variant="ghost"
-              size="sm"
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              onClick={onToggleCollapsedAction}
-            />
+      <nav aria-label="Admin navigation" className="admin-sidebar-nav">
+        {groups.map(({ label, items }) => (
+          <div key={label} className="admin-nav-group">
+            <p className={collapsed ? "sr-only" : "admin-nav-label"}>{label}</p>
+            {items.map(({ href, label: itemLabel, icon }) => (
+              <div key={href}>
+                <NavItem
+                  href={href}
+                  label={itemLabel}
+                  IconAction={icon}
+                  active={
+                    pathname === href ||
+                    (href !== "/admin" && pathname.startsWith(href + "/"))
+                  }
+                  collapsed={collapsed}
+                  onClickAction={onItemClickAction}
+                />
+              </div>
+            ))}
           </div>
+        ))}
+      </nav>
+      {onToggleCollapsedAction && (
+        <div className="admin-sidebar-footer">
+          <button
+            type="button"
+            aria-label={collapseLabel}
+            className="admin-nav-link"
+            onClick={onToggleCollapsedAction}
+          >
+            {collapsed ? (
+              <TbLayoutSidebarLeftCollapseFilled size={18} aria-hidden="true" />
+            ) : (
+              <TbLayoutSidebarRightExpandFilled size={18} aria-hidden="true" />
+            )}
+            {!collapsed && <span>Collapse</span>}
+          </button>
         </div>
       )}
-    </aside>
+    </div>
   );
 }

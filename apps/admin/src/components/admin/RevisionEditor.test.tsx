@@ -60,6 +60,29 @@ async function openEditor() {
 }
 
 describe("revision actions", () => {
+  it("shows a compact empty history state when no snapshots exist", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ version: 2, current: snapshot, revisions: [] }),
+    );
+    render(<RevisionEditor pageId="page-1" />);
+
+    expect(
+      await screen.findByText("No saved revisions yet."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Saved snapshots will appear here after you save the working copy.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save working revision" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Publish revision" }),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([
     ["Restore revision", "restore", "Revision restored as a new draft."],
     ["Publish revision", "publish", "Revision published."],

@@ -11,7 +11,7 @@ export function SignInFormFooter({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-1">
-        <label className="label cursor-pointer gap-2 px-0">
+        <label className="label min-h-8 cursor-pointer gap-2 px-0 whitespace-normal">
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
@@ -26,7 +26,7 @@ export function SignInFormFooter({
         </Link>
       </div>
 
-      <p className="text-center mt-5 text-sm text-base-content/70">
+      <p className="text-center text-sm text-(--text-muted)">
         Don&apos;t have an account yet?{" "}
         <Link href="/auth/sign-up" className="font-semibold link link-primary">
           Sign Up

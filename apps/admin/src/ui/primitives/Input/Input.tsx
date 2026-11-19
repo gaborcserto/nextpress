@@ -92,11 +92,13 @@ function Input(props: InputProps) {
 
   const inputClasses = cx(baseInputClasses, paddingStartCls, paddingEndCls);
 
-  const describedBy = error
+  const messageId = error
     ? `${inputId}-error`
     : hint
       ? `${inputId}-hint`
       : undefined;
+  const describedBy =
+    cx(inputProps["aria-describedby"], messageId) || undefined;
 
   return (
     <div className="form-control w-full relative">
@@ -117,7 +119,7 @@ function Input(props: InputProps) {
           {...inputProps}
           id={inputId}
           type={actualType}
-          aria-invalid={!!error}
+          aria-invalid={error ? true : inputProps["aria-invalid"]}
           aria-describedby={describedBy}
           className={inputClasses}
           value={currentValue}

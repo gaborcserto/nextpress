@@ -19,7 +19,9 @@ vi.mock("@/ui/components", async () => ({
     await import("@/ui/components/HierarchyField/HierarchyField")
   ).default,
   ListingFields: () => null,
-  MenuPlacementField: () => null,
+  MenuPlacementField: (
+    await import("@/ui/components/MenuPlacementField/MenuPlacementField")
+  ).default,
   PageTypeField: (await import("@/ui/components/PageTypeField/PageTypeField"))
     .default,
   RedirectField: () => null,
@@ -71,6 +73,37 @@ function renderPage(
 }
 
 describe("PageForm", () => {
+  it("keeps header and footer menu placements independently selectable and saved", async () => {
+    const save = vi.fn(async () => true);
+    renderPage(
+      {
+        ...initial,
+        title: "Navigation page",
+        slug: "navigation-page",
+        inHeaderMenu: true,
+      },
+      save,
+    );
+
+    const headerPlacement = screen.getByRole("checkbox", {
+      name: "Show in header menu",
+    });
+    const footerPlacement = screen.getByRole("checkbox", {
+      name: "Show in footer menu",
+    });
+    expect(headerPlacement).toBeChecked();
+    expect(footerPlacement).not.toBeChecked();
+
+    fireEvent.click(footerPlacement);
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Save" })),
+    );
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ inHeaderMenu: true, inFooterMenu: true }),
+    );
+  });
+
   it("retains failed edits and retries tags through the same form save", async () => {
     const save = vi
       .fn()

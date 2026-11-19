@@ -9,6 +9,7 @@ export type ContentListItem = {
   categories?: string[];
   tags?: string[];
   dateLabel?: string;
+  updatedAt?: string | null;
 };
 
 export type ContentListProps = {

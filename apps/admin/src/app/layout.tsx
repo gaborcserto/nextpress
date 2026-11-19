@@ -11,7 +11,7 @@ import { Providers } from "./providers";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-export const metadata: Metadata = { title: "Admin" };
+export const metadata: Metadata = { title: "NextPress Admin" };
 
 export default async function RootLayout({
   children,

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -34,8 +34,7 @@ type DropdownContextValue = {
   menuId: string;
   triggerRef: RefObject<HTMLButtonElement | null>;
   menuRef: RefObject<HTMLUListElement | null>;
-  onAction?: DropdownAction;
-  setOnAction?: (fn?: DropdownAction) => void;
+  actionRef: RefObject<DropdownAction | undefined>;
 };
 
 const DropdownContext = createContext<DropdownContextValue | null>(null);
@@ -58,7 +57,7 @@ export function Dropdown({
   className,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
-  const [onAction, setOnAction] = useState<DropdownAction | undefined>();
+  const actionRef = useRef<DropdownAction>(undefined);
   const menuId = useId();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -69,26 +68,29 @@ export function Dropdown({
       return;
     }
 
-    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    menuRef.current
+      ?.querySelector<HTMLElement>(
+        ':is([role="menuitem"], [role="menuitemradio"]):not([disabled])',
+      )
+      ?.focus();
   }, [open]);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (!wrapperRef.current) {
-        return;
-      }
-
-      if (!wrapperRef.current.contains(e.target as Node)) {
+    function handleClickOutside(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !wrapperRef.current?.contains(event.target)
+      ) {
         setOpen(false);
       }
     }
 
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("pointerdown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
     };
   }, [open]);
 
@@ -98,20 +100,20 @@ export function Dropdown({
     menuId,
     triggerRef,
     menuRef,
-    onAction,
-    setOnAction,
+    actionRef,
   };
 
   return (
     <DropdownContext.Provider value={value}>
       <div
         ref={wrapperRef}
-        className={cx(
-          "dropdown",
-          align === "end" && "dropdown-end",
-          open && "dropdown-open",
-          className,
-        )}
+        onBlur={(event) => {
+          if (open && !event.currentTarget.contains(event.relatedTarget)) {
+            setOpen(false);
+          }
+        }}
+        className={cx("admin-dropdown", className)}
+        data-align={align}
       >
         {children}
       </div>
@@ -142,6 +144,12 @@ export function DropdownTrigger({
       aria-controls={menuId}
       aria-label={ariaLabel}
       onClick={handleClick}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          setOpen(true);
+        }
+      }}
     >
       {children}
     </button>
@@ -156,14 +164,16 @@ export function DropdownMenu({
   "aria-label": ariaLabel,
   onAction,
 }: DropdownMenuProps) {
-  const { open, menuId, setOnAction, menuRef, setOpen, triggerRef } =
+  const { open, menuId, actionRef, menuRef, setOpen, triggerRef } =
     useDropdownContext();
 
   useEffect(() => {
-    setOnAction?.(onAction);
+    actionRef.current = onAction;
 
-    return () => setOnAction?.(undefined);
-  }, [onAction, setOnAction]);
+    return () => {
+      actionRef.current = undefined;
+    };
+  }, [onAction, actionRef]);
 
   if (!open) {
     return null;
@@ -172,7 +182,7 @@ export function DropdownMenu({
   const handleKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const items = Array.from(
       menuRef.current?.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([disabled])',
+        ':is([role="menuitem"], [role="menuitemradio"]):not([disabled])',
       ) ?? [],
     );
     const index = items.indexOf(document.activeElement as HTMLElement);
@@ -197,8 +207,12 @@ export function DropdownMenu({
     if (nextIndex !== undefined) {
       event.preventDefault();
       items[nextIndex]?.focus();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
+    } else if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
       setOpen(false);
       triggerRef.current?.focus();
     }
@@ -210,11 +224,8 @@ export function DropdownMenu({
       ref={menuRef}
       role="menu"
       aria-label={ariaLabel}
-      tabIndex={0}
-      className={cx(
-        "dropdown-content menu bg-base-100 rounded-[var(--radius-surface)] shadow border border-base-300 w-56 p-2",
-        className,
-      )}
+      tabIndex={-1}
+      className={cx("admin-dropdown-menu", className)}
       onKeyDown={handleKeyDown}
     >
       {children}
@@ -235,7 +246,7 @@ export function DropdownItem({
   onClick,
   ...buttonProps
 }: DropdownItemProps) {
-  const { setOpen, onAction, triggerRef } = useDropdownContext();
+  const { setOpen, actionRef, triggerRef } = useDropdownContext();
 
   const handleClick = (e: ReactMouseEvent<HTMLButtonElement>) => {
     if (disabled) {
@@ -243,7 +254,7 @@ export function DropdownItem({
     }
 
     onClick?.(e);
-    onAction?.(itemKey);
+    actionRef.current?.(itemKey);
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -257,7 +268,7 @@ export function DropdownItem({
         role="menuitem"
         tabIndex={-1}
         className={cx(
-          "flex w-full items-center justify-between gap-2 px-3 py-2 rounded-[var(--radius-control)] text-sm",
+          "flex w-full items-center justify-between gap-2 px-3 py-2 min-h-11 rounded-(--radius-control) text-sm",
           "hover:bg-base-200",
           disabled && "opacity-50 pointer-events-none",
           colorCls,
@@ -282,10 +293,7 @@ export function DropdownItem({
 export function DropdownLabel({ children, className }: DropdownLabelProps) {
   return (
     <li
-      className={cx(
-        "menu-title px-2 py-1 text-xs uppercase tracking-wide opacity-70",
-        className,
-      )}
+      className={cx("px-3 py-2 text-(--text-muted)", className)}
       role="presentation"
     >
       {children}
@@ -297,8 +305,9 @@ export function DropdownLabel({ children, className }: DropdownLabelProps) {
 
 export function DropdownDivider({ className }: DropdownDividerProps) {
   return (
-    <li role="separator" className={cx("my-1", className)}>
-      <div className="divider w-full my-0 gap-0 pointer-events-none" />
-    </li>
+    <li
+      role="separator"
+      className={cx("my-1 border-t border-base-300", className)}
+    />
   );
 }
