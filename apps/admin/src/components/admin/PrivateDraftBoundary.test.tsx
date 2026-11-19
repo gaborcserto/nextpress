@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -100,13 +107,17 @@ describe("server-admitted private editors", () => {
       fireEvent.change(screen.getByLabelText("Title", { exact: true }), {
         target: { value: "Private changed" },
       });
-      await act(async () =>
-        fireEvent.click(
-          screen.getByRole("button", {
-            name: "Save private draft",
-          }),
-        ),
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Save private draft",
+        }),
       );
+      await waitFor(() => {
+        expect(
+          fetchMock.mock.calls.filter((call) => call[1]?.method === "PUT"),
+        ).toHaveLength(1);
+      });
+
       const calls = fetchMock.mock.calls.filter(
         (call) => call[1]?.method === "PUT",
       );
@@ -120,9 +131,11 @@ describe("server-admitted private editors", () => {
         "content",
       );
       expect(screen.queryByText("Legacy Save")).not.toBeInTheDocument();
-      expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
-        "Private changed",
-      );
+      await waitFor(() => {
+        expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
+          "Private changed",
+        );
+      });
     },
   );
 
