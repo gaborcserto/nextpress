@@ -81,4 +81,4 @@ Use Node.js 24.x ([`.nvmrc`](.nvmrc)), npm 12.2.2 and Docker with Compose for lo
 
 ## Documentation
 
-See the [workspace guides](apps/api/README.md).
+Start with the [project documentation index](docs/README.md) for product vision, verified current state, features, roadmap, architecture, development, deployment, and decisions. Workspace-specific guides: [API](apps/api/README.md), [Admin](apps/admin/README.md), and [Public Web](apps/web/README.md).

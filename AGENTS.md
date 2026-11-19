@@ -1,5 +1,7 @@
 # NextPress agent guide
 
+For significant work, consult the [project documentation index](docs/README.md) and the relevant architecture, feature, development, or deployment guide. Keep tracked documentation aligned with verified behavior: update feature status after implementation is completed and tested, roadmap phases when completed or reprioritized, and development/deployment guidance when commands or configuration change. Record significant architectural decisions in `docs/decisions/`. Keep documentation proportionate; trivial edits do not require doc churn. `.notes/` remains local development working material and `.references/` remains supporting reference material; do not automatically publish either. Never include credentials, machine-specific private paths, or environment-specific identifiers in tracked docs.
+
 This file is the repository-level source of truth for coding agents. Read it before changing files, preserve unrelated user work, and keep changes limited to the requested work. Discover applicable skills through [.agents/README.md](.agents/README.md) before implementation. Readability is mandatory for maintained JavaScript/TypeScript/JSX/TSX source edits; load other resources when their scope applies.
 
 ## Repository map
