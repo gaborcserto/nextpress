@@ -1,11 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -126,25 +119,36 @@ describe("private draft changes", () => {
         const method = init?.method ?? "GET";
         reportStage(`request.${method}.received`);
         const draft = method === "PUT" ? privateDraftFixture(kind, 3) : initial;
+        const response = Response.json(draft);
 
         reportStage(`request.${method}.response`);
 
-        return Response.json(draft);
+        return response;
       });
 
       reportStage("render.start");
-      renderDraftBoundary(kind, StrictMode);
+      await act(async () => {
+        renderDraftBoundary(kind, StrictMode);
+      });
       reportStage("render.complete");
 
-      expect(
-        await screen.findByRole("region", { name: "Private draft" }),
-      ).toHaveTextContent("require an explicit publication command");
+      const draftRegion = screen.getByLabelText("Private draft", {
+        selector: "section",
+      });
+      expect(draftRegion).toHaveRole("region");
+      expect(draftRegion).toBeVisible();
+      expect(draftRegion).toHaveTextContent(
+        "require an explicit publication command",
+      );
       reportStage("editor.available");
 
+      const publication = within(draftRegion);
       expect(
-        screen.getByRole("button", { name: "Publish Changes" }),
+        publication.getByRole("button", { name: "Publish Changes" }),
       ).toBeEnabled();
-      expect(screen.getByRole("button", { name: "Unpublish" })).toBeEnabled();
+      expect(
+        publication.getByRole("button", { name: "Unpublish" }),
+      ).toBeEnabled();
       expect(screen.getByLabelText("Status", { exact: true })).toBeDisabled();
       expect(
         screen.getByLabelText("Publish date", { exact: true }),
@@ -152,23 +156,24 @@ describe("private draft changes", () => {
       reportStage("public.controls.verified");
 
       const titleInput = screen.getByLabelText("Title", { exact: true });
+      const saveButton = screen.getByLabelText("Save private draft", {
+        selector: "button",
+      });
+      expect(saveButton).toBeVisible();
       fireEvent.change(titleInput, {
         target: { value: "Private changed" },
       });
       reportStage("title.edited");
-      fireEvent.click(
-        screen.getByRole("button", {
-          name: "Save private draft",
-        }),
-      );
-      reportStage("save.clicked");
-
-      await waitFor(() => {
-        expect(draftRequests("PUT")).toHaveLength(1);
+      await act(async () => {
+        fireEvent.click(saveButton);
+        reportStage("save.clicked");
       });
+
+      const saveRequests = draftRequests("PUT");
+      expect(saveRequests).toHaveLength(1);
       reportStage("put.observed");
 
-      const [saveRequest] = draftRequests("PUT");
+      const [saveRequest] = saveRequests;
       expect(saveRequest?.[0]).toBe("/api/private-drafts/page");
       const body = readDraftRequestBody(saveRequest?.[1]);
       expect(body).toMatchObject({
@@ -178,7 +183,7 @@ describe("private draft changes", () => {
       expect(body).not.toHaveProperty("edit.patch.content");
       expect(screen.queryByText("Legacy Save")).not.toBeInTheDocument();
 
-      expect(await screen.findByRole("status")).toHaveTextContent(
+      expect(screen.getByRole("status")).toHaveTextContent(
         "Private draft saved · revision 3",
       );
       expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
