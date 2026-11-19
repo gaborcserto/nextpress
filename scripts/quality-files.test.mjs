@@ -593,7 +593,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
     readFileSync(output, "utf8"),
-    "should_validate=true\nturbo_filters=\n",
+    "should_validate=true\nshould_validate_agents=false\nturbo_filters=\n",
   );
   const base = git("rev-parse", "HEAD").trim();
   mkdirSync(path.join(cwd, "apps/web/src"), { recursive: true });
@@ -631,7 +631,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
   assert.equal(run("--ci").status, 0);
   assert.equal(
     readFileSync(output, "utf8"),
-    "should_validate=true\nturbo_filters=--filter=...{./apps/web}\n",
+    "should_validate=true\nshould_validate_agents=false\nturbo_filters=--filter=...{./apps/web}\n",
   );
 
   for (const args of [

@@ -44,14 +44,14 @@ Snapshot based on source, tests, configuration, and Prisma models in this reposi
 
 ## Engineering and readiness
 
-| Area                       | Status         | Evidence and limits                                                                                                                                                         |
-| -------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit/component tests       | Implemented    | Vitest and React Testing Library in Admin, API, Web, DB, and shared packages.                                                                                               |
-| Database integration tests | Partial/opt-in | Disposable PostgreSQL integration suites exist; ordinary `npm test` does not provision PostgreSQL.                                                                          |
-| Browser tests              | Partial        | Playwright configuration and `e2e/` flows exist; coverage is not evidence of all user journeys.                                                                             |
-| CI                         | Implemented    | GitHub Actions workflows and workspace checks exist. Recent runtime reports are tracked in [roadmap](roadmap.md); CI-01 has not run.                                        |
-| Build/typecheck/lint       | Implemented    | Root scripts coordinate workspace tasks through Turborepo.                                                                                                                  |
-| Deployment readiness       | Partial        | Environment, build and health-related pieces exist, but production backup/restore operations, durable media, deployment topology, and operational runbooks need validation. |
-| Performance/caching        | Unverified     | No representative capacity benchmark; public web API requests use `no-store`.                                                                                               |
+| Area                       | Status         | Evidence and limits                                                                                                                                                                        |
+| -------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit/component tests       | Implemented    | Vitest and React Testing Library in Admin, API, Web, DB, and shared packages.                                                                                                              |
+| Database integration tests | Partial/opt-in | Disposable PostgreSQL integration suites exist; ordinary `npm test` does not provision PostgreSQL.                                                                                         |
+| Browser tests              | Partial        | Playwright configuration and `e2e/` flows exist; coverage is not evidence of all user journeys.                                                                                            |
+| CI                         | Implemented    | GitHub Actions workflows and workspace checks exist. CI-01 changes are present locally; the recurring Admin PAGE timeout remains unproven. TEST-02 findings are in the local audit report. |
+| Build/typecheck/lint       | Implemented    | Root scripts coordinate workspace tasks through Turborepo.                                                                                                                                 |
+| Deployment readiness       | Partial        | Environment, build and health-related pieces exist, but production backup/restore operations, durable media, deployment topology, and operational runbooks need validation.                |
+| Performance/caching        | Unverified     | No representative capacity benchmark; public web API requests use `no-store`.                                                                                                              |
 
 Detailed future gaps are inventoried in [features](features.md). FUNC-01 will perform the dedicated completeness and structure audit; this snapshot is not that audit.

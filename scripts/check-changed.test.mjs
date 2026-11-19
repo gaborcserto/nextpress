@@ -39,7 +39,12 @@ test("Quality Gates propagates upstream failures and permits only the expected v
   const gates = workflow.split("  quality-gates:")[1];
   assert.ok(gates.includes("if: always()"));
 
-  for (const job of ["changes", "validate", "dependency-audit"]) {
+  for (const job of [
+    "changes",
+    "validate",
+    "validate-agent-resources",
+    "dependency-audit",
+  ]) {
     assert.ok(gates.includes(`      - ${job}`));
   }
 
@@ -47,6 +52,8 @@ test("Quality Gates propagates upstream failures and permits only the expected v
     "needs.changes.result",
     "needs.validate.result",
     "needs.changes.outputs.should_validate",
+    "needs.validate-agent-resources.result",
+    "needs.changes.outputs.should_validate_agents",
     "needs.dependency-audit.result",
   ]) {
     assert.ok(gates.includes(`\${{ ${expression} }}`));
@@ -66,33 +73,46 @@ test("Quality Gates propagates upstream failures and permits only the expected v
   for (const changes of ["success", "failure", "cancelled", "skipped"]) {
     for (const audit of ["success", "failure", "cancelled", "skipped"]) {
       for (const required of ["true", "false"]) {
-        for (const validation of [
-          "success",
-          "failure",
-          "cancelled",
-          "skipped",
-        ]) {
-          const expected =
-            changes === "success" &&
-            audit === "success" &&
-            validation === (required === "true" ? "success" : "skipped");
+        for (const agentsRequired of ["true", "false"]) {
+          for (const validation of [
+            "success",
+            "failure",
+            "cancelled",
+            "skipped",
+          ]) {
+            for (const agentResult of [
+              "success",
+              "failure",
+              "cancelled",
+              "skipped",
+            ]) {
+              const expected =
+                changes === "success" &&
+                audit === "success" &&
+                validation === (required === "true" ? "success" : "skipped") &&
+                agentResult ===
+                  (agentsRequired === "true" ? "success" : "skipped");
 
-          const result = spawnSync(shell, ["-c", script], {
-            env: {
-              ...process.env,
-              CHANGES_RESULT: changes,
-              AUDIT_RESULT: audit,
-              VALIDATE_REQUIRED: required,
-              VALIDATE_RESULT: validation,
-            },
-            encoding: "utf8",
-          });
-          assert.ifError(result.error);
-          assert.equal(
-            result.status,
-            expected ? 0 : 1,
-            `${changes}/${audit}/${required}/${validation}: ${result.stderr}`,
-          );
+              const result = spawnSync(shell, ["-c", script], {
+                env: {
+                  ...process.env,
+                  CHANGES_RESULT: changes,
+                  AUDIT_RESULT: audit,
+                  VALIDATE_REQUIRED: required,
+                  VALIDATE_RESULT: validation,
+                  AGENT_REQUIRED: agentsRequired,
+                  AGENT_RESULT: agentResult,
+                },
+                encoding: "utf8",
+              });
+              assert.ifError(result.error);
+              assert.equal(
+                result.status,
+                expected ? 0 : 1,
+                `${changes}/${audit}/${required}/${validation}/${agentsRequired}/${agentResult}: ${result.stderr}`,
+              );
+            }
+          }
         }
       }
     }
@@ -136,9 +156,31 @@ for (const file of [
     assert.equal(selectChanges([file]).mode, "full"));
 }
 
-test("empty changes need no tasks; Markdown still receives validation", () => {
+test("empty and documentation-only changes need no application tasks", () => {
   assert.equal(selectChanges([]).mode, "none");
-  assert.equal(selectChanges(["README.md", "apps/web/README.md"]).mode, "full");
+
+  for (const file of [
+    "README.md",
+    "apps/web/README.md",
+    "packages/db/README.md",
+    "docs/development.md",
+    "docs/images/architecture.svg",
+  ]) {
+    assert.equal(selectChanges([file]).mode, "none", file);
+  }
+
+  assert.equal(
+    selectChanges(["README.md", "apps/web/src/app/page.tsx"]).mode,
+    "affected",
+  );
+});
+
+test("unknown documentation assets and executable docs configuration fail safe", () => {
+  for (const file of ["docs/generator.mjs", ".github/workflows/ci.yml"]) {
+    assert.equal(selectChanges([file]).mode, "full", file);
+  }
+
+  assert.equal(selectChanges([".agents/README.json"]).validateAgents, true);
 });
 
 for (const file of [
@@ -147,9 +189,22 @@ for (const file of [
   ".agents/README.md",
   ".agents/skills/nextpress-testing/SKILL.md",
 ]) {
-  test(`${file} runs repository validation`, () =>
-    assert.equal(selectChanges([file]).mode, "full"));
+  test(`${file} runs agent-resource validation without app selection`, () => {
+    const selection = selectChanges([file]);
+    assert.equal(selection.mode, "none");
+    assert.equal(selection.validateAgents, true);
+  });
 }
+
+test("agent instructions plus app source require both relevant validations", () => {
+  const selection = selectChanges([
+    "AGENTS.md",
+    "apps/admin/src/components/example.tsx",
+  ]);
+  assert.equal(selection.mode, "affected");
+  assert.equal(selection.validateAgents, true);
+  assert.deepEqual(selection.directories, ["apps/admin"]);
+});
 
 test("renames and deletions preserve both affected workspaces", () => {
   const directory = mkdtempSync(path.join(tmpdir(), "nextpress-rename-"));
@@ -251,7 +306,7 @@ test("CI empty revision diff conservatively selects full verification", () => {
     });
     assert.equal(
       readFileSync(output, "utf8"),
-      "should_validate=true\nturbo_filters=\n",
+      "should_validate=true\nshould_validate_agents=false\nturbo_filters=\n",
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -294,7 +349,7 @@ test("CI revision selection emits the local workspace filters", () => {
     });
     assert.equal(
       readFileSync(output, "utf8"),
-      `should_validate=${selection.mode !== "none"}\nturbo_filters=${turboFilters(selection).join(" ")}\n`,
+      `should_validate=${selection.mode !== "none"}\nshould_validate_agents=${selection.validateAgents === true}\nturbo_filters=${turboFilters(selection).join(" ")}\n`,
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -365,7 +420,7 @@ test("CI detection failure emits full verification outputs", () => {
     });
     assert.equal(
       readFileSync(output, "utf8"),
-      "should_validate=true\nturbo_filters=\n",
+      "should_validate=true\nshould_validate_agents=false\nturbo_filters=\n",
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });

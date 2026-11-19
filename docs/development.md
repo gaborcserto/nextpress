@@ -29,6 +29,8 @@ npm run openapi:validate
 
 For task-scoped work, format changed files with `npm run format:changed`, then use `npm run check:changed`. When unrelated working-tree edits exist, pass explicit `-- --files path...` to formatting/check tools as documented by the root agent guide. Do not stage or alter another user's work to validate it.
 
+CI compares the pull request or push commit range and uses Turbo filters for changed workspaces and their dependents. Root configuration and unrecognized paths trigger full workspace validation. Root/workspace README files and Markdown or image assets under `docs/` are explicitly documentation-only and skip application validation. `AGENTS.md` and agent resources still trigger full validation because they affect repository automation and contributor workflows. The required `Quality Gates` job succeeds for that documentation-only skip only after change detection and the production dependency audit succeed. CI runs on fresh hosted runners without persisted Turbo task cache; standard Turbo caching remains enabled for correct reuse within a job.
+
 ## Troubleshooting
 
 - Wrong database target: inspect with `npm run db:target`; check process overrides before editing API `.env`.

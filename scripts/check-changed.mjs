@@ -175,7 +175,7 @@ function main() {
     const filter = turboFilters(selection).join(" ");
     appendFileSync(
       process.env.GITHUB_OUTPUT,
-      `should_validate=${selection.mode !== "none"}\nturbo_filters=${filter}\n`,
+      `should_validate=${selection.mode !== "none"}\nshould_validate_agents=${selection.validateAgents === true}\nturbo_filters=${filter}\n`,
     );
 
     return;
