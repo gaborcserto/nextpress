@@ -1,7 +1,7 @@
 import { prisma } from "@nextpress/db";
 import { AppearanceSchema, normalizeAppearance } from "@nextpress/shared";
 
-import { bad, ok, oops } from "@/lib/api";
+import { bad, ok, internalError } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 import { SITE_SETTINGS_ID } from "@/lib/settings/site-settings";
 
@@ -20,10 +20,8 @@ export const GET = withAuth(["ADMIN"], async () => {
     });
 
     return ok(normalizeAppearance(settings));
-  } catch {
-    console.error("GET /api/admin/settings/appearance failed");
-
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 });
 
@@ -56,10 +54,8 @@ export const PUT = withAuth(
       });
 
       return ok(normalizeAppearance(settings));
-    } catch {
-      console.error("PUT /api/admin/settings/appearance failed");
-
-      return oops();
+    } catch (error) {
+      return internalError(error);
     }
   },
   "settings",

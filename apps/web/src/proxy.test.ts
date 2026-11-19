@@ -1,4 +1,10 @@
 ﻿// @vitest-environment node
+import {
+  isRequestId,
+  newRequestId,
+  renderRequestIdHeader,
+  requestIdHeader,
+} from "@nextpress/shared/request-correlation";
 import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
@@ -65,13 +71,32 @@ describe("public locale proxy", () => {
     "/auth/login",
     "/live-preview",
     "/media/asset",
-    "/_next/static/test.js",
-    "/favicon.ico",
     "/robots.txt",
     "/sitemap.xml",
-  ])("does not match non-public path %s", (url) => {
-    expect(unstable_doesMiddlewareMatch({ config, url })).toBe(false);
+  ])("stamps %s without rewriting or redirecting", (url) => {
+    expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true);
+    const spoofed = newRequestId();
+    const response = proxy(
+      new NextRequest(`https://publication.example${url}`, {
+        headers: { [renderRequestIdHeader]: spoofed },
+      }),
+    );
+
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    const requestId = response.headers.get(requestIdHeader);
+    expect(isRequestId(requestId)).toBe(true);
+    expect(requestId).not.toBe(spoofed);
+    expect(
+      response.headers.get(`x-middleware-request-${renderRequestIdHeader}`),
+    ).toBe(requestId);
   });
+  it.each(["/_next/static/test.js", "/_next/image", "/favicon.ico"])(
+    "skips framework asset %s",
+    (url) => {
+      expect(unstable_doesMiddlewareMatch({ config, url })).toBe(false);
+    },
+  );
   it("does not expose preview under a locale prefix", () => {
     expect(
       proxy(

@@ -1,5 +1,13 @@
 import "server-only";
 
+import {
+  renderRequestId,
+  responseRequestId,
+  setUpstreamRequestId,
+} from "@nextpress/shared/request-correlation";
+import { writeServerLog } from "@nextpress/shared/server-logging";
+import { headers } from "next/headers";
+
 import type { z } from "zod";
 
 export class PublicApiError extends Error {
@@ -46,14 +54,20 @@ export async function fetchPublic<T>(
   schema: z.ZodType<T>,
   missingAllowed = false,
 ): Promise<T | null> {
+  const requestId = renderRequestId(await headers());
+  const outgoing = new Headers({ Accept: "application/json" });
+  setUpstreamRequestId(outgoing, requestId);
+  let correlationId = requestId;
+
   try {
     const response = await fetch(`${publicApiOrigin()}/api/public/${path}`, {
       cache: "no-store",
       credentials: "omit",
       redirect: "error",
-      headers: { Accept: "application/json" },
+      headers: outgoing,
       signal: AbortSignal.timeout(10_000),
     });
+    correlationId = responseRequestId(response.headers, requestId);
 
     if (response.status === 404 && missingAllowed) {
       return null;
@@ -76,13 +90,13 @@ export async function fetchPublic<T>(
       error instanceof PublicApiError
         ? error
         : new PublicApiError(503, "transport");
-    console.error(
-      JSON.stringify({
-        event: "public.upstream.failed",
-        code: failure.code,
-        status: failure.status,
-      }),
-    );
+    writeServerLog("web", "public.upstream.failed", {
+      requestId,
+      upstreamRequestId: correlationId,
+      operation: "public.content",
+      code: failure.code,
+      status: failure.status,
+    });
     throw failure;
   }
 }

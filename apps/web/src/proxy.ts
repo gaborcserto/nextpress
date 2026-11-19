@@ -1,3 +1,8 @@
+import {
+  newRequestId,
+  renderRequestIdHeader,
+  requestIdHeader,
+} from "@nextpress/shared/request-correlation";
 import { NextResponse } from "next/server";
 
 import {
@@ -11,11 +16,8 @@ import {
 import type { NextRequest } from "next/server";
 
 export const config = {
-  matcher: [
-    "/",
-    "/:locale(en|hu)/:path*",
-    "/:section(posts|pages|tags|categories|search)/:path*",
-  ],
+  // Shared layouts and the sitemap also make API requests outside localized routes.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 
 export function proxy(request: NextRequest) {
@@ -23,11 +25,18 @@ export function proxy(request: NextRequest) {
   const locale = pathLocale(pathname);
   const publicPath = stripLocalePrefix(pathname);
   const requestHeaders = new Headers(request.headers);
+  const requestId = newRequestId();
+  requestHeaders.set(renderRequestIdHeader, requestId);
   // Never accept a caller-supplied locale header as routing authority.
   requestHeaders.set(localeHeader, locale ?? "en");
 
   if (!isPublicPath(publicPath)) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    response.headers.set(requestIdHeader, requestId);
+
+    return response;
   }
 
   const canonicalPath = localizedHref(publicPath, locale ?? "en");
@@ -36,13 +45,19 @@ export function proxy(request: NextRequest) {
     const destination = new URL(request.url);
     destination.pathname = canonicalPath;
 
-    return NextResponse.redirect(destination, 308);
+    const response = NextResponse.redirect(destination, 308);
+    response.headers.set(requestIdHeader, requestId);
+
+    return response;
   }
 
   const destination = new URL(request.url);
   destination.pathname = publicPath;
 
-  return NextResponse.rewrite(destination, {
+  const response = NextResponse.rewrite(destination, {
     request: { headers: requestHeaders },
   });
+  response.headers.set(requestIdHeader, requestId);
+
+  return response;
 }

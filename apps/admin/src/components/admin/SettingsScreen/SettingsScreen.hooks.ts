@@ -1,6 +1,9 @@
 "use client";
 
-import { SettingsResponseSchema } from "@nextpress/shared/settings-contracts";
+import {
+  SettingsResponseSchema,
+  SettingsSavedSchema,
+} from "@nextpress/shared/settings-contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
@@ -83,7 +86,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
 
   const save = useCallback(
     async (credentials: ProviderCredentialUpdates) => {
-      if (savingRef.current || !loadedRef.current || loading) {
+      if (savingRef.current || !loadedRef.current || loading || loadError) {
         return false;
       }
 
@@ -92,18 +95,22 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
       setError(null);
 
       try {
-        await jsonFetcher("/api/admin/settings", {
+        const response = await jsonFetcher<unknown>("/api/admin/settings", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(buildSettingsPayload(form, credentials)),
         });
+
+        const saved = SettingsSavedSchema.parse(response);
+        const statusByProvider = new Map(
+          saved.oauthProviders.map((status) => [status.provider, status]),
+        );
+
         setForm((current) => ({
           ...current,
           oauthProviders: current.oauthProviders.map((provider) => ({
             ...provider,
-            hasClientSecret:
-              provider.hasClientSecret ||
-              Boolean(credentials[provider.provider]?.clientSecret),
+            ...statusByProvider.get(provider.provider),
           })),
         }));
 
@@ -119,7 +126,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
         setSaving(false);
       }
     },
-    [form, loading],
+    [form, loading, loadError],
   );
 
   return {

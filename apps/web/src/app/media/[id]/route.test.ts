@@ -1,3 +1,8 @@
+import {
+  apiRequestId,
+  isRequestId,
+  requestIdHeader,
+} from "@nextpress/shared/request-correlation";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { GET } from "./route";
@@ -14,6 +19,10 @@ afterEach(() => {
 });
 
 it("forwards public images without browser credentials", async () => {
+  vi.stubEnv(
+    "NEXTPRESS_REQUEST_CORRELATION_SECRET",
+    "test-shared-correlation-key-at-least-32-bytes",
+  );
   upstream.mockResolvedValue(
     new Response(new Uint8Array([137, 80, 78, 71]), {
       headers: { "Content-Type": "image/png" },
@@ -35,7 +44,16 @@ it("forwards public images without browser credentials", async () => {
       cache: "no-store",
     }),
   );
-  expect(upstream.mock.calls[0]?.[1]).not.toHaveProperty("headers");
+  const sent = new Headers(upstream.mock.calls[0]?.[1].headers);
+  const headerNames: string[] = [];
+  sent.forEach((_value, name) => headerNames.push(name));
+  const requestId = response.headers.get(requestIdHeader);
+  expect(isRequestId(requestId)).toBe(true);
+  expect(apiRequestId(sent)).toBe(requestId);
+  expect(headerNames.sort()).toEqual([
+    "x-nextpress-request-signature",
+    requestIdHeader,
+  ]);
 });
 
 it("fails closed for private media, path traversal and missing production configuration", async () => {

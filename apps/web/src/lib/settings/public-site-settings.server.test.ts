@@ -2,6 +2,8 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { getPublicSiteSettings } from "./public-site-settings.server";
 
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });

@@ -7,7 +7,7 @@ import {
   SettingsUpdateSchema,
 } from "@nextpress/shared/settings-contracts";
 
-import { bad, ok, oops } from "@/lib/api";
+import { bad, ok, internalError } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 import { OAUTH_PROVIDERS } from "@/lib/auth/oauth-providers";
 import {
@@ -117,10 +117,8 @@ export const GET = withAuth(["ADMIN"], async () => {
         };
       }),
     });
-  } catch {
-    console.error("GET /api/admin/settings failed");
-
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 });
 
@@ -171,10 +169,8 @@ export const PUT = withAuth(
           clientSecret: true,
         },
       });
-    } catch {
-      console.error("PUT /api/admin/settings failed to read provider settings");
-
-      return oops();
+    } catch (error) {
+      return internalError(error);
     }
 
     const existingByName = new Map(existing.map((row) => [row.provider, row]));
@@ -208,7 +204,7 @@ export const PUT = withAuth(
     }
 
     try {
-      await prisma.$transaction(async (tx) => {
+      const oauthProviders = await prisma.$transaction(async (tx) => {
         const settings = await tx.siteSettings.upsert({
           where: { id: SITE_SETTINGS_ID },
           create: {
@@ -233,8 +229,10 @@ export const PUT = withAuth(
           select: { id: true },
         });
 
+        const statuses = [];
+
         for (const input of body.oauthProviders) {
-          await tx.oAuthProvider.upsert({
+          const row = await tx.oAuthProvider.upsert({
             where: { provider: input.provider },
             create: {
               provider: input.provider,
@@ -251,15 +249,26 @@ export const PUT = withAuth(
                 : {}),
               settingsId: settings.id,
             },
+            select: {
+              provider: true,
+              enabled: true,
+              clientId: true,
+              clientSecret: true,
+            },
+          });
+
+          statuses.push({
+            provider: input.provider,
+            ...getOAuthProviderStatus(row),
           });
         }
+
+        return statuses;
       });
 
-      return ok({ ok: true });
-    } catch {
-      console.error("PUT /api/admin/settings failed");
-
-      return oops();
+      return ok({ ok: true, oauthProviders });
+    } catch (error) {
+      return internalError(error);
     }
   },
   "settings",

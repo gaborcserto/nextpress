@@ -10,6 +10,8 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./api-environment": "./src/api-environment.ts",
+    "./database-config": "./src/database-config.ts",
     "./src/client": "./src/client.ts",
     "./generated/prisma/client": "./generated/prisma/client.ts"
   },
@@ -24,12 +26,14 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
+    "target": "tsx prisma/target.ts",
     "test:coverage": "vitest run --coverage",
     "lint": "node ../../scripts/readability.mjs --verbose && eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@next/env": "16.4.6",
     "@nextpress/shared": "^1.0.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",

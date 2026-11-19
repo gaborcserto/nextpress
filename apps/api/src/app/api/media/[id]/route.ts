@@ -1,4 +1,8 @@
+import { writeServerLog } from "@nextpress/shared/server-logging";
+
 import { conflict, forbid, notfound, ok, oops } from "@/lib/api";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
 import {
   ContentForbiddenError,
@@ -10,10 +14,7 @@ import {
   serveMedia,
 } from "@/lib/services/media.server";
 
-export async function GET(
-  _req: Request,
-  ctx: { params: Promise<{ id: string }> },
-) {
+async function get(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     return await serveMedia(
       (await ctx.params).id,
@@ -29,13 +30,11 @@ export const DELETE = withAuth(
   async (_req, ctx, { session }) => {
     try {
       await deleteMedia(ctx.params.id, session.user);
-      console.info(
-        JSON.stringify({
-          event: "media.deleted",
-          actorId: session.user.id,
-          targetId: ctx.params.id,
-        }),
-      );
+      writeServerLog("api", "media.deleted", {
+        ...apiLogContext(),
+        actorId: session.user.id,
+        targetId: ctx.params.id,
+      });
 
       return ok({ ok: true });
     } catch (error) {
@@ -56,3 +55,5 @@ export const DELETE = withAuth(
   },
   "create-content",
 );
+
+export const GET = withRequestLogging("media", get);

@@ -44,7 +44,11 @@ it.each([null, "SUBSCRIBER", "AUTHOR", "EDITOR", "ADMIN"])(
 );
 it("returns only operational provider names", async () => {
   providers.mockResolvedValue(["github"]);
-  const body = await (await discoverProviders()).json();
+  const body = await (
+    await discoverProviders(
+      new Request("http://localhost/api/discovery/providers"),
+    )
+  ).json();
   expect(ProviderDiscoverySchema.parse(body)).toEqual({
     providers: ["github"],
   });

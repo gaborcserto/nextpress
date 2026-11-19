@@ -133,8 +133,6 @@ export const POST = withAuth(
         return tooManyRequests(1);
       }
 
-      console.error("POST /api/admin/users/create failed");
-
       return oops(error);
     }
   },

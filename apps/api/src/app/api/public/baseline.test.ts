@@ -68,8 +68,9 @@ it("captures bounded listing metadata, navigation, and shared sitemap/listing in
   findMany.mockResolvedValue([
     { slug: "menu", title: "Menu", inHeaderMenu: true, inFooterMenu: false },
   ]);
-  const menu = await publicBaseline(await navigation(), (body) =>
-    PublicNavigationSchema.parse(body),
+  const menu = await publicBaseline(
+    await navigation(new Request("http://localhost/api/public/navigation")),
+    (body) => PublicNavigationSchema.parse(body),
   );
   expect(menu.body).toEqual({
     header: [{ slug: "menu", title: "Menu" }],

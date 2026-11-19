@@ -1,3 +1,4 @@
+import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,6 +12,23 @@ vi.mock("@/lib/api", () => ({ jsonFetcher: fetcher }));
 const authoritative = {
   ...normalizeSettingsForm(undefined, "SUBSCRIBER"),
   siteName: "Server settings",
+  oauthProviders: OAUTH_PROVIDERS.map((provider) => ({
+    provider,
+    enabled: false,
+    clientId: "",
+    hasClientId: false,
+    hasClientSecret: false,
+    operational: false,
+  })),
+};
+const savedStatus = {
+  ok: true,
+  oauthProviders: OAUTH_PROVIDERS.map((provider) => ({
+    provider,
+    hasClientId: provider === "github",
+    hasClientSecret: provider === "github",
+    operational: provider === "github",
+  })),
 };
 
 describe("settings safety", () => {
@@ -66,7 +84,7 @@ describe("settings safety", () => {
       await result.current.retry();
     });
     expect(result.current.form.siteName).toBe("Local edits");
-    fetcher.mockRejectedValue(new Error("private credential"));
+    fetcher.mockResolvedValueOnce({ ...authoritative, oauthProviders: [] });
     await act(async () => {
       await result.current.retry();
     });
@@ -75,29 +93,57 @@ describe("settings safety", () => {
     await act(async () => {
       expect(await result.current.save({})).toBe(false);
     });
+    expect(result.current.loadError).toContain("Unable to load settings");
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    fetcher.mockResolvedValueOnce(authoritative);
+    await act(async () => {
+      await result.current.retry();
+    });
+    fetcher.mockRejectedValueOnce(new Error("private credential"));
+    await act(async () => {
+      expect(await result.current.save({})).toBe(false);
+    });
     expect(result.current.form.siteName).toBe("Local edits");
     expect(result.current.error).toContain("Unable to save settings");
     expect(result.current.error).not.toContain("private");
 
-    let resolve: () => void = () => undefined;
-    fetcher.mockReset();
-    fetcher.mockImplementation(
-      () =>
-        new Promise<void>((done) => {
-          resolve = done;
-        }),
-    );
+    const acknowledgement = deferred<unknown>();
+    fetcher.mockReturnValueOnce(acknowledgement.promise);
     let first: Promise<boolean>;
     act(() => {
-      first = result.current.save({});
+      first = result.current.save({ google: { clientSecret: "   " } });
+      result.current.setForm((form) => ({
+        ...form,
+        siteName: "Edit during save",
+        oauthProviders: form.oauthProviders.map((provider) =>
+          provider.provider === "github"
+            ? { ...provider, clientId: "New local ID" }
+            : provider,
+        ),
+      }));
     });
     expect(result.current.saving).toBe(true);
     await act(async () => {
       expect(await result.current.save({})).toBe(false);
-      resolve();
+      acknowledgement.resolve(savedStatus);
       expect(await first).toBe(true);
     });
     expect(result.current.saving).toBe(false);
+    expect(result.current.form.siteName).toBe("Edit during save");
+    expect(result.current.form.oauthProviders).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          provider: "google",
+          hasClientSecret: false,
+        }),
+        expect.objectContaining({
+          provider: "github",
+          clientId: "New local ID",
+          hasClientId: true,
+          hasClientSecret: true,
+        }),
+      ]),
+    );
   });
   it("aborts superseded reads and keeps Save blocked until the current role's load settles", async () => {
     const first = deferred<unknown>();

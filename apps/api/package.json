@@ -6,7 +6,7 @@
     "dev": "next dev --hostname localhost --port 49102",
     "build": "next build --turbopack",
     "start": "next start --port 49102",
-    "bootstrap:admin": "tsx --env-file-if-exists=.env scripts/bootstrap-admin.ts",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "lint": "node ../../scripts/readability.mjs --verbose && eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
     "test": "vitest run",

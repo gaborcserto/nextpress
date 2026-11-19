@@ -168,7 +168,7 @@ export async function revisionAction(
     };
 
     if (parsed.action === "restore") {
-      return tx.pageRevision.create({
+      const restored = await tx.pageRevision.create({
         data: {
           ...snapshot,
           pageId,
@@ -179,23 +179,39 @@ export async function revisionAction(
           note: `Restored from ${revision.id}`,
         },
       });
+
+      return {
+        result: restored,
+        audit: {
+          action: parsed.action,
+          targetId: restored.pageId,
+          revisionId: restored.id,
+        },
+      };
     }
 
-    if (parsed.action === "unpublish") {
-      return tx.page.update({
-        where: { id: pageId },
-        data: { status: "DRAFT" },
-      });
-    }
-
-    return tx.page.update({
+    const page = await tx.page.update({
       where: { id: pageId },
-      data: {
-        ...snapshot,
-        status: "PUBLISHED",
-        publishedAt: resolvePublicationDate(current, { status: "PUBLISHED" }),
-      },
+      data:
+        parsed.action === "unpublish"
+          ? { status: "DRAFT" }
+          : {
+              ...snapshot,
+              status: "PUBLISHED",
+              publishedAt: resolvePublicationDate(current, {
+                status: "PUBLISHED",
+              }),
+            },
     });
+
+    return {
+      result: page,
+      audit: {
+        action: parsed.action,
+        targetId: page.id,
+        sourceRevisionId: revision.id,
+      },
+    };
   });
 }
 

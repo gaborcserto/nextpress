@@ -6,7 +6,9 @@ Follow the repository [Quick Start](../../README.md#quick-start) for installatio
 
 ## Configuration
 
-See [the environment template](.env.example). `DATABASE_URL` selects PostgreSQL; `BETTER_AUTH_URL` is the browser-facing admin origin and `BETTER_AUTH_SECRET` must be unique and at least 32 characters. OAuth providers require enabling in site settings and complete credentials, from settings or environment variables. Template placeholders are not working provider credentials.
+Set the shared development `DATABASE_URL` in the API workspace. Prisma CLI and both bootstrap and seed commands use the API's environment lookup. Run `npm run db:target` from the root to inspect the selected database without credentials. [API environment template](.env.example)
+
+`BETTER_AUTH_URL` is the browser-facing Admin origin and `BETTER_AUTH_SECRET` must be unique and at least 32 characters. Existing `NEXT_PUBLIC_BETTER_AUTH_URL` and `NEXT_PUBLIC_ADMIN_URL` entries are compatibility aliases that also contribute trusted origins. Fresh installations can set just `BETTER_AUTH_URL`. OAuth providers require enabling in site settings and complete credentials, from settings or environment variables.
 
 Media files use a private local directory: `MEDIA_STORAGE_ROOT`, or `.media` relative to the API working directory. Back it up alongside PostgreSQL; do not put it under `public/`.
 

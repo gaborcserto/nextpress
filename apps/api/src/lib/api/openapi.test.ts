@@ -105,6 +105,21 @@ describe("OpenAPI contract", () => {
     }
   });
 
+  it("documents request correlation on successful and failed API responses", () => {
+    const responses =
+      openApiDocument.paths["/api/public/settings"]?.get?.responses;
+    const header = { schema: { type: "string", format: "uuid" } };
+    expect(responses?.[200]).toMatchObject({
+      headers: { "X-Request-Id": header },
+    });
+    expect(responses?.[500]).toMatchObject({
+      headers: { "X-Request-Id": header },
+    });
+    expect(
+      openApiDocument.paths["/api/health"]?.get?.responses?.[200],
+    ).not.toHaveProperty("headers");
+  });
+
   it("documents the allowlisted listing mode and bounded post batch size", () => {
     const properties = openApiDocument.components?.schemas?.SettingsUpdate;
     expect(properties).toMatchObject({
@@ -113,6 +128,34 @@ describe("OpenAPI contract", () => {
         postsPerPage: { type: "integer", minimum: 1, maximum: 50 },
       },
     });
+  });
+
+  it("documents the sanitized provider status returned by Settings writes", () => {
+    expect(
+      openApiDocument.paths["/api/admin/settings"]?.put?.responses?.[200],
+    ).toMatchObject({
+      content: {
+        "application/json": {
+          schema: { $ref: "#/components/schemas/SettingsSaved" },
+        },
+      },
+    });
+    const schema = openApiDocument.components?.schemas?.SettingsSaved;
+    expect(schema).toMatchObject({
+      properties: {
+        oauthProviders: {
+          items: {
+            required: [
+              "provider",
+              "hasClientId",
+              "hasClientSecret",
+              "operational",
+            ],
+          },
+        },
+      },
+    });
+    expect(JSON.stringify(schema)).not.toContain('"clientSecret"');
   });
 
   it("derives serialized content inputs while documenting the different editor projection", () => {

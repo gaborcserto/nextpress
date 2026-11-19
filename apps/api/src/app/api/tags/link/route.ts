@@ -1,4 +1,5 @@
 import { ok, bad, oops, forbid, notfound } from "@/lib/api";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
 import {
   ContentForbiddenError,
@@ -17,7 +18,7 @@ export const runtime = "nodejs";
  * GET /api/tags/link?entityId=123
  * Returns tags linked to the given entity (Page/Post).
  */
-export async function GET(req: Request) {
+async function get(req: Request) {
   const url = new URL(req.url);
   const entityId = url.searchParams.get("entityId") ?? "";
 
@@ -44,8 +45,6 @@ export async function GET(req: Request) {
     if (err instanceof TaxonomyScopeError) {
       return bad(err.message);
     }
-
-    console.error("GET /api/tags/link failed");
 
     if (err instanceof ValidationError) {
       return bad(err.message);
@@ -103,8 +102,6 @@ export const PUT = withAuth(
         return bad(err.message);
       }
 
-      console.error("PUT /api/tags/link failed");
-
       if (err instanceof ValidationError) {
         return bad(err.message);
       }
@@ -114,3 +111,5 @@ export const PUT = withAuth(
   },
   "taxonomy",
 );
+
+export const GET = withRequestLogging("taxonomy", get);

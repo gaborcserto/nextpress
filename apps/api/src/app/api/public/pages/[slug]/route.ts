@@ -1,11 +1,12 @@
 import { PublicContentSchema } from "@nextpress/shared/api-contracts";
 
-import { ok, notfound, oops } from "@/lib/api/http";
+import { ok, notfound, internalError } from "@/lib/api/http";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getPublishedPage } from "@/lib/public/content.server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(
+async function get(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
@@ -15,7 +16,9 @@ export async function GET(
     response.headers.set("Cache-Control", "no-store");
 
     return response;
-  } catch {
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 }
+
+export const GET = withRequestLogging("public.content", get);

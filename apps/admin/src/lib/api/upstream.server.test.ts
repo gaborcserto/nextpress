@@ -1,9 +1,17 @@
 // @vitest-environment node
+import {
+  apiRequestId,
+  isRequestId,
+  newRequestId,
+  requestIdHeader,
+  requestSignatureHeader,
+} from "@nextpress/shared/request-correlation";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { apiOrigin, forwardApiRequest } from "./upstream.server";
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
@@ -51,6 +59,7 @@ it("forwards method, body, cookies and exact Origin only to the configured origi
 it("preserves separate cookies, logout deletions and OAuth redirects without caching", async () => {
   const headers = new Headers({
     location: "https://provider.example/authorize",
+    [requestSignatureHeader]: "internal-test-value",
   });
   headers.append(
     "set-cookie",
@@ -72,6 +81,7 @@ it("preserves separate cookies, logout deletions and OAuth redirects without cac
     "https://provider.example/authorize",
   );
   expect(response.headers.getSetCookie()).toEqual(headers.getSetCookie());
+  expect(response.headers.has(requestSignatureHeader)).toBe(false);
   expect(response.headers.get("cache-control")).toBe("private, no-store");
 });
 
@@ -111,6 +121,7 @@ it("does not fabricate a missing Origin", async () => {
 });
 
 it("returns a stable 502 on outage", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal(
     "fetch",
     vi.fn().mockRejectedValue(new Error("private internal detail")),
@@ -120,6 +131,130 @@ it("returns a stable 502 on outage", async () => {
   );
   expect(response.status).toBe(502);
   expect(await response.json()).toEqual({ error: "API unavailable" });
+  const requestId = response.headers.get(requestIdHeader);
+  expect(isRequestId(requestId)).toBe(true);
+  expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({
+    event: "admin.upstream.failed",
+    code: "transport",
+    requestId,
+  });
+  expect(JSON.stringify(log.mock.calls)).not.toContain(
+    "private internal detail",
+  );
+});
+
+function rejectOnAbort(_url: URL, { signal }: RequestInit) {
+  if (!signal) {
+    throw new Error("Missing forwarding abort signal");
+  }
+
+  return new Promise<Response>((_resolve, reject) => {
+    signal.addEventListener("abort", () => reject(signal.reason), {
+      once: true,
+    });
+  });
+}
+
+it("returns the existing 502 without logging a dependency failure on caller abort", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.stubGlobal("fetch", vi.fn(rejectOnAbort));
+  const caller = new AbortController();
+  const pending = forwardApiRequest(
+    new Request("http://localhost/api/post", { signal: caller.signal }),
+  );
+  caller.abort();
+
+  const response = await pending;
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({ error: "API unavailable" });
+  expect(isRequestId(response.headers.get(requestIdHeader))).toBe(true);
+  expect(log).not.toHaveBeenCalled();
+});
+
+it("logs the deadline when it ends the fetch before a caller abort", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const deadline = new AbortController();
+  const caller = new AbortController();
+  vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+  vi.stubGlobal("fetch", vi.fn(rejectOnAbort));
+  const pending = forwardApiRequest(
+    new Request("http://localhost/api/post", { signal: caller.signal }),
+  );
+  deadline.abort(new DOMException("Deadline expired", "TimeoutError"));
+  caller.abort();
+
+  const response = await pending;
+  expect(response.status).toBe(502);
+  expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({
+    event: "admin.upstream.failed",
+    code: "timeout",
+    requestId: response.headers.get(requestIdHeader),
+  });
+});
+
+it("returns a safe correlated 502 for invalid origin configuration", async () => {
+  vi.stubEnv(
+    "API_INTERNAL_ORIGIN",
+    "http://user:synthetic-private@api.invalid",
+  );
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+
+  const response = await forwardApiRequest(
+    new Request("http://localhost/api/post"),
+  );
+
+  const requestId = response.headers.get(requestIdHeader);
+  expect(response.status).toBe(502);
+  expect(await response.json()).toEqual({ error: "API unavailable" });
+  expect(isRequestId(requestId)).toBe(true);
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(JSON.parse(log.mock.calls[0][0])).toEqual({
+    timestamp: expect.any(String),
+    service: "admin",
+    event: "admin.upstream.failed",
+    category: "operational",
+    level: "error",
+    outcome: "failure",
+    operation: "forward",
+    code: "configuration",
+    status: 502,
+    requestId,
+  });
+});
+
+it("replaces browser IDs and signs the correlation ID sent to API", async () => {
+  vi.stubEnv(
+    "NEXTPRESS_REQUEST_CORRELATION_SECRET",
+    "test-shared-correlation-key-at-least-32-bytes",
+  );
+  const browserId = newRequestId();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: URL, init: RequestInit) => {
+      const outgoing = new Headers(init.headers);
+      const verified = apiRequestId(outgoing);
+      expect(verified).not.toBe(browserId);
+      expect(verified).toBe(outgoing.get(requestIdHeader));
+
+      return Response.json(
+        { error: "Forbidden" },
+        { status: 403, headers: { [requestIdHeader]: verified } },
+      );
+    }),
+  );
+  const response = await forwardApiRequest(
+    new Request("http://localhost/api/post", {
+      headers: {
+        [requestIdHeader]: browserId,
+        "x-nextpress-request-signature": "forged",
+      },
+    }),
+  );
+  expect(response.headers.get(requestIdHeader)).not.toBe(browserId);
+  expect(isRequestId(response.headers.get(requestIdHeader))).toBe(true);
+  expect(response.status).toBe(403);
 });
 
 it.each([

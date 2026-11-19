@@ -1,11 +1,12 @@
 import { PublicSiteSettingsSchema } from "@nextpress/shared/api-contracts";
 
-import { ok, oops } from "@/lib/api/http";
+import { ok, internalError } from "@/lib/api/http";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getPublicSiteSettings } from "@/lib/public/settings.server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function get() {
   try {
     const response = ok(
       PublicSiteSettingsSchema.parse(await getPublicSiteSettings()),
@@ -14,8 +15,8 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error(error);
-
-    return oops();
+    return internalError(error);
   }
 }
+
+export const GET = withRequestLogging("public.settings", get);

@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { ok, bad, oops, notfound } from "@/lib/api";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import {
   searchTagsService,
@@ -21,7 +22,7 @@ function getTagName(body: unknown): string {
 /**
  * GET /api/tags?query=foo
  */
-export async function GET(req: Request) {
+async function get(req: Request) {
   const url = new URL(req.url);
   const query = url.searchParams.get("query") ?? "";
 
@@ -34,8 +35,6 @@ export async function GET(req: Request) {
 
     return ok(tags);
   } catch (err) {
-    console.error("GET /api/tags failed");
-
     if (err instanceof ValidationError) {
       return bad(err.message); // 400 by default
     }
@@ -66,8 +65,6 @@ export const POST = withAuth(
 
       return ok(tag, 201);
     } catch (err) {
-      console.error("POST /api/tags failed");
-
       if (err instanceof ValidationError) {
         return bad(err.message); // 400
       }
@@ -96,8 +93,6 @@ export const DELETE = withAuth(
 
       return ok({ message: "Deleted successfully" });
     } catch (err) {
-      console.error("DELETE /api/tags failed");
-
       if (err instanceof ValidationError) {
         return bad(err.message); // 400
       }
@@ -111,3 +106,5 @@ export const DELETE = withAuth(
   },
   "taxonomy",
 );
+
+export const GET = withRequestLogging("taxonomy", get);

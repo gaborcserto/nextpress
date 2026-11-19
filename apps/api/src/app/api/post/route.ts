@@ -1,4 +1,5 @@
 import { ok, bad, conflict, oops, forbid } from "@/lib/api";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
 import { ContentForbiddenError } from "@/lib/auth/content-access";
 import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
@@ -49,8 +50,6 @@ export const POST = withAuth(
         return conflict(err.message);
       }
 
-      console.error("POST /api/post failed");
-
       return oops(err);
     }
   },
@@ -60,7 +59,7 @@ export const POST = withAuth(
 /**
  * GET /api/post
  */
-export async function GET(req: Request) {
+async function get(req: Request) {
   const actor = (await getSessionWithRole())?.user;
   const url = new URL(req.url);
 
@@ -78,3 +77,5 @@ export async function GET(req: Request) {
 
   return ok(result);
 }
+
+export const GET = withRequestLogging("content", get);

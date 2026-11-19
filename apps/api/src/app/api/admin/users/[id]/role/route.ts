@@ -1,6 +1,9 @@
 export const runtime = "nodejs";
 
+import { writeServerLog } from "@nextpress/shared/server-logging";
+
 import { ok, bad, oops, notfound, conflict } from "@/lib/api";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import { isRole } from "@/lib/auth/roles";
 import {
@@ -43,14 +46,12 @@ export const PATCH = withAuth(
         return oops();
       }
 
-      console.info(
-        JSON.stringify({
-          event: "user.role.changed",
-          actorId: auth.session.user.id,
-          targetId: updated.id,
-          role,
-        }),
-      );
+      writeServerLog("api", "user.role.changed", {
+        ...apiLogContext(),
+        actorId: auth.session.user.id,
+        targetId: updated.id,
+        role,
+      });
 
       return ok({ id: updated.id, roleName: updated.role?.name ?? null });
     } catch (e) {
@@ -66,8 +67,6 @@ export const PATCH = withAuth(
       ) {
         return notfound("User not found");
       }
-
-      console.error("PATCH /api/admin/users/:id/role failed");
 
       return oops(e);
     }

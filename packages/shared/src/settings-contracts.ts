@@ -6,6 +6,18 @@ import {
   PostsPerPageSchema,
 } from "./post-listing-settings";
 import { ROLES } from "./roles";
+
+function hasCompleteOAuthProviders(
+  providers: ReadonlyArray<{ provider: string }>,
+): boolean {
+  const names = new Set(providers.map(({ provider }) => provider));
+
+  return (
+    providers.length === OAUTH_PROVIDERS.length &&
+    OAUTH_PROVIDERS.every((provider) => names.has(provider))
+  );
+}
+
 export const SettingsPayloadSchema = z.object({
   siteName: z.string(),
   siteDescription: z.string(),
@@ -23,12 +35,8 @@ export const SettingsPayloadSchema = z.object({
         clientSecret: z.string().optional(),
       }),
     )
-    .refine(
-      (providers) =>
-        providers.length === OAUTH_PROVIDERS.length &&
-        new Set(providers.map((row) => row.provider)).size ===
-          OAUTH_PROVIDERS.length,
-    ),
+    .length(OAUTH_PROVIDERS.length)
+    .refine(hasCompleteOAuthProviders),
 });
 
 function validOptionalHttpUrl(value: string): boolean {
@@ -64,14 +72,24 @@ export const SettingsUpdateSchema = SettingsPayloadSchema.extend({
     })
     .array()
     .length(OAUTH_PROVIDERS.length)
-    .refine(
-      (providers) =>
-        new Set(providers.map((row) => row.provider)).size ===
-        OAUTH_PROVIDERS.length,
-    ),
+    .refine(hasCompleteOAuthProviders),
 });
 
 export type SettingsApiPayload = z.infer<typeof SettingsPayloadSchema>;
+
+const OAuthCredentialStatusSchema = z.object({
+  provider: z.enum(OAUTH_PROVIDERS),
+  hasClientId: z.boolean(),
+  hasClientSecret: z.boolean(),
+  operational: z.boolean(),
+});
+
+export const SettingsSavedSchema = z.object({
+  ok: z.literal(true),
+  oauthProviders: OAuthCredentialStatusSchema.array()
+    .length(OAUTH_PROVIDERS.length)
+    .refine(hasCompleteOAuthProviders),
+});
 
 // Reject incomplete authoritative responses instead of normalizing them into writable defaults.
 export const SettingsResponseSchema = z.object({
@@ -82,14 +100,11 @@ export const SettingsResponseSchema = z.object({
   defaultUserRole: z.enum(ROLES),
   postListingMode: PostListingModeSchema,
   postsPerPage: PostsPerPageSchema,
-  oauthProviders: z.array(
-    z.object({
-      provider: z.enum(OAUTH_PROVIDERS),
-      enabled: z.boolean(),
-      clientId: z.string(),
-      hasClientId: z.boolean(),
-      hasClientSecret: z.boolean(),
-      operational: z.boolean(),
-    }),
-  ),
+  oauthProviders: OAuthCredentialStatusSchema.extend({
+    enabled: z.boolean(),
+    clientId: z.string(),
+  })
+    .array()
+    .length(OAUTH_PROVIDERS.length)
+    .refine(hasCompleteOAuthProviders),
 });

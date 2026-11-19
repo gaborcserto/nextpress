@@ -3,13 +3,14 @@ import {
   PublicSearchResultSchema,
 } from "@nextpress/shared/api-contracts";
 
-import { bad, ok, oops } from "@/lib/api/http";
+import { bad, ok, internalError } from "@/lib/api/http";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { searchPublishedContent } from "@/lib/public/search.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+async function get(request: Request) {
   const params = new URL(request.url).searchParams;
 
   if ([...params.keys()].some((key) => params.getAll(key).length !== 1)) {
@@ -31,7 +32,9 @@ export async function GET(request: Request) {
     response.headers.set("Cache-Control", "no-store");
 
     return response;
-  } catch {
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 }
+
+export const GET = withRequestLogging("public.content", get);

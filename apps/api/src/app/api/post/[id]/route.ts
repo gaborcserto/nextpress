@@ -1,6 +1,7 @@
 import { readRichContent } from "@nextpress/shared/content";
 
 import { ok, bad, notfound, conflict, oops, forbid } from "@/lib/api";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
 import {
   ContentForbiddenError,
@@ -57,7 +58,7 @@ function mapPostToFormValues(
 /**
  * GET /api/post/[id]
  */
-export async function GET(_req: Request, { params }: GetContext) {
+async function get(_req: Request, { params }: GetContext) {
   try {
     const { id } = await params;
     const { item, tags } = await getPostWithTagsService(
@@ -72,8 +73,6 @@ export async function GET(_req: Request, { params }: GetContext) {
     if (err instanceof PageNotFoundError) {
       return notfound();
     }
-
-    console.error("GET /api/post/[id] failed");
 
     return oops(err);
   }
@@ -119,8 +118,6 @@ export const PUT = withAuth(
         return conflict(err.message);
       }
 
-      console.error("PUT /api/post/[id] failed");
-
       return oops(err);
     }
   },
@@ -148,10 +145,10 @@ export const DELETE = withAuth(
         return notfound();
       }
 
-      console.error("DELETE /api/post/[id] failed");
-
       return oops(err);
     }
   },
   "content",
 );
+
+export const GET = withRequestLogging("content", get);

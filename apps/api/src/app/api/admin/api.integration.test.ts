@@ -1,5 +1,6 @@
+import { SettingsSavedSchema } from "@nextpress/shared/settings-contracts";
 import { APIError } from "better-auth/api";
-import { describe, expect, beforeEach, it, vi } from "vitest";
+import { afterEach, describe, expect, beforeEach, it, vi } from "vitest";
 
 const { authState, prisma, bcryptHash, getDefaultUserRole, authHandler } =
   vi.hoisted(() => ({
@@ -146,7 +147,21 @@ beforeEach(() => {
     postListingMode: "PAGINATION",
     postsPerPage: 10,
   });
-  prisma.oAuthProvider.upsert.mockResolvedValue({ id: "provider-1" });
+  prisma.oAuthProvider.upsert.mockImplementation(
+    async ({
+      where,
+      update,
+    }: {
+      where: { provider: string };
+      update: object;
+    }) => ({
+      provider: where.provider,
+      enabled: false,
+      clientId: null,
+      clientSecret: null,
+      ...update,
+    }),
+  );
   prisma.oAuthProvider.findMany.mockResolvedValue(
     providers.map((provider) => ({
       provider,
@@ -159,6 +174,8 @@ beforeEach(() => {
     async (callback: (tx: typeof prisma) => unknown) => callback(prisma),
   );
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("admin API route integration", () => {
   it.each([
@@ -288,6 +305,8 @@ describe("admin API route integration", () => {
           }),
         ]),
       );
+      expect(JSON.stringify(body)).not.toContain("google-secret");
+      expect(JSON.stringify(body)).not.toContain("clientSecret");
     });
 
     it("persists a valid settings update and preserves an existing omitted secret", async () => {
@@ -315,7 +334,9 @@ describe("admin API route integration", () => {
       );
 
       expect(response.status).toBe(200);
-      expect(await json(response)).toEqual({ ok: true });
+      expect(SettingsSavedSchema.safeParse(await json(response)).success).toBe(
+        true,
+      );
       expect(prisma.siteSettings.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           update: expect.objectContaining({
@@ -342,6 +363,55 @@ describe("admin API route integration", () => {
           prisma.siteSettings.upsert.mock.calls[0]?.[0].update,
         ).not.toHaveProperty(field);
       }
+    });
+
+    it("reports effective credentials after clearing a stored client ID and submitting whitespace", async () => {
+      vi.stubEnv("GITHUB_CLIENT_ID", "synthetic-env-client");
+      vi.stubEnv("GITHUB_CLIENT_SECRET", "synthetic-env-secret");
+      vi.stubEnv("GOOGLE_CLIENT_ID", "");
+      vi.stubEnv("GOOGLE_CLIENT_SECRET", "");
+      const payload = settingsPayload();
+
+      const response = await putSettings(
+        request("PUT", {
+          ...payload,
+          oauthProviders: payload.oauthProviders.map((row) => ({
+            ...row,
+            enabled: row.provider === "github",
+            clientId: "  ",
+            clientSecret: "  ",
+          })),
+        }),
+        { params: {} },
+      );
+
+      expect(response.status).toBe(200);
+      const body = await json(response);
+      expect(body.oauthProviders).toEqual(
+        expect.arrayContaining([
+          {
+            provider: "github",
+            hasClientId: true,
+            hasClientSecret: true,
+            operational: true,
+          },
+          {
+            provider: "google",
+            hasClientId: false,
+            hasClientSecret: false,
+            operational: false,
+          },
+        ]),
+      );
+      expect(prisma.oAuthProvider.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { provider: "github" },
+          update: { enabled: true, clientId: null, settingsId: "default" },
+        }),
+      );
+      expect(JSON.stringify(body)).not.toMatch(
+        /synthetic-env|clientSecret|clientId/,
+      );
     });
 
     it.each([

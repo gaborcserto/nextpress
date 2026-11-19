@@ -1,3 +1,9 @@
+import {
+  apiRequestId,
+  newRequestId,
+  renderRequestIdHeader,
+  requestIdHeader,
+} from "@nextpress/shared/request-correlation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PublicApiError } from "./public-api.server";
@@ -11,7 +17,11 @@ import {
 } from "./public-content.server";
 
 const request = vi.fn();
+const requestHeaders = vi.hoisted(() => vi.fn());
+vi.mock("next/headers", () => ({ headers: requestHeaders }));
+
 beforeEach(() => {
+  requestHeaders.mockResolvedValue(new Headers());
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal("fetch", request);
   request.mockReset();
@@ -43,16 +53,40 @@ describe("public HTTP content", () => {
     await expect(getPublishedPosts()).rejects.toThrow(
       "temporarily unavailable",
     );
-    expect(console.error).toHaveBeenCalledWith(
-      JSON.stringify({
+    const outgoing = new Headers(request.mock.lastCall?.[1].headers);
+    expect(JSON.parse(vi.mocked(console.error).mock.calls[0][0])).toMatchObject(
+      {
         event: "public.upstream.failed",
         code: "transport",
         status: 503,
-      }),
+        level: "error",
+        requestId: outgoing.get(requestIdHeader),
+      },
     );
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
       "private-connection-details",
     );
+  });
+
+  it("propagates the same signed render ID to multiple API reads", async () => {
+    vi.stubEnv(
+      "NEXTPRESS_REQUEST_CORRELATION_SECRET",
+      "test-shared-correlation-key-at-least-32-bytes",
+    );
+    const requestId = newRequestId();
+    requestHeaders.mockResolvedValue(
+      new Headers({ [renderRequestIdHeader]: requestId }),
+    );
+    request.mockResolvedValueOnce(Response.json(post));
+    request.mockResolvedValueOnce(Response.json({ header: [], footer: [] }));
+
+    await Promise.all([getPublishedPost("hello"), getPublicPageNavigation()]);
+
+    expect(
+      request.mock.calls.map(([, init]) =>
+        apiRequestId(new Headers(init.headers)),
+      ),
+    ).toEqual([requestId, requestId]);
   });
   it.each([getPublishedPage, getPublishedPost])(
     "validates delivery content and sends anonymous uncached requests",

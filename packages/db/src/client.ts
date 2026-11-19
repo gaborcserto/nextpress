@@ -1,13 +1,10 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { getDatabaseConnectionString } from "./database-config";
+import { resolveDatabase } from "./database-config";
 import { PrismaClient } from "../generated/prisma/client";
 
-const connectionString = getDatabaseConnectionString(process.env);
-
-const adapter = new PrismaPg({
-  connectionString,
-});
+const { connectionString, target } = resolveDatabase(process.env);
+const adapter = new PrismaPg({ connectionString }, { schema: target.schema });
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

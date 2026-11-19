@@ -9,6 +9,11 @@ import {
   EMPTY_RICH_CONTENT,
   serializeRichContent,
 } from "@nextpress/shared/content";
+import {
+  newRequestId,
+  requestIdHeader,
+  setUpstreamRequestId,
+} from "@nextpress/shared/request-correlation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAuth, getSessionWithRole } from "@/lib/auth/auth-server";
@@ -20,6 +25,10 @@ import { GET as listAdminTags } from "./admin/tags/route";
 import { PATCH as updateUserRole } from "./admin/users/[id]/role/route";
 import { DELETE as deleteUser } from "./admin/users/[id]/route";
 import { POST as createUser } from "./admin/users/create/route";
+import {
+  PATCH as transitionRevision,
+  POST as savePageRevision,
+} from "./pages/[id]/revisions/route";
 import {
   GET as readPage,
   PUT as updatePage,
@@ -97,6 +106,148 @@ type Filter = {
 };
 let records: Content[];
 let role: RoleName | null;
+
+const revisionPageId = "c123456789012345678901230";
+const savedRevisionId = "c123456789012345678901231";
+const sourceRevisionId = "c123456789012345678901232";
+const revisionActorId = "c123456789012345678901233";
+const revisionSnapshot = {
+  title: "Revision",
+  slug: "revision",
+  content: EMPTY_RICH_CONTENT,
+  excerpt: EMPTY_RICH_CONTENT,
+  layout: "STANDARD",
+  pageDocument: null,
+};
+
+describe("legacy revision audit", () => {
+  const persisted = {
+    ...revisionSnapshot,
+    pageId: revisionPageId,
+    id: savedRevisionId,
+  };
+
+  function revisionTransaction() {
+    return {
+      $executeRaw: vi.fn(),
+      page: {
+        findFirst: vi.fn().mockResolvedValue({ status: "DRAFT" }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        update: vi.fn().mockResolvedValue({ id: revisionPageId }),
+      },
+      media: { count: vi.fn().mockResolvedValue(0) },
+      pageRevision: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ ...revisionSnapshot, id: sourceRevisionId }),
+        create: vi.fn().mockResolvedValue(persisted),
+      },
+    };
+  }
+
+  it.each(["save", "restore", "publish", "unpublish"] as const)(
+    "logs the committed revision identity for %s",
+    async (action) => {
+      role = "EDITOR";
+      session.mockResolvedValue({ user: { id: revisionActorId } });
+      const tx = revisionTransaction();
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+      prisma.$transaction.mockImplementation(async (run) => {
+        const result: unknown = await run(tx);
+        expect(info).not.toHaveBeenCalled();
+
+        return result;
+      });
+
+      try {
+        const ctx = context(revisionPageId);
+        const response =
+          action === "save"
+            ? await savePageRevision(
+                request("POST", { ...revisionSnapshot, expectedVersion: 4 }),
+                ctx,
+              )
+            : await transitionRevision(
+                request("PATCH", {
+                  action,
+                  expectedVersion: 4,
+                  revisionId: sourceRevisionId,
+                }),
+                ctx,
+              );
+
+        const createsRevision = action === "save" || action === "restore";
+        expect(response.status).toBe(action === "save" ? 201 : 200);
+        expect(await response.json()).toEqual(
+          createsRevision ? persisted : { id: revisionPageId },
+        );
+        expect(info).toHaveBeenCalledTimes(1);
+        const event = JSON.parse(info.mock.calls[0][0]);
+        expect(event).toMatchObject({
+          event: action === "save" ? "revision.saved" : "revision.transition",
+          requestId: response.headers.get(requestIdHeader),
+          actorId: revisionActorId,
+          targetId: revisionPageId,
+          ...(action === "save" ? {} : { action }),
+          ...(createsRevision
+            ? { revisionId: savedRevisionId }
+            : { sourceRevisionId }),
+        });
+        expect(event).not.toHaveProperty(
+          createsRevision ? "sourceRevisionId" : "revisionId",
+        );
+      } finally {
+        info.mockRestore();
+      }
+    },
+  );
+
+  it.each([
+    ["unauthenticated", 401],
+    ["forbidden", 403],
+    ["invalid", 400],
+    ["stale", 409],
+    ["rollback", 500],
+  ])("does not log a successful revision after %s", async (failure, status) => {
+    role = failure === "forbidden" ? "SUBSCRIBER" : "EDITOR";
+    const tx = revisionTransaction();
+
+    if (failure === "unauthenticated") {
+      session.mockResolvedValue(null);
+    }
+
+    if (failure === "stale") {
+      tx.page.updateMany.mockResolvedValue({ count: 0 });
+    }
+
+    prisma.$transaction.mockImplementation(async (run) => {
+      const result: unknown = await run(tx);
+
+      if (failure === "rollback") {
+        throw new Error("Commit failed");
+      }
+
+      return result;
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    try {
+      const response = await transitionRevision(
+        request("PATCH", {
+          action: failure === "invalid" ? "invalid" : "restore",
+          expectedVersion: 4,
+          revisionId: sourceRevisionId,
+        }),
+        context(revisionPageId),
+      );
+      expect(response.status).toBe(status);
+      expect(info).not.toHaveBeenCalled();
+    } finally {
+      info.mockRestore();
+    }
+  });
+});
 
 function content(
   id: string,
@@ -1126,6 +1277,60 @@ describe("authorized mutation abuse limits", () => {
     );
     expect(prisma.user.updateMany).not.toHaveBeenCalled();
   });
+});
+
+it("audits the completed role change exactly once with the authenticated actor and request ID", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => {});
+  vi.stubEnv(
+    "NEXTPRESS_REQUEST_CORRELATION_SECRET",
+    "test-shared-correlation-key-at-least-32-bytes",
+  );
+  const actorId = "c123456789012345678901234";
+  const targetId = "c987654321098765432109876";
+  role = "ADMIN";
+  session.mockResolvedValue({
+    user: { id: actorId, email: "private@example.test" },
+  });
+  prisma.$transaction.mockImplementation(async (run) =>
+    run({
+      $executeRaw: vi.fn(),
+      user: {
+        findUniqueOrThrow: vi
+          .fn()
+          .mockResolvedValue({ role: { name: "SUBSCRIBER" } }),
+        update: vi
+          .fn()
+          .mockResolvedValue({ id: targetId, role: { name: "EDITOR" } }),
+      },
+    }),
+  );
+
+  try {
+    const id = newRequestId();
+    const req = request("PATCH", { role: "EDITOR", actorId: "spoofed" });
+    setUpstreamRequestId(req.headers, id);
+    const response = await updateUserRole(req, context(targetId));
+    expect(response.status).toBe(200);
+    expect(response.headers.get(requestIdHeader)).toBe(id);
+    expect(await response.json()).toEqual({ id: targetId, roleName: "EDITOR" });
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(info.mock.calls[0][0])).toMatchObject({
+      event: "user.role.changed",
+      category: "audit",
+      outcome: "success",
+      level: "info",
+      requestId: id,
+      actorId,
+      targetId,
+      role: "EDITOR",
+    });
+    expect(JSON.stringify(info.mock.calls)).not.toMatch(
+      /private@example|spoofed/,
+    );
+  } finally {
+    info.mockRestore();
+    vi.unstubAllEnvs();
+  }
 });
 
 describe("public registration roles", () => {

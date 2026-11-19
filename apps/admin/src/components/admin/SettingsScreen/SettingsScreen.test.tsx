@@ -1,3 +1,4 @@
+import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -5,32 +6,54 @@ import { normalizeSettingsForm } from "@/lib/settings/admin-settings";
 
 import SettingsScreen from "./SettingsScreen";
 
-const { useSettingsScreen } = vi.hoisted(() => ({
+const { useSettingsScreen, jsonFetcher } = vi.hoisted(() => ({
   useSettingsScreen: vi.fn(),
+  jsonFetcher: vi.fn(),
 }));
 vi.mock("./SettingsScreen.hooks", () => ({ useSettingsScreen }));
+vi.mock("@/lib/api", () => ({ jsonFetcher }));
 
 describe("SettingsScreen", () => {
   afterEach(() => {
     window.history.replaceState(null, "", window.location.pathname);
   });
 
-  it("shows retry instead of a writable form after load failure", () => {
-    const retry = vi.fn();
-    useSettingsScreen.mockReturnValue({
-      form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
-      loaded: false,
-      loading: false,
-      loadError: "Unable to load settings.",
-      retry,
-    });
+  it("blocks editing on an invalid provider list and recovers after retry", async () => {
+    const hooks = await vi.importActual<
+      typeof import("./SettingsScreen.hooks")
+    >("./SettingsScreen.hooks");
+    useSettingsScreen.mockImplementation(hooks.useSettingsScreen);
+    const settings = {
+      ...normalizeSettingsForm(undefined, "SUBSCRIBER"),
+      siteName: "NextPress",
+    };
+    jsonFetcher.mockReset().mockResolvedValueOnce(settings);
+
     render(<SettingsScreen />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Unable to load settings. Please try again.",
+    );
     expect(
       screen.queryByRole("button", { name: "Save site settings" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Site name")).not.toBeInTheDocument();
+
+    jsonFetcher.mockResolvedValueOnce({
+      ...settings,
+      oauthProviders: OAUTH_PROVIDERS.map((provider) => ({
+        provider,
+        enabled: false,
+        clientId: "",
+        hasClientId: false,
+        hasClientSecret: false,
+        operational: false,
+      })),
+    });
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(retry).toHaveBeenCalledOnce();
+    expect(
+      await screen.findByRole("button", { name: "Save site settings" }),
+    ).toBeEnabled();
+    expect(screen.getByLabelText("Site name")).toHaveValue("NextPress");
   });
 
   it("keeps legacy Appearance links in the General tab", () => {
@@ -99,8 +122,8 @@ describe("SettingsScreen", () => {
     expect(screen.getByLabelText("github new secret")).toBeDisabled();
   });
 
-  it("submits a new provider secret even after its disclosure is closed", async () => {
-    const save = vi.fn().mockResolvedValue(true);
+  it("keeps a submitted secret after failure and clears it on a successful retry", async () => {
+    const save = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
     useSettingsScreen.mockReturnValue({
       form: normalizeSettingsForm(
         {
@@ -138,8 +161,11 @@ describe("SettingsScreen", () => {
       expect(save).toHaveBeenCalledExactlyOnceWith({
         github: { clientSecret: "replacement" },
       });
-      expect(secret).toHaveValue("");
+      expect(secret).toHaveValue("replacement");
     });
+    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
+    await waitFor(() => expect(secret).toHaveValue(""));
+    expect(save).toHaveBeenCalledTimes(2);
   });
 
   it("exposes bounded public listing mode and batch controls", () => {

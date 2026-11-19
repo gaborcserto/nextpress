@@ -3,13 +3,14 @@ import {
   PublicTagBatchSchema,
 } from "@nextpress/shared/api-contracts";
 
-import { bad, ok, oops } from "@/lib/api/http";
+import { bad, ok, internalError } from "@/lib/api/http";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getPublishedTags } from "@/lib/public/content.server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+async function get(req: Request) {
   const query = new URL(req.url).searchParams;
 
   if (
@@ -36,7 +37,9 @@ export async function GET(req: Request) {
     response.headers.set("Cache-Control", "no-store");
 
     return response;
-  } catch {
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 }
+
+export const GET = withRequestLogging("public.content", get);

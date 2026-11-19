@@ -1,5 +1,17 @@
 import "server-only";
 
+import {
+  newRequestId,
+  requestIdHeader,
+  requestSignatureHeader,
+  responseRequestId,
+  setUpstreamRequestId,
+} from "@nextpress/shared/request-correlation";
+import {
+  writeServerLog,
+  type FailureCode,
+} from "@nextpress/shared/server-logging";
+
 export function apiOrigin(): string {
   const value = process.env.API_INTERNAL_ORIGIN;
 
@@ -33,10 +45,9 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
     return Response.json({ error: "Not Found" }, { status: 404 });
   }
 
-  const target = new URL(apiOrigin());
-  target.pathname = incoming.pathname;
-  target.search = incoming.search;
+  const requestId = newRequestId();
   const headers = new Headers();
+  setUpstreamRequestId(headers, requestId);
 
   // Never forward client identity, Host, or proxy trust headers.
   for (const name of [
@@ -54,7 +65,21 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
     }
   }
 
+  const deadline = AbortSignal.timeout(
+    incoming.pathname === "/api/private-drafts/execute" &&
+      request.method === "POST"
+      ? 65000
+      : 30000,
+  );
+  const signal = AbortSignal.any([request.signal, deadline]);
+  let failureCode: FailureCode = "configuration";
+
   try {
+    const target = new URL(apiOrigin());
+    target.pathname = incoming.pathname;
+    target.search = incoming.search;
+    failureCode = "transport";
+
     const hasBody = !["GET", "HEAD"].includes(request.method);
     const upstream = await fetch(target, {
       method: request.method,
@@ -63,15 +88,7 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
       ...(hasBody ? { duplex: "half" } : {}),
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.any([
-        request.signal,
-        AbortSignal.timeout(
-          incoming.pathname === "/api/private-drafts/execute" &&
-            request.method === "POST"
-            ? 65000
-            : 30000,
-        ),
-      ]),
+      signal,
     });
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete("set-cookie");
@@ -86,20 +103,58 @@ export async function forwardApiRequest(request: Request): Promise<Response> {
       "content-length",
       "transfer-encoding",
       "connection",
+      requestSignatureHeader,
     ]) {
       responseHeaders.delete(name);
     }
 
+    const correlatedId = responseRequestId(responseHeaders, requestId);
+    responseHeaders.set(requestIdHeader, correlatedId);
     responseHeaders.set("Cache-Control", "private, no-store");
+
+    if (upstream.status >= 500) {
+      writeServerLog("admin", "admin.upstream.failed", {
+        requestId,
+        upstreamRequestId: correlatedId,
+        operation: "forward",
+        code: "upstream",
+        status: upstream.status,
+      });
+    }
 
     return new Response(upstream.body, {
       status: upstream.status,
       headers: responseHeaders,
     });
-  } catch {
+  } catch (error) {
+    const fetchAborted =
+      failureCode === "transport" && signal.aborted && error === signal.reason;
+    const callerCancelled =
+      fetchAborted &&
+      request.signal.aborted &&
+      signal.reason === request.signal.reason;
+
+    if (!callerCancelled) {
+      writeServerLog("admin", "admin.upstream.failed", {
+        requestId,
+        operation: "forward",
+        code:
+          fetchAborted && signal.reason === deadline.reason
+            ? "timeout"
+            : failureCode,
+        status: 502,
+      });
+    }
+
     return Response.json(
       { error: "API unavailable" },
-      { status: 502, headers: { "Cache-Control": "private, no-store" } },
+      {
+        status: 502,
+        headers: {
+          "Cache-Control": "private, no-store",
+          [requestIdHeader]: requestId,
+        },
+      },
     );
   }
 }

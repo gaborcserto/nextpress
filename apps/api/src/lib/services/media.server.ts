@@ -6,9 +6,11 @@ import {
   pageMediaIds,
   readPageDocument,
 } from "@nextpress/shared/page-document";
+import { writeServerLog } from "@nextpress/shared/server-logging";
 import { randomUUID } from "node:crypto";
 import sharp, { type Metadata } from "sharp";
 
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 import {
   contentWriteWhere,
   ContentForbiddenError,
@@ -209,12 +211,9 @@ export async function deleteMedia(id: string, actor: ContentActor) {
       return;
     }
 
-    console.error(
-      JSON.stringify({
-        event: "media.cleanup_failed",
-        mediaId: id,
-        category: "storage_removal_failed",
-      }),
-    );
+    writeServerLog("api", "media.cleanup_failed", {
+      ...apiLogContext(),
+      operation: "media",
+    });
   }
 }

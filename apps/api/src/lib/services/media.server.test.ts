@@ -192,13 +192,12 @@ describe("media deletion transaction characterization", () => {
       if (code === "ENOENT") {
         expect(log).not.toHaveBeenCalled();
       } else {
-        expect(log).toHaveBeenCalledWith(
-          JSON.stringify({
-            event: "media.cleanup_failed",
-            mediaId: "asset",
-            category: "storage_removal_failed",
-          }),
-        );
+        expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({
+          event: "media.cleanup_failed",
+          operation: "media",
+          category: "operational",
+        });
+        expect(JSON.stringify(log.mock.calls)).not.toContain("private path");
       }
 
       await expect(deleteMedia("asset", actor)).rejects.toBeInstanceOf(

@@ -1,5 +1,11 @@
-import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+
+import { loadApiEnvironment } from "./src/api-environment";
+import { formatDatabaseTarget, resolveDatabase } from "./src/database-config";
+
+loadApiEnvironment();
+const { connectionString, target } = resolveDatabase(process.env);
+console.info(`Prisma database target: ${formatDatabaseTarget(target)}`);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,6 +13,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: connectionString,
   },
 });

@@ -18,7 +18,9 @@
     "./oauth-providers": "./src/oauth-providers.ts",
     "./settings-contracts": "./src/settings-contracts.ts",
     "./editorial-contracts": "./src/editorial-contracts.ts",
-    "./working-aggregate": "./src/working-aggregate.ts"
+    "./working-aggregate": "./src/working-aggregate.ts",
+    "./request-correlation": "./src/request-correlation.ts",
+    "./server-logging": "./src/server-logging.ts"
   },
   "scripts": {
     "lint": "node ../../scripts/readability.mjs --verbose && eslint . --max-warnings 0",

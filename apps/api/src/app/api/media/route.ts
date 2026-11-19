@@ -1,6 +1,8 @@
+import { writeServerLog } from "@nextpress/shared/server-logging";
 import { ZodError } from "zod";
 
 import { bad, ok, oops } from "@/lib/api";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import {
   listMedia,
@@ -24,13 +26,11 @@ export const POST = withAuth(
   async (req, _ctx, { session }) => {
     try {
       const media = await uploadMedia(await req.json(), session.user);
-      console.info(
-        JSON.stringify({
-          event: "media.uploaded",
-          actorId: session.user.id,
-          targetId: media.id,
-        }),
-      );
+      writeServerLog("api", "media.uploaded", {
+        ...apiLogContext(),
+        actorId: session.user.id,
+        targetId: media.id,
+      });
 
       return ok(media, 201);
     } catch (error) {

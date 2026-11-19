@@ -1,3 +1,8 @@
+import { EMPTY_RICH_CONTENT } from "@nextpress/shared/content";
+import {
+  SettingsResponseSchema,
+  SettingsSavedSchema,
+} from "@nextpress/shared/settings-contracts";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +20,17 @@ const roleEmails = ["admin", "editor", "author"].map(
 const pageSlug = `integration-owned-${runId}`;
 const invalidPageSlug = `integration-invalid-owner-${runId}`;
 const tagSlug = `integration-tag-${runId}`;
+const settingsEmail = `settings-${runId}@example.invalid`;
+const revisionEmail = `revision-${runId}@example.invalid`;
+const revisionPageSlug = `integration-revisions-${runId}`;
+const { requestHeaders } = vi.hoisted(() => ({
+  requestHeaders: vi.fn(async () => new Headers()),
+}));
+vi.mock("next/headers", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/headers")>()),
+  headers: requestHeaders,
+}));
+
 let prisma!: typeof import("@nextpress/db/src/client").prisma;
 let getAuth!: typeof import("./auth-server").getAuth;
 let getUserRole!: typeof import("./auth-server").getUserRole;
@@ -112,11 +128,17 @@ describe.skipIf(!testDatabaseUrl)(
 
       try {
         await prisma.page.deleteMany({
-          where: { slug: { in: [pageSlug, invalidPageSlug] } },
+          where: {
+            slug: { in: [pageSlug, invalidPageSlug, revisionPageSlug] },
+          },
         });
         await prisma.taxonomy.deleteMany({ where: { slug: tagSlug } });
         await prisma.user.deleteMany({
-          where: { email: { in: [signupEmail, ...roleEmails] } },
+          where: {
+            email: {
+              in: [signupEmail, settingsEmail, revisionEmail, ...roleEmails],
+            },
+          },
         });
       } finally {
         await prisma.$disconnect();
@@ -267,6 +289,165 @@ describe.skipIf(!testDatabaseUrl)(
           },
         }),
       ).rejects.toMatchObject({ code: "P2003" });
+    });
+
+    it("returns committed legacy revision identities for restore and publication", async () => {
+      const { revisionAction, saveRevision } =
+        await import("../services/revisions.server");
+
+      const author = await prisma.user.create({
+        data: {
+          email: revisionEmail,
+          role: { connect: { name: "AUTHOR" } },
+        },
+      });
+
+      const page = await prisma.page.create({
+        data: {
+          type: "PAGE",
+          status: "DRAFT",
+          slug: revisionPageSlug,
+          title: "Legacy revision",
+          content: EMPTY_RICH_CONTENT,
+          authorId: author.id,
+        },
+      });
+      const actor = { id: author.id, role: "AUTHOR" as const };
+      const saved = await saveRevision(
+        page.id,
+        {
+          expectedVersion: page.workingVersion,
+          title: "Saved snapshot",
+          slug: page.slug,
+          content: EMPTY_RICH_CONTENT,
+          excerpt: EMPTY_RICH_CONTENT,
+          layout: "STANDARD",
+          pageDocument: null,
+        },
+        actor,
+      );
+
+      const restored = await revisionAction(
+        page.id,
+        {
+          action: "restore",
+          expectedVersion: saved.workingVersion,
+          revisionId: saved.id,
+        },
+        actor,
+      );
+
+      expect(restored.result.id).not.toBe(saved.id);
+      expect(restored.audit).toEqual({
+        action: "restore",
+        targetId: page.id,
+        revisionId: restored.result.id,
+      });
+      const persisted = await prisma.pageRevision.findUniqueOrThrow({
+        where: { id: restored.result.id },
+      });
+
+      const published = await revisionAction(
+        page.id,
+        {
+          action: "publish",
+          expectedVersion: persisted.workingVersion,
+          revisionId: persisted.id,
+        },
+        actor,
+      );
+
+      expect(published.result).toMatchObject({
+        id: page.id,
+        status: "PUBLISHED",
+      });
+      expect(published.audit).toEqual({
+        action: "publish",
+        targetId: page.id,
+        sourceRevisionId: persisted.id,
+      });
+    });
+
+    it("reports environment fallback after clearing a stored client ID in PostgreSQL", async () => {
+      const auth = await getAuth();
+
+      const signup = await auth.handler(
+        authRequest("/sign-up/email", {
+          name: "Settings integration admin",
+          email: settingsEmail,
+          password,
+        }),
+      );
+      expect(signup.status).toBe(200);
+      await prisma.user.update({
+        where: { email: settingsEmail },
+        data: { role: { connect: { name: "ADMIN" } } },
+      });
+      const signIn = await auth.handler(
+        authRequest("/sign-in/email", { email: settingsEmail, password }),
+      );
+      expect(signIn.status).toBe(200);
+      const cookie = sessionCookie(signIn);
+      requestHeaders.mockResolvedValue(new Headers({ cookie }));
+      vi.stubEnv("GITHUB_CLIENT_ID", "synthetic-fallback-client");
+      vi.stubEnv("GITHUB_CLIENT_SECRET", "synthetic-fallback-secret");
+
+      try {
+        const { GET, PUT } = await import("@/app/api/admin/settings/route");
+        const url = `${origin}/api/admin/settings`;
+        const context = { params: {} };
+        const response = await GET(new Request(url), context);
+        expect(response.status).toBe(200);
+        const settings = SettingsResponseSchema.parse(await response.json());
+        await prisma.oAuthProvider.update({
+          where: { provider: "github" },
+          data: { clientId: "synthetic-stored-client", clientSecret: null },
+        });
+        const saved = await PUT(
+          new Request(url, {
+            method: "PUT",
+            headers: { origin, "content-type": "application/json" },
+            body: JSON.stringify({
+              ...settings,
+              siteName: "NextPress",
+              oauthProviders: settings.oauthProviders.map((row) => ({
+                ...row,
+                ...(row.provider === "github"
+                  ? { enabled: true, clientId: "", clientSecret: "  " }
+                  : {}),
+              })),
+            }),
+          }),
+          context,
+        );
+
+        expect(saved.status).toBe(200);
+        const body = await saved.text();
+        expect(/synthetic-fallback|clientSecret|clientId/.test(body)).toBe(
+          false,
+        );
+        const status = SettingsSavedSchema.parse(JSON.parse(body));
+        expect(
+          status.oauthProviders.find((row) => row.provider === "github"),
+        ).toEqual({
+          provider: "github",
+          hasClientId: true,
+          hasClientSecret: true,
+          operational: true,
+        });
+
+        const stored = await prisma.oAuthProvider.findUniqueOrThrow({
+          where: { provider: "github" },
+          select: { enabled: true, clientId: true, clientSecret: true },
+        });
+        expect(
+          stored.enabled &&
+            stored.clientId === null &&
+            stored.clientSecret === null,
+        ).toBe(true);
+      } finally {
+        requestHeaders.mockReset();
+      }
     });
   },
 );

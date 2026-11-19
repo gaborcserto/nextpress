@@ -1,6 +1,9 @@
 export const runtime = "nodejs";
 
+import { writeServerLog } from "@nextpress/shared/server-logging";
+
 import { ok, oops, bad, notfound, conflict } from "@/lib/api";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import {
   administerUser,
@@ -20,13 +23,11 @@ export const DELETE = withAuth(
         ctx.params.id,
         null,
       );
-      console.info(
-        JSON.stringify({
-          event: "user.deleted",
-          actorId: auth.session.user.id,
-          targetId: ctx.params.id,
-        }),
-      );
+      writeServerLog("api", "user.deleted", {
+        ...apiLogContext(),
+        actorId: auth.session.user.id,
+        targetId: ctx.params.id,
+      });
 
       return ok({ ok: true });
     } catch (e) {
@@ -42,8 +43,6 @@ export const DELETE = withAuth(
       ) {
         return notfound("User not found");
       }
-
-      console.error("DELETE /api/admin/users/:id failed");
 
       return oops(e);
     }

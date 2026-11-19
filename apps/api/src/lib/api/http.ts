@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { databaseDiagnostics } from "@/lib/database-diagnostics";
 import { workingPersistenceFailure } from "@/lib/services/working-persistence-errors";
 
+import { logApiFailure } from "./request-logging.server";
+
 type ErrorBody<E extends object = object> = { error: string } & E;
 
 /**
@@ -82,6 +84,12 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
   if (failure === "WRITER_FENCE_CONFLICT") {
     return conflict("Content writer coordination conflict");
   }
+
+  return internalError(error);
+}
+
+export function internalError(error?: unknown): NextResponse<ErrorBody> {
+  logApiFailure(error);
 
   return NextResponse.json<ErrorBody>(
     { error: "Unexpected error" },

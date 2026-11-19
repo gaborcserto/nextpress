@@ -31,13 +31,13 @@ it("forwards only auth cookies, validates the discovery contract and disables ca
   expect(fetcher).toHaveBeenCalledWith(
     "http://localhost:49102/api/discovery/session",
     expect.objectContaining({
-      headers: {
-        cookie:
-          "better-auth.session_token=test; __Secure-better-auth.state=state",
-      },
+      headers: expect.any(Headers),
       cache: "no-store",
       redirect: "error",
     }),
+  );
+  expect(new Headers(fetcher.mock.lastCall?.[1].headers).get("cookie")).toBe(
+    "better-auth.session_token=test; __Secure-better-auth.state=state",
   );
 });
 it("returns null for an anonymous session", async () => {

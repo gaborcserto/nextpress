@@ -5,7 +5,8 @@ import {
   developmentTaxonomies,
 } from "../prisma/development-content";
 
-const { prisma } = vi.hoisted(() => ({
+const { prisma, assertDevelopmentSeedAllowed } = vi.hoisted(() => ({
+  assertDevelopmentSeedAllowed: vi.fn(),
   prisma: {
     taxonomy: {
       findUnique: vi.fn(),
@@ -19,13 +20,25 @@ const { prisma } = vi.hoisted(() => ({
 }));
 vi.mock("./client", () => ({ prisma }));
 vi.mock("./development-seed-policy", () => ({
-  assertDevelopmentSeedAllowed: vi.fn(),
+  assertDevelopmentSeedAllowed,
 }));
-vi.mock("dotenv/config", () => ({}));
+vi.mock("./api-environment", () => ({
+  loadApiEnvironment() {
+    vi.stubEnv("DATABASE_URL", "postgresql://fixture:fixture@localhost/cms");
+  },
+}));
+vi.mock("dotenv", () => ({
+  config({ processEnv }: { processEnv: NodeJS.ProcessEnv }) {
+    processEnv.DATABASE_URL =
+      "postgresql://fixture:fixture@localhost:55434/nextpress_dev_editorial";
+    processEnv.ALLOW_DEVELOPMENT_CONTENT_SEED = "true";
+  },
+}));
 
 describe("development seed persistence", () => {
   it("fills missing tags and links on reruns without overwriting existing content or associations", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.stubEnv("ALLOW_DEVELOPMENT_CONTENT_SEED", undefined);
     prisma.taxonomy.findUnique.mockResolvedValue(null);
     prisma.page.findUnique.mockResolvedValue(null);
     prisma.taxonomy.findUniqueOrThrow.mockImplementation(
@@ -53,6 +66,13 @@ describe("development seed persistence", () => {
 
       expect(prisma.taxonomy.upsert).toHaveBeenCalledTimes(
         developmentTaxonomies.length * 2,
+      );
+
+      expect(assertDevelopmentSeedAllowed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          DATABASE_URL: "postgresql://fixture:fixture@localhost:5432/cms",
+          ALLOW_DEVELOPMENT_CONTENT_SEED: "true",
+        }),
       );
 
       for (const taxonomy of developmentTaxonomies) {
@@ -94,6 +114,7 @@ describe("development seed persistence", () => {
       );
     } finally {
       log.mockRestore();
+      vi.unstubAllEnvs();
     }
   });
 });

@@ -1,4 +1,5 @@
 import { readBoundedMutationRequest } from "@/lib/api/mutation.server";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getAuth } from "@/lib/auth/auth-server";
 import { authBudgets, tooManyRequests } from "@/lib/security/rate-limit.server";
 
@@ -31,4 +32,5 @@ async function handler(request: Request) {
   return auth.handler(bounded.request ?? request);
 }
 
-export { handler as GET, handler as POST };
+export const GET = withRequestLogging("auth", handler);
+export const POST = GET;

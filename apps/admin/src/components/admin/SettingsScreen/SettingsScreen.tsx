@@ -154,7 +154,19 @@ export default function SettingsScreen() {
     );
 
     if (await save(credentials)) {
-      credentialForm.current?.reset();
+      for (const [provider, submitted] of Object.entries(credentials)) {
+        const input = credentialForm.current?.elements.namedItem(
+          `clientSecret:${provider}`,
+        );
+
+        if (
+          input instanceof HTMLInputElement &&
+          input.value === submitted.clientSecret
+        ) {
+          input.value = "";
+        }
+      }
+
       showToast("Settings saved.", "success");
     }
   };
@@ -190,6 +202,7 @@ export default function SettingsScreen() {
           form="admin-settings-form"
           color="primary"
           loading={saving}
+          disabled={loading || !!loadError}
           aria-describedby="settings-save-scope"
         >
           <FaSave aria-hidden="true" />
@@ -452,15 +465,12 @@ export default function SettingsScreen() {
                                 maxLength={2000}
                                 value={provider.clientId}
                                 placeholder={
-                                  provider.hasClientId
-                                    ? "Using environment value"
-                                    : ""
+                                  provider.hasClientId ? "Configured value" : ""
                                 }
                                 onChange={(event) =>
                                   setForm((current) =>
                                     updateProviderAtIndex(current, index, {
                                       clientId: event.target.value,
-                                      hasClientId: !!event.target.value,
                                     }),
                                   )
                                 }
@@ -483,7 +493,7 @@ export default function SettingsScreen() {
                                   autoComplete="new-password"
                                   placeholder={
                                     provider.hasClientSecret
-                                      ? "Stored value preserved"
+                                      ? "Configured value preserved"
                                       : "Required"
                                   }
                                 />

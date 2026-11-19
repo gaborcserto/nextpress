@@ -6,6 +6,7 @@ import {
   MIN_PASSWORD_LENGTH,
   MAX_PASSWORD_LENGTH,
 } from "@nextpress/shared/auth-policy";
+import { writeServerLog } from "@nextpress/shared/server-logging";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError } from "better-auth/api";
@@ -18,6 +19,8 @@ import {
   readBoundedMutationRequest,
   requireTrustedMutation,
 } from "@/lib/api/mutation.server";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 import {
   authBudgets,
   limitMutation,
@@ -56,7 +59,7 @@ function createAuth(providerRows: readonly OAuthProviderRow[]) {
           (level === "warn" || level === "error") &&
           authBudgets.consume("auth-log", 1, 60_000) === null
         ) {
-          console.warn("Authentication operation failed");
+          writeServerLog("api", "auth.operation.failed", apiLogContext());
         }
       },
     },
@@ -338,55 +341,58 @@ export function withAuth<
   ) => Promise<Response> | Response,
   mutationLimit?: MutationLimit,
 ) {
-  return async (req: Request, ctx: RawHandlerCtx<P>) => {
-    // HTTP adapters can represent a bodyless DELETE as an empty stream.
-    // Validate its actual body after the bounded read, retaining the Origin gate.
-    const rejection = requireTrustedMutation(req, {
-      bodyReadPending: req.method === "DELETE",
-    });
+  return withRequestLogging(
+    "protected",
+    async (req: Request, ctx: RawHandlerCtx<P>) => {
+      // HTTP adapters can represent a bodyless DELETE as an empty stream.
+      // Validate its actual body after the bounded read, retaining the Origin gate.
+      const rejection = requireTrustedMutation(req, {
+        bodyReadPending: req.method === "DELETE",
+      });
 
-    if (rejection) {
-      return rejection;
-    }
-
-    const params = await ctx.params;
-
-    const session = await getSessionWithRole();
-
-    if (!session?.user?.id) {
-      return unauthorized();
-    }
-
-    const role = session.user.role;
-
-    if (!hasAnyRole(role, allowed)) {
-      return forbid();
-    }
-
-    if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
-      const throttled = limitMutation(session.user.id, mutationLimit);
-
-      if (throttled) {
-        return throttled;
+      if (rejection) {
+        return rejection;
       }
-    }
 
-    const bounded = await readBoundedMutationRequest(req);
+      const params = await ctx.params;
 
-    if (bounded.response) {
-      return bounded.response;
-    }
+      const session = await getSessionWithRole();
 
-    const bodyRejection = requireTrustedMutation(bounded.request ?? req);
+      if (!session?.user?.id) {
+        return unauthorized();
+      }
 
-    if (bodyRejection) {
-      return bodyRejection;
-    }
+      const role = session.user.role;
 
-    return handler(
-      bounded.request ?? req,
-      { params },
-      { session, roleName: role },
-    );
-  };
+      if (!hasAnyRole(role, allowed)) {
+        return forbid();
+      }
+
+      if (mutationLimit && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+        const throttled = limitMutation(session.user.id, mutationLimit);
+
+        if (throttled) {
+          return throttled;
+        }
+      }
+
+      const bounded = await readBoundedMutationRequest(req);
+
+      if (bounded.response) {
+        return bounded.response;
+      }
+
+      const bodyRejection = requireTrustedMutation(bounded.request ?? req);
+
+      if (bodyRejection) {
+        return bodyRejection;
+      }
+
+      return handler(
+        bounded.request ?? req,
+        { params },
+        { session, roleName: role },
+      );
+    },
+  );
 }

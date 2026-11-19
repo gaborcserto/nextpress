@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { prisma } from "@nextpress/db/src/client";
 
-import { ok, oops } from "@/lib/api";
+import { ok, internalError } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 
 export const GET = withAuth(["ADMIN"], async () => {
@@ -27,9 +27,7 @@ export const GET = withAuth(["ADMIN"], async () => {
         roleName: u.role?.name ?? null,
       })),
     );
-  } catch {
-    console.error("GET /api/admin/users failed");
-
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 });

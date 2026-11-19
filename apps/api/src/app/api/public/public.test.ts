@@ -79,10 +79,17 @@ it.each(["", "better-auth.session_token=admin-cookie"])(
     ).toBe(true);
     findMany.mockResolvedValue([]);
     expect(
-      PublicNavigationSchema.safeParse(await (await navigation()).json())
-        .success,
+      PublicNavigationSchema.safeParse(
+        await (
+          await navigation(
+            new Request("http://localhost/api/public/navigation"),
+          )
+        ).json(),
+      ).success,
     ).toBe(true);
-    const payload = await (await settings()).json();
+    const payload = await (
+      await settings(new Request("http://localhost/api/public/settings"))
+    ).json();
     expect(PublicSiteSettingsSchema.safeParse(payload).success).toBe(true);
     expect(JSON.stringify(payload)).not.toContain("secret-");
     expect(authenticate).not.toHaveBeenCalled();
@@ -122,9 +129,21 @@ it("returns stable missing and failure errors", async () => {
 });
 
 it("does not substitute default settings during a database outage", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
   findUnique.mockRejectedValueOnce(new Error("ECONNREFUSED private database"));
-  const response = await settings();
+  const response = await settings(
+    new Request("http://localhost/api/public/settings"),
+  );
 
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({ error: "Unexpected error" });
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(log.mock.calls[0][0])).toMatchObject({
+    event: "api.request.failed",
+    operation: "public.settings",
+    status: 500,
+    requestId: response.headers.get("x-request-id"),
+  });
+  expect(JSON.stringify(log.mock.calls)).not.toContain("private database");
+  log.mockRestore();
 });

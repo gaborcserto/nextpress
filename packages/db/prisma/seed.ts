@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import { resolve } from "node:path";
 
 import {
   developmentPages,
@@ -10,12 +11,13 @@ import {
   PageType,
   PublishStatus,
 } from "../generated/prisma/client";
-import { prisma } from "../src/client";
+import { loadApiEnvironment } from "../src/api-environment";
+import { formatDatabaseTarget, resolveDatabase } from "../src/database-config";
 import { assertDevelopmentSeedAllowed } from "../src/development-seed-policy";
 
-assertDevelopmentSeedAllowed(process.env);
+import type { PrismaClient } from "../generated/prisma/client";
 
-async function ensureDevelopmentContent() {
+async function ensureDevelopmentContent(prisma: PrismaClient) {
   for (const taxonomy of developmentTaxonomies) {
     const idOwner = await prisma.taxonomy.findUnique({
       where: { id: taxonomy.id },
@@ -114,7 +116,36 @@ async function ensureDevelopmentContent() {
   }
 }
 
-ensureDevelopmentContent()
+loadApiEnvironment();
+const seedOptions: NodeJS.ProcessEnv = {};
+config({
+  path: resolve(__dirname, "../.env"),
+  processEnv: seedOptions,
+  quiet: true,
+});
+const { connectionString, target } = resolveDatabase(process.env);
+assertDevelopmentSeedAllowed({
+  ...process.env,
+  DATABASE_URL: connectionString,
+  ALLOW_DEVELOPMENT_CONTENT_SEED:
+    process.env.ALLOW_DEVELOPMENT_CONTENT_SEED ??
+    seedOptions.ALLOW_DEVELOPMENT_CONTENT_SEED,
+});
+console.info(
+  `Development seed database target: ${formatDatabaseTarget(target)}`,
+);
+
+async function seedDevelopmentContent() {
+  const { prisma } = await import("../src/client");
+
+  try {
+    await ensureDevelopmentContent(prisma);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+seedDevelopmentContent()
   .then(() => {
     console.log(
       `Seed OK: ${developmentPages.length} development pages/posts and ${developmentTaxonomies.length} tags`,
@@ -123,7 +154,4 @@ ensureDevelopmentContent()
   .catch(() => {
     console.error("Development content seeding failed");
     process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });

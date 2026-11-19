@@ -1,6 +1,9 @@
 import "server-only";
 
+import { writeServerLog } from "@nextpress/shared/server-logging";
 import { createHash } from "node:crypto";
+
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 
 type Entry = { count: number; expiresAt: number };
 
@@ -80,7 +83,10 @@ export function logAbuseThrottle() {
   }
 
   nextLogAt = now + 60_000;
-  console.warn("Application abuse limit reached");
+  writeServerLog("api", "security.rate_limited", {
+    ...apiLogContext(),
+    status: 429,
+  });
 }
 
 export function tooManyRequests(retryAfter: number): Response {

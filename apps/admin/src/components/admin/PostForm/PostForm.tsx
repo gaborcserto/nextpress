@@ -316,7 +316,7 @@ export default function PostForm({
                 />
               </Section>
 
-              <Section title="Content" variant="plain">
+              <Section title="Content">
                 <SlateEditor
                   key={privateDraft?.contentKey ?? 0}
                   readOnly={submitting}

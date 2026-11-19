@@ -31,7 +31,9 @@ beforeEach(() => {
     updatedAt: new Date("2026-01-01"),
   });
   tx.page.updateMany.mockResolvedValue({ count: 1 });
+  tx.page.update.mockResolvedValue({ id: "page" });
   tx.pageRevision.findFirst.mockResolvedValue({
+    id: "revision",
     title: "Revision",
     slug: "revision",
     content: EMPTY_RICH_CONTENT,

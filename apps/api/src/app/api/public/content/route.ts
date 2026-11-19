@@ -1,9 +1,10 @@
 import { prisma } from "@nextpress/db/src/client";
 import { PublicContentIndexQuerySchema } from "@nextpress/shared/api-contracts";
 
-import { bad, ok, oops } from "@/lib/api";
+import { bad, ok, internalError } from "@/lib/api";
+import { withRequestLogging } from "@/lib/api/request-logging.server";
 
-export async function GET(req: Request) {
+async function get(req: Request) {
   const params = new URL(req.url).searchParams;
 
   if ([...params.keys()].some((key) => params.getAll(key).length > 1)) {
@@ -35,7 +36,9 @@ export async function GET(req: Request) {
     });
 
     return ok({ items: rows.slice(0, limit), hasMore: rows.length > limit });
-  } catch {
-    return oops();
+  } catch (error) {
+    return internalError(error);
   }
 }
+
+export const GET = withRequestLogging("public.content", get);

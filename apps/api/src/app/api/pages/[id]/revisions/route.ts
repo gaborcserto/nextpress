@@ -1,7 +1,9 @@
 import { RevisionActionSchema } from "@nextpress/shared/revisions";
+import { writeServerLog } from "@nextpress/shared/server-logging";
 import { ZodError } from "zod";
 
 import { ok, bad, conflict, forbid, notfound, oops } from "@/lib/api";
+import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import {
   ContentForbiddenError,
@@ -76,14 +78,12 @@ export const POST = withAuth(
 
     try {
       const revision = await saveRevision(ctx.params.id, input, session.user);
-      console.info(
-        JSON.stringify({
-          event: "revision.saved",
-          actorId: session.user.id,
-          pageId: ctx.params.id,
-          revisionId: revision.id,
-        }),
-      );
+      writeServerLog("api", "revision.saved", {
+        ...apiLogContext(),
+        actorId: session.user.id,
+        targetId: revision.pageId,
+        revisionId: revision.id,
+      });
 
       return ok(revision, 201);
     } catch (error) {
@@ -106,16 +106,18 @@ export const PATCH = withAuth(
 
     try {
       const action = RevisionActionSchema.parse(input);
-      const result = await revisionAction(ctx.params.id, action, session.user);
-      console.info(
-        JSON.stringify({
-          event: "revision.transition",
-          action: action.action,
-          actorId: session.user.id,
-          pageId: ctx.params.id,
-          resultId: result.id,
-        }),
+
+      const { result, audit } = await revisionAction(
+        ctx.params.id,
+        action,
+        session.user,
       );
+
+      writeServerLog("api", "revision.transition", {
+        ...apiLogContext(),
+        actorId: session.user.id,
+        ...audit,
+      });
 
       return ok(result);
     } catch (error) {

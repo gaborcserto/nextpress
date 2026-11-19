@@ -1,8 +1,48 @@
 {
   "extends": ["//"],
   "tasks": {
+    "dev": {
+      "env": [
+        "DATABASE_URL",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_SECRET",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+        "APPLE_CLIENT_ID",
+        "APPLE_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "FACEBOOK_CLIENT_ID",
+        "FACEBOOK_CLIENT_SECRET",
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET"
+      ]
+    },
     "build": {
-      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]
+      "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"],
+      "env": [
+        "DATABASE_URL",
+        "BETTER_AUTH_URL",
+        "BETTER_AUTH_SECRET",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "NEXT_PUBLIC_ADMIN_URL",
+        "APPLE_CLIENT_ID",
+        "APPLE_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "FACEBOOK_CLIENT_ID",
+        "FACEBOOK_CLIENT_SECRET",
+        "DISCORD_CLIENT_ID",
+        "DISCORD_CLIENT_SECRET"
+      ]
     },
     "typecheck": {
       "dependsOn": ["$TURBO_EXTENDS$", "@nextpress/db#prisma:generate"]

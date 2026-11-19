@@ -643,7 +643,12 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     }
 
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith("Authentication operation failed");
+    expect(JSON.parse(warn.mock.calls[0][0])).toMatchObject({
+      event: "auth.operation.failed",
+      level: "warn",
+      outcome: "failure",
+    });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("secret");
   });
 
   it("limits complete session/account listings while preserving revocation", async () => {

@@ -22,6 +22,30 @@ const input = {
   })),
 };
 
+const readProviders = input.oauthProviders.map((row) => ({
+  ...row,
+  hasClientId: false,
+  hasClientSecret: true,
+  operational: false,
+}));
+
+it.each([
+  ["empty", []],
+  ["missing", readProviders.slice(1)],
+  ["duplicate", [readProviders[1], ...readProviders.slice(1)]],
+  [
+    "unsupported",
+    [{ ...readProviders[0], provider: "unknown" }, ...readProviders.slice(1)],
+  ],
+])(
+  "rejects %s provider membership on reads and writes",
+  (_label, oauthProviders) => {
+    const data = { ...input, oauthProviders };
+    expect(SettingsResponseSchema.safeParse(data).success).toBe(false);
+    expect(SettingsUpdateSchema.safeParse(data).success).toBe(false);
+  },
+);
+
 it("requires the complete provider set and preserves omitted or blank write-only secrets", () => {
   expect(SettingsUpdateSchema.parse(input)).toEqual(input);
   expect(

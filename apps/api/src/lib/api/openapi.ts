@@ -44,6 +44,7 @@ import {
 } from "@nextpress/shared/revisions";
 import {
   SettingsResponseSchema,
+  SettingsSavedSchema,
   SettingsUpdateSchema,
 } from "@nextpress/shared/settings-contracts";
 import { z } from "zod";
@@ -196,6 +197,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   UpdatedRole: object({ id: string, roleName: nullableString }),
   SettingsUpdate: schema(SettingsUpdateSchema),
   Settings: schema(SettingsResponseSchema),
+  SettingsSaved: schema(SettingsSavedSchema),
 };
 
 const errors: Record<number, string> = {
@@ -207,7 +209,7 @@ const errors: Record<number, string> = {
   413: "Request body exceeds 5,000,000 bytes.",
   415: "Mutation Content-Type must be application/json.",
   429: "Application mutation rate limit reached.",
-  500: "Unexpected error. Collection content reads may instead return a framework error response.",
+  500: "Unexpected error.",
   503: "Private draft admission disabled or isolated database identity unverifiable.",
 };
 
@@ -241,15 +243,27 @@ function operation(
   }
 
   for (const code of codes) {
-    responses[code] =
-      code === 500 && ["listPages", "listPosts"].includes(operationId)
-        ? { description: errors[code] }
-        : response(errors[code], ref("Error"));
+    responses[code] = response(errors[code], ref("Error"));
 
     if (code === 429) {
       responses[code].headers = {
         "Retry-After": { description: "Seconds until retry.", schema: integer },
       };
+    }
+  }
+
+  if (operationId !== "health") {
+    for (const item of Object.values(responses)) {
+      if (!("$ref" in item)) {
+        item.headers = {
+          ...item.headers,
+          "X-Request-Id": {
+            description:
+              "Opaque request identifier for support and server log correlation.",
+            schema: { type: "string", format: "uuid" },
+          },
+        };
+      }
     }
   }
 
@@ -819,16 +833,16 @@ paths["/api/admin/settings"] = {
     "Read administration settings",
     ref("Settings"),
     [401, 403, 500],
-    "ADMIN only. Initializes missing settings/provider rows. Credential presence flags are returned; secrets are never returned.",
+    "ADMIN only. Initializes missing settings/provider rows and returns exactly one entry per supported OAuth provider. Credential presence flags are returned; secrets are never returned.",
     "protected",
   ),
   put: operation(
     "updateSettings",
     "Settings",
     "Update administration settings",
-    ref("Success"),
+    ref("SettingsSaved"),
     [400, ...mutationCodes, 500],
-    "ADMIN only. Listing mode is PAGINATION or LOAD_MORE and postsPerPage is an integer from 1 to 50. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json.",
+    "ADMIN only. Listing mode is PAGINATION or LOAD_MORE and postsPerPage is an integer from 1 to 50. Nonblank siteName; URLs must be empty or HTTP(S). Supply exactly one entry per supported OAuth provider. Enabled providers require operational credentials. Requires trusted Origin and application/json. Returns effective credential status flags after saving.",
     "protected",
     "SettingsUpdate",
   ),
