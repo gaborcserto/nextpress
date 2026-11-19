@@ -166,13 +166,12 @@ describe("server-admitted private editors", () => {
     expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
       "Unsent",
     );
-    await act(async () =>
-      fireEvent.click(
-        within(screen.getByRole("dialog")).getByRole("button", {
-          name: "Confirm",
-        }),
-      ),
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Confirm",
+      }),
     );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Title", { exact: true })).toHaveValue(
       "Original",
     );
