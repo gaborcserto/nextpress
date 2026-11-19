@@ -13,6 +13,9 @@ const { submitAction } = vi.hoisted(() => ({ submitAction: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 vi.mock("@/ui/components", async () => ({
+  ...(await vi.importActual<typeof import("@/ui/components")>(
+    "@/ui/components",
+  )),
   EMPTY_SLATE_VALUE: [{ type: "paragraph", children: [{ text: "" }] }],
   EventFields: () => null,
   HierarchyField: (

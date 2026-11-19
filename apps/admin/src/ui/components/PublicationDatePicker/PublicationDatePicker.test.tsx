@@ -38,7 +38,7 @@ describe("PublicationDatePicker", () => {
     expect(trigger).toHaveFocus();
   });
 
-  it("converts date and time edits to local ISO values while retaining precision", () => {
+  it("converts date and time edits to local ISO values with minute precision", () => {
     const onChange = vi.fn();
     render(
       <PublicationDatePicker
@@ -56,7 +56,7 @@ describe("PublicationDatePicker", () => {
     fireEvent.blur(timeField);
 
     expect(onChange).toHaveBeenCalledWith(
-      new Date(2026, 11, 1, 13, 45, 45, 678).toISOString(),
+      new Date(2026, 11, 1, 13, 45).toISOString(),
     );
   });
 
@@ -123,7 +123,7 @@ describe("PublicationDatePicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
     expect(onChange).toHaveBeenCalledWith(
-      new Date(2026, 11, 1, 16, 0, 45, 678).toISOString(),
+      new Date(2026, 11, 1, 16, 0).toISOString(),
     );
   });
 
@@ -143,7 +143,7 @@ describe("PublicationDatePicker", () => {
     render(
       <PublicationDatePicker
         id="publish-at"
-        value="2026-12-01T12:30:00.000Z"
+        value="2026-12-01T12:30:45.678Z"
         onChange={onChange}
       />,
     );

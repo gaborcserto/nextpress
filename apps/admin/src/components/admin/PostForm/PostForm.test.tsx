@@ -5,7 +5,8 @@ import PostForm from "./PostForm";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-vi.mock("@/ui/components", () => ({
+vi.mock("@/ui/components", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/ui/components")>()),
   EMPTY_SLATE_VALUE: [{ type: "paragraph", children: [{ text: "" }] }],
   PostIntroFields: () => null,
   SlateEditor: () => null,
@@ -72,8 +73,13 @@ describe("PostForm", () => {
       expect.objectContaining({ publishedAt: original }),
     );
     fireEvent.change(screen.getByLabelText("Publish date"), {
-      target: { value: "2024-07-01T12:00" },
+      target: { value: "2024-07-01" },
     });
+    fireEvent.blur(screen.getByLabelText("Publish date"));
+    fireEvent.change(screen.getByLabelText("Publish time"), {
+      target: { value: "12:00" },
+    });
+    fireEvent.blur(screen.getByLabelText("Publish time"));
     fireEvent.submit(form);
     expect(submit).toHaveBeenLastCalledWith(
       expect.objectContaining({

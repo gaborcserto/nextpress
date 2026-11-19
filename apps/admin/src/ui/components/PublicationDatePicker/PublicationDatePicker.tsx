@@ -217,8 +217,8 @@ function PublicationDatePickerFields({
       date.day,
       time.hours,
       time.minutes,
-      parts?.date.getSeconds() ?? 0,
-      parts?.date.getMilliseconds() ?? 0,
+      0,
+      0,
     );
 
     if (

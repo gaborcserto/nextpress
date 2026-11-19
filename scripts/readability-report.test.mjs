@@ -164,7 +164,10 @@ test("root lint and CI retain the readability gate and hooks expose actual repor
     new URL("../.husky/pre-commit", import.meta.url),
     "utf8",
   );
-  assert.match(hook, /node scripts\/test-readability.mjs && npx lint-staged/);
+  assert.match(
+    hook,
+    /node scripts\/test-readability\.mjs\s+&&\s+npx lint-staged --verbose\s+&&\s+node scripts\/test-staged\.mjs/,
+  );
   assert.doesNotMatch(staged, /--test-reporter|spawnSync|readability.test.mjs/);
   assert.match(
     readFileSync(new URL("./test-readability.mjs", import.meta.url), "utf8"),

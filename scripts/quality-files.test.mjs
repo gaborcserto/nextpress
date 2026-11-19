@@ -21,6 +21,7 @@ import { format } from "oxfmt";
 
 import { formatFiles, reportFormatterOutput } from "./quality-files.mjs";
 import { format as formatReadability } from "./readability-core.mjs";
+import { projectTests } from "./test-staged.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
@@ -753,6 +754,7 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   for (const name of [
     "check-staged.mjs",
     "test-readability.mjs",
+    "test-staged.mjs",
     "quality-files.mjs",
     "readability.mjs",
     "readability-core.mjs",
@@ -817,6 +819,8 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   writeFileSync(file, "export const x = 1;\n\n\n// original\n");
   git("add", ".");
   git(
+    "-c",
+    "core.hooksPath=.git/hooks",
     "-c",
     "user.name=Test",
     "-c",
@@ -1051,7 +1055,13 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     /preserved unstaged comment/,
   );
   const defaultHook = readFileSync(hookFile, "utf8");
-  writeFileSync(hookFile, defaultHook.trimEnd() + " --debug\n");
+  writeFileSync(
+    hookFile,
+    defaultHook.replace(
+      "lint-staged --verbose",
+      "lint-staged --verbose --debug",
+    ),
+  );
   const detailedHook = await runGitHook({
     cwd,
     encoding: "utf8",
@@ -1114,6 +1124,212 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
   assert.equal(git("write-tree"), batchIndex);
   assert.equal(readFileSync(lastPath, "utf8"), batchWorktree);
   assert.match(readFileSync(file, "utf8"), /preserved unstaged comment/);
+});
+
+test("staged test planning follows manifest dependencies and bounds rename fallback", () => {
+  const testScript = { test: "vitest run" };
+  const manifests = new Map([
+    [
+      "apps/admin",
+      { name: "admin", scripts: testScript, dependencies: { bridge: "*" } },
+    ],
+    ["apps/web", { name: "web", scripts: testScript }],
+    ["packages/bridge", { name: "bridge", dependencies: { shared: "*" } }],
+    ["packages/shared", { name: "shared", scripts: testScript }],
+  ]);
+  const renamed = projectTests(
+    [
+      { status: "D", file: "apps/admin/src/old.ts" },
+      { status: "A", file: "apps/admin/src/new.ts" },
+    ],
+    manifests,
+  );
+  assert.equal(renamed.length, 1);
+  const [admin] = renamed;
+  assert.equal(admin.directory, "apps/admin");
+  assert.equal(admin.fallback.file, "apps/admin/src/old.ts");
+  assert.deepEqual(admin.related.slice(0, 2), [
+    "apps/admin/src/old.ts",
+    "apps/admin/src/new.ts",
+  ]);
+  assert.deepEqual(
+    projectTests(
+      [{ status: "A", file: "packages/shared/src/new.ts" }],
+      manifests,
+    ).map(({ directory, fallback }) => [directory, fallback]),
+    [
+      ["apps/admin", undefined],
+      ["packages/shared", undefined],
+    ],
+  );
+});
+
+test("pre-commit selects affected Vitest files and blocks a broken staged snapshot", async (t) => {
+  const cwd = fixture(t);
+
+  const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
+  const adminFiles = execFileSync("git", ["ls-files", "-z", "apps/admin"], {
+    cwd: root,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean);
+  const files = [
+    ...adminFiles,
+    ".gitignore",
+    ".husky/pre-commit",
+    "eslint.config.mjs",
+    "lint-staged.config.mjs",
+    "tsconfig.base.json",
+    ...[
+      "check-staged",
+      "quality-files",
+      "readability",
+      "readability-core",
+      "readability.test",
+      "test-readability",
+      "test-staged",
+    ].map((name) => `scripts/${name}.mjs`),
+  ];
+
+  for (const file of files) {
+    const destination = path.join(cwd, file);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    copyFileSync(path.join(root, file), destination);
+  }
+
+  writeFileSync(path.join(cwd, "package.json"), '{"type":"module"}\n');
+  symlinkSync(
+    path.join(root, "node_modules"),
+    path.join(cwd, "node_modules"),
+    "junction",
+  );
+  git("init", "--quiet");
+  git("add", ".");
+  git(
+    "-c",
+    "user.name=Test",
+    "-c",
+    "user.email=test@example.invalid",
+    "commit",
+    "--quiet",
+    "-m",
+    "fixture",
+  );
+  execFileSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      'import husky from "husky"; const error = husky(); if (error) throw new Error(error);',
+    ],
+    { cwd },
+  );
+
+  const component = "apps/admin/src/ui/shell/NavItem/NavItem.tsx";
+  const picker =
+    "apps/admin/src/ui/components/PublicationDatePicker/PublicationDatePicker";
+  const pickerTest = `${picker}.test.tsx`;
+  const cases = [
+    { label: "component", file: component, expected: /NavItem\.test\.tsx/ },
+    {
+      label: "picker",
+      file: `${picker}.tsx`,
+      expected: /PublicationDatePicker\.test\.tsx/,
+    },
+    {
+      label: "direct test",
+      file: pickerTest,
+      expected: /PublicationDatePicker\.test\.tsx/,
+    },
+    {
+      label: "unrelated",
+      file: "README.md",
+      expected: /No Vitest projects affected/,
+    },
+    {
+      label: "failure",
+      file: pickerTest,
+      expected: /fixture test must fail/,
+      failing: true,
+    },
+    {
+      label: "unstaged repair",
+      file: pickerTest,
+      expected: /Affected tests require the staged snapshot/,
+      failing: true,
+      repair: true,
+    },
+  ];
+
+  for (const { label, file, expected, failing, repair } of cases) {
+    const destination = path.join(cwd, file);
+    const original =
+      file === "README.md" ? "" : readFileSync(destination, "utf8");
+    const change = failing
+      ? '\nit("fixture test must fail", () => expect(1).toBe(2));\n'
+      : "\n// Staged hook fixture.\n";
+    writeFileSync(
+      destination,
+      original + (file === "README.md" ? "# Fixture\n" : change),
+    );
+    git("add", "--", file);
+
+    if (label === "picker") {
+      const plan = JSON.parse(
+        execFileSync(
+          process.execPath,
+          ["scripts/test-staged.mjs", "--dry-run"],
+          { cwd, encoding: "utf8" },
+        ),
+      );
+      assert.deepEqual(
+        plan.map(({ directory }) => directory),
+        ["apps/admin"],
+      );
+      assert.ok(plan[0].related.includes(file));
+      assert.equal(plan[0].fallback, undefined);
+    }
+
+    if (repair) {
+      writeFileSync(destination, original);
+    }
+
+    const started = performance.now();
+    const result = await runGitHook({ cwd });
+    const output = stripVTControlCharacters(result.stdout + result.stderr);
+    const selected = [
+      ...output.matchAll(/^[^\S\n]*[✓❯] (src\/[^\r\n ]+)/gm),
+    ].map((match) => match[1]);
+    t.diagnostic(
+      `${label}: ${((performance.now() - started) / 1000).toFixed(2)}s, ${selected.join(", ") || "no test files completed"}`,
+    );
+    assert.equal(result.status, failing ? 1 : 0, output);
+    assert.match(output, expected);
+    assert.match(output, /Staged checks: 1 files processed/);
+
+    if (label === "picker") {
+      assert.match(output, /PostForm\.test\.tsx/);
+      assert.match(output, /PageForm\.test\.tsx/);
+    }
+
+    if (label === "direct test") {
+      assert.deepEqual(selected, [
+        "src/ui/components/PublicationDatePicker/PublicationDatePicker.test.tsx",
+      ]);
+    }
+
+    if (label === "unrelated" || repair) {
+      assert.doesNotMatch(output, /RUN.*vitest|Test Files/);
+    }
+
+    if (file === "README.md") {
+      git("rm", "--force", "--", file);
+    } else {
+      writeFileSync(destination, original);
+      git("add", "--", file);
+    }
+  }
 });
 
 test("type import grouping and readability boundaries agree without disabling either rule", async () => {
