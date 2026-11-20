@@ -8,7 +8,7 @@ import {
   canonicalBaseline,
   editorialFixtures,
   historicalDocuments,
-} from "../../../../../e2e/editorial-baseline";
+} from "./editorial-baseline.fixtures";
 
 const { findFirst } = vi.hoisted(() => ({ findFirst: vi.fn() }));
 vi.mock("@nextpress/db", () => ({ prisma: { page: { findFirst } } }));

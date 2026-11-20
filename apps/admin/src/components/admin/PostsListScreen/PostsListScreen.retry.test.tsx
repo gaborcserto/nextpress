@@ -131,11 +131,11 @@ it.each(["network", "http", "malformed JSON"])(
     await waitFor(() => expect(retries).toHaveLength(1));
     expect(fetch).toHaveBeenCalledTimes(1);
 
-    await act(async () => {
-      retries[0]?.();
-    });
+    act(() => retries[0]?.());
+    await waitFor(() =>
+      expect(result.current.items[0]?.title).toBe("Recovered"),
+    );
 
-    expect(result.current.items[0]?.title).toBe("Recovered");
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(result.current.error).toBeUndefined();
   },
@@ -154,11 +154,9 @@ it("retains retry behavior for another content list consumer", async () => {
 
   await waitFor(() => expect(retries).toHaveLength(1));
 
-  await act(async () => {
-    retries[0]?.();
-  });
+  act(() => retries[0]?.());
+  await waitFor(() => expect(result.current.items[0]?.title).toBe("Recovered"));
 
-  expect(result.current.items[0]?.title).toBe("Recovered");
   expect(fetch).toHaveBeenCalledTimes(2);
 });
 

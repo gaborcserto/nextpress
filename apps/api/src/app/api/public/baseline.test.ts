@@ -6,16 +6,17 @@ import {
 } from "@nextpress/shared/api-contracts";
 import { beforeEach, expect, it, vi } from "vitest";
 
+import {
+  baselineInstant,
+  editorialFixtures,
+  publicBaseline,
+} from "@/lib/public/editorial-baseline.fixtures";
+
 import { GET as index } from "./content/route";
 import { GET as navigation } from "./navigation/route";
 import { GET as page } from "./pages/[slug]/route";
 import { GET as post } from "./posts/[slug]/route";
 import { GET as posts } from "./posts/route";
-import {
-  baselineInstant,
-  editorialFixtures,
-  publicBaseline,
-} from "../../../../../../e2e/editorial-baseline";
 
 const { findFirst, findMany } = vi.hoisted(() => ({
   findFirst: vi.fn(),

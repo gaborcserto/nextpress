@@ -15,6 +15,7 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, "**/.next/**", "**/.next-e2e/**"],
     environment: "jsdom",
+    maxWorkers: 2,
     setupFiles: "./vitest.setup.ts",
   },
 });

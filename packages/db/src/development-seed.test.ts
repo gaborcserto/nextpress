@@ -37,7 +37,9 @@ vi.mock("dotenv", () => ({
 
 describe("development seed persistence", () => {
   it("fills missing tags and links on reruns without overwriting existing content or associations", async () => {
+    const originalExitCode = process.exitCode;
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubEnv("ALLOW_DEVELOPMENT_CONTENT_SEED", undefined);
     prisma.taxonomy.findUnique.mockResolvedValue(null);
     prisma.page.findUnique.mockResolvedValue(null);
@@ -57,15 +59,21 @@ describe("development seed persistence", () => {
 
     try {
       for (let run = 0; run < 2; run++) {
-        // The CLI reports success after the seed work and disconnect complete.
-        const seedResult = new Promise<string>((resolve) => {
+        // Both CLI outcomes are reported after the seed work and disconnect.
+        const seedResult = new Promise<string>((resolve, reject) => {
           log.mockImplementationOnce((message: string) => resolve(message));
+          error.mockImplementation((message: string) =>
+            reject(new Error(message)),
+          );
         });
 
         vi.resetModules();
-        await import("../prisma/seed");
+        const [, message] = await Promise.all([
+          import("../prisma/seed"),
+          seedResult,
+        ]);
 
-        expect(await seedResult).toMatch(/^Seed OK:/);
+        expect(message).toMatch(/^Seed OK:/);
         expect(prisma.$disconnect).toHaveBeenCalledTimes(run + 1);
       }
 
@@ -119,7 +127,9 @@ describe("development seed persistence", () => {
       );
     } finally {
       log.mockRestore();
+      error.mockRestore();
       vi.unstubAllEnvs();
+      process.exitCode = originalExitCode;
     }
   });
 });

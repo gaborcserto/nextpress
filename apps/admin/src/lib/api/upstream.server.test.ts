@@ -148,6 +148,8 @@ function rejectOnAbort(_url: URL, { signal }: RequestInit) {
     throw new Error("Missing forwarding abort signal");
   }
 
+  signal.throwIfAborted();
+
   return new Promise<Response>((_resolve, reject) => {
     signal.addEventListener("abort", () => reject(signal.reason), {
       once: true,

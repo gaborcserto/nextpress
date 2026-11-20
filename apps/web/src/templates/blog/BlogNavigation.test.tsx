@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { BlogNavigation } from "./BlogNavigation";
@@ -9,7 +15,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 
 let desktop = false;
 let reducedMotion = false;
-const listeners = new Set<() => void>();
+let mediaChanges: EventTarget;
 let animationFrameId = 0;
 let animationFrames = new Map<number, FrameRequestCallback>();
 
@@ -19,7 +25,9 @@ const originalAnimate = Object.getOwnPropertyDescriptor(
 );
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
+  delete window.__nextpressBlogNavigationIndicator;
 
   if (originalAnimate) {
     Object.defineProperty(HTMLElement.prototype, "animate", originalAnimate);
@@ -29,18 +37,10 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe() {}
-
-      disconnect() {}
-    },
-  );
   desktop = false;
   reducedMotion = false;
   route.pathname = "/";
-  listeners.clear();
+  mediaChanges = new EventTarget();
   animationFrameId = 0;
   animationFrames = new Map();
   delete window.__nextpressBlogNavigationIndicator;
@@ -48,27 +48,27 @@ beforeEach(() => {
     configurable: true,
     value: vi.fn(() => ({ cancel: vi.fn() }) as unknown as Animation),
   });
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
     const id = ++animationFrameId;
     animationFrames.set(id, callback);
 
     return id;
   });
-  vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+  vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
     animationFrames.delete(id);
   });
-  vi.stubGlobal(
-    "matchMedia",
-    vi.fn((query: string) => ({
-      get matches() {
-        return query === "(min-width: 56rem)" ? desktop : reducedMotion;
-      },
-      addEventListener: (_event: string, listener: () => void) =>
-        listeners.add(listener),
-      removeEventListener: (_event: string, listener: () => void) =>
-        listeners.delete(listener),
-    })),
-  );
+  vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+    get matches() {
+      return query === "(min-width: 56rem)" ? desktop : reducedMotion;
+    },
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: mediaChanges.dispatchEvent.bind(mediaChanges),
+    addEventListener: mediaChanges.addEventListener.bind(mediaChanges),
+    removeEventListener: mediaChanges.removeEventListener.bind(mediaChanges),
+  }));
 });
 
 function flushAnimationFrame() {
@@ -137,13 +137,13 @@ it("exposes desktop links and resets the mobile disclosure across the breakpoint
   toggle.focus();
   act(() => {
     desktop = true;
-    listeners.forEach((listener) => listener());
+    mediaChanges.dispatchEvent(new Event("change"));
   });
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Home" })).toHaveFocus();
   act(() => {
     desktop = false;
-    listeners.forEach((listener) => listener());
+    mediaChanges.dispatchEvent(new Event("change"));
   });
   expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByRole("button")).toHaveFocus();

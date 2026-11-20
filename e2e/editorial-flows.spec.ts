@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
     .getByLabel("Password", { exact: true })
     .fill("Disposable browser passphrase 2026");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).not.toHaveURL(/sign-in/);
+  await page.waitForURL("/admin");
 });
 
 test("system appearance, explicit theme and settings/taxonomy navigation", async ({
@@ -44,6 +44,7 @@ test("system appearance, explicit theme and settings/taxonomy navigation", async
     page.getByText("Disposable browser tag", { exact: true }),
   ).toBeVisible();
   await page.goto("/admin/settings");
+  await page.getByRole("tab", { name: "Publishing" }).click();
   await expect(
     page.getByRole("combobox", { name: "Listing mode" }),
   ).toBeVisible();

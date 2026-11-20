@@ -129,7 +129,7 @@ function settingsPayload() {
 
 beforeEach(() => {
   authState.role = "ADMIN";
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   prisma.user.findUniqueOrThrow.mockResolvedValue({
     role: { name: "SUBSCRIBER" },
   });

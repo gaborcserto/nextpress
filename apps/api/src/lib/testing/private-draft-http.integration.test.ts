@@ -645,7 +645,7 @@ describe.skipIf(!ownerUrl || !appUrl)(
         await page
           .getByRole("button", { name: "Sign in", exact: true })
           .click();
-        await browserExpect(page).not.toHaveURL(/sign-in/);
+        await page.waitForURL(`${adminOrigin}/admin`);
 
         for (const kind of ["PAGE", "POST"] as const) {
           const source = await seed(kind);
@@ -664,10 +664,11 @@ describe.skipIf(!ownerUrl || !appUrl)(
 
           await page.goto(
             `${adminOrigin}/admin/${kind === "PAGE" ? "pages" : "posts"}/${source.id}`,
+            { waitUntil: "commit" },
           );
-          await browserExpect(
-            page.getByRole("region", { name: "Private draft" }),
-          ).toBeVisible();
+          await page
+            .getByRole("region", { name: "Private draft" })
+            .waitFor({ state: "visible" });
           await browserExpect(
             page.getByLabel("Status", { exact: true }),
           ).toBeDisabled();
