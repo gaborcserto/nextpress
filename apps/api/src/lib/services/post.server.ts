@@ -11,6 +11,8 @@ import {
 } from "./content-mutations.server";
 import { PageNotFoundError } from "./content.shared";
 
+import type { ContentListFilters } from "@/lib/repos/pageRepo";
+
 export function createPostService(rawBody: unknown, actor: ContentActor) {
   return createContentService("POST", rawBody, actor);
 }
@@ -42,8 +44,9 @@ export function listPostsService(
   page: number,
   limit: number,
   actor?: ContentActor | null,
+  filters?: ContentListFilters,
 ) {
-  return listAdministrativeContent("POST", page, limit, actor);
+  return listAdministrativeContent("POST", page, limit, actor, filters);
 }
 
 /**

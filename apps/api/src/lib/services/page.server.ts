@@ -10,6 +10,8 @@ import {
   updateContentService,
 } from "./content-mutations.server";
 
+import type { ContentListFilters } from "@/lib/repos/pageRepo";
+
 export function createPageService(rawBody: unknown, actor: ContentActor) {
   return createContentService("PAGE", rawBody, actor);
 }
@@ -40,6 +42,7 @@ export function listPagesService(
   page: number,
   limit: number,
   actor?: ContentActor | null,
+  filters?: ContentListFilters,
 ) {
-  return listAdministrativeContent("PAGE", page, limit, actor);
+  return listAdministrativeContent("PAGE", page, limit, actor, filters);
 }

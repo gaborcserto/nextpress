@@ -7,7 +7,7 @@ import { ContentList, type ContentListItem } from "@/ui/components";
 import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 
 export default function PagesListScreen() {
-  const { items, error, isLoading, mutate, pagination } = usePagesList();
+  const { items, error, isLoading, mutate, pagination, query } = usePagesList();
   const { deletingId, deletePage } = useDeletePage(async () => mutate());
 
   const labels = {
@@ -25,7 +25,8 @@ export default function PagesListScreen() {
     publishedAt: p.publishedAt,
     publicationState: p.publicationState,
     updatedAt: p.updatedAt,
-    dateLabel: p.updatedAt ? new Date(p.updatedAt).toLocaleString() : undefined,
+    createdAt: p.createdAt,
+    scheduledAt: p.publicationState === "SCHEDULED" ? p.publishedAt : null,
   }));
 
   return (
@@ -38,6 +39,8 @@ export default function PagesListScreen() {
       isLoading={isLoading}
       error={error ? "Unable to load pages. Please try again." : undefined}
       pagination={pagination}
+      query={query}
+      pageTypes={labels}
       onRetryAction={() => void mutate()}
       deletingId={deletingId}
       onDeleteAction={deletePage}

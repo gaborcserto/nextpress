@@ -16,6 +16,14 @@ Statuses describe the current evidence: **Implemented**, **Partial**, **Planned*
 | Preview                                                   | Partial     | Live preview route exists; complete workflow and access guarantees need audit.                                           |
 | Content relationships                                     | Partial     | Page hierarchy and taxonomy/media associations exist; broader relationships need audit.                                  |
 
+Admin Posts, Pages, Tags, and Categories support server-side search, ordering,
+and pagination. Posts and Pages also expose editorial state and record dates,
+and Posts support tag and category filters. The Pages list filters by page type.
+Taxonomy shows IDs and post usage counts. Tags retain creation and deletion
+actions, and Categories provide read-only discovery. See
+[Admin discovery](architecture.md#admin-discovery) for available metadata and
+pagination behavior.
+
 ## Page concepts
 
 The schema distinguishes `PageType` (content classification) and `PageLayout` (layout intent); public template/preset selection is a separate site appearance configuration. A content block is structured content inside a document, not a page type or appearance preset.

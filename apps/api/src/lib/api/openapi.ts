@@ -5,6 +5,10 @@ import {
   TagWithUsageSchema,
   ContentRecordSchema,
   ContentListSchema,
+  PageListFiltersSchema,
+  PostListFiltersSchema,
+  TaxonomyListFiltersSchema,
+  TaxonomyListSchema,
   EditorialPageSchema,
   EditorialPostSchema,
   PublicContentSchema,
@@ -138,6 +142,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   ),
   ContentRecord: schema(ContentRecordSchema),
   ContentList: schema(ContentListSchema),
+  TaxonomyList: schema(TaxonomyListSchema),
   ParentOptions: array(
     object({ id: string, title: string, parentId: nullableString }),
   ),
@@ -189,6 +194,13 @@ const id = parameter(
   string,
   "Resource ID; content GET also accepts a slug.",
 );
+
+function listParameters(shape: Record<string, z.ZodType>) {
+  return Object.entries(shape).map(([name, value]) =>
+    parameter(name, "query", schema(value), "Duplicate parameters rejected."),
+  );
+}
+
 const pagination = [
   parameter(
     "page",
@@ -395,13 +407,14 @@ for (const [path, kind, detail] of [
       ? { anyOf: [ref("ContentList"), ref("ParentOptions")] }
       : ref("ContentList"),
     [400, 500],
-    readScope,
+    `\${readScope} Search matches title or slug. Sorting defaults to updatedAt descending, with ID as the tie-breaker. Publication status is evaluated at request time.`,
     "optional",
   );
   list.parameters =
     path === "pages"
       ? [
           ...pagination,
+          ...listParameters(PageListFiltersSchema.shape),
           parameter(
             "select",
             "query",
@@ -409,7 +422,7 @@ for (const [path, kind, detail] of [
             "Parent options (at most 500), bypasses pagination. Other values or duplicates rejected.",
           ),
         ]
-      : pagination;
+      : [...pagination, ...listParameters(PostListFiltersSchema.shape)];
   paths[`/api/${path}`] = {
     get: list,
     post: operation(
@@ -539,15 +552,21 @@ paths["/api/tags/link"] = {
   ),
 };
 paths["/api/admin/tags"] = {
-  get: operation(
-    "listTagsWithUsage",
-    "Tags",
-    "List tags and usage counts",
-    array(ref("TagWithUsage")),
-    [401, 403, 500],
-    "ADMIN, EDITOR or AUTHOR; at most 500 tags.",
-    "protected",
-  ),
+  get: {
+    ...operation(
+      "listTagsWithUsage",
+      "Tags",
+      "List tags or categories with post usage counts",
+      { oneOf: [array(ref("TagWithUsage")), ref("TaxonomyList")] },
+      [400, 401, 403, 500],
+      "ADMIN, EDITOR or AUTHOR. With no query parameters, returns the legacy array of up to 500 tags. For a paginated list, supply type=TAG or type=CATEGORY. Search matches name or slug. Sorting defaults to name ascending, with ID as the tie-breaker.",
+      "protected",
+    ),
+    parameters: [
+      ...pagination,
+      ...listParameters(TaxonomyListFiltersSchema.shape),
+    ],
+  },
 };
 paths["/api/admin/tags/{id}"] = {
   parameters: [

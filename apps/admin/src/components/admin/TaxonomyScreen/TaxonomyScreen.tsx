@@ -1,24 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { TaxonomyListSchema } from "@nextpress/shared/api-contracts";
+import { useRef, useState } from "react";
 import { FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
 
-import { ApiRequestError } from "@/lib/api/client";
+import { ApiRequestError, jsonFetcher } from "@/lib/api/client";
+import { useContentList } from "@/lib/content/useContentList";
 import {
   createTagAction,
   deleteTagAdminAction,
-  loadTagsAdminAction,
 } from "@/lib/services/tag.client";
 import { slugify } from "@/lib/utils";
+import ContentListPagination from "@/ui/components/ContentList/ContentListPagination";
 import {
   DataListEmptyRow,
   DataListLoading,
   DataListSurface,
 } from "@/ui/components/DataList";
-import {
-  SortableHeader,
-  useTableSort,
-} from "@/ui/components/DataList/SortableHeader";
+import ListFilters, {
+  sortDirectionField,
+} from "@/ui/components/DataList/ListFilters";
+import RecordId from "@/ui/components/DataList/RecordId";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
   Button,
@@ -32,14 +34,52 @@ import {
 import { AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
-import type { TagUsageRow } from "./TaxonomyScreen.types";
-
 type ConfirmPayload = { id: string; name: string; usedCount: number };
 
+const fields = [
+  {
+    name: "type",
+    label: "Taxonomy",
+    options: [
+      { value: "TAG", label: "Tags" },
+      { value: "CATEGORY", label: "Categories" },
+    ],
+  },
+  { name: "q", label: "Search", placeholder: "Name or slug" },
+  {
+    name: "sort",
+    label: "Sort by",
+    options: [
+      { value: "name", label: "Name" },
+      { value: "slug", label: "Slug" },
+      { value: "usedCount", label: "Post count" },
+    ],
+  },
+  sortDirectionField,
+];
+
+async function fetchTaxonomyList(url: string) {
+  return TaxonomyListSchema.parse(await jsonFetcher<unknown>(url));
+}
+
 export default function TaxonomyScreen() {
-  const [items, setItems] = useState<TagUsageRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    items,
+    query,
+    pagination,
+    mutate,
+    isLoading: loading,
+    error: loadError,
+  } = useContentList(
+    "/api/admin/tags",
+    fetchTaxonomyList,
+    () => false,
+    ["type", "q", "sort", "direction"],
+    { type: "TAG" },
+  );
+  const isCategory = query.values.get("type") === "CATEGORY";
+  const heading = isCategory ? "Categories" : "Tags";
+  const listLabel = heading.toLowerCase();
 
   const [createOpen, setCreateOpen] = useState(false);
   const createDialogRef = useModalDialog(createOpen);
@@ -53,61 +93,7 @@ export default function TaxonomyScreen() {
 
   const confirm = useConfirmDialog<ConfirmPayload>();
 
-  const sort = useTableSort<"name" | "slug" | "posts">("posts", "descending");
-  const sorted = sort.sortRows(items, {
-    name: (tag) => tag.name,
-    slug: (tag) => tag.slug,
-    posts: (tag) => tag.usedCount,
-  });
-
-  const loadRequest = useRef<AbortController | null>(null);
-
-  const load = useCallback(() => {
-    loadRequest.current?.abort();
-    const controller = new AbortController();
-    loadRequest.current = controller;
-
-    return loadTagsAdminAction(controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) {
-          setItems(
-            data.map(({ id, name, slug, usedCount }) => ({
-              id,
-              name,
-              slug,
-              usedCount,
-            })),
-          );
-        }
-      })
-      .catch((caught: unknown) => {
-        if (!controller.signal.aborted) {
-          setLoadError(
-            caught instanceof ApiRequestError &&
-              (caught.status === 401 || caught.status === 403)
-              ? "Unable to access tags. Sign in with an authorized admin account and try again."
-              : "Unable to load tags. Please try again.",
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
-  }, []);
-
-  const reload = () => {
-    setLoading(true);
-    setLoadError(null);
-    void load();
-  };
-
-  useEffect(() => {
-    void load();
-
-    return () => loadRequest.current?.abort();
-  }, [load]);
+  const reload = () => void mutate();
 
   const canCreate =
     name.trim().length > 0 && slug.trim().length > 0 && !creating;
@@ -122,17 +108,7 @@ export default function TaxonomyScreen() {
     setError(null);
 
     try {
-      const created = await createTagAction(name.trim());
-
-      setItems((prev) => [
-        {
-          id: created.id,
-          name: created.name,
-          slug: created.slug,
-          usedCount: 0,
-        },
-        ...prev,
-      ]);
+      await createTagAction(name.trim());
 
       setName("");
       setCreateOpen(false);
@@ -146,7 +122,7 @@ export default function TaxonomyScreen() {
     }
   };
 
-  const onAskDelete = (t: TagUsageRow) => {
+  const onAskDelete = (t: ConfirmPayload) => {
     confirm.show({ id: t.id, name: t.name, usedCount: t.usedCount });
   };
 
@@ -156,7 +132,7 @@ export default function TaxonomyScreen() {
 
       try {
         await deleteTagAdminAction(id);
-        setItems((prev) => prev.filter((item) => item.id !== id));
+        reload();
         showToast("Tag deleted.", "success");
       } catch {
         throw new Error("Unable to delete tag. Please try again.");
@@ -177,62 +153,67 @@ export default function TaxonomyScreen() {
   return (
     <AdminPageLayout
       title="Taxonomy"
-      description="Manage tags and see how many posts use each one. Sorting applies to the loaded tags."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={reload} disabled={loading}>
             <FaSyncAlt aria-hidden="true" />
             Refresh
           </Button>
-          <IconButton
-            aria-label="Create tag"
-            icon={FaPlus}
-            color="primary"
-            onClick={() => setCreateOpen(true)}
-          >
-            Create tag
-          </IconButton>
+          {!isCategory && (
+            <IconButton
+              aria-label="Create tag"
+              icon={FaPlus}
+              color="primary"
+              onClick={() => setCreateOpen(true)}
+            >
+              Create tag
+            </IconButton>
+          )}
         </div>
       }
     >
-      {loading ? (
-        <DataListLoading label="tags" />
+      <ListFilters query={query} fields={fields} />
+      {loading && !items.length ? (
+        <DataListLoading reserveSpace label={listLabel} />
       ) : loadError ? (
         <div role="alert" className="text-sm text-error">
-          {loadError}
+          {loadError instanceof ApiRequestError &&
+          (loadError.status === 401 || loadError.status === 403)
+            ? "Sign in with an authorized admin account and try again."
+            : "Unable to load " + listLabel + ". Please try again."}
         </div>
       ) : (
-        <DataListSurface>
+        <DataListSurface
+          reserveSpace
+          pendingLabel={loading ? listLabel : undefined}
+        >
           <table
             className="table admin-responsive-table"
             role="table"
-            aria-label="Tags"
+            aria-label={heading}
           >
             <thead role="rowgroup">
               <tr role="row">
-                <SortableHeader column="name" sort={sort}>
-                  Name
-                </SortableHeader>
-                <SortableHeader column="slug" sort={sort}>
-                  Slug
-                </SortableHeader>
-                <SortableHeader column="posts" sort={sort}>
-                  Posts
-                </SortableHeader>
-                <th role="columnheader" scope="col" className="text-right">
-                  Actions
-                </th>
+                <th scope="col">Name</th>
+                <th scope="col">Slug</th>
+                <th scope="col">Posts</th>
+                {!isCategory && (
+                  <th scope="col" className="text-right">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody role="rowgroup">
-              {sorted.length ? (
-                sorted.map((tag) => (
+              {items.length ? (
+                items.map((tag) => (
                   <tr key={tag.id} role="row">
                     <td
                       role="cell"
                       className="admin-table-identity font-semibold"
                     >
                       {tag.name}
+                      <RecordId id={tag.id} />
                     </td>
                     <td role="cell">
                       <span aria-hidden="true" className="admin-cell-label">
@@ -246,31 +227,37 @@ export default function TaxonomyScreen() {
                       </span>
                       {tag.usedCount}
                     </td>
-                    <td role="cell" className="admin-table-actions">
-                      <div className="flex justify-end">
-                        <IconButton
-                          icon={FaTrash}
-                          size="sm"
-                          color="error"
-                          variant="soft"
-                          loading={deletingId === tag.id}
-                          disabled={Boolean(deletingId)}
-                          aria-label={`Delete tag ${tag.name}`}
-                          onClick={() => onAskDelete(tag)}
-                        >
-                          Delete
-                        </IconButton>
-                      </div>
-                    </td>
+                    {!isCategory && (
+                      <td role="cell" className="admin-table-actions">
+                        <div className="flex justify-end">
+                          <IconButton
+                            icon={FaTrash}
+                            size="sm"
+                            color="error"
+                            variant="soft"
+                            loading={deletingId === tag.id}
+                            disabled={Boolean(deletingId)}
+                            aria-label={`Delete tag ${tag.name}`}
+                            onClick={() => onAskDelete(tag)}
+                          >
+                            Delete
+                          </IconButton>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
-                <DataListEmptyRow colSpan={4}>No tags found.</DataListEmptyRow>
+                <DataListEmptyRow colSpan={isCategory ? 3 : 4}>
+                  No {listLabel} found.
+                </DataListEmptyRow>
               )}
             </tbody>
           </table>
         </DataListSurface>
       )}
+
+      <ContentListPagination heading={heading} pagination={pagination} />
 
       <dialog
         ref={createDialogRef}

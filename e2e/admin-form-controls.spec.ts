@@ -162,7 +162,7 @@ test("Admin form controls use the browser picker and reflow at large text sizes"
   for (const route of ["posts", "pages"]) {
     await page.goto(`/admin/${route}`);
     const search = page.getByRole("searchbox", {
-      name: "Search this page",
+      name: "Search",
     });
     const status = page.getByRole("combobox", {
       name: "Status",
@@ -180,7 +180,9 @@ test("Admin form controls use the browser picker and reflow at large text sizes"
       1,
     );
     await expect(
-      page.locator(".admin-list-toolbar .admin-select-chevron"),
+      page.locator(
+        ".admin-list-toolbar .admin-select-trigger:has(select:open) .admin-select-chevron",
+      ),
     ).toHaveCSS("rotate", "180deg");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");

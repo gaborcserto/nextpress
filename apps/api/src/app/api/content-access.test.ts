@@ -571,6 +571,19 @@ describe.each(routes)(
       },
     );
 
+    it.each(["status=unknown", "sort=content", "direction=asc&direction=desc"])(
+      "rejects invalid list filters (%s) before querying content",
+      async (query) => {
+        role = "ADMIN";
+        const response = await list(
+          new Request("http://localhost/api/list?" + query),
+        );
+
+        expect(response.status).toBe(400);
+        expect(prisma.page.findMany).not.toHaveBeenCalled();
+      },
+    );
+
     it.each(["id", "slug"])(
       "hides drafts from anonymous lookup by %s",
       async (lookup) => {
@@ -948,6 +961,17 @@ describe.each(routes)(
 );
 
 describe("admin taxonomy loading", () => {
+  it("requires an authorized account for a paginated category list", async () => {
+    role = "SUBSCRIBER";
+    const response = await listAdminTags(
+      new Request("http://localhost/api/admin/tags?type=CATEGORY"),
+      context(""),
+    );
+
+    expect(response.status).toBe(403);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it.each(["ADMIN", "EDITOR", "AUTHOR"] as const)(
     "loads tags and post usage counts for %s",
     async (allowedRole) => {

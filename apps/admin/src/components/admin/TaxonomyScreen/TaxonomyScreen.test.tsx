@@ -1,16 +1,50 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { SWRConfig } from "swr";
 import { afterEach, expect, it, vi } from "vitest";
 
 import TaxonomyScreen from "./TaxonomyScreen";
 
-afterEach(() => vi.unstubAllGlobals());
+const navigation = vi.hoisted(() => ({ query: "", push: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(navigation.query),
+  usePathname: () => "/admin/taxonomy",
+  useRouter: () => ({ push: navigation.push, replace: vi.fn() }),
+}));
+
+function renderTaxonomy() {
+  const cache = new Map();
+
+  return render(
+    <SWRConfig value={{ provider: () => cache }}>
+      <TaxonomyScreen />
+    </SWRConfig>,
+  );
+}
+
+function listResponse(
+  items: { id: string; name: string; slug: string; usedCount: number }[],
+) {
+  return Response.json({
+    items,
+    page: 1,
+    limit: 50,
+    total: items.length,
+    pages: items.length ? 1 : 0,
+  });
+}
+
+afterEach(() => {
+  navigation.query = "";
+  navigation.push.mockClear();
+  vi.unstubAllGlobals();
+});
 
 it("announces loading without showing an empty state", () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(() => new Promise<Response>(() => {})),
   );
-  render(<TaxonomyScreen />);
+  renderTaxonomy();
   expect(screen.getByRole("status")).toHaveTextContent(/Loading tags/);
   expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
 });
@@ -19,14 +53,14 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(
-      Response.json([
-        { id: "unused", name: "Unused", slug: "unused-tag", usedCount: 0 },
-        { id: "one", name: "One", slug: "one-tag", usedCount: 1 },
+      listResponse([
         { id: "many", name: "Many", slug: "many-tag", usedCount: 3 },
+        { id: "one", name: "One", slug: "one-tag", usedCount: 1 },
+        { id: "unused", name: "Unused", slug: "unused-tag", usedCount: 0 },
       ]),
     ),
   );
-  render(<TaxonomyScreen />);
+  renderTaxonomy();
   const deleteButton = await screen.findByRole("button", {
     name: "Delete tag Many",
   });
@@ -48,31 +82,48 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
 });
 
 it("shows empty taxonomy only after a successful empty response", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json([])));
-  render(<TaxonomyScreen />);
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(listResponse([])));
+  renderTaxonomy();
   expect(await screen.findByText("No tags found.")).toBeInTheDocument();
 });
 
-it("sorts post counts numerically in both directions", async () => {
-  const fetch = vi.fn().mockResolvedValue(
-    Response.json([
-      { id: "two", name: "Two", slug: "two", usedCount: 2 },
-      { id: "twelve", name: "Twelve", slug: "twelve", usedCount: 12 },
-    ]),
+it("loads categories and submits search and usage sorting through the URL", async () => {
+  navigation.query = "type=CATEGORY&page=2";
+  const fetch = vi.fn().mockImplementation(() =>
+    Response.json({
+      items: [{ id: "news", name: "News", slug: "news", usedCount: 12 }],
+      page: 2,
+      limit: 50,
+      total: 51,
+      pages: 2,
+    }),
   );
   vi.stubGlobal("fetch", fetch);
-  render(<TaxonomyScreen />);
+  renderTaxonomy();
 
-  const sort = await screen.findByRole("button", { name: "Posts" });
+  expect(
+    await screen.findByRole("table", { name: "Categories" }),
+  ).toHaveTextContent("News");
+  expect(
+    screen.queryByRole("button", { name: "Create tag" }),
+  ).not.toBeInTheDocument();
+  expect(fetch.mock.calls[0]?.[0]).toBe("/api/admin/tags?page=2&type=CATEGORY");
 
-  const firstRow = () => screen.getAllByRole("row")[1];
-  expect(firstRow()).toHaveTextContent("Twelve");
-  fireEvent.click(sort);
-  expect(firstRow()).toHaveTextContent("Two");
-  expect(sort.closest("th")).toHaveAttribute("aria-sort", "ascending");
-  fireEvent.click(sort);
-  expect(firstRow()).toHaveTextContent("Twelve");
-  expect(fetch).toHaveBeenCalledTimes(1);
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
+    target: { value: "News" },
+  });
+  fireEvent.change(screen.getByLabelText("Sort by"), {
+    target: { value: "usedCount" },
+  });
+  fireEvent.change(screen.getByLabelText("Sort direction"), {
+    target: { value: "desc" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+
+  expect(navigation.push).toHaveBeenCalledWith(
+    "/admin/taxonomy?type=CATEGORY&q=News&sort=usedCount&direction=desc",
+    { scroll: false },
+  );
 });
 
 it.each([401, 403, 500])(
@@ -85,9 +136,9 @@ it.each([401, 403, 500])(
         .mockResolvedValueOnce(
           Response.json({ error: "Request failed" }, { status }),
         )
-        .mockResolvedValueOnce(Response.json([])),
+        .mockResolvedValueOnce(listResponse([])),
     );
-    render(<TaxonomyScreen />);
+    renderTaxonomy();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       status === 500
         ? "Unable to load tags"
@@ -111,7 +162,7 @@ it.each(["network", "malformed"])(
         ? vi.fn().mockRejectedValue(new TypeError("Failed to fetch"))
         : vi.fn().mockResolvedValue(Response.json({ unexpected: true })),
     );
-    render(<TaxonomyScreen />);
+    renderTaxonomy();
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load tags",
     );

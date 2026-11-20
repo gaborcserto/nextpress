@@ -130,6 +130,32 @@ describe("content list URL pagination", () => {
     );
   });
 
+  it("applies list filters from page one and restores them when going back", async () => {
+    navigation.query = "page=2&q=old&status=DRAFT";
+    const { result, rerender } = setup();
+    await waitFor(() => expect(result.current.items[0]?.id).toBe("item-2"));
+    expect(fetcher).toHaveBeenCalledWith("/api/post?page=2&q=old&status=DRAFT");
+
+    const filters = new FormData();
+    filters.set("q", " new ");
+    filters.set("tag", "news");
+    act(() => result.current.query.onApplyAction(filters));
+
+    expect(navigation.push).toHaveBeenCalledWith(
+      "/admin/posts?q=new&tag=news",
+      { scroll: false },
+    );
+    navigation.query = "q=new&tag=news";
+    rerender();
+    await waitFor(() => expect(result.current.items[0]?.id).toBe("item-1"));
+    expect(fetcher).toHaveBeenCalledWith("/api/post?page=1&q=new&tag=news");
+
+    navigation.query = "page=2&q=old&status=DRAFT";
+    rerender();
+    await waitFor(() => expect(result.current.items[0]?.id).toBe("item-2"));
+    expect(result.current.query.values.get("status")).toBe("DRAFT");
+  });
+
   it("loads a later deep link and enforces boundaries", async () => {
     navigation.query = "page=3";
     const { result } = setup();

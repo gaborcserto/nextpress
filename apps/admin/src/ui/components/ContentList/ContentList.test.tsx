@@ -114,3 +114,50 @@ describe("ContentList", () => {
     expect(screen.getByRole("button", { name: "Delete Home" })).toBeDisabled();
   });
 });
+
+it("shows a scheduled date separately from record dates and hides a retained draft publication date", () => {
+  const createdAt = "2026-01-01T10:00:00.000Z";
+  const updatedAt = "2026-02-01T10:00:00.000Z";
+  const scheduledAt = "2099-03-01T10:00:00.000Z";
+  const retainedDate = "2025-04-01T10:00:00.000Z";
+
+  renderList(
+    <ContentList
+      {...props}
+      items={[
+        {
+          ...props.items[0],
+          id: "scheduled",
+          title: "Upcoming",
+          status: "PUBLISHED",
+          publicationState: "SCHEDULED",
+          publishedAt: scheduledAt,
+          scheduledAt,
+          createdAt,
+          updatedAt,
+        },
+        { ...props.items[0], publishedAt: retainedDate },
+        {
+          ...props.items[0],
+          id: "live",
+          title: "Live",
+          status: "PUBLISHED",
+          publicationState: "PUBLISHED",
+          publishedAt: retainedDate,
+        },
+      ]}
+    />,
+  );
+
+  const upcomingRow = screen.getByRole("row", { name: /Upcoming/ });
+  expect(upcomingRow).toHaveTextContent("Scheduled");
+  expect(
+    Array.from(upcomingRow.querySelectorAll("time"), (time) => time.dateTime),
+  ).toEqual([scheduledAt, createdAt, updatedAt]);
+  const draftRow = screen.getByRole("row", { name: /Home/ });
+  expect(draftRow).toHaveTextContent("Draft");
+  expect(draftRow.querySelector("time")).toBeNull();
+  expect(
+    screen.getByRole("row", { name: /Live/ }).querySelector("time"),
+  ).toHaveAttribute("datetime", retainedDate);
+});

@@ -18,6 +18,7 @@ export function isEditor(actor?: ContentActor | null): boolean {
 
 export function contentReadWhere(
   actor?: ContentActor | null,
+  now = new Date(),
 ): Pick<Prisma.PageWhereInput, "OR" | "status"> {
   if (isEditor(actor)) {
     return {};
@@ -25,7 +26,7 @@ export function contentReadWhere(
 
   const published: Pick<Prisma.PageWhereInput, "OR" | "status"> = {
     status: "PUBLISHED",
-    OR: [{ publishedAt: null }, { publishedAt: { lte: new Date() } }],
+    OR: [{ publishedAt: null }, { publishedAt: { lte: now } }],
   };
 
   if (actor?.role === "AUTHOR") {

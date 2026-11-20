@@ -6,7 +6,10 @@ const page = vi.hoisted(() => ({
 }));
 
 vi.mock("@nextpress/db/src/client", () => ({
-  prisma: { page },
+  prisma: {
+    $transaction: (run: (tx: { page: typeof page }) => unknown) =>
+      run({ page }),
+  },
 }));
 
 import { listPages } from "./pageRepo";

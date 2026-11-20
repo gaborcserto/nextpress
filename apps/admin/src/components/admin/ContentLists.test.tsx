@@ -144,37 +144,42 @@ describe.each([
   }
 
   it.each([
-    { scenario: "draft", status: "DRAFT", publishedAt: null },
+    { scenario: "draft", status: "DRAFT", publishedAt: null, label: "Draft" },
     {
       scenario: "past publication date",
       status: "PUBLISHED",
       publishedAt: "2020-01-01T00:00:00.000Z",
+      label: "Published",
     },
     {
       scenario: "future publication date",
       status: "PUBLISHED",
       publishedAt: "2099-01-01T00:00:00.000Z",
+      label: "Scheduled",
     },
     {
       scenario: "missing publication date",
       status: "PUBLISHED",
       publishedAt: undefined,
+      label: "Publication date missing",
     },
   ] as const)(
-    "shows the last modification timestamp for $scenario",
-    async ({ status, publishedAt }) => {
+    "shows the modified date and publication metadata for $scenario",
+    async ({ status, publishedAt, label }) => {
       const updatedAt = "2026-11-16T12:34:56.000Z";
       mockSingleItem({ status, updatedAt, publishedAt });
 
       renderList();
 
-      expect(
-        await screen.findByRole("columnheader", { name: "Last modified" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(new Date(updatedAt).toLocaleString()),
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/Published:/)).not.toBeInTheDocument();
+      const row = await screen.findByRole("row", { name: /Example/ });
+      expect(within(row).getByRole("cell", { name: label })).toBeVisible();
+      const times = Array.from(
+        row.querySelectorAll("time"),
+        (time) => time.dateTime,
+      );
+      expect(times).toEqual(
+        publishedAt ? [publishedAt, updatedAt] : [updatedAt],
+      );
     },
   );
 
@@ -191,8 +196,10 @@ describe.each([
         );
       } else {
         expect(
-          await screen.findByRole("cell", { name: "\u2014" }),
-        ).toBeInTheDocument();
+          (await screen.findByRole("row", { name: /Example/ })).querySelector(
+            "time",
+          ),
+        ).toBeNull();
       }
 
       expect(
@@ -250,18 +257,10 @@ describe.each([
     });
   });
 
-  it("sorts the loaded page by title, date and status without changing pagination", async () => {
-    navigation.query = "page=2&view=compact";
+  it("preserves server ordering and applies status and sort from the first page", async () => {
+    navigation.query = "page=2&view=compact&sort=title&direction=desc";
     fetcher.mockResolvedValue({
       items: [
-        {
-          id: "new",
-          title: "Alpha",
-          status: "PUBLISHED",
-          publishedAt: "2099-01-01T00:00:00Z",
-          publicationState: "SCHEDULED",
-          updatedAt: "2026-12-01T00:00:00Z",
-        },
         {
           id: "old",
           title: "Zulu",
@@ -269,6 +268,14 @@ describe.each([
           publishedAt: null,
           publicationState: "DRAFT",
           updatedAt: "2025-02-01T00:00:00Z",
+        },
+        {
+          id: "new",
+          title: "Alpha",
+          status: "PUBLISHED",
+          publishedAt: "2099-01-01T00:00:00Z",
+          publicationState: "SCHEDULED",
+          updatedAt: "2026-12-01T00:00:00Z",
         },
       ].map((item) => ({
         ...item,
@@ -284,43 +291,24 @@ describe.each([
     renderList();
 
     const table = await screen.findByRole("table", { name });
-    const tableQueries = within(table);
-
-    const firstTitle = (title: string) =>
-      within(tableQueries.getAllByRole("row")[1]).getByRole("link", {
-        name: title,
-      });
-
-    expect(firstTitle("Alpha")).toBeInTheDocument();
-    fireEvent.click(
-      tableQueries.getByRole("button", { name: "Last modified" }),
+    const firstRow = within(table).getAllByRole("row")[1];
+    expect(within(firstRow).getByRole("link", { name: "Zulu" })).toBeVisible();
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(
+      `${endpoint}?page=2&sort=title&direction=desc`,
     );
-    expect(firstTitle("Zulu")).toBeInTheDocument();
 
-    const title = tableQueries.getByRole("button", { name: "Title" });
-    fireEvent.click(title);
-    expect(firstTitle("Alpha")).toBeInTheDocument();
-    fireEvent.click(title);
-    expect(firstTitle("Zulu")).toBeInTheDocument();
-    expect(table.querySelectorAll("[aria-sort]")).toHaveLength(1);
-    expect(title.closest("th")).toHaveAttribute("aria-sort", "descending");
-
-    const status = tableQueries.getByRole("button", { name: "Status" });
-    fireEvent.click(status);
-    expect(firstTitle("Zulu")).toBeInTheDocument();
-    fireEvent.click(status);
-    expect(firstTitle("Alpha")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
-      target: { value: "PUBLISHED" },
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort direction" }), {
+      target: { value: "asc" },
     });
-    fireEvent.click(status);
-    expect(firstTitle("Alpha")).toBeInTheDocument();
-    expect(tableQueries.getAllByRole("row")).toHaveLength(2);
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher).toHaveBeenCalledWith(`${endpoint}?page=2`);
-    expect(navigation.push).not.toHaveBeenCalled();
-    expect(navigation.replace).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
+      target: { value: "SCHEDULED" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
+
+    expect(navigation.push).toHaveBeenCalledExactlyOnceWith(
+      "/admin/content?view=compact&status=SCHEDULED&sort=title&direction=asc",
+      { scroll: false },
+    );
   });
 
   it("shows an empty result without inventing a page", async () => {

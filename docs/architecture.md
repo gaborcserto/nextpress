@@ -23,6 +23,16 @@ The Page and Post editors send publication fields on update only when the select
 
 Legacy page fields and `PageRevision` coexist with newer private working aggregate/revision models. Admission to private-draft rehearsal is guarded by development/test restrictions and database readiness controls. Scheduled-release execution is an explicit bounded operation; no background scheduler is installed. This is an incremental persistence foundation, not a complete production editorial workflow.
 
+### Admin discovery
+
+Posts and Pages query the existing content endpoints. Search matches title or slug case-insensitively. Both lists filter by editorial publication state and sort by title, creation time, modification time, or stored publication time. Posts also accept exact tag and category slugs. Pages accept Standard, Home, Posts, or Gallery, with legacy layouts grouped under Standard as in the editor. Existing list access still applies before any filter.
+
+The Taxonomy screen queries the authenticated Admin tags endpoint for either Tags or Categories. It searches name or slug and sorts by name, slug, or post usage count. Usage counts measure post links in the existing taxonomy join table. Categories are browseable. Tag creation and guarded deletion still use the existing endpoints. Taxonomy records have no creation or modification fields. A migration would only provide timestamps for future operations, so the lists show existing IDs and usage counts.
+
+Admin discovery uses page numbers from 1 to 10,000 and limits from 1 to 100, with a default of 50. Responses include `items`, `page`, `limit`, `total`, and `pages`. Results and totals share a database snapshot and ordering uses ID as the final tie-breaker. The Admin stores the applied filters and page in the URL. The legacy no-query Admin tags response remains an array of up to 500 items. See the generated OpenAPI reference for parameter names.
+
+Created and modified dates come from their respective stored fields. The list displays a future date on a published-status record as scheduled and a reached date as published. Drafts can retain a stored publication date, which remains available through the compatible API field and its sort order but is omitted from the draft row. A published-status record with a missing date has its own label. Private editorial rehearsal schedules remain in the rehearsal workflow.
+
 ## Public templates
 
 Page records use the existing `PageLayout` field for their editorial type. `STANDARD`, `HOME`, `POSTS`, and `GALLERY` map to public `standard`, `home`, `posts`, and `gallery`. The Prisma `PageType` enum continues to distinguish page records from post records. See [the page-type decision](decisions/001-page-type-designations.md) for legacy compatibility and the homepage constraint.

@@ -1,5 +1,8 @@
 import type { PublicationState } from "@/lib/content/publication-status";
-import type { ContentPagination } from "@/lib/content/useContentList";
+import type {
+  ContentListQuery,
+  ContentPagination,
+} from "@/lib/content/useContentList";
 
 export type ContentListItem = {
   id: string;
@@ -9,10 +12,8 @@ export type ContentListItem = {
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
   publicationState: PublicationState;
-  author?: string | null;
-  categories?: string[];
-  tags?: string[];
-  dateLabel?: string;
+  createdAt?: string;
+  scheduledAt?: string | null;
   updatedAt?: string | null;
 };
 
@@ -33,16 +34,11 @@ export type ContentListProps = {
   isLoading?: boolean;
   error?: string;
   pagination?: ContentPagination;
+  query?: ContentListQuery;
+  pageTypes?: Record<string, string>;
   onRetryAction?: () => void;
   /** Id of the item currently being deleted (for loading spinner) */
   deletingId?: string | null;
   /** Optional delete handler. If omitted, the delete button is hidden. */
   onDeleteAction?: (id: string) => Promise<void>;
-
-  /** Whether to render the Author column */
-  showAuthor?: boolean;
-  /** Whether to render the Categories column */
-  showCategories?: boolean;
-  /** Whether to render the Tags column */
-  showTags?: boolean;
 };

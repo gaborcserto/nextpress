@@ -32,7 +32,10 @@ export default function ContentListPagination({
       aria-label={`${heading} pagination`}
       className="flex min-w-0 flex-wrap items-center justify-between gap-3"
     >
-      <p role="status" className="min-w-0 break-words text-sm">
+      <p
+        role={metadata ? "status" : undefined}
+        className="min-w-0 break-words text-sm"
+      >
         {summary}
       </p>
       <div className="flex flex-wrap gap-2">

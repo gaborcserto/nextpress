@@ -2,17 +2,25 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 
-import type { ContentListSchema } from "@nextpress/shared/api-contracts";
+import type {
+  ContentListSchema,
+  ListPaginationSchema,
+} from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
 
 export type ContentListResponse = z.infer<typeof ContentListSchema>;
+type ListPagination = z.infer<typeof ListPaginationSchema>;
+export type ContentListQuery = {
+  values: URLSearchParams;
+  onApplyAction: (filters: FormData) => void;
+};
 export type ContentPagination = {
   page: number;
-  metadata?: Pick<ContentListResponse, "page" | "limit" | "total" | "pages">;
+  metadata?: ListPagination;
   busy: boolean;
   hasNextPage: boolean;
   onPageAction: (page: number) => void;
@@ -21,10 +29,22 @@ export type ContentPagination = {
 // Match the existing API pagination bound; never forward an unbounded URL value.
 const MAX_PAGE = 10_000;
 
-export function useContentList(
+export function useContentList<Item = ContentListResponse["items"][number]>(
   endpoint: string,
-  fetcher: (url: string) => Promise<ContentListResponse> = jsonFetcher,
+  fetcher: (
+    url: string,
+  ) => Promise<ListPagination & { items: Item[] }> = jsonFetcher,
   shouldRetryOnError?: (error: Error) => boolean,
+  filterKeys: readonly string[] = [
+    "q",
+    "status",
+    "sort",
+    "direction",
+    "pageType",
+    "tag",
+    "category",
+  ],
+  defaults?: Record<string, string>,
 ) {
   const params = useSearchParams();
   const pathname = usePathname();
@@ -57,13 +77,37 @@ export function useContentList(
     [pathname, query],
   );
 
-  const { data, error, isLoading, isValidating, mutate } =
-    useSWR<ContentListResponse>(`${endpoint}?page=${page}`, fetcher, {
-      keepPreviousData: false,
+  const request = new URLSearchParams({ page: String(page), ...defaults });
+
+  for (const key of filterKeys) {
+    const selected = params.getAll(key);
+
+    if (selected.length) {
+      request.delete(key);
+    }
+
+    for (const value of selected) {
+      request.append(key, value);
+    }
+  }
+
+  const key = endpoint + "?" + request;
+  const { cache } = useSWRConfig();
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
+    key,
+    fetcher,
+    {
+      keepPreviousData: true,
       ...(shouldRetryOnError && { shouldRetryOnError }),
-    });
-  const lastPage = data ? Math.max(1, Math.min(data.pages, MAX_PAGE)) : page;
-  const correcting = Boolean(data && page > lastPage);
+    },
+  );
+  const metadata =
+    isLoading || (error && !cache.get(key)?.data) ? undefined : data;
+  const lastPage = metadata
+    ? Math.max(1, Math.min(metadata.pages, MAX_PAGE))
+    : page;
+
+  const correcting = Boolean(metadata && page > lastPage);
 
   useEffect(() => {
     navigatingTo.current = null;
@@ -102,16 +146,42 @@ export function useContentList(
     router.push(url, { scroll: false });
   };
 
+  function onApplyAction(filters: FormData) {
+    const next = new URLSearchParams(query);
+
+    for (const key of filterKeys) {
+      next.delete(key);
+      const value = filters.get(key);
+
+      if (typeof value === "string" && value.trim()) {
+        next.set(key, value.trim());
+      }
+    }
+
+    const current = new URLSearchParams(query);
+    const updated = new URLSearchParams(next);
+    updated.sort();
+    current.sort();
+
+    if (updated.toString() !== current.toString()) {
+      next.delete("page");
+      const search = next.toString();
+
+      router.push(pathname + (search ? "?" + search : ""), { scroll: false });
+    }
+  }
+
   return {
+    query: { values: request, onApplyAction } satisfies ContentListQuery,
     items: correcting ? [] : (data?.items ?? []),
     error,
     isLoading: isLoading || correcting,
     mutate,
     pagination: {
       page,
-      metadata: correcting ? undefined : data,
+      metadata: correcting ? undefined : metadata,
       busy: isLoading || isValidating || correcting,
-      hasNextPage: Boolean(data && page < lastPage),
+      hasNextPage: Boolean(metadata && page < lastPage),
       onPageAction,
     } satisfies ContentPagination,
   };

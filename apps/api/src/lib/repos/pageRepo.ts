@@ -1,4 +1,8 @@
 import { prisma } from "@nextpress/db/src/client";
+import {
+  ContentLayoutSchema,
+  resolvePageType,
+} from "@nextpress/shared/content";
 
 import {
   contentReadWhere,
@@ -10,10 +14,16 @@ import {
   resolvePublicationDate,
 } from "@/lib/publication";
 import { ContentVersionConflictError, slugify } from "@/lib/utils";
+import { escapeListSearch } from "@/lib/validation/list-query";
 
 import { setTagsForPage } from "./tagRepo";
 
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
+import type {
+  PageListFiltersSchema,
+  PostListFiltersSchema,
+} from "@nextpress/shared/api-contracts";
+import type { z } from "zod";
 
 import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
 
@@ -69,41 +79,117 @@ export async function getPageById(
   return null;
 }
 
-/**
- * Fetch paginated list of pages (or posts).
- * Defaults to PAGE if no type is provided.
- */
+export type ContentListFilters = z.infer<typeof PageListFiltersSchema> &
+  z.infer<typeof PostListFiltersSchema>;
+
+function publicationFilter(
+  status: ContentListFilters["status"],
+  now: Date,
+): Prisma.PageWhereInput {
+  switch (status) {
+    case "DRAFT":
+      return { status };
+    case "PUBLISHED":
+      return { status, publishedAt: { lte: now } };
+    case "SCHEDULED":
+      return { status: "PUBLISHED", publishedAt: { gt: now } };
+    case "MISSING_DATE":
+      return { status: "PUBLISHED", publishedAt: null };
+    default:
+      return {};
+  }
+}
+
 export async function listPages(
   skip: number,
   take: number,
-  opts?: { type?: PageTypeLiteral; actor?: ContentActor | null },
+  opts?: {
+    type?: PageTypeLiteral;
+    actor?: ContentActor | null;
+    filters?: ContentListFilters;
+  },
 ) {
-  const typeFilter = opts?.type ?? "PAGE";
-
-  const where = { type: typeFilter, ...contentReadWhere(opts?.actor) };
-
-  const [items, total] = await Promise.all([
-    prisma.page.findMany({
-      where,
-      orderBy: { updatedAt: "desc" },
-      skip,
-      take,
-      select: {
-        id: true,
-        type: true,
-        layout: true,
-        status: true,
-        publishedAt: true,
-        slug: true,
-        title: true,
-        excerpt: true,
-        updatedAt: true,
-      },
-    }),
-    prisma.page.count({ where }),
-  ]);
-
+  const {
+    q,
+    sort = "updatedAt",
+    direction = "desc",
+    status,
+    pageType,
+    tag,
+    category,
+  } = opts?.filters ?? {};
   const now = new Date();
+  const access = contentReadWhere(opts?.actor, now);
+  const conditions: Prisma.PageWhereInput[] = [];
+
+  if (q) {
+    const contains = {
+      contains: escapeListSearch(q),
+      mode: "insensitive",
+    } as const;
+    conditions.push({ OR: [{ title: contains }, { slug: contains }] });
+  }
+
+  if (status) {
+    conditions.push(publicationFilter(status, now));
+  }
+
+  if (pageType) {
+    const layouts = ContentLayoutSchema.options.filter(
+      (layout) => resolvePageType(layout) === pageType,
+    );
+    conditions.push({ layout: { in: layouts } });
+  }
+
+  if (tag) {
+    conditions.push({
+      taxonomies: { some: { taxonomy: { type: "TAG", slug: tag } } },
+    });
+  }
+
+  if (category) {
+    conditions.push({
+      taxonomies: { some: { taxonomy: { type: "CATEGORY", slug: category } } },
+    });
+  }
+
+  const where: Prisma.PageWhereInput = {
+    type: opts?.type ?? "PAGE",
+    ...access,
+    ...(conditions.length && { AND: conditions }),
+  };
+  const order: Prisma.PageOrderByWithRelationInput =
+    sort === "publishedAt"
+      ? { publishedAt: { sort: direction, nulls: "last" } }
+      : { [sort]: direction };
+
+  const [items, total] = await prisma.$transaction(
+    async (tx) => {
+      const items = await tx.page.findMany({
+        where,
+        orderBy: [order, { id: "asc" }],
+        skip,
+        take,
+        select: {
+          id: true,
+          type: true,
+          layout: true,
+          status: true,
+          publishedAt: true,
+          slug: true,
+          title: true,
+          excerpt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      const total = await tx.page.count({ where });
+
+      return [items, total] as const;
+    },
+    { isolationLevel: "RepeatableRead" },
+  );
 
   return {
     items: items.map((item) => ({

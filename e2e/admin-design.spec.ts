@@ -295,8 +295,12 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await page.keyboard.press("ArrowDown");
   const menu = page.getByRole("menu", { name: "User menu" });
   await expect(menu.getByRole("menuitem", { name: "Profile" })).toBeFocused();
-  const menuWidth = await menu.boundingBox();
-  expect(menuWidth?.width).toBeGreaterThan(335);
+  const topbarWidth = await page
+    .locator(".admin-topbar")
+    .evaluate((topbar) => topbar.clientWidth);
+
+  const menuBounds = await menu.boundingBox();
+  expect(menuBounds?.width).toBeCloseTo(topbarWidth - 16, 0);
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Sign out" })).toBeFocused();
   await screenshot(page, "account-mobile-375");
@@ -439,8 +443,9 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
     await selectTheme(page, "Light");
     await page.setViewportSize({ width: 320, height: 360 });
     await page.goto("/admin/pages");
-    const search = page.getByRole("searchbox", { name: "Search this page" });
+    const search = page.getByRole("searchbox", { name: "Search" });
     await search.fill(fixtureSlug);
+    await search.press("Enter");
     const table = page.getByRole("table", { name: "Pages" });
     await expect(
       table.getByRole("link", { name: fixtureTitle, exact: true }),
@@ -454,13 +459,16 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
     await page
       .getByRole("combobox", { name: "Status", exact: true })
       .selectOption("PUBLISHED");
-    await expect(table.getByText("No matches on this page.")).toBeVisible();
+    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect(table.getByText("No items found.")).toBeVisible();
     await page
       .getByRole("combobox", { name: "Status", exact: true })
       .selectOption("DRAFT");
+    await page.getByRole("button", { name: "Apply filters" }).click();
     await expect(
       table.getByRole("link", { name: fixtureTitle, exact: true }),
     ).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
     const topbar = page.locator(".admin-topbar");
     await expect(topbar).toHaveAttribute("data-scrolled", "false");
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

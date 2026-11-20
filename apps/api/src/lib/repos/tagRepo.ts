@@ -1,11 +1,16 @@
+import { Prisma } from "@nextpress/db/generated/prisma/client";
 import { prisma } from "@nextpress/db/src/client";
 
 import {
   contentWriteWhere,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { escapeListSearch } from "@/lib/validation/list-query";
 
-import type { Prisma } from "@nextpress/db/generated/prisma/client";
+import type { TaxonomyListFiltersSchema } from "@nextpress/shared/api-contracts";
+import type { z } from "zod";
+
+export type TaxonomyListFilters = z.infer<typeof TaxonomyListFiltersSchema>;
 
 export class TaxonomyScopeError extends Error {
   constructor() {
@@ -243,4 +248,46 @@ export async function listTagsWithUsage(): Promise<TagWithUsageDto[]> {
     slug: t.slug,
     usedCount: t._count.pages,
   }));
+}
+
+export async function listTaxonomyPage(
+  { type, q, sort = "name", direction = "asc" }: TaxonomyListFilters,
+  page: number,
+  limit: number,
+) {
+  const offset = (page - 1) * limit;
+  const pattern = q ? "%" + escapeListSearch(q) + "%" : undefined;
+  const where = Prisma.sql`t.type = ${type}::"TaxonomyType"
+    ${pattern ? Prisma.sql`AND (t.name ILIKE ${pattern} OR t.slug ILIKE ${pattern})` : Prisma.empty}`;
+  const columns = {
+    name: Prisma.sql`t.name`,
+    slug: Prisma.sql`t.slug`,
+    usedCount: Prisma.sql`"usedCount"`,
+  };
+  const order = direction === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+
+  return prisma.$transaction(
+    async (tx) => {
+      // The count used for ordering must match the displayed post-only count.
+      const items = await tx.$queryRaw<TagWithUsageDto[]>`
+      SELECT t.id, t.name, t.slug, count(post.id)::integer AS "usedCount"
+      FROM "Taxonomy" AS t
+      LEFT JOIN "PageOnTaxonomy" AS link ON link."taxonomyId" = t.id
+      LEFT JOIN "Page" AS post ON post.id = link."pageId" AND post.type = 'POST'
+      WHERE ${where}
+      GROUP BY t.id
+      ORDER BY ${columns[sort]} ${order}, t.id ASC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+      const [{ total } = { total: 0 }] = await tx.$queryRaw<
+        { total: number }[]
+      >`
+      SELECT count(*)::integer AS total FROM "Taxonomy" AS t WHERE ${where}
+    `;
+
+      return { items, total, page, limit, pages: Math.ceil(total / limit) };
+    },
+    { isolationLevel: "RepeatableRead" },
+  );
 }

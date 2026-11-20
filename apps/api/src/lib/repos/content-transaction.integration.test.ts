@@ -157,6 +157,173 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     expect(await hiddenTag.json()).toMatchObject({ posts: [] });
   });
 
+  it("searches and filters across posts before applying deterministic pagination", async () => {
+    const { listPages } = await import("./pageRepo");
+
+    const tag = await db.taxonomy.create({
+      data: { slug: slug + "-discovery-tag", name: "Discovery", type: "TAG" },
+    });
+
+    const category = await db.taxonomy.create({
+      data: {
+        slug: slug + "-discovery-category",
+        name: "News",
+        type: "CATEGORY",
+      },
+    });
+
+    const candidates = await db.page.createManyAndReturn({
+      data: ["alpha", "beta", "excluded"].map((name) => ({
+        type: "POST",
+        slug: slug + "-discovery-" + name,
+        title: "Discovery tie",
+        content: "",
+        status: "PUBLISHED",
+        publishedAt: new Date("2099-01-01"),
+      })),
+    });
+
+    const matching = candidates.filter(
+      ({ slug }) => !slug.endsWith("excluded"),
+    );
+    await db.pageOnTaxonomy.createMany({
+      data: matching.flatMap(({ id }) => [
+        { pageId: id, taxonomyId: tag.id },
+        { pageId: id, taxonomyId: category.id },
+      ]),
+    });
+    const filters = {
+      q: (slug + "-DISCOVERY").toUpperCase(),
+      status: "SCHEDULED",
+      tag: tag.slug,
+      category: category.slug,
+      sort: "title",
+      direction: "asc",
+    } as const;
+
+    const first = await listPages(0, 1, { type: "POST", actor, filters });
+    const second = await listPages(1, 1, { type: "POST", actor, filters });
+    const unauthenticated = await listPages(0, 1, { type: "POST", filters });
+
+    expect(first.total).toBe(2);
+    expect(second.total).toBe(2);
+    expect([...first.items, ...second.items].map(({ id }) => id)).toEqual(
+      matching.map(({ id }) => id).sort(),
+    );
+    expect(first.items[0]).toMatchObject({
+      publicationState: "SCHEDULED",
+      publishedAt: new Date("2099-01-01"),
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
+    expect(unauthenticated).toEqual({ items: [], total: 0 });
+  });
+
+  it("matches page types as displayed and reverses date sorting", async () => {
+    const { listPages } = await import("./pageRepo");
+    const entries = [
+      {
+        kind: "gallery-old",
+        layout: "GALLERY",
+        createdAt: new Date("2020-01-01"),
+      },
+      {
+        kind: "gallery-new",
+        layout: "GALLERY",
+        createdAt: new Date("2021-01-01"),
+      },
+      { kind: "legacy", layout: "CONTACT", createdAt: new Date("2022-01-01") },
+    ] as const;
+    await db.page.createMany({
+      data: entries.map(({ kind, ...fields }) => ({
+        ...fields,
+        type: "PAGE",
+        slug: slug + "-layouts-" + kind,
+        title: kind,
+        content: "",
+      })),
+    });
+    const match = {
+      q: slug + "-layouts",
+      status: "DRAFT",
+      sort: "createdAt",
+    } as const;
+
+    const oldest = await listPages(0, 1, {
+      actor,
+      filters: { ...match, pageType: "gallery", direction: "asc" },
+    });
+
+    const newest = await listPages(0, 1, {
+      actor,
+      filters: { ...match, pageType: "gallery", direction: "desc" },
+    });
+
+    const standard = await listPages(0, 10, {
+      actor,
+      filters: { ...match, pageType: "standard" },
+    });
+
+    expect(oldest.total).toBe(2);
+    expect(oldest.items[0]?.title).toBe("gallery-old");
+    expect(newest.items[0]?.title).toBe("gallery-new");
+    expect(standard.items.map(({ title }) => title)).toEqual(["legacy"]);
+  });
+
+  it("sorts taxonomy by post usage while excluding page links from the count", async () => {
+    const { listTaxonomyPage } = await import("./tagRepo");
+
+    const a = await db.taxonomy.create({
+      data: { slug: slug + "-usage-low", name: "Low use", type: "CATEGORY" },
+    });
+
+    const b = await db.taxonomy.create({
+      data: { slug: slug + "-usage-high", name: "High use", type: "CATEGORY" },
+    });
+
+    const page = await db.page.create({
+      data: {
+        slug: slug + "-usage-page",
+        title: "Page",
+        type: "PAGE",
+        content: "",
+      },
+    });
+
+    const post = await db.page.create({
+      data: {
+        slug: slug + "-usage-post",
+        title: "Post",
+        type: "POST",
+        content: "",
+      },
+    });
+    await db.pageOnTaxonomy.createMany({
+      data: [
+        { pageId: page.id, taxonomyId: a.id },
+        { pageId: post.id, taxonomyId: b.id },
+      ],
+    });
+    const filters = {
+      type: "CATEGORY",
+      q: slug + "-USAGE",
+      sort: "usedCount",
+      direction: "desc",
+    } as const;
+
+    const first = await listTaxonomyPage(filters, 1, 1);
+    const second = await listTaxonomyPage(filters, 2, 1);
+    const beyond = await listTaxonomyPage(filters, 3, 1);
+
+    expect(first).toMatchObject({
+      items: [{ id: b.id, usedCount: 1 }],
+      total: 2,
+      pages: 2,
+    });
+    expect(second.items).toMatchObject([{ id: a.id, usedCount: 0 }]);
+    expect(beyond).toMatchObject({ items: [], page: 3, total: 2, pages: 2 });
+  });
+
   it.each(["PAGE", "POST"] as const)(
     "%s retains historical missing publication dates on ordinary updates",
     async (type) => {

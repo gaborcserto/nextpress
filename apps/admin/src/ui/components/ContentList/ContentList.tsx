@@ -2,7 +2,6 @@
 
 import { SessionDiscoverySchema } from "@nextpress/shared/api-contracts";
 import Link from "next/link";
-import { useState } from "react";
 import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import useSWR from "swr";
 
@@ -13,24 +12,22 @@ import {
   DataListLoading,
   DataListSurface,
 } from "@/ui/components/DataList";
-import {
-  SortableHeader,
-  useTableSort,
-  sortableTimestamp,
-} from "@/ui/components/DataList/SortableHeader";
+import ListFilters, {
+  sortDirectionField,
+} from "@/ui/components/DataList/ListFilters";
+import RecordId from "@/ui/components/DataList/RecordId";
 import {
   Alert,
   Button,
   IconButton,
-  Input,
   LinkIconButton,
   ConfirmDialog,
-  Select,
   useConfirmDialog,
 } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import ContentListPagination from "./ContentListPagination";
+import ListDate from "./ListDate";
 
 import type { ContentListProps } from "./ContentList.types";
 
@@ -51,45 +48,66 @@ export default function ContentList({
   isLoading = false,
   error,
   pagination,
+  query,
+  pageTypes,
   onRetryAction,
   deletingId,
   onDeleteAction,
-  showAuthor = false,
-  showCategories = false,
-  showTags = false,
 }: ContentListProps) {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
   const { data: account } = useSWR("/api/discovery/session", async (url) =>
     SessionDiscoverySchema.parse(await jsonFetcher<unknown>(url)),
   );
   const role = account?.user?.role;
   const canDelete = role === "ADMIN" || role === "EDITOR";
-  const sort = useTableSort<"title" | "author" | "status" | "updatedAt">(
-    "updatedAt",
-    "descending",
-  );
-  const baseCols = 4;
-  const extraCols =
-    Number(showAuthor) + Number(showCategories) + Number(showTags);
-  const colSpan = baseCols + extraCols;
-
   const confirm = useConfirmDialog<ConfirmPayload>();
-  const query = search.trim().toLocaleLowerCase();
-  const filteredItems = items.filter((item) => {
-    const matchesQuery = [item.title, item.slug].some((value) =>
-      value.toLocaleLowerCase().includes(query),
-    );
-
-    return matchesQuery && (status === "all" || item.status === status);
-  });
-
-  const visibleItems = sort.sortRows(filteredItems, {
-    title: (item) => item.title,
-    author: (item) => item.author || null,
-    status: (item) => item.status,
-    updatedAt: (item) => sortableTimestamp(item.updatedAt),
-  });
+  const fields = [
+    { name: "q", label: "Search", placeholder: "Title or slug" },
+    {
+      name: "status",
+      label: "Status",
+      options: [
+        { value: "", label: "All statuses" },
+        ...Object.entries(publicationLabels).map(([value, label]) => ({
+          value,
+          label,
+        })),
+      ],
+    },
+    ...(pageTypes
+      ? [
+          {
+            name: "pageType",
+            label: "Page type",
+            options: [
+              { value: "", label: "All page types" },
+              ...Object.entries(pageTypes).map(([value, label]) => ({
+                value,
+                label,
+              })),
+            ],
+          },
+        ]
+      : [
+          { name: "tag", label: "Tag slug", placeholder: "Any tag" },
+          {
+            name: "category",
+            label: "Category slug",
+            placeholder: "Any category",
+          },
+        ]),
+    {
+      name: "sort",
+      label: "Sort by",
+      options: [
+        { value: "", label: "Last modified (default)" },
+        { value: "title", label: "Title" },
+        { value: "createdAt", label: "Created date" },
+        { value: "updatedAt", label: "Last modified date" },
+        { value: "publishedAt", label: "Publication date" },
+      ],
+    },
+    sortDirectionField,
+  ];
 
   const askDelete = (id: string, title: string) => confirm.show({ id, title });
 
@@ -104,7 +122,6 @@ export default function ContentList({
   return (
     <AdminPageLayout
       title={heading}
-      description="Search, status filtering, and sorting apply to the current page."
       actions={
         <LinkIconButton
           href={createHref}
@@ -116,27 +133,7 @@ export default function ContentList({
         </LinkIconButton>
       }
     >
-      <div className="admin-list-toolbar">
-        <Input
-          label="Search this page"
-          placeholder="Title or slug"
-          fullWidth
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <Select
-          label="Status"
-          fullWidth
-          value={status}
-          options={[
-            { value: "all", label: "All statuses" },
-            { value: "DRAFT", label: "Draft" },
-            { value: "PUBLISHED", label: "Published status" },
-          ]}
-          onChangeAction={setStatus}
-        />
-      </div>
+      {query && <ListFilters query={query} fields={fields} />}
 
       {error && (
         <div className="space-y-3">
@@ -144,11 +141,14 @@ export default function ContentList({
           {onRetryAction && <Button onClick={onRetryAction}>Retry</Button>}
         </div>
       )}
-      {isLoading ? (
-        <DataListLoading label={heading.toLowerCase()} />
+      {isLoading && !items.length ? (
+        <DataListLoading reserveSpace label={heading.toLowerCase()} />
       ) : (
         !error && (
-          <DataListSurface>
+          <DataListSurface
+            reserveSpace
+            pendingLabel={isLoading ? heading.toLowerCase() : undefined}
+          >
             <table
               className="table admin-responsive-table w-full"
               role="table"
@@ -156,30 +156,10 @@ export default function ContentList({
             >
               <thead role="rowgroup">
                 <tr role="row">
-                  <SortableHeader column="title" sort={sort}>
-                    Title
-                  </SortableHeader>
-                  {showAuthor && (
-                    <SortableHeader column="author" sort={sort}>
-                      Author
-                    </SortableHeader>
-                  )}
-                  {showCategories && (
-                    <th role="columnheader" scope="col">
-                      Categories
-                    </th>
-                  )}
-                  {showTags && (
-                    <th role="columnheader" scope="col">
-                      Tags
-                    </th>
-                  )}
-                  <SortableHeader column="status" sort={sort}>
-                    Status
-                  </SortableHeader>
-                  <SortableHeader column="updatedAt" sort={sort}>
-                    Last modified
-                  </SortableHeader>
+                  <th scope="col">Title</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Publication dates</th>
+                  <th scope="col">Record dates</th>
                   <th role="columnheader" scope="col" className="text-right">
                     Actions
                   </th>
@@ -187,8 +167,8 @@ export default function ContentList({
               </thead>
 
               <tbody role="rowgroup">
-                {visibleItems.length ? (
-                  visibleItems.map((item) => (
+                {items.length ? (
+                  items.map((item) => (
                     <tr key={item.id} role="row">
                       <td role="cell" className="admin-table-identity">
                         <Link
@@ -201,34 +181,8 @@ export default function ContentList({
                           /{item.slug}
                           {item.typeLabel && <span> ? {item.typeLabel}</span>}
                         </div>
+                        <RecordId id={item.id} />
                       </td>
-
-                      {showAuthor && (
-                        <td role="cell">
-                          <span className="admin-cell-label" aria-hidden="true">
-                            Author
-                          </span>
-                          {item.author || "—"}
-                        </td>
-                      )}
-
-                      {showCategories && (
-                        <td role="cell">
-                          <span className="admin-cell-label" aria-hidden="true">
-                            Categories
-                          </span>
-                          {item.categories?.join(", ") || "—"}
-                        </td>
-                      )}
-
-                      {showTags && (
-                        <td role="cell">
-                          <span className="admin-cell-label" aria-hidden="true">
-                            Tags
-                          </span>
-                          {item.tags?.join(", ") || "—"}
-                        </td>
-                      )}
 
                       <td role="cell">
                         <span
@@ -240,11 +194,26 @@ export default function ContentList({
                         </span>
                       </td>
 
-                      <td role="cell" className="text-(--text-muted)">
-                        <span className="admin-cell-label" aria-hidden="true">
-                          Last modified
-                        </span>
-                        {item.dateLabel ?? "—"}
+                      <td role="cell" className="text-sm">
+                        {item.publicationState === "PUBLISHED" && (
+                          <div>
+                            Published <ListDate value={item.publishedAt} />
+                          </div>
+                        )}
+                        {item.scheduledAt && (
+                          <div>
+                            Scheduled <ListDate value={item.scheduledAt} />
+                          </div>
+                        )}
+                      </td>
+
+                      <td role="cell" className="text-sm text-(--text-muted)">
+                        <div>
+                          Created <ListDate value={item.createdAt} />
+                        </div>
+                        <div>
+                          Modified <ListDate value={item.updatedAt} />
+                        </div>
                       </td>
 
                       <td
@@ -281,10 +250,8 @@ export default function ContentList({
                     </tr>
                   ))
                 ) : (
-                  <DataListEmptyRow colSpan={colSpan}>
-                    {query || status !== "all"
-                      ? "No matches on this page."
-                      : "No items found."}
+                  <DataListEmptyRow colSpan={5}>
+                    No items found.
                   </DataListEmptyRow>
                 )}
               </tbody>

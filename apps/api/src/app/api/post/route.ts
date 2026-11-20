@@ -1,3 +1,5 @@
+import { PostListFiltersSchema } from "@nextpress/shared/api-contracts";
+
 import { ok, bad } from "@/lib/api";
 import { contentMutationError } from "@/lib/api/content-mutation-error";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
@@ -7,6 +9,7 @@ import {
   listPostsService,
 } from "@/lib/services/post.server";
 import { parsePagination } from "@/lib/validation";
+import { parseListFilters } from "@/lib/validation/list-query";
 
 export const runtime = "nodejs";
 
@@ -48,10 +51,17 @@ async function get(req: Request) {
     return bad("Invalid pagination");
   }
 
+  const filters = parseListFilters(url.searchParams, PostListFiltersSchema);
+
+  if (!filters) {
+    return bad("Invalid list filters");
+  }
+
   const result = await listPostsService(
     pagination.page,
     pagination.limit,
     actor,
+    filters,
   );
 
   return ok(result);

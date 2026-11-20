@@ -135,7 +135,39 @@ export const EditorialPageSchema = z.object({
 });
 export type EditorialPost = z.infer<typeof EditorialPostSchema>;
 export type EditorialPage = z.infer<typeof EditorialPageSchema>;
-export const ContentListSchema = z.object({
+export const ContentListFiltersSchema = z.object({
+  q: z.string().trim().max(200).optional(),
+  direction: z.enum(["asc", "desc"]).optional(),
+  status: z
+    .enum(["DRAFT", "PUBLISHED", "SCHEDULED", "MISSING_DATE"])
+    .optional(),
+  sort: z.enum(["title", "createdAt", "updatedAt", "publishedAt"]).optional(),
+});
+const taxonomySlug = z.string().trim().min(1).max(200);
+export const PostListFiltersSchema = ContentListFiltersSchema.extend({
+  tag: taxonomySlug.optional(),
+  category: taxonomySlug.optional(),
+});
+export const PageListFiltersSchema = ContentListFiltersSchema.extend({
+  pageType: PageTypeSchema.optional(),
+});
+export const TaxonomyListFiltersSchema = ContentListFiltersSchema.pick({
+  q: true,
+  direction: true,
+}).extend({
+  sort: z.enum(["name", "slug", "usedCount"]).optional(),
+  type: z.enum(["TAG", "CATEGORY"]),
+});
+export const ListPaginationSchema = z.object({
+  page: z.number().int(),
+  limit: z.number().int(),
+  total: z.number().int(),
+  pages: z.number().int(),
+});
+export const TaxonomyListSchema = ListPaginationSchema.extend({
+  items: z.array(TagWithUsageSchema),
+});
+export const ContentListSchema = ListPaginationSchema.extend({
   items: z.array(
     z.object({
       id: z.string(),
@@ -152,13 +184,10 @@ export const ContentListSchema = z.object({
       slug: z.string(),
       title: z.string(),
       excerpt: nullableString,
+      createdAt: date.optional(),
       updatedAt: date,
     }),
   ),
-  page: z.number().int(),
-  limit: z.number().int(),
-  total: z.number().int(),
-  pages: z.number().int(),
 });
 export const ContentRecordSchema = z.object({
   workingVersion: z.number().int().nonnegative(),
