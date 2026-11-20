@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef, useState, useSyncExternalStore } from "react";
 import {
   FaCalendarAlt,
   FaChevronLeft,
@@ -89,11 +89,13 @@ function toLocalParts(value: string | null) {
 function PublicationDatePickerFields({
   id,
   value,
+  locale,
   disabled,
   onChange,
 }: {
   id: string;
   value: string | null;
+  locale: string;
   disabled?: boolean;
   onChange: (value: string | null) => void;
 }) {
@@ -102,7 +104,6 @@ function PublicationDatePickerFields({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const timeTriggerRef = useRef<HTMLButtonElement>(null);
   const dayRefs = useRef(new Map<string, HTMLButtonElement>());
-  const locale = document.documentElement.lang || navigator.language || "en-US";
   const parts = toLocalParts(value);
   const [dateText, setDateText] = useState(() =>
     parts ? formatDate(parts.date, locale) : "",
@@ -626,13 +627,39 @@ function PublicationDatePickerFields({
   );
 }
 
+function subscribeToLocale() {
+  return () => {};
+}
+
+function browserLocale() {
+  return document.documentElement.lang || navigator.language || "en-US";
+}
+
+function serverLocale() {
+  return null;
+}
+
 export default function PublicationDatePicker(props: {
   id: string;
   value: string | null;
   disabled?: boolean;
   onChange: (value: string | null) => void;
 }) {
+  // Locale and local time depend on the browser. Hydrate the same empty fields
+  // first, then initialize the editable values in the visitor's time zone.
+  const locale = useSyncExternalStore(
+    subscribeToLocale,
+    browserLocale,
+    serverLocale,
+  );
+
   return (
-    <PublicationDatePickerFields key={props.value ?? "empty"} {...props} />
+    <PublicationDatePickerFields
+      {...props}
+      key={locale === null ? "server" : (props.value ?? "empty")}
+      locale={locale ?? "en-US"}
+      value={locale === null ? null : props.value}
+      disabled={locale === null || props.disabled}
+    />
   );
 }

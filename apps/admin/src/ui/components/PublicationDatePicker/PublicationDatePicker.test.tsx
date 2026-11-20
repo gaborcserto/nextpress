@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import PublicationDatePicker from "./PublicationDatePicker";
@@ -8,6 +9,29 @@ afterEach(() => {
 });
 
 describe("PublicationDatePicker", () => {
+  it("hydrates server markup before showing the local publication time", () => {
+    const picker = (
+      <PublicationDatePicker
+        id="publish-at"
+        value="2026-12-01T12:30:45.678Z"
+        onChange={vi.fn()}
+      />
+    );
+    const container = document.body.appendChild(document.createElement("div"));
+    container.innerHTML = renderToString(picker);
+    const onRecoverableError = vi.fn();
+
+    render(picker, { container, hydrate: true, onRecoverableError });
+
+    const local = new Date("2026-12-01T12:30:45.678Z");
+    const expectedTime = [local.getHours(), local.getMinutes()]
+      .map((part) => String(part).padStart(2, "0"))
+      .join(":");
+    expect(screen.getByLabelText("Publish time")).toHaveValue(expectedTime);
+    expect(screen.getByLabelText("Publish time")).toBeEnabled();
+    expect(onRecoverableError).not.toHaveBeenCalled();
+  });
+
   it("opens the calendar and closes on Escape, restoring focus", () => {
     vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(
       function showModal(this: HTMLDialogElement) {

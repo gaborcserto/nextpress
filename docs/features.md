@@ -10,6 +10,7 @@ Statuses describe the current evidence: **Implemented**, **Partial**, **Planned*
 | Draft persistence and explicit save                       | Partial     | Legacy page persistence exists; newer private working aggregates are guarded rehearsal only.                             |
 | Autosave, restore/recovery, conflict handling             | Partial     | Working persistence foundations exist; general production workflow and conflict UX are not established.                  |
 | Publishing and unpublishing                               | Implemented | Page and Post edits preserve existing publication unless the editor changes the status or date.                          |
+| Publication date picker                                   | Implemented | Server-rendered fields initialize in the browser's locale and time zone after hydration.                                 |
 | Scheduled publishing                                      | Partial     | Dated Page and Post publication becomes visible when due. Private release rehearsal requires an explicit execution step. |
 | Revision history                                          | Partial     | Legacy revision history exists; complete user-facing revision/recovery lifecycle is not established.                     |
 | Preview                                                   | Partial     | Live preview route exists; complete workflow and access guarantees need audit.                                           |
