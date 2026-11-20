@@ -3,7 +3,7 @@ import "server-only";
 import { PublicSiteSettingsSchema } from "@nextpress/shared/api-contracts";
 import { cache } from "react";
 
-import { fetchPublic } from "../content/public-api.server";
+import { fetchPublic, PublicApiError } from "../content/public-api.server";
 
 import type { z } from "zod";
 
@@ -13,3 +13,20 @@ export const getPublicSiteSettings = cache(
     return await fetchPublic("settings", PublicSiteSettingsSchema);
   },
 );
+
+export async function getPublicSiteSettingsForLayout(): Promise<PublicSiteSettings> {
+  try {
+    return await getPublicSiteSettings();
+  } catch (error) {
+    if (error instanceof PublicApiError && error.status === 503) {
+      return {
+        siteName: "NextPress",
+        siteDescription: "A publication powered by NextPress.",
+        postListingMode: "PAGINATION",
+        postsPerPage: 10,
+      };
+    }
+
+    throw error;
+  }
+}

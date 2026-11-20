@@ -11,12 +11,12 @@ import { render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublicSiteSettings, request } = vi.hoisted(() => ({
+const { getPublicSiteSettingsForLayout, request } = vi.hoisted(() => ({
   request: { savedMode: undefined as string | undefined },
-  getPublicSiteSettings: vi.fn(),
+  getPublicSiteSettingsForLayout: vi.fn(),
 }));
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
-  getPublicSiteSettings,
+  getPublicSiteSettingsForLayout,
 }));
 vi.mock("next/font/google", () => ({
   Geist: () => ({ variable: "geist-sans" }),
@@ -28,7 +28,7 @@ import RootLayout, { generateMetadata } from "./layout";
 beforeEach(() => {
   vi.resetAllMocks();
   request.savedMode = undefined;
-  getPublicSiteSettings.mockResolvedValue({
+  getPublicSiteSettingsForLayout.mockResolvedValue({
     siteName: "Example Publication",
     siteDescription: "Independent reporting.",
   });
@@ -70,7 +70,7 @@ describe("public layout settings integration", () => {
   });
 
   it("propagates settings failures to the root error boundary", async () => {
-    getPublicSiteSettings.mockRejectedValue(
+    getPublicSiteSettingsForLayout.mockRejectedValue(
       new Error("private settings failure"),
     );
     await expect(RootLayout({ children: <p>Page content</p> })).rejects.toThrow(
@@ -82,7 +82,7 @@ describe("public layout settings integration", () => {
 it.each(["light", "dark", "system"])(
   "SSR applies saved %s with validated template/preset selectors",
   async (colorMode) => {
-    getPublicSiteSettings.mockResolvedValue({
+    getPublicSiteSettingsForLayout.mockResolvedValue({
       siteName: "Saved",
       appearance: {
         websiteTemplate: "blog",
@@ -103,7 +103,7 @@ it.each(["light", "dark", "system"])(
   "SSR visitor %s overrides an explicit site default",
   async (mode) => {
     request.savedMode = mode;
-    getPublicSiteSettings.mockResolvedValue({
+    getPublicSiteSettingsForLayout.mockResolvedValue({
       siteName: "Saved",
       appearance: {
         websiteTemplate: "blog",
@@ -119,7 +119,7 @@ it.each(["light", "dark", "system"])(
 
 it("rejects invalid visitor preferences and falls back to the saved site mode", async () => {
   request.savedMode = "invalid";
-  getPublicSiteSettings.mockResolvedValue({
+  getPublicSiteSettingsForLayout.mockResolvedValue({
     siteName: "Saved",
     appearance: {
       websiteTemplate: "blog",
@@ -133,7 +133,7 @@ it("rejects invalid visitor preferences and falls back to the saved site mode", 
 });
 
 it("uses System for an invalid site color mode without mutating site settings", async () => {
-  getPublicSiteSettings.mockResolvedValue({
+  getPublicSiteSettingsForLayout.mockResolvedValue({
     siteName: "Saved",
     appearance: {
       websiteTemplate: "blog",

@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "openapi:validate": "vitest run src/lib/api/openapi.test.ts",
-    "openapi:export": "tsx scripts/export-openapi.ts"
+    "openapi:export": "tsx scripts/export-openapi.ts",
+    "test:postgres-outage": "tsx scripts/postgres-outage.ts"
   },
   "dependencies": {
     "@nextpress/db": "*",

@@ -1,6 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { getPublicSiteSettings } from "./public-site-settings.server";
+import {
+  getPublicSiteSettings,
+  getPublicSiteSettingsForLayout,
+} from "./public-site-settings.server";
 
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 
@@ -23,6 +26,25 @@ it("does not replace API outages with default settings", async () => {
     vi.fn().mockResolvedValue(new Response(null, { status: 500 })),
   );
   await expect(getPublicSiteSettings()).rejects.toMatchObject({ status: 500 });
+});
+
+it("uses local layout defaults only when the API is unavailable", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 500,
+        headers: { "x-nextpress-service-unavailable": "1" },
+      }),
+    ),
+  );
+
+  await expect(getPublicSiteSettingsForLayout()).resolves.toEqual({
+    siteName: "NextPress",
+    siteDescription: "A publication powered by NextPress.",
+    postListingMode: "PAGINATION",
+    postsPerPage: 10,
+  });
 });
 
 it("preserves obsolete identifiers for safe canonical resolution", async () => {

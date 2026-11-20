@@ -5,7 +5,7 @@ import { publicAppearance } from "@/lib/appearance";
 import { LocaleProvider, PreferenceProvider } from "@/lib/i18n/client";
 import { isColorMode } from "@/lib/i18n/messages";
 import { getLocale } from "@/lib/i18n/server";
-import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
+import { getPublicSiteSettingsForLayout } from "@/lib/settings/public-site-settings.server";
 import { siteOrigin } from "@/lib/settings/seo";
 import { resolvePublicSkin, resolveColorMode } from "@/lib/skin";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
@@ -28,7 +28,7 @@ const geistMono = Geist_Mono({
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getPublicSiteSettings();
+  const settings = await getPublicSiteSettingsForLayout();
 
   return {
     metadataBase: siteOrigin(),
@@ -44,7 +44,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getPublicSiteSettings();
+  const settings = await getPublicSiteSettingsForLayout();
   const appearance = resolveWebsiteAppearance(settings.appearance);
   const skin = resolvePublicSkin(publicAppearance.theme);
   const locale = await getLocale();
