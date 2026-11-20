@@ -65,6 +65,44 @@ describe.skipIf(!url)(
       await db?.$disconnect();
     });
 
+    it("reserves the homepage slot across concurrent writes and releases it on withdrawal", async () => {
+      const records = await Promise.all([seed(), seed()]);
+
+      const publish = (id: string) =>
+        db.page.update({
+          where: { id },
+          data: { layout: "HOME", status: "PUBLISHED" },
+        });
+
+      const results = await Promise.allSettled(
+        records.map(({ id }) => publish(id)),
+      );
+
+      const selected = await db.page.findMany({
+        where: { id: { in: records.map(({ id }) => id) }, layout: "HOME" },
+      });
+
+      expect(results.map(({ status }) => status).sort()).toEqual([
+        "fulfilled",
+        "rejected",
+      ]);
+      expect(selected).toHaveLength(1);
+      const [active] = selected;
+      const replacement = records.find(({ id }) => id !== active?.id);
+
+      if (!active || !replacement) {
+        throw new Error("Expected one active homepage and one replacement");
+      }
+
+      await db.page.update({
+        where: { id: active.id },
+        data: { status: "DRAFT" },
+      });
+      await expect(publish(replacement.id)).resolves.toMatchObject({
+        layout: "HOME",
+      });
+    });
+
     it.each([
       ["PAGE", "title"],
       ["PAGE", "slug"],

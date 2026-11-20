@@ -32,6 +32,9 @@ function formPatch(values: PageFormValues | PostFormValues): WorkingPatch {
     ...("type" in values
       ? {
           layout: values.type,
+          ...(dto.listingTaxonomyId !== undefined
+            ? { listingTaxonomyId: dto.listingTaxonomyId }
+            : {}),
           inHeaderMenu: values.inHeaderMenu,
           inFooterMenu: values.inFooterMenu,
         }

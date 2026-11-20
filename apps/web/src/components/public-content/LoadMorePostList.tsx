@@ -31,12 +31,16 @@ export function LoadMorePostList({
   hasMore: initialHasMore,
   postsPerPage,
   variant,
+  basePath = "/posts",
+  pageSlug,
 }: {
   posts: PublicPostSummary[];
   page: number;
   hasMore: boolean;
   postsPerPage: number;
   variant: PostListVariant;
+  basePath?: string;
+  pageSlug?: string;
 }) {
   const text = useMessages();
   const locale = useLocale();
@@ -65,7 +69,7 @@ export function LoadMorePostList({
 
   const nextPage = page + 1;
   const canLoadMore = hasMore && nextPage <= getMaxPostsPage(postsPerPage);
-  const fallbackHref = localizedHref(`/posts?page=${nextPage}`, locale);
+  const fallbackHref = localizedHref(`${basePath}?page=${nextPage}`, locale);
 
   const loadMore = async () => {
     if (loading || !canLoadMore) {
@@ -79,7 +83,9 @@ export function LoadMorePostList({
     setMessage("");
 
     try {
-      const batch = await getNextPostBatch(nextPage);
+      const batch = await (pageSlug
+        ? getNextPostBatch(nextPage, pageSlug)
+        : getNextPostBatch(nextPage));
 
       if (!batch) {
         setEnhancementFailed(true);
@@ -128,7 +134,7 @@ export function LoadMorePostList({
           label="accessibility.postArchivePages"
         >
           {page > 1 ? (
-            <Link href={page === 2 ? "/posts" : `/posts?page=${page - 1}`}>
+            <Link href={page === 2 ? basePath : `${basePath}?page=${page - 1}`}>
               <UiText id="pagination.previous" />
             </Link>
           ) : (

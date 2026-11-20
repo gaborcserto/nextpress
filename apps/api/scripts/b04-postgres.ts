@@ -426,7 +426,7 @@ async function verifyFamily(family: "content" | "security") {
           GRANT EXECUTE ON FUNCTION public.np_lock_publication_actor(text) TO np_private_app;
           -- Allow only the publication mapper's columns, never identity/ownership,
           -- specialized historical data, counters, Page DELETE or history UPDATE.
-          GRANT UPDATE ("title","slug","content","excerpt","layout","pageDocument",
+          GRANT UPDATE ("title","slug","content","excerpt","layout","listingTaxonomyId","pageDocument",
             "inHeaderMenu","inFooterMenu","status","publishedAt","workingVersion","updatedAt") ON "Page" TO np_private_app;
           GRANT INSERT ON "PageRevision","PageOnTaxonomy" TO np_private_app;
           GRANT DELETE ON "PageOnTaxonomy" TO np_private_app;

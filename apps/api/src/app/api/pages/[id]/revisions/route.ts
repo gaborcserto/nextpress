@@ -16,6 +16,7 @@ import {
   RevisionConflictError,
   saveRevision,
 } from "@/lib/services/revisions.server";
+import { workingPersistenceFailure } from "@/lib/services/working-persistence-errors";
 
 function failure(error: unknown) {
   if (error instanceof ZodError) {
@@ -38,7 +39,8 @@ function failure(error: unknown) {
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    error.code === "P2002"
+    error.code === "P2002" &&
+    workingPersistenceFailure(error) !== "HOMEPAGE_CONFLICT"
   ) {
     return conflict("Slug already exists");
   }

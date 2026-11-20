@@ -1,4 +1,7 @@
-import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
+import {
+  ApiErrorSchema,
+  ContentRecordSchema,
+} from "@nextpress/shared/api-contracts";
 
 import { showToast } from "@/ui/utils";
 
@@ -41,7 +44,11 @@ export function prepareLegacyUpdate<T extends PublicationFields>(
 
 export async function readLegacyUpdateResponse(response: Response) {
   if (!response.ok) {
-    return { ok: false as const, status: response.status };
+    return {
+      ok: false as const,
+      status: response.status,
+      message: await readContentConflict(response),
+    };
   }
 
   const acknowledgement = publicationAcknowledgementSchema.parse(
@@ -51,7 +58,23 @@ export async function readLegacyUpdateResponse(response: Response) {
   return { ok: true as const, acknowledgement };
 }
 
-export function reportLegacySaveFailure(status: number, isEdit: boolean): void {
+export async function readContentConflict(response: Response) {
+  if (response.status !== 409) {
+    return undefined;
+  }
+
+  const parsed = ApiErrorSchema.safeParse(
+    await response.json().catch(() => null),
+  );
+
+  return parsed.success ? parsed.data.error : undefined;
+}
+
+export function reportLegacySaveFailure(
+  status: number,
+  isEdit: boolean,
+  message?: string,
+): void {
   if (status === 401 || status === 403) {
     showToast("You are not authorized to save this content.", "error");
 
@@ -60,7 +83,8 @@ export function reportLegacySaveFailure(status: number, isEdit: boolean): void {
 
   if (status === 409) {
     showToast(
-      "Content changed elsewhere. Your edits are preserved; reload before retrying.",
+      message ??
+        "Content changed elsewhere. Your edits are preserved; reload before retrying.",
       "warning",
     );
 

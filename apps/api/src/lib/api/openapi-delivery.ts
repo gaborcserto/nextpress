@@ -16,6 +16,7 @@ for (const [path, result, operationId] of [
   ["public/posts", "PublicPostBatch", "publicPosts"],
   ["public/posts/{slug}", "PublicContent", "publicPost"],
   ["public/pages/{slug}", "PublicContent", "publicPage"],
+  ["public/home", "PublicContent", "publicHome"],
   ["public/navigation", "PublicNavigation", "publicNavigation"],
   ["public/settings", "PublicSiteSettings", "publicSettings"],
   ["discovery/session", "SessionDiscovery", "sessionDiscovery"],
@@ -26,7 +27,7 @@ for (const [path, result, operationId] of [
     "Delivery and discovery",
     operationId,
     ref(result),
-    path.includes("{slug}")
+    path.includes("{slug}") || path === "public/home"
       ? [404, 500]
       : path === "public/posts"
         ? [400, 500]

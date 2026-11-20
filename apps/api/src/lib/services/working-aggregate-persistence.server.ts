@@ -1,5 +1,6 @@
 import "server-only";
 
+import { pageLayouts } from "@nextpress/shared/content";
 import { canonicalEditorialJson } from "@nextpress/shared/editorial-contracts";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -115,7 +116,7 @@ async function lockPublicationActor(
       has_table_privilege('"PageOnTaxonomy"', 'DELETE') AND
       has_function_privilege('public.np_lock_publication_actor(text)', 'EXECUTE') AND
       (SELECT bool_and(has_column_privilege('"Page"', column_name, 'UPDATE'))
-        FROM unnest(ARRAY['title','slug','content','excerpt','layout','pageDocument',
+        FROM unnest(ARRAY['title','slug','content','excerpt','layout','listingTaxonomyId','pageDocument',
           'inHeaderMenu','inFooterMenu','status','publishedAt','workingVersion','updatedAt']) AS column_name)
       AS ready`;
 
@@ -165,10 +166,17 @@ export async function loadWorkingAggregate(
           throw new WorkingAggregateConflictError("IDENTITY_CONFLICT");
         }
 
+        const { fields, relationships } = stored.aggregate.snapshot;
+        const taxonomyIds = [
+          ...relationships.tagIds,
+          ...(fields.layout === pageLayouts.posts && fields.listingTaxonomyId
+            ? [fields.listingTaxonomyId]
+            : []),
+        ];
         const tagLabels = options.includeSourceMetadata
           ? await tx.taxonomy.findMany({
               where: {
-                id: { in: stored.aggregate.snapshot.relationships.tagIds },
+                id: { in: taxonomyIds },
                 type: "TAG",
               },
               select: { id: true, name: true, slug: true },
@@ -526,8 +534,10 @@ export async function saveWorkingAggregate(
             edges.taxonomies.some(
               (edge) =>
                 edge.taxonomyId === id &&
-                edge.usage !== "LISTING" &&
-                edge.usage !== found[0]?.type,
+                (edge.usage === "LISTING"
+                  ? aggregate.snapshot.fields.layout === pageLayouts.posts &&
+                    found[0]?.type !== "TAG"
+                  : edge.usage !== found[0]?.type),
             )
           ) {
             throw new WorkingAggregateConflictError("REFERENCE_CONFLICT");
@@ -585,6 +595,9 @@ export async function saveWorkingAggregate(
                     content: fields.content,
                     excerpt: fields.excerpt,
                     layout: fields.layout,
+                    ...(fields.layout === pageLayouts.posts
+                      ? { listingTaxonomyId: fields.listingTaxonomyId }
+                      : {}),
                     pageDocument: aggregate.rawPageDocument,
                     inHeaderMenu: fields.inHeaderMenu,
                     inFooterMenu: fields.inFooterMenu,

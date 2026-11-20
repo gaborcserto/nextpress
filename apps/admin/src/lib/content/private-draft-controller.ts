@@ -38,6 +38,8 @@ export function privateDraftFailure(error: unknown) {
       return "The live source changed. Retain your edits, reload, then explicitly reset the draft to the current source if appropriate.";
     case "DRAFT_VERSION_CONFLICT":
       return "Another editor saved a newer private draft. Copy any edits you need before reloading.";
+    case "HOMEPAGE_CONFLICT":
+      return "A published or scheduled Home page already exists. Withdraw it before assigning another.";
     case "REFERENCE_CONFLICT":
       return "A referenced item is missing or changed classification. Reload and review references before saving.";
     case "REQUEST_REUSE_CONFLICT":

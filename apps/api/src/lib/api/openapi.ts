@@ -382,6 +382,11 @@ for (const [path, kind, detail] of [
   ["pages", "Page", "PageDetail"],
   ["post", "Post", "PostDetail"],
 ]) {
+  const pageTypes =
+    path === "pages"
+      ? " Use layout STANDARD, HOME, POSTS, or GALLERY for supported page behavior. A published or scheduled HOME reserves the single homepage slot; a competing write returns 409. POSTS accepts listingTaxonomyId for an existing tag; null clears it."
+      : "";
+
   const list = operation(
     `list${kind}s`,
     "Content",
@@ -413,7 +418,7 @@ for (const [path, kind, detail] of [
       `Create ${kind.toLowerCase()}`,
       ref("ContentRecord"),
       [400, ...mutationCodes, 409, 500],
-      `${writeScope} Content and excerpt are serialized RichDocument JSON strings, not editor arrays. Unknown fields are stripped.`,
+      `${writeScope} Content and excerpt are serialized RichDocument JSON strings, not editor arrays. Unknown fields are stripped.${pageTypes}`,
       "protected",
       `${kind}Create`,
       201,
@@ -436,7 +441,7 @@ for (const [path, kind, detail] of [
       `Update ${kind.toLowerCase()}`,
       ref("ContentRecord"),
       [400, ...mutationCodes, 404, 409, 500],
-      `${writeScope} Partial update despite PUT; expectedVersion from editorial GET workingVersion is required. Missing versions return 400; stale versions return 409 without writing. Content type cannot change. Explicit publication validates the merged title and slug. Omitted status/date preserve publication state and schedule. PUBLISHED with a future publishedAt is scheduled; public delivery starts at that instant without a worker. Explicit null publishedAt means now for PUBLISHED, null for DRAFT. Unpublishing retains the historical date unless explicitly cleared. Saving published content updates live content. Unknown fields are stripped.`,
+      `${writeScope} Partial update despite PUT; expectedVersion from editorial GET workingVersion is required. Missing versions return 400; stale versions return 409 without writing. Content type cannot change. Explicit publication validates the merged title and slug. Omitted status/date preserve publication state and schedule. PUBLISHED with a future publishedAt is scheduled; public delivery starts at that instant without a worker. Explicit null publishedAt means now for PUBLISHED, null for DRAFT. Unpublishing retains the historical date unless explicitly cleared. Saving published content updates live content. Unknown fields are stripped.${pageTypes}`,
       "protected",
       `${kind}Update`,
     ),

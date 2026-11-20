@@ -199,6 +199,7 @@ export default function ContentList({
                         </Link>
                         <div className="text-sm text-(--text-muted)">
                           /{item.slug}
+                          {item.typeLabel && <span> ? {item.typeLabel}</span>}
                         </div>
                       </td>
 

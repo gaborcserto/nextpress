@@ -26,6 +26,8 @@ export type HomeProps = {
 export type ArchiveProps = {
   title?: string;
   basePath?: string;
+  pageSlug?: string;
+  children?: ReactNode;
   posts: PublicPostSummary[];
   page: number;
   hasMore: boolean;

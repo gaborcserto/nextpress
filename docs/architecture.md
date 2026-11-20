@@ -25,6 +25,8 @@ Legacy page fields and `PageRevision` coexist with newer private working aggrega
 
 ## Public templates
 
+Page records use the existing `PageLayout` field for their editorial type. `STANDARD`, `HOME`, `POSTS`, and `GALLERY` map to public `standard`, `home`, `posts`, and `gallery`. The Prisma `PageType` enum continues to distinguish page records from post records. See [the page-type decision](decisions/001-page-type-designations.md) for legacy compatibility and the homepage constraint.
+
 App Router routes load public content and resolve a template registry and appearance settings. The current blog template family has classic, modern, and minimal presets; content-list variants are separate. Appearance presets do not represent arbitrary page-builder blocks. Admin, API, and Web retain separate ownership; shared package exports are browser-safe contracts where needed.
 
 Public post and tag listing requests share `normalizePublicListPagination` in the Web content module. It applies the established default, integer flooring, and shared limit and offset bounds before URL construction. Search has a separate query contract, and pagination rendering remains owned by each appearance-specific view.

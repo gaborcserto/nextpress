@@ -1,0 +1,2 @@
+ALTER TYPE "PageLayout" ADD VALUE 'HOME';
+ALTER TYPE "PageLayout" ADD VALUE 'POSTS';

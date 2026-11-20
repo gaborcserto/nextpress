@@ -20,13 +20,13 @@ Statuses describe the current evidence: **Implemented**, **Partial**, **Planned*
 
 The schema distinguishes `PageType` (content classification) and `PageLayout` (layout intent); public template/preset selection is a separate site appearance configuration. A content block is structured content inside a document, not a page type or appearance preset.
 
-| Page type/direction         | Status                                                                                         |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| Standard pages              | Implemented                                                                                    |
-| Homepage role/configuration | Partial; homepage route and page types/settings exist, complete selection semantics need audit |
-| Posts archive/listing       | Partial; listing settings and public archive exist                                             |
-| Gallery pages               | Unverified; no complete gallery page workflow established                                      |
-| Other modeled types         | Partial; model enums/forms exist, public behavior varies by type                               |
+| Page type/direction | Status                                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard pages      | Implemented                                                                                                                                                                                 |
+| Home Page           | Implemented. One published designation, subject to its publication date. The localized root uses the default homepage when unavailable.                                                     |
+| Posts Page          | Implemented. Lists published posts at its own page URL with an optional existing tag filter, site listing mode, and bounded pagination. The existing archive and search URLs are supported. |
+| Gallery Page        | Type and localized empty state implemented. Media attachment and rendering are deferred to FUNC-03.                                                                                         |
+| Other modeled types | Partial; model enums/forms exist, public behavior varies by type                                                                                                                            |
 
 Intended hierarchy includes parent/child pages, nested structure, ordering, hierarchical navigation, cycle prevention, and keyboard-accessible organization. Current parent relationship and hierarchy controls are partial; audit required for the complete set.
 

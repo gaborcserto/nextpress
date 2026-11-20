@@ -1,8 +1,11 @@
 "use client";
 
+import { pageLayouts } from "@nextpress/shared/content";
+
 import { apiFetch } from "@/lib/api";
 import { slateToString } from "@/lib/content/editor";
 import {
+  readContentConflict,
   readLegacyUpdateResponse,
   type LegacyUpdate,
 } from "@/lib/content/legacy-editor";
@@ -27,6 +30,9 @@ function pageContentFields(
   return {
     type: "PAGE",
     layout: values.type,
+    ...(values.type === pageLayouts.posts
+      ? { listingTaxonomyId: values.listingTaxonomyId }
+      : {}),
     ...(values.publishedAt !== undefined
       ? { publishedAt: values.publishedAt }
       : {}),
@@ -42,6 +48,7 @@ function pageContentFields(
 export type PageApiResult = {
   ok: boolean;
   status: number;
+  message?: string;
 };
 
 export async function createPageApi(
@@ -55,7 +62,11 @@ export async function createPageApi(
     body: JSON.stringify(body),
   });
 
-  return { ok: res.ok, status: res.status };
+  return {
+    ok: res.ok,
+    status: res.status,
+    message: await readContentConflict(res),
+  };
 }
 
 export async function updatePageApi(

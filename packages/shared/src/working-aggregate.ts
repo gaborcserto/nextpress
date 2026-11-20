@@ -94,6 +94,7 @@ export const WorkingAggregateEditSchema = z.strictObject({
     content: true,
     excerpt: true,
     layout: true,
+    listingTaxonomyId: true,
     inHeaderMenu: true,
     inFooterMenu: true,
     tagIds: true,

@@ -14,12 +14,14 @@ import { Select } from "@/ui/primitives/Select";
 
 import styles from "./LivePreview.module.css";
 
+import type { ContentLayout } from "@nextpress/shared/content";
 import type { z } from "zod";
 
 const origin = process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
 
 type PreviewSnapshot = z.infer<typeof RevisionSnapshotSchema>;
 type PreviewValues = {
+  type?: ContentLayout;
   title: string;
   slug: string;
   content?: SlateLike;
@@ -64,7 +66,7 @@ export default function LivePreview({
           slug: values.slug,
           content: slateToString(values.content),
           excerpt: slateToString(values.excerpt),
-          layout: saved?.layout ?? "STANDARD",
+          layout: values.type ?? saved?.layout ?? "STANDARD",
           pageDocument: saved?.pageDocument ?? null,
         };
       } else {

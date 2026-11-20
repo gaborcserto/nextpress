@@ -123,13 +123,20 @@ export function TagMultiSelect({
   };
 
   const showCreate =
+    !!createTagAction &&
     trimmedQuery.length > 0 &&
     !selectableOptions.some(
       (option) => option.name.toLowerCase() === trimmedQuery.toLowerCase(),
     );
 
   const handleCreateClick = async (): Promise<void> => {
-    if (!trimmedQuery || loading || searchError || creatingRef.current) {
+    if (
+      !createTagAction ||
+      !trimmedQuery ||
+      loading ||
+      searchError ||
+      creatingRef.current
+    ) {
       return;
     }
 

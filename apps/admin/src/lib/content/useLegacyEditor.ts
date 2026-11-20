@@ -26,7 +26,9 @@ type LegacyEditorOptions<T> = {
   listHref: string;
   label: "Page" | "Post";
   initial: T;
-  create: (values: T) => Promise<{ ok: boolean; status: number }>;
+  create: (
+    values: T,
+  ) => Promise<{ ok: boolean; status: number; message?: string }>;
   update: (
     id: string,
     values: LegacyUpdate<T>,
@@ -87,7 +89,7 @@ export function useLegacyEditor<T extends LegacyEditorValues>({
         );
 
         if (!result.ok) {
-          reportLegacySaveFailure(result.status, true);
+          reportLegacySaveFailure(result.status, true, result.message);
 
           return false;
         }
@@ -105,7 +107,7 @@ export function useLegacyEditor<T extends LegacyEditorValues>({
       const result = await create(values);
 
       if (!result.ok) {
-        reportLegacySaveFailure(result.status, false);
+        reportLegacySaveFailure(result.status, false, result.message);
 
         return false;
       }

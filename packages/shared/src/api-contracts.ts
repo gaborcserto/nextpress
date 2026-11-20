@@ -3,6 +3,7 @@ import { z } from "zod";
 import { PublicAppearanceSchema } from "./appearance";
 import {
   ContentLayoutSchema,
+  PageTypeSchema,
   ContentSlugSchema,
   EMPTY_RICH_CONTENT,
   SerializedRichContentSchema,
@@ -38,6 +39,7 @@ const contentWriteFields = {
   excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)),
   content: SerializedRichContentSchema,
   layout: ContentLayoutSchema,
+  listingTaxonomyId: z.string().trim().min(1).max(191).nullable(),
   inHeaderMenu: z.boolean(),
   inFooterMenu: z.boolean(),
   publishedAt: z.iso.datetime({ offset: true }).nullable(),
@@ -52,6 +54,7 @@ export const PageSchema = z.object({
   excerpt: contentWriteFields.excerpt.default(EMPTY_RICH_CONTENT),
   content: contentWriteFields.content.default(EMPTY_RICH_CONTENT),
   layout: contentWriteFields.layout.optional(),
+  listingTaxonomyId: contentWriteFields.listingTaxonomyId.optional(),
   inHeaderMenu: contentWriteFields.inHeaderMenu.optional(),
   inFooterMenu: contentWriteFields.inFooterMenu.optional(),
   publishedAt: contentWriteFields.publishedAt.optional(),
@@ -71,6 +74,7 @@ export const PageUpdateSchema = z.object({
   excerpt: contentWriteFields.excerpt.optional(),
   content: contentWriteFields.content.optional(),
   layout: contentWriteFields.layout.optional(),
+  listingTaxonomyId: contentWriteFields.listingTaxonomyId.optional(),
   inHeaderMenu: contentWriteFields.inHeaderMenu.optional(),
   inFooterMenu: contentWriteFields.inFooterMenu.optional(),
   publishedAt: contentWriteFields.publishedAt.optional(),
@@ -122,6 +126,7 @@ export const EditorialPageSchema = z.object({
   inFooterMenu: z.boolean(),
   listingKind,
   listingTaxonomyId: nullableString,
+  listingTag: TagSchema.nullable().optional(),
   eventStart: date.nullable(),
   eventEnd: date.nullable(),
   eventLocation: nullableString,
@@ -135,6 +140,7 @@ export const ContentListSchema = z.object({
     z.object({
       id: z.string(),
       type: z.enum(["PAGE", "POST"]),
+      layout: ContentLayoutSchema.optional(),
       status: z.enum(["DRAFT", "PUBLISHED"]),
       publishedAt: date.nullable(),
       publicationState: z.enum([
@@ -219,6 +225,8 @@ export const PublicPostSummarySchema = z.strictObject({
   cover: PublicCoverSchema.optional(),
 });
 export const PublicContentSchema = z.strictObject({
+  pageType: PageTypeSchema.optional(),
+  postsFilter: PublicTaxonomyParamsSchema.optional(),
   pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,
   content: RichDocumentSchema,

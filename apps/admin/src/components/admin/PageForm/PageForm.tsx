@@ -1,5 +1,6 @@
 "use client";
 
+import { pageLayouts } from "@nextpress/shared/content";
 import { useState } from "react";
 
 import {
@@ -20,6 +21,7 @@ import {
   PublicationDatePicker,
   RedirectField,
   SlateEditor,
+  TagMultiSelect,
   TagsField,
 } from "@/ui/components";
 import { Field, FormGrid12, Input, Select, Section } from "@/ui/primitives";
@@ -279,9 +281,13 @@ export default function PageForm({
                   </Field>
 
                   <Field
-                    label="Layout"
+                    label="Page type"
                     htmlFor="page-type"
-                    hint="Only Standard is available for new pages. Existing layouts are preserved."
+                    hint={
+                      form.type === pageLayouts.home
+                        ? "Appears at the site root when published and due. Only one published or scheduled Home page can be assigned."
+                        : undefined
+                    }
                     span={4}
                   >
                     <PageTypeField
@@ -292,6 +298,38 @@ export default function PageForm({
                   </Field>
                 </FormGrid12>
               </Section>
+
+              {form.type === pageLayouts.posts && (
+                <Section
+                  title="Posts listing"
+                  desc="Leave the filter empty to display all published posts."
+                >
+                  <TagMultiSelect
+                    label="Filter by tag"
+                    placeholder="Search existing tags"
+                    value={
+                      form.listingTaxonomyId
+                        ? [
+                            form.listingTag ?? {
+                              id: form.listingTaxonomyId,
+                              name: form.listingTaxonomyId,
+                              slug: form.listingTaxonomyId,
+                            },
+                          ]
+                        : []
+                    }
+                    onChangeAction={(tags) => {
+                      const listingTag = tags.at(-1) ?? null;
+                      setForm((current) => ({
+                        ...current,
+                        listingTag,
+                        listingTaxonomyId: listingTag?.id ?? null,
+                      }));
+                    }}
+                    loadOptionsAction={loadTagOptionsAction}
+                  />
+                </Section>
+              )}
 
               {form.type === "LISTING" && (
                 <Section

@@ -13,6 +13,8 @@ import type { ArchiveProps } from "../types";
 export function BlogArchive({
   title,
   basePath = "/posts",
+  pageSlug,
+  children,
   posts,
   page,
   hasMore,
@@ -32,6 +34,7 @@ export function BlogArchive({
         >
           {title ?? <UiText id="navigation.posts" />}
         </h1>
+        {children}
       </header>
       <section
         aria-labelledby="archive-list-title"
@@ -44,6 +47,8 @@ export function BlogArchive({
         {listingMode === "LOAD_MORE" && posts.length > 0 ? (
           <LoadMorePostList
             key={`${page}:${posts.map(({ slug }) => slug).join(",")}`}
+            basePath={basePath}
+            pageSlug={pageSlug}
             posts={posts}
             page={page}
             hasMore={hasMore}

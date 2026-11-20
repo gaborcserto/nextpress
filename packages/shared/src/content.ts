@@ -10,11 +10,36 @@ export const ContentSlugSchema = z
     "Use lowercase words separated by single hyphens",
   );
 
+export const pageLayouts = {
+  standard: "STANDARD",
+  home: "HOME",
+  posts: "POSTS",
+  gallery: "GALLERY",
+} as const;
+
+export const PageTypeSchema = z.enum(["standard", "home", "posts", "gallery"]);
+export type PageType = z.infer<typeof PageTypeSchema>;
+
+export function resolvePageType(layout: ContentLayout): PageType {
+  switch (layout) {
+    case pageLayouts.home:
+      return "home";
+    case pageLayouts.posts:
+      return "posts";
+    case pageLayouts.gallery:
+      return "gallery";
+    default:
+      return "standard";
+  }
+}
+
 export const ContentLayoutSchema = z.enum([
-  "STANDARD",
+  pageLayouts.standard,
+  pageLayouts.home,
+  pageLayouts.posts,
+  pageLayouts.gallery,
   "HOMEPAGE",
   "LISTING",
-  "GALLERY",
   "CONTACT",
   "LANDING",
   "REDIRECT",

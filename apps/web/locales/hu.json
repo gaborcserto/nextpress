@@ -1,4 +1,5 @@
 {
+  "pages": { "galleryEmpty": "Ez a gal?ria ?res." },
   "navigation": {
     "home": "Főoldal",
     "posts": "Bejegyzések",

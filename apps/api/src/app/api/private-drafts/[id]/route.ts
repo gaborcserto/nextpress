@@ -42,6 +42,7 @@ const conflictReasons = new Set([
   "PUBLICATION_PRIVILEGES_UNAVAILABLE",
   "SCHEDULE_CONFLICT",
   "CONTENT_CONFLICT",
+  "HOMEPAGE_CONFLICT",
 ]);
 
 function failure(error: unknown) {

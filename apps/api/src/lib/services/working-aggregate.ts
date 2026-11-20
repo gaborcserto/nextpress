@@ -1,5 +1,6 @@
 import "server-only";
 
+import { pageLayouts } from "@nextpress/shared/content";
 import {
   canonicalEditorialJson,
   EditorialSnapshotSchema,
@@ -133,6 +134,14 @@ export function prepareWorkingAggregateEdit(
   }
 
   const { tagIds, ...fields } = edit.patch;
+
+  if (
+    fields.listingTaxonomyId !== undefined &&
+    (current.kind !== "PAGE" ||
+      (fields.layout ?? current.snapshot.fields.layout) !== pageLayouts.posts)
+  ) {
+    throw new WorkingAggregateConflictError("REFERENCE_CONFLICT");
+  }
 
   return WorkingAggregateSchema.parse({
     ...current,

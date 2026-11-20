@@ -36,6 +36,8 @@ enum PageLayout {
   DOWNLOAD
   CATEGORY_PAGE
   EVENT_PAGE
+  HOME
+  POSTS
 }
 
 // Listing configuration (for LISTING pages)

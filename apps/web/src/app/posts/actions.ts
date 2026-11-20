@@ -1,10 +1,14 @@
 "use server";
 
 import { getMaxPostsPage } from "@/lib/content/post-archive";
-import { getPublishedPosts } from "@/lib/content/public-content.server";
+import {
+  getPagePosts,
+  getPublishedPage,
+  getPublishedPosts,
+} from "@/lib/content/public-content.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 
-export async function getNextPostBatch(page: number) {
+export async function getNextPostBatch(page: number, pageSlug?: string) {
   const settings = await getPublicSiteSettings();
 
   if (
@@ -16,8 +20,20 @@ export async function getNextPostBatch(page: number) {
     return null;
   }
 
-  return getPublishedPosts({
-    limit: settings.postsPerPage,
-    offset: (page - 1) * settings.postsPerPage,
-  });
+  const limit = settings.postsPerPage;
+  const offset = (page - 1) * limit;
+
+  if (pageSlug !== undefined) {
+    if (typeof pageSlug !== "string") {
+      return null;
+    }
+
+    const listing = await getPublishedPage(pageSlug);
+
+    return listing?.pageType === "posts"
+      ? getPagePosts(listing, limit, offset)
+      : null;
+  }
+
+  return getPublishedPosts({ limit, offset });
 }

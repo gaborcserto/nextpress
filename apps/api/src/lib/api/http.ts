@@ -67,6 +67,12 @@ export function conflict(msg = "Conflict"): NextResponse<ErrorBody> {
 export function oops(error?: unknown): NextResponse<ErrorBody> {
   const failure = workingPersistenceFailure(error);
 
+  if (failure === "HOMEPAGE_CONFLICT") {
+    return conflict(
+      "A published or scheduled Home page already exists. Withdraw it before assigning another.",
+    );
+  }
+
   if (failure === "TRANSACTION_RETRY_REQUIRED") {
     return conflict("Content write conflict; retry the operation");
   }

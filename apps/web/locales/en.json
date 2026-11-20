@@ -1,4 +1,5 @@
 {
+  "pages": { "galleryEmpty": "This gallery is empty." },
   "navigation": {
     "home": "Home",
     "posts": "Posts",

@@ -39,7 +39,10 @@ export async function getPageById(
   // 1) Try by ID
   const byId = await prisma.page.findUnique({
     where: { ...contentReadWhere(opts?.actor), id: ref, type: typeFilter },
-    include: { cover: { select: { id: true, url: true, alt: true } } },
+    include: {
+      cover: { select: { id: true, url: true, alt: true } },
+      listingTaxonomy: { select: { id: true, name: true, slug: true } },
+    },
   });
 
   if (byId && byId.type === typeFilter) {
@@ -53,7 +56,10 @@ export async function getPageById(
       slug: slugify(ref),
       type: typeFilter,
     },
-    include: { cover: { select: { id: true, url: true, alt: true } } },
+    include: {
+      cover: { select: { id: true, url: true, alt: true } },
+      listingTaxonomy: { select: { id: true, name: true, slug: true } },
+    },
   });
 
   if (bySlug && bySlug.type === typeFilter) {
@@ -85,6 +91,7 @@ export async function listPages(
       select: {
         id: true,
         type: true,
+        layout: true,
         status: true,
         publishedAt: true,
         slug: true,
@@ -155,6 +162,9 @@ export async function createPage(
       excerpt: input.excerpt ?? null,
       content: input.content ?? "",
       layout: input.layout,
+      ...(input.listingTaxonomyId !== undefined
+        ? { listingTaxonomyId: input.listingTaxonomyId }
+        : {}),
       inHeaderMenu: input.inHeaderMenu,
       inFooterMenu: input.inFooterMenu,
       publishedAt: resolvePublicationDate(null, input),

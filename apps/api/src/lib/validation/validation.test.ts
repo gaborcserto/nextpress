@@ -1,4 +1,4 @@
-import { EMPTY_RICH_CONTENT } from "@nextpress/shared/content";
+import { EMPTY_RICH_CONTENT, pageLayouts } from "@nextpress/shared/content";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +10,35 @@ import {
 } from "./index";
 
 describe("content validation", () => {
+  it.each(Object.values(pageLayouts))(
+    "accepts the %s page layout for creation and editing",
+    (layout) => {
+      const create = {
+        type: "PAGE",
+        status: "DRAFT",
+        title: "Page",
+        slug: "page",
+        layout,
+      };
+
+      expect(PageSchema.parse(create).layout).toBe(layout);
+      expect(
+        PageUpdateSchema.parse({ expectedVersion: 0, layout }).layout,
+      ).toBe(layout);
+    },
+  );
+
+  it("rejects unknown layouts and malformed listing tags", () => {
+    expect(
+      PageUpdateSchema.safeParse({ expectedVersion: 0, layout: "UNKNOWN" })
+        .success,
+    ).toBe(false);
+    expect(
+      PageUpdateSchema.safeParse({ expectedVersion: 0, listingTaxonomyId: " " })
+        .success,
+    ).toBe(false);
+  });
+
   it("trims required page fields and applies empty defaults", () => {
     expect(
       PageSchema.parse({

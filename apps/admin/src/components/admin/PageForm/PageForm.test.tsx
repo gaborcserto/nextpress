@@ -1,4 +1,4 @@
-import { ContentLayoutSchema } from "@nextpress/shared/content";
+import { ContentLayoutSchema, pageLayouts } from "@nextpress/shared/content";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -203,28 +203,32 @@ describe("PageForm", () => {
     ).toBe(publishedAt);
   });
 
-  it("offers only Standard for new pages", () => {
+  it("offers four page types and reveals the tag filter only for Posts pages", () => {
     renderPage(initial);
-    expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
-      "STANDARD",
-    );
-    expect(
-      within(screen.getByRole("combobox", { name: "Layout" })).getAllByRole(
-        "option",
-      ),
-    ).toHaveLength(2);
-    expect(screen.getByRole("option", { name: "Standard Page" })).toBeEnabled();
-    expect(
-      screen.queryByRole("option", { name: /Listing/ }),
-    ).not.toBeInTheDocument();
+    const selector = screen.getByRole("combobox", { name: "Page type" });
+
+    expect(selector).toHaveValue("STANDARD");
+
+    for (const name of [
+      "Standard Page",
+      "Home Page",
+      "Posts Page",
+      "Gallery Page",
+    ]) {
+      expect(within(selector).getByRole("option", { name })).toBeEnabled();
+    }
+
+    expect(screen.queryByLabelText("Filter by tag")).not.toBeInTheDocument();
+    fireEvent.change(selector, { target: { value: pageLayouts.posts } });
+    expect(screen.getByLabelText("Filter by tag")).toBeVisible();
   });
 
   it("allows an explicit change from an existing layout to Standard", () => {
     renderPage({ ...initial, type: "LISTING" });
-    fireEvent.change(screen.getByRole("combobox", { name: "Layout" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Page type" }), {
       target: { value: "STANDARD" },
     });
-    expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
+    expect(screen.getByRole("combobox", { name: "Page type" })).toHaveValue(
       "STANDARD",
     );
     expect(
@@ -233,7 +237,9 @@ describe("PageForm", () => {
   });
 
   it.each(
-    ContentLayoutSchema.options.filter((layout) => layout !== "STANDARD"),
+    ContentLayoutSchema.options.filter(
+      (layout) => !Object.values<string>(pageLayouts).includes(layout),
+    ),
   )(
     "preserves existing %s layout and specialized fields on unrelated edits",
     async (type) => {
@@ -254,10 +260,10 @@ describe("PageForm", () => {
       };
       const save = vi.fn(async () => true);
       renderPage(legacy, save);
-      expect(screen.getByRole("combobox", { name: "Layout" })).toHaveValue(
+      expect(screen.getByRole("combobox", { name: "Page type" })).toHaveValue(
         type,
       );
-      expect(screen.getByRole("option", { name: /existing/ })).toBeDisabled();
+      expect(screen.getByRole("option", { name: /legacy/ })).toBeDisabled();
       fireEvent.change(screen.getByLabelText("Title"), {
         target: { value: "Edited title" },
       });

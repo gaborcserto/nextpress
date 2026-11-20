@@ -19,7 +19,7 @@ export type TagMultiSelectProps = {
   /** Called whenever selection changes */
   onChangeAction: (value: TagValue[]) => void;
   loadOptionsAction: TagLoadOptionsFn;
-  createTagAction: TagCreateFn;
+  createTagAction?: TagCreateFn;
   placeholder?: string;
 };
 

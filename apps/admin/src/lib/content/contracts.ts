@@ -41,6 +41,7 @@ export type PageFormValues = {
   inFooterMenu: boolean;
   listingKind?: ListingKind | null;
   listingTaxonomyId?: string | null;
+  listingTag?: TagValue | null;
   eventStart?: string | null;
   eventEnd?: string | null;
   eventLocation?: string | null;

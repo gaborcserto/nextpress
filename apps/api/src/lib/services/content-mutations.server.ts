@@ -1,3 +1,5 @@
+import { pageLayouts } from "@nextpress/shared/content";
+
 import {
   contentWriteWhere,
   requireContentWrite,
@@ -13,6 +15,29 @@ import {
   runWithContentConflictHandling,
   PageValidationError,
 } from "./content.shared";
+
+async function validateListingFilter(
+  kind: "PAGE" | "POST",
+  layout: string | undefined,
+  id: string | null | undefined,
+) {
+  if (id === undefined) {
+    return;
+  }
+
+  if (kind !== "PAGE" || layout !== pageLayouts.posts) {
+    throw new PageValidationError([
+      {
+        path: "listingTaxonomyId",
+        message: "Only Posts pages can set a listing tag",
+      },
+    ]);
+  }
+
+  if (id !== null) {
+    await validateTagIds([id]);
+  }
+}
 
 /**
  * Create content with tags using the shared mutation contract.
@@ -31,6 +56,7 @@ export async function createContentService(
     ]);
   }
 
+  await validateListingFilter(kind, parsed.layout, parsed.listingTaxonomyId);
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
 
@@ -72,6 +98,12 @@ export async function updateContentService(
       slug: parsed.slug ?? current.slug,
     });
   }
+
+  await validateListingFilter(
+    kind,
+    parsed.layout ?? current.layout,
+    parsed.listingTaxonomyId,
+  );
 
   if (parsed.tagIds) {
     await validateTagIds(parsed.tagIds);

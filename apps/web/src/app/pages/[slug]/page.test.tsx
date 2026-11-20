@@ -2,16 +2,22 @@ vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublishedPage, notFound } = vi.hoisted(() => ({
+const { getPagePosts, getPublishedPage, notFound } = vi.hoisted(() => ({
+  getPagePosts: vi.fn(),
   getPublishedPage: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("not-found");
   }),
 }));
 
-vi.mock("@/lib/content/public-content.server", () => ({ getPublishedPage }));
+vi.mock("@/lib/content/public-content.server", () => ({
+  getPagePosts,
+  getPublishedPage,
+}));
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
   getPublicSiteSettings: vi.fn().mockResolvedValue({
+    postsPerPage: 2,
+    postListingMode: "PAGINATION",
     appearance: {
       websiteTemplate: "blog",
       stylePreset: "classic",
@@ -50,6 +56,46 @@ beforeEach(() => {
 });
 
 describe("Public static page", () => {
+  it("shows the localized empty state and keeps the gallery body", async () => {
+    getPublishedPage.mockResolvedValue({ ...page, pageType: "gallery" });
+
+    render(await StaticPage({ params: Promise.resolve({ slug: "about" }) }));
+
+    expect(screen.getByText("Page body.")).toBeVisible();
+    expect(screen.getByText("This gallery is empty.")).toBeVisible();
+  });
+
+  it("uses the page's filter and offset and keeps pagination on its own URL", async () => {
+    const listing = {
+      ...page,
+      pageType: "posts",
+      postsFilter: { type: "TAG", slug: "news" },
+    };
+    getPublishedPage.mockResolvedValue(listing);
+    getPagePosts.mockResolvedValue({
+      posts: [{ ...page, title: "Matching post" }],
+      hasMore: true,
+    });
+
+    render(
+      await StaticPage({
+        params: Promise.resolve({ slug: "about" }),
+        searchParams: Promise.resolve({ page: "2" }),
+      }),
+    );
+
+    expect(getPagePosts).toHaveBeenCalledWith(listing, 2, 2);
+    expect(screen.getByRole("link", { name: "Matching post" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute(
+      "href",
+      "/en/pages/about",
+    );
+    expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute(
+      "href",
+      "/en/pages/about?page=3",
+    );
+  });
+
   it("renders a titled semantic page with safe rich content", async () => {
     render(await StaticPage({ params: Promise.resolve({ slug: "about" }) }));
     expect(screen.getByRole("article")).toBeInTheDocument();

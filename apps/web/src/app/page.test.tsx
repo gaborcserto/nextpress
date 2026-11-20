@@ -1,14 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { getPublishedPosts, getPublishedTags, getPublicSiteSettings } =
-  vi.hoisted(() => ({
-    getPublishedPosts: vi.fn(),
-    getPublishedTags: vi.fn().mockResolvedValue({ tags: [], hasMore: false }),
-    getPublicSiteSettings: vi.fn(),
-  }));
+const {
+  getPublishedHome,
+  getPublishedPosts,
+  getPublishedTags,
+  getPublicSiteSettings,
+} = vi.hoisted(() => ({
+  getPublishedHome: vi.fn().mockResolvedValue(null),
+  getPublishedPosts: vi.fn(),
+  getPublishedTags: vi.fn().mockResolvedValue({ tags: [], hasMore: false }),
+  getPublicSiteSettings: vi.fn(),
+}));
 
 vi.mock("@/lib/content/public-content.server", () => ({
+  getPublishedHome,
   getPublishedPosts,
   getPublishedTags,
 }));
@@ -24,6 +30,24 @@ import Home from "./page";
 import type { ReactNode } from "react";
 
 describe("Home", () => {
+  it("renders the configured page in place of the default homepage", async () => {
+    getPublicSiteSettings.mockResolvedValueOnce({ siteName: "Field Notes" });
+    getPublishedHome.mockResolvedValueOnce({
+      title: "Welcome to Field Notes",
+      content: {
+        version: 1,
+        blocks: [{ type: "paragraph", children: [{ text: "Welcome body" }] }],
+      },
+    });
+
+    render(await Home());
+
+    expect(
+      screen.getByRole("heading", { name: "Welcome to Field Notes" }),
+    ).toBeVisible();
+    expect(screen.getByText("Welcome body")).toBeVisible();
+  });
+
   it("renders the configured publication and latest published post summaries", async () => {
     getPublicSiteSettings.mockResolvedValue({
       siteName: "Field Notes",

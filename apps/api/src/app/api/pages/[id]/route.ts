@@ -38,6 +38,7 @@ function mapPageToFormValues(
     inFooterMenu: page.inFooterMenu,
     listingKind: page.listingKind,
     listingTaxonomyId: page.listingTaxonomyId,
+    ...(page.listingTaxonomy ? { listingTag: page.listingTaxonomy } : {}),
     eventStart: page.eventStart?.toISOString() ?? null,
     eventEnd: page.eventEnd?.toISOString() ?? null,
     eventLocation: page.eventLocation,

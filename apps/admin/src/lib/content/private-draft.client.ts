@@ -98,6 +98,9 @@ export function privatePageValues(
     inFooterMenu: fields.inFooterMenu,
     listingKind: fields.listingKind,
     listingTaxonomyId: fields.listingTaxonomyId,
+    listingTag: draft.tagLabels?.find(
+      (tag) => tag.id === fields.listingTaxonomyId,
+    ),
     eventStart: fields.eventStart,
     eventEnd: fields.eventEnd,
     eventLocation: fields.eventLocation,

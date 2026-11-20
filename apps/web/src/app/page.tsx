@@ -1,5 +1,7 @@
+import { PublishedPage } from "@/components/public-content/PublishedPage";
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
 import {
+  getPublishedHome,
   getPublishedPosts,
   getPublishedTags,
 } from "@/lib/content/public-content.server";
@@ -9,6 +11,12 @@ import { contentMetadata } from "@/lib/settings/seo";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
 export async function generateMetadata() {
+  const home = await getPublishedHome();
+
+  if (home) {
+    return contentMetadata(home.title, "/", home.summary, await getLocale());
+  }
+
   const settings = await getPublicSiteSettings();
 
   return contentMetadata(
@@ -20,8 +28,16 @@ export async function generateMetadata() {
 }
 
 export default async function Home() {
-  const [settings, latest, tagBatch] = await Promise.all([
+  const [settings, home] = await Promise.all([
     getPublicSiteSettings(),
+    getPublishedHome(),
+  ]);
+
+  if (home) {
+    return <PublishedPage page={home} settings={settings} />;
+  }
+
+  const [latest, tagBatch] = await Promise.all([
     getPublishedPosts({ limit: 5 }),
     getPublishedTags({ limit: 12 }),
   ]);

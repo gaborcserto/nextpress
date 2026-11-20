@@ -4,6 +4,7 @@ import type { ContentPagination } from "@/lib/content/useContentList";
 export type ContentListItem = {
   id: string;
   title: string;
+  typeLabel?: string;
   slug: string;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;

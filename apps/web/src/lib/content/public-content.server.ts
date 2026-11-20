@@ -63,6 +63,24 @@ export const getPublishedPost = cache((slug: string) =>
 export const getPublishedPage = cache((slug: string) =>
   getContent("pages", slug),
 );
+export const getPublishedHome = cache(() =>
+  fetchPublic("home", PublicContentSchema, true),
+);
+
+export function getPagePosts(
+  page: PublicPublishedPage,
+  limit: number,
+  offset: number,
+) {
+  if (page.postsFilter) {
+    const { type, slug } = page.postsFilter;
+
+    return getPublishedTaxonomyPosts(type, slug, limit, offset);
+  }
+
+  return getPublishedPosts({ limit, offset });
+}
+
 export const getPublicPageNavigation = cache(
   async (): Promise<PublicPageNavigation> => {
     return await fetchPublic("navigation", PublicNavigationSchema);

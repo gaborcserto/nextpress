@@ -7,7 +7,12 @@ import {
   MAX_POSTS_PER_PAGE,
 } from "@nextpress/shared";
 import { PublicTaxonomyParamsSchema } from "@nextpress/shared/api-contracts";
-import { ContentSlugSchema, richContentText } from "@nextpress/shared/content";
+import {
+  ContentSlugSchema,
+  pageLayouts,
+  resolvePageType,
+  richContentText,
+} from "@nextpress/shared/content";
 import { readPageDocument } from "@nextpress/shared/page-document";
 
 import { publicPublicationWhere } from "./eligibility";
@@ -38,6 +43,27 @@ const publicContentSelect = {
     select: { url: true, alt: true, mime: true, width: true, height: true },
   },
 } satisfies Prisma.PageSelect;
+
+const publicPageSelect = {
+  ...publicContentSelect,
+  layout: true,
+  listingTaxonomy: { select: { type: true, slug: true } },
+} satisfies Prisma.PageSelect;
+
+function projectPublicPage(
+  row: Prisma.PageGetPayload<{ select: typeof publicPageSelect }>,
+): PublicPublishedPage {
+  const pageType = resolvePageType(row.layout);
+  const filter = PublicTaxonomyParamsSchema.safeParse(row.listingTaxonomy);
+
+  return {
+    ...projectPublicContent(row),
+    pageType,
+    ...(pageType === "posts" && filter.success
+      ? { postsFilter: filter.data }
+      : {}),
+  };
+}
 
 const publicPostSummarySelect = {
   slug: true,
@@ -183,17 +209,23 @@ export async function getPublishedPage(
       type: "PAGE",
       ...publicPublicationWhere(new Date()),
     },
-    select: publicContentSelect,
+    select: publicPageSelect,
   });
 
-  if (!row?.publishedAt) {
-    return null;
-  }
+  return row?.publishedAt ? projectPublicPage(row) : null;
+}
 
-  return {
-    ...projectPublicContent(row),
-    publishedAt: row.publishedAt.toISOString(),
-  };
+export async function getPublishedHome(): Promise<PublicPublishedPage | null> {
+  const row = await prisma.page.findFirst({
+    where: {
+      type: "PAGE",
+      layout: pageLayouts.home,
+      ...publicPublicationWhere(new Date()),
+    },
+    select: publicPageSelect,
+  });
+
+  return row?.publishedAt ? projectPublicPage(row) : null;
 }
 
 /** Navigation is selected only from pages currently available to the public. */

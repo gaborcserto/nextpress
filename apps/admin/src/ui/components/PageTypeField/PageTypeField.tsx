@@ -1,14 +1,19 @@
-import { Select } from "@/ui/primitives";
+import { ContentLayoutSchema, pageLayouts } from "@nextpress/shared/content";
 
-import type { PageType } from "@/lib/content/contracts";
+import { Select } from "@/ui/primitives";
 
 import type { PageTypeFieldProps } from "./PageTypeField.types";
 
-const PAGE_TYPE_OPTIONS = [
-  { value: "STANDARD", label: "Standard Page" },
+const SUPPORTED_PAGE_TYPES = [
+  { value: pageLayouts.standard, label: "Standard Page" },
+  { value: pageLayouts.home, label: "Home Page" },
+  { value: pageLayouts.posts, label: "Posts Page" },
+  { value: pageLayouts.gallery, label: "Gallery Page" },
+];
+
+const LEGACY_PAGE_TYPES = [
   { value: "HOMEPAGE", label: "Homepage" },
   { value: "LISTING", label: "Listing / Archive" },
-  { value: "GALLERY", label: "Gallery Page" },
   { value: "CONTACT", label: "Contact Page" },
   { value: "LANDING", label: "Landing Page" },
   { value: "REDIRECT", label: "Redirect Page" },
@@ -30,18 +35,24 @@ export default function PageTypeField({
       id={id}
       fullWidth
       value={value}
-      options={PAGE_TYPE_OPTIONS.filter(
-        (option) => option.value === "STANDARD" || option.value === value,
-      ).map((option) => ({
-        ...option,
-        label:
-          option.value === "STANDARD"
-            ? option.label
-            : `${option.label} (existing)`,
-        disabled: option.value !== "STANDARD",
-      }))}
+      options={[
+        ...SUPPORTED_PAGE_TYPES,
+        ...LEGACY_PAGE_TYPES.filter((option) => option.value === value).map(
+          (option) => ({
+            ...option,
+            label: `${option.label} (legacy)`,
+            disabled: true,
+          }),
+        ),
+      ]}
       placeholder="– select page type –"
-      onChangeAction={(val) => onChange(val as PageType)}
+      onChangeAction={(value) => {
+        const parsed = ContentLayoutSchema.safeParse(value);
+
+        if (parsed.success) {
+          onChange(parsed.data);
+        }
+      }}
     />
   );
 }
