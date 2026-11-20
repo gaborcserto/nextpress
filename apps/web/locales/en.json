@@ -33,6 +33,8 @@
     "missingPage": "The page you’re looking for isn’t here.",
     "loadTitle": "This page could not be loaded",
     "loadHelp": "Please try again, or continue to another part of the site.",
+    "unavailableTitle": "Service temporarily unavailable",
+    "unavailableHelp": "Please wait a moment and try again.",
     "retry": "Try again"
   },
   "accessibility": {

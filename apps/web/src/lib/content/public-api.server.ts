@@ -6,17 +6,27 @@ import {
   setUpstreamRequestId,
 } from "@nextpress/shared/request-correlation";
 import { writeServerLog } from "@nextpress/shared/server-logging";
+import {
+  isUnavailableResponse,
+  serviceUnavailableDigest,
+} from "@nextpress/shared/service-unavailable";
 import { headers } from "next/headers";
 
 import type { z } from "zod";
 
 export class PublicApiError extends Error {
+  readonly digest?: string;
+
   constructor(
     public readonly status: number,
     public readonly code: "upstream" | "transport" | "contract",
   ) {
     super("Public content is temporarily unavailable.");
     this.name = "PublicApiError";
+
+    if (status === 503) {
+      this.digest = serviceUnavailableDigest();
+    }
   }
 }
 
@@ -74,7 +84,10 @@ export async function fetchPublic<T>(
     }
 
     if (!response.ok) {
-      throw new PublicApiError(response.status, "upstream");
+      throw new PublicApiError(
+        isUnavailableResponse(response) ? 503 : response.status,
+        "upstream",
+      );
     }
 
     const body: unknown = await response.json();

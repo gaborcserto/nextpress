@@ -27,6 +27,14 @@ Legacy page fields and `PageRevision` coexist with newer private working aggrega
 
 App Router routes load public content and resolve a template registry and appearance settings. The current blog template family has classic, modern, and minimal presets; content-list variants are separate. Appearance presets do not represent arbitrary page-builder blocks. Admin, API, and Web retain separate ownership; shared package exports are browser-safe contracts where needed.
 
+## Error handling
+
+- **Web** keeps the localized editorial 404. Route errors use the active Blog preset and color tokens from the root layout. The recovery view renders independently of navigation. When public settings prevent the root layout from rendering, the global boundary supplies the built-in skin and NextPress branding.
+- **Admin** renders authenticated route failures inside the existing shell when it is available. A failed session or provider lookup reaches a standalone boundary. Only a successful discovery response without a session takes the sign-in redirect. The root fallback and missing-page view use local Admin styles and controls.
+- **API** presents branded HTML for GET document navigations that advertise `text/html`. The presentation covers unmatched paths and errors returned by wrapped API handlers. JSON consumers keep their existing bodies and statuses. Known database connectivity failures add `X-NextPress-Service-Unavailable: 1` to the existing JSON 500 response. Web and Admin use this signal to show the 503 recovery view. The API document response uses HTTP 503 for the same failure.
+
+Server logs retain request correlation and failure classifications. The browser-facing availability marker contains no database details. Web and Admin use the error digest to identify the recovery view after Next.js redacts server errors in production. The displayed status identifies the failure. App Router boundaries cannot change HTTP headers after streaming begins, and document failures may use Next.js's HTTP 500 response even when the recovery view displays 503. If an application server is itself offline, any error response must come from the deployment proxy.
+
 ## Configuration, observability, and verification
 
 `apps/api/.env` is the normal local source for `DATABASE_URL`; explicit process values take precedence. Prisma/database scripts use the verified API environment resolution. Root `.env` supports Compose separately. Request correlation and structured request logging are implemented in API/shared code; they are not a full observability platform.

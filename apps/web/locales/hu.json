@@ -33,6 +33,8 @@
     "missingPage": "A keresett oldal nem található.",
     "loadTitle": "Az oldalt nem sikerült betölteni",
     "loadHelp": "Próbáld újra, vagy látogass el a webhely másik oldalára.",
+    "unavailableTitle": "A szolgáltatás átmenetileg nem érhető el",
+    "unavailableHelp": "Várj egy kicsit, majd próbáld újra.",
     "retry": "Újra"
   },
   "accessibility": {

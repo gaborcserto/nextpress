@@ -1,38 +1,50 @@
 "use client";
 
-import { ActionButton } from "@/components/public-ui/ActionButton";
-import { Container } from "@/components/public-ui/Container";
-import { LocaleLink as Link, UiText } from "@/lib/i18n/client";
+import { isServiceUnavailable } from "@nextpress/shared/service-unavailable";
 
-import styles from "./public-state.module.css";
+import { ActionButton } from "@/components/public-ui/ActionButton";
+import { LocaleLink, UiText } from "@/lib/i18n/client";
+
+import styles from "./not-found.module.css";
 
 export default function PublicError({
-  reset,
+  error,
+  retry,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: unknown;
+  retry: () => void;
 }) {
+  const unavailable = isServiceUnavailable(error);
+
   return (
-    <Container>
-      <section className={styles.state} aria-labelledby="error-title">
-        <h1 id="error-title">
-          <UiText id="errors.loadTitle" />
-        </h1>
-        <p>
-          <UiText id="errors.loadHelp" />
+    <main className={styles.page}>
+      <section className={styles.content} aria-labelledby="error-title">
+        <p className={styles.brand}>
+          nextpress<span>.</span>
         </p>
-        <div className={styles.actions}>
-          <ActionButton type="button" onClick={reset}>
+        <p className={styles.code}>{unavailable ? "503" : "500"}</p>
+        <h1 id="error-title" className={styles.message}>
+          <UiText
+            id={unavailable ? "errors.unavailableTitle" : "errors.loadTitle"}
+          />
+        </h1>
+        <p className={styles.description}>
+          <UiText
+            id={unavailable ? "errors.unavailableHelp" : "errors.loadHelp"}
+          />
+        </p>
+        <div className={styles.navigation}>
+          <ActionButton type="button" onClick={retry}>
             <UiText id="errors.retry" />
           </ActionButton>
-          <Link href="/">
+          <LocaleLink href="/" prefetch={false}>
             <UiText id="navigation.home" />
-          </Link>
-          <Link href="/posts">
+          </LocaleLink>
+          <LocaleLink href="/posts" prefetch={false}>
             <UiText id="navigation.posts" />
-          </Link>
+          </LocaleLink>
         </div>
       </section>
-    </Container>
+    </main>
   );
 }

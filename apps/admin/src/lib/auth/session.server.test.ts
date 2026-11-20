@@ -1,4 +1,8 @@
 // @vitest-environment node
+import {
+  isServiceUnavailable,
+  serviceUnavailableHeader,
+} from "@nextpress/shared/service-unavailable";
 import { afterEach, expect, it, vi } from "vitest";
 
 const requestHeaders = vi.hoisted(() => vi.fn());
@@ -72,13 +76,34 @@ it("rejects malformed discovery data", async () => {
   await expect(getSessionWithRole()).rejects.toThrow();
 });
 
-it("propagates connection failures rather than reporting an anonymous session", async () => {
+it("marks connection failures as unavailable and retains the original error", async () => {
   requestHeaders.mockResolvedValue(new Headers());
   const cause = Object.assign(new Error("Connection refused"), {
     code: "ECONNREFUSED",
   });
   const failure = new TypeError("fetch failed", { cause });
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(failure));
-  await expect(getSessionWithRole()).rejects.toBe(failure);
-  await expect(getOperationalOAuthProviders()).rejects.toBe(failure);
+
+  const session = getSessionWithRole();
+  await expect(session).rejects.toSatisfy(isServiceUnavailable);
+  await expect(session).rejects.toMatchObject({ cause: failure });
+
+  const providers = getOperationalOAuthProviders();
+  await expect(providers).rejects.toSatisfy(isServiceUnavailable);
+  await expect(providers).rejects.toMatchObject({ cause: failure });
+});
+
+it("marks a discovery response with a database outage signal as unavailable", async () => {
+  requestHeaders.mockResolvedValue(new Headers());
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 500,
+        headers: { [serviceUnavailableHeader]: "1" },
+      }),
+    ),
+  );
+
+  await expect(getSessionWithRole()).rejects.toSatisfy(isServiceUnavailable);
 });

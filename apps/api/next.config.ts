@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
     "/api/media{,/**}": ["../../node_modules/@img/sharp-*/lib/**/*"],
     "/api/public/media/**": ["../../node_modules/@img/sharp-*/lib/**/*"],
   },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: "/:path*",
+          has: [
+            { type: "header", key: "sec-fetch-mode", value: "navigate" },
+            { type: "header", key: "accept", value: ".*text/html.*" },
+          ],
+          destination: "/browser-not-found",
+        },
+      ],
+    };
+  },
   async headers() {
     return [
       {

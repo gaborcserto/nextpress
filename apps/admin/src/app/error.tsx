@@ -1,15 +1,25 @@
 "use client";
 
-export default function AdminError({ reset }: { reset: () => void }) {
+import { isServiceUnavailable } from "@nextpress/shared/service-unavailable";
+
+import { AdminErrorPage } from "./AdminErrorPage";
+
+export default function AdminError({
+  error,
+  retry,
+  insideShell = false,
+}: {
+  error: unknown;
+  retry: () => void;
+  insideShell?: boolean;
+}) {
+  const unavailable = isServiceUnavailable(error);
+
   return (
-    <main className="min-h-screen grid place-content-center gap-4 p-6 text-center">
-      <h1 className="text-2xl font-bold">Unable to load the administration</h1>
-      <p role="alert">
-        The service may be unavailable. Please try again shortly.
-      </p>
-      <button type="button" className="btn btn-primary" onClick={reset}>
-        Try again
-      </button>
-    </main>
+    <AdminErrorPage
+      status={unavailable ? 503 : 500}
+      retry={retry}
+      insideShell={insideShell}
+    />
   );
 }

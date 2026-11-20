@@ -27,6 +27,18 @@
   color: var(--blog-marker-warm);
 }
 
+.brand {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.brand span {
+  color: var(--blog-marker-warm, #c65310);
+}
+
 .message {
   margin: clamp(1.75rem, 5vh, 3rem) 0 0;
   font-family: var(--font-heading);
@@ -45,6 +57,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: 0.5rem 2rem;
   margin-block-start: 2rem;
 }

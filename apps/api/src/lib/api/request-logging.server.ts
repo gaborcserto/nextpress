@@ -9,10 +9,13 @@ import {
   type FailureCode,
   type LogOperation,
 } from "@nextpress/shared/server-logging";
+import { serviceUnavailableHeader } from "@nextpress/shared/service-unavailable";
 import { ZodError } from "zod";
 
+import { isDatabaseUnavailable } from "@/lib/database-diagnostics";
 import { RateLimiter } from "@/lib/security/rate-limit.server";
 
+import { presentBrowserError } from "./browser-error";
 import { apiLogContext, requestLog } from "./request-log-context.server";
 
 export function logApiFailure(error: unknown): void {
@@ -72,7 +75,12 @@ export function withRequestLogging<Args extends unknown[]>(
         logApiFailure(error);
         response = Response.json(
           { error: "Unexpected error" },
-          { status: 500 },
+          {
+            status: 500,
+            headers: isDatabaseUnavailable(error)
+              ? { [serviceUnavailableHeader]: "1" }
+              : undefined,
+          },
         );
       }
 
@@ -91,11 +99,13 @@ export function withRequestLogging<Args extends unknown[]>(
       const headers = new Headers(response.headers);
       headers.set(requestIdHeader, requestId);
 
-      return new Response(response.body, {
+      const correlated = new Response(response.body, {
         status,
         statusText: response.statusText,
         headers,
       });
+
+      return presentBrowserError(request, correlated);
     });
   };
 }

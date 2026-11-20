@@ -1,3 +1,4 @@
+import { serviceUnavailableDigest } from "@nextpress/shared/service-unavailable";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
@@ -6,9 +7,22 @@ import PublicError from "./error";
 import GlobalError from "./global-error";
 
 describe("Public error recovery", () => {
+  it("shows an outage using the production-safe error digest", () => {
+    const error = Object.assign(new Error("redacted by Next.js"), {
+      digest: serviceUnavailableDigest(),
+    });
+    render(<PublicError error={error} retry={vi.fn()} />);
+
+    expect(screen.getByRole("main")).toHaveTextContent("503");
+    expect(screen.getByRole("heading")).toHaveTextContent(
+      "Service temporarily unavailable",
+    );
+    expect(screen.queryByText("redacted by Next.js")).not.toBeInTheDocument();
+  });
+
   it("renders the same default skin attributes when the root layout fails", () => {
     const markup = renderToStaticMarkup(
-      <GlobalError error={new Error("root failure")} reset={vi.fn()} />,
+      <GlobalError error={new Error("root failure")} retry={vi.fn()} />,
     );
     const html = new DOMParser().parseFromString(
       markup,
@@ -20,11 +34,11 @@ describe("Public error recovery", () => {
   });
 
   it("keeps unexpected route failures generic and provides retry and navigation", () => {
-    const reset = vi.fn();
+    const retry = vi.fn();
     render(
       <PublicError
         error={new Error("secret database details")}
-        reset={reset}
+        retry={retry}
       />,
     );
 
@@ -35,7 +49,7 @@ describe("Public error recovery", () => {
       screen.queryByText("secret database details"),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(reset).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute(
       "href",
       "/en/",
@@ -47,7 +61,7 @@ describe("Public error recovery", () => {
   });
 
   it("redacts root layout errors and lets visitors retry or navigate away", () => {
-    const reset = vi.fn();
+    const retry = vi.fn();
     // The root error renders its own <html> and needs a document with a window.
     const frame = document.body.appendChild(document.createElement("iframe"));
     onTestFinished(() => frame.remove());
@@ -58,7 +72,7 @@ describe("Public error recovery", () => {
     }
 
     const page = render(
-      <GlobalError error={new Error("private root failure")} reset={reset} />,
+      <GlobalError error={new Error("private root failure")} retry={retry} />,
       { container: errorDocument, baseElement: errorDocument },
     );
 
@@ -73,6 +87,6 @@ describe("Public error recovery", () => {
 
     fireEvent.click(page.getByRole("button", { name: "Try again" }));
 
-    expect(reset).toHaveBeenCalledOnce();
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

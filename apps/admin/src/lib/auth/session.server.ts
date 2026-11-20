@@ -12,6 +12,10 @@ import {
   writeServerLog,
   type FailureCode,
 } from "@nextpress/shared/server-logging";
+import {
+  isUnavailableResponse,
+  serviceUnavailableDigest,
+} from "@nextpress/shared/service-unavailable";
 import { headers } from "next/headers";
 import { cache } from "react";
 
@@ -38,6 +42,7 @@ async function discovery<T>(
   let correlationId = requestId;
   let code: FailureCode = "transport";
   let status: number | undefined;
+  let unavailable = true;
 
   try {
     const response = await fetch(`${apiOrigin()}/api/discovery/${path}`, {
@@ -48,6 +53,7 @@ async function discovery<T>(
     });
     correlationId = responseRequestId(response.headers, requestId);
     status = response.status;
+    unavailable = isUnavailableResponse(response);
 
     if (!response.ok) {
       code = "upstream";
@@ -65,6 +71,16 @@ async function discovery<T>(
       code,
       status,
     });
+
+    if (unavailable) {
+      throw Object.assign(
+        new Error("API discovery unavailable", { cause: error }),
+        {
+          digest: serviceUnavailableDigest(),
+        },
+      );
+    }
+
     throw error;
   }
 }

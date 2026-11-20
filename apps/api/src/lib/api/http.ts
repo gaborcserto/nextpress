@@ -1,6 +1,10 @@
+import { serviceUnavailableHeader } from "@nextpress/shared/service-unavailable";
 import { NextResponse } from "next/server";
 
-import { databaseDiagnostics } from "@/lib/database-diagnostics";
+import {
+  databaseDiagnostics,
+  isDatabaseUnavailable,
+} from "@/lib/database-diagnostics";
 import { workingPersistenceFailure } from "@/lib/services/working-persistence-errors";
 
 import { logApiFailure } from "./request-logging.server";
@@ -93,7 +97,12 @@ export function internalError(error?: unknown): NextResponse<ErrorBody> {
 
   return NextResponse.json<ErrorBody>(
     { error: "Unexpected error" },
-    { status: 500 },
+    {
+      status: 500,
+      headers: isDatabaseUnavailable(error)
+        ? { [serviceUnavailableHeader]: "1" }
+        : undefined,
+    },
   );
 }
 
