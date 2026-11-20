@@ -133,5 +133,12 @@ Before completing work:
 - Check for duplicated or contradictory agent instructions.
 - Confirm no secrets, generated artifacts, unrelated application behavior, schema changes, migrations, tests, CI, Husky, or dependency upgrades were added unless explicitly requested.
 - Never bypass a failing check or hook. Do not use `--no-verify` to make a commit succeed.
-- Do not stage, commit or push unless the user explicitly requests it.
+- Do not commit automatically. Task-specific explicit user authorization permits local commits after all applicable verification succeeds; stage only task-related files and allow Husky hooks to run normally. Pushes, merges, and pull requests always require separate authorization.
 - Summarize changed files, verification performed, and any remaining observation or follow-up.
+
+## Verification efficiency
+
+- During implementation, prefer focused tests and affected-workspace checks. Avoid unnecessary full builds, repeated installs, database initialization, and coverage runs; reuse successful results while relevant inputs remain unchanged.
+- Before committing, run applicable mandatory checks, `npm run check:changed`, relevant integration/security/browser checks, and `git diff --check`.
+- Reproduce failures with the smallest relevant command. Separate code regressions from environment or resource failures; after two unsuccessful targeted repair attempts, reassess the cause instead of repeating the same command. Do not raise timeouts or memory limits without evidence.
+- Never weaken tests, authorization, or security requirements. Do not bypass Husky or any required check.

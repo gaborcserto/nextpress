@@ -29,6 +29,10 @@ App Router routes load public content and resolve a template registry and appear
 
 Public post and tag listing requests share `normalizePublicListPagination` in the Web content module. It applies the established default, integer flooring, and shared limit and offset bounds before URL construction. Search has a separate query contract, and pagination rendering remains owned by each appearance-specific view.
 
+## Test and component ownership
+
+API editorial baseline fixtures are owned by `apps/api/src/lib/public`, their only current consumers. Admin private-draft fixtures remain beside the Admin content tests that share them. E2E browser setup stays with the E2E runner; fixtures are not promoted to a generic cross-workspace framework without genuine reuse. Component placement follows its owning app and feature, with tests colocated where established; existing deliberate entry points remain supported. ARCH-F10 review found its original API-to-E2E fixture dependency already resolved by TEST-01B. ARCH-F11's varying historical component grouping does not justify bulk relocation: future moves should accompany substantive edits or verified dead-code cleanup.
+
 ## Error handling
 
 - **Web** keeps the localized editorial 404. Route errors use the active Blog preset and color tokens from the root layout. The recovery view renders independently of navigation. When the API explicitly signals unavailability while root settings load, the root layout and metadata use local NextPress defaults so the route boundary can render without the API; unexpected and contract errors still propagate. If the root layout itself fails, the global boundary supplies the built-in skin and NextPress branding.
