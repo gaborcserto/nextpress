@@ -14,9 +14,32 @@ import {
   getPublishedPost,
   getPublishedPosts,
   getPublicPageNavigation,
+  normalizePublicListPagination,
 } from "./public-content.server";
 
 const request = vi.fn();
+
+describe("normalizePublicListPagination", () => {
+  it("preserves defaults, floors values, and clamps page bounds", () => {
+    expect(normalizePublicListPagination()).toEqual({ limit: 10, offset: 0 });
+    expect(normalizePublicListPagination({ limit: 2.8, offset: 3.9 })).toEqual({
+      limit: 2,
+      offset: 3,
+    });
+    expect(
+      normalizePublicListPagination({ limit: 500, offset: 1_000_000 }),
+    ).toEqual({
+      limit: 50,
+      offset: 100_000,
+    });
+    expect(
+      normalizePublicListPagination({ limit: NaN, offset: Infinity }),
+    ).toEqual({
+      limit: 10,
+      offset: 0,
+    });
+  });
+});
 const requestHeaders = vi.hoisted(() => vi.fn());
 vi.mock("next/headers", () => ({ headers: requestHeaders }));
 

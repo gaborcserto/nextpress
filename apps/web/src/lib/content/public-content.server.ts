@@ -28,6 +28,20 @@ export type PublicPageNavigation = z.infer<typeof PublicNavigationSchema>;
 export type PublicPostSummary = z.infer<typeof PublicPostSummarySchema>;
 export type PublicPostBatch = z.infer<typeof PublicPostBatchSchema>;
 
+export function normalizePublicListPagination({
+  limit = DEFAULT_POSTS_PER_PAGE,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}) {
+  return {
+    limit: Number.isFinite(limit)
+      ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
+      : DEFAULT_POSTS_PER_PAGE,
+    offset: Number.isFinite(offset)
+      ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
+      : 0,
+  };
+}
+
 async function getContent(
   kind: "posts" | "pages",
   slug: string,
@@ -59,15 +73,10 @@ export async function getPublishedPosts({
   limit = DEFAULT_POSTS_PER_PAGE,
   offset = 0,
 }: { limit?: number; offset?: number } = {}): Promise<PublicPostBatch> {
-  const boundedLimit = Number.isFinite(limit)
-    ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
-    : DEFAULT_POSTS_PER_PAGE;
-  const skip = Number.isFinite(offset)
-    ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
-    : 0;
+  const pagination = normalizePublicListPagination({ limit, offset });
 
   return await fetchPublic(
-    `posts?limit=${boundedLimit}&offset=${skip}`,
+    `posts?limit=${pagination.limit}&offset=${pagination.offset}`,
     PublicPostBatchSchema,
   );
 }
@@ -99,15 +108,10 @@ export async function getPublishedTags({
   limit = DEFAULT_POSTS_PER_PAGE,
   offset = 0,
 }: { limit?: number; offset?: number } = {}): Promise<PublicTagBatch> {
-  const boundedLimit = Number.isFinite(limit)
-    ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
-    : DEFAULT_POSTS_PER_PAGE;
-  const skip = Number.isFinite(offset)
-    ? Math.min(MAX_POSTS_OFFSET, Math.max(0, Math.floor(offset)))
-    : 0;
+  const pagination = normalizePublicListPagination({ limit, offset });
 
   return fetchPublic(
-    `tags?limit=${boundedLimit}&offset=${skip}`,
+    `tags?limit=${pagination.limit}&offset=${pagination.offset}`,
     PublicTagBatchSchema,
   );
 }

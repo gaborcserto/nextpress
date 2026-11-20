@@ -27,6 +27,8 @@ Legacy page fields and `PageRevision` coexist with newer private working aggrega
 
 App Router routes load public content and resolve a template registry and appearance settings. The current blog template family has classic, modern, and minimal presets; content-list variants are separate. Appearance presets do not represent arbitrary page-builder blocks. Admin, API, and Web retain separate ownership; shared package exports are browser-safe contracts where needed.
 
+Public post and tag listing requests share `normalizePublicListPagination` in the Web content module. It applies the established default, integer flooring, and shared limit and offset bounds before URL construction. Search has a separate query contract, and pagination rendering remains owned by each appearance-specific view.
+
 ## Error handling
 
 - **Web** keeps the localized editorial 404. Route errors use the active Blog preset and color tokens from the root layout. The recovery view renders independently of navigation. When the API explicitly signals unavailability while root settings load, the root layout and metadata use local NextPress defaults so the route boundary can render without the API; unexpected and contract errors still propagate. If the root layout itself fails, the global boundary supplies the built-in skin and NextPress branding.
