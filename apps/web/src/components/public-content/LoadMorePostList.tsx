@@ -5,20 +5,16 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getNextPostBatch } from "@/app/posts/actions";
 import { EditorialArrow } from "@/components/public-ui/EditorialArrow";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
-import {
-  LocaleLink as Link,
-  useLocale,
-  useMessages,
-  UiNav,
-  UiText,
-} from "@/lib/i18n/client";
+import { useLocale, useMessages, UiNav, UiText } from "@/lib/i18n/client";
 import { loadedMessage } from "@/lib/i18n/messages";
 import { localizedHref } from "@/lib/i18n/routing";
 
+import { ArchivePageLink } from "./ArchivePageLink";
 import styles from "./post-list.module.css";
 import { type PostListVariant, PostList } from "./PostList";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
+import type { PreviewArchiveNavigation } from "@/templates/types";
 
 // The server snapshot keeps progressive navigation available until hydration completes.
 function subscribeToHydration() {
@@ -33,6 +29,7 @@ export function LoadMorePostList({
   variant,
   basePath = "/posts",
   pageSlug,
+  previewNavigation,
 }: {
   posts: PublicPostSummary[];
   page: number;
@@ -41,6 +38,7 @@ export function LoadMorePostList({
   variant: PostListVariant;
   basePath?: string;
   pageSlug?: string;
+  previewNavigation?: PreviewArchiveNavigation;
 }) {
   const text = useMessages();
   const locale = useLocale();
@@ -61,11 +59,15 @@ export function LoadMorePostList({
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (previewNavigation) {
+      return;
+    }
+
     const reloadFromArchiveUrl = () => window.location.reload();
     window.addEventListener("popstate", reloadFromArchiveUrl);
 
     return () => window.removeEventListener("popstate", reloadFromArchiveUrl);
-  }, []);
+  }, [previewNavigation]);
 
   const nextPage = page + 1;
   const canLoadMore = hasMore && nextPage <= getMaxPostsPage(postsPerPage);
@@ -83,9 +85,14 @@ export function LoadMorePostList({
     setMessage("");
 
     try {
-      const batch = await (pageSlug
-        ? getNextPostBatch(nextPage, pageSlug)
-        : getNextPostBatch(nextPage));
+      const loadPage =
+        previewNavigation?.loadPage ??
+        ((number: number) =>
+          pageSlug
+            ? getNextPostBatch(number, pageSlug)
+            : getNextPostBatch(number));
+
+      const batch = await loadPage(nextPage);
 
       if (!batch) {
         setEnhancementFailed(true);
@@ -113,7 +120,10 @@ export function LoadMorePostList({
       }
 
       setHasMore(batch.hasMore);
-      window.history.pushState(null, "", fallbackHref);
+
+      if (!previewNavigation) {
+        window.history.pushState(null, "", fallbackHref);
+      }
 
       setMessage(loadedMessage(locale, batch.posts.length, nextPage));
     } catch {
@@ -134,9 +144,12 @@ export function LoadMorePostList({
           label="accessibility.postArchivePages"
         >
           {page > 1 ? (
-            <Link href={page === 2 ? basePath : `${basePath}?page=${page - 1}`}>
-              <UiText id="pagination.previous" />
-            </Link>
+            <ArchivePageLink
+              basePath={basePath}
+              page={page - 1}
+              label="pagination.previous"
+              previewNavigation={previewNavigation}
+            />
           ) : (
             <span aria-hidden="true" />
           )}
@@ -145,9 +158,12 @@ export function LoadMorePostList({
             <span aria-current="page">{page}</span>
           </p>
           {canLoadMore && !enhanced && (
-            <Link href={fallbackHref}>
-              <UiText id="pagination.next" />
-            </Link>
+            <ArchivePageLink
+              basePath={basePath}
+              page={nextPage}
+              label="pagination.next"
+              previewNavigation={previewNavigation}
+            />
           )}
           {canLoadMore && enhanced && (
             <button

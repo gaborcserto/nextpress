@@ -341,7 +341,7 @@ const paths: OpenAPIV3.PathsObject = {
         "List working revisions or preview one",
         { oneOf: [ref("RevisionList"), ref("RevisionRecord")] },
         [401, 403, 404, 500],
-        "Authenticated ADMIN/EDITOR or owning AUTHOR only. Private no-store. Preview requires explicit revisionId; public delivery is never overridden.",
+        "Authenticated ADMIN/EDITOR or owning AUTHOR only. Private no-store. The current saved snapshot includes its configured listing tag slug. A historical preview requires explicit revisionId; public delivery is never overridden.",
         "protected",
       ),
       parameters: [

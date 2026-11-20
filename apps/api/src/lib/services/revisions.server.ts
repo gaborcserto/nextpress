@@ -32,6 +32,7 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
       excerpt: true,
       layout: true,
       pageDocument: true,
+      listingTaxonomy: { select: { slug: true, type: true } },
     },
   });
 
@@ -45,7 +46,17 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
     take: 100,
   });
 
-  return { version: page.workingVersion, current: page, revisions };
+  const { listingTaxonomy, ...current } = page;
+
+  return {
+    version: page.workingVersion,
+    current: {
+      ...current,
+      listingTagSlug:
+        listingTaxonomy?.type === "TAG" ? listingTaxonomy.slug : null,
+    },
+    revisions,
+  };
 }
 
 export async function saveRevision(

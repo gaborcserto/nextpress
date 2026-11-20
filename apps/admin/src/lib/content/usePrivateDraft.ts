@@ -75,6 +75,7 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
   }, [controller, values]);
 
   const snapshot = state?.snapshot;
+  const acknowledgedValues = controller?.acknowledgedValues();
   const savedPreview = useMemo(() => {
     if (!snapshot) {
       return null;
@@ -89,8 +90,12 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       excerpt: fields.excerpt,
       layout: fields.layout,
       pageDocument: snapshot.rawPageDocument,
+      listingTagSlug:
+        acknowledgedValues && "type" in acknowledgedValues
+          ? (acknowledgedValues.listingTag?.slug ?? null)
+          : null,
     };
-  }, [snapshot]);
+  }, [snapshot, acknowledgedValues]);
 
   if (!controller || !state || !editing || !savedPreview) {
     return null;

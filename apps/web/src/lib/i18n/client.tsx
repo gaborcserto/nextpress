@@ -90,6 +90,15 @@ export function VisitorControls() {
     }
 
     savePreference("np-locale", value);
+    const location = new URL(window.location.href);
+
+    if (location.pathname === "/live-preview") {
+      location.searchParams.set("locale", value);
+      window.location.assign(location);
+
+      return;
+    }
+
     // A document navigation refreshes root HTML language and server-rendered metadata.
     window.location.assign(
       localizedHref(

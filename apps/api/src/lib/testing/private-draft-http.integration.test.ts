@@ -18,6 +18,7 @@ const ownerUrl = process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
 const appUrl = process.env.NEXTPRESS_PRIVATE_TEST_DATABASE_URL;
 const apiOrigin = "http://localhost:49312";
 const adminOrigin = "http://localhost:49311";
+const webOrigin = "http://localhost:49310";
 const password = "Disposable private rehearsal passphrase 2026";
 const email = `private-${randomUUID()}@example.invalid`;
 const authorId = `private-${randomUUID()}`;
@@ -35,7 +36,7 @@ async function freePort(port: number) {
   });
 }
 
-async function startApp(workspace: "api" | "admin", port: number) {
+async function startApp(workspace: "api" | "admin" | "web", port: number) {
   await freePort(port);
   const child = spawn(
     process.execPath,
@@ -63,6 +64,8 @@ async function startApp(workspace: "api" | "admin", port: number) {
         NEXT_PUBLIC_ADMIN_URL: adminOrigin,
         BETTER_AUTH_SECRET: "private-rehearsal-disposable-auth-secret-2026",
         API_INTERNAL_ORIGIN: apiOrigin,
+        NEXT_PUBLIC_PREVIEW_ORIGIN: webOrigin,
+        PREVIEW_ADMIN_ORIGIN: adminOrigin,
       },
     },
   );
@@ -75,8 +78,13 @@ async function startApp(workspace: "api" | "admin", port: number) {
     }
 
     try {
+      const readiness = {
+        api: "api/health",
+        admin: "auth/sign-in",
+        web: "live-preview",
+      };
       const response = await fetch(
-        `http://localhost:${port}/${workspace === "api" ? "api/health" : "auth/sign-in"}`,
+        `http://localhost:${port}/${readiness[workspace]}`,
         { signal: AbortSignal.timeout(5000) },
       );
 
@@ -881,6 +889,127 @@ describe.skipIf(!ownerUrl || !appUrl)(
           }
         }
 
+        await startApp("web", 49310);
+        const previewPage = await db.page.create({
+          data: {
+            type: "PAGE",
+            layout: "STANDARD",
+            title: "Preview saved title",
+            slug: "preview-draft-only",
+            content: "Preview editorial introduction",
+            authorId,
+            status: "DRAFT",
+          },
+        });
+        const editorUrl = `${adminOrigin}/admin/pages/${previewPage.id}`;
+        const frame = page.frameLocator(
+          'iframe[title="Public frontend preview"]',
+        );
+
+        for (const preset of ["classic", "modern", "minimal"] as const) {
+          const settings = { stylePreset: preset, postsPerPage: 1 };
+          await db.siteSettings.upsert({
+            where: { id: "default" },
+            create: settings,
+            update: settings,
+          });
+          await page.setViewportSize(
+            preset === "minimal"
+              ? { width: 390, height: 844 }
+              : { width: 1440, height: 900 },
+          );
+          await page.goto(editorUrl);
+          const recover = page.getByRole("button", {
+            name: "Recover private draft",
+          });
+          await browserExpect(
+            page.getByRole("region", {
+              name: /Private draft|Recover private draft/i,
+            }),
+          ).toBeVisible();
+
+          if (await recover.isVisible()) {
+            await recover.click();
+          }
+
+          await page
+            .getByRole("button", { name: "Live Preview", exact: true })
+            .click();
+
+          if (preset === "minimal") {
+            await page.getByLabel("Preview language").selectOption("hu");
+            await page.getByRole("button", { name: "Show editing" }).click();
+          }
+
+          const layoutField = page.getByLabel("Page type", { exact: true });
+          const titleField = page.getByLabel("Title", { exact: true });
+
+          for (const layout of [
+            "STANDARD",
+            "HOME",
+            "POSTS",
+            "GALLERY",
+          ] as const) {
+            await layoutField.selectOption(layout);
+            const title = `${preset} ${layout} editorial preview`;
+            await titleField.fill(title);
+
+            if (preset === "minimal") {
+              await page.getByRole("button", { name: "Show preview" }).click();
+            }
+
+            await browserExpect(frame.locator("html")).toHaveAttribute(
+              "data-style-preset",
+              preset,
+            );
+            await browserExpect(
+              frame.getByRole("heading", { name: title }),
+            ).toBeVisible();
+            await browserExpect(
+              frame.getByText("Preview editorial introduction"),
+            ).toBeVisible();
+
+            if (layout === "POSTS") {
+              await browserExpect(
+                frame.locator("[data-blog-posts-archive]"),
+              ).toBeVisible();
+              await browserExpect(
+                frame.locator("[data-blog-posts-archive] a").first(),
+              ).toBeVisible();
+            }
+
+            if (layout === "GALLERY") {
+              await browserExpect(
+                frame.getByText(
+                  preset === "minimal" ? /Ez a gal/ : /gallery is empty/i,
+                ),
+              ).toBeVisible();
+            }
+
+            if (preset === "minimal") {
+              await browserExpect(frame.locator("html")).toHaveAttribute(
+                "lang",
+                "hu",
+              );
+              await page.getByRole("button", { name: "Show editing" }).click();
+            }
+          }
+        }
+
+        expect(
+          (
+            await http(
+              "/api/public/pages/preview-draft-only",
+              "GET",
+              undefined,
+              "",
+            )
+          ).status,
+        ).toBe(404);
+        expect(
+          (await db.page.findUniqueOrThrow({ where: { id: previewPage.id } }))
+            .title,
+        ).toBe("Preview saved title");
         await context.close();
       } finally {
         await browser.close();

@@ -45,7 +45,7 @@ describe("Live Preview editing", () => {
     const input = screen.getByLabelText("Draft title");
     fireEvent.change(input, { target: { value: "Unsaved" } });
     fireEvent.click(screen.getByRole("button", { name: "Live Preview" }));
-    fireEvent.change(screen.getByRole("combobox"), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Viewport" }), {
       target: { value: "375px" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Show editing" }));

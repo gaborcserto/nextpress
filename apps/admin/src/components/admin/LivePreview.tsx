@@ -4,7 +4,7 @@ import {
   LivePreviewMessageSchema,
   LivePreviewReadySchema,
   RevisionListSchema,
-  type RevisionSnapshotSchema,
+  type LivePreviewSnapshot,
 } from "@nextpress/shared/revisions";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { FaEye, FaEyeSlash, FaExternalLinkAlt } from "react-icons/fa";
@@ -15,17 +15,17 @@ import { Select } from "@/ui/primitives/Select";
 import styles from "./LivePreview.module.css";
 
 import type { ContentLayout } from "@nextpress/shared/content";
-import type { z } from "zod";
 
 const origin = process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
 
-type PreviewSnapshot = z.infer<typeof RevisionSnapshotSchema>;
+type PreviewSnapshot = LivePreviewSnapshot;
 type PreviewValues = {
   type?: ContentLayout;
   title: string;
   slug: string;
   content?: SlateLike;
   excerpt?: SlateLike;
+  listingTag?: { slug: string } | null;
 };
 type LivePreviewProps = {
   children?: ReactNode;
@@ -51,17 +51,29 @@ export default function LivePreview({
   const [open, setOpen] = useState(Boolean(snapshot));
   const [mobilePreview, setMobilePreview] = useState(Boolean(snapshot));
   const [width, setWidth] = useState("100%");
-  const [legacySaved, setLegacySaved] = useState<PreviewSnapshot | null>(
-    snapshot ?? null,
-  );
-  const saved = privateSnapshot ?? legacySaved;
+  const [locale, setLocale] = useState("en");
+  const [legacySaved, setLegacySaved] = useState<{
+    snapshot: PreviewSnapshot;
+    id: string;
+    source: LivePreviewProps["savedContent"];
+  } | null>(null);
+  const saved =
+    privateSnapshot ??
+    snapshot ??
+    (legacySaved?.id === id && legacySaved?.source === savedContent
+      ? (legacySaved?.snapshot ?? null)
+      : null);
+
   const [live, setLive] = useState(true);
   const [status, setStatus] = useState("Loading preview...");
   const [savedUnavailable, setSavedUnavailable] = useState(false);
   const [session] = useState(() => crypto.randomUUID());
   const previewFrame = useRef<HTMLIFrameElement>(null);
   const previewWindow = useRef<Window | null>(null);
-  const url = origin ? `${origin}/live-preview#${session}` : "";
+  const url = origin
+    ? `${origin}/live-preview?locale=${locale}#${session}`
+    : "";
+
   const currentSnapshot = useRef<PreviewSnapshot | null>(null);
 
   useEffect(() => {
@@ -74,6 +86,7 @@ export default function LivePreview({
           excerpt: slateToString(values.excerpt),
           layout: values.type ?? saved?.layout ?? "STANDARD",
           pageDocument: saved?.pageDocument ?? null,
+          listingTagSlug: values.listingTag?.slug ?? null,
         };
       } else {
         currentSnapshot.current = saved;
@@ -101,7 +114,11 @@ export default function LivePreview({
 
         const data = RevisionListSchema.parse(await response.json());
 
-        setLegacySaved(data.revisions[0] ?? data.current);
+        if (abort.signal.aborted) {
+          return;
+        }
+
+        setLegacySaved({ snapshot: data.current, id, source: savedContent });
         setSavedUnavailable(false);
       })
       .catch(() => {
@@ -207,7 +224,7 @@ export default function LivePreview({
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [open, session, kind]);
+  }, [open, session, kind, locale]);
 
   function openPreviewTab() {
     previewWindow.current = window.open(url, "nextpress-preview");
@@ -221,6 +238,8 @@ export default function LivePreview({
       onClick={() => {
         if (!open) {
           setStatus("Loading preview...");
+          setSavedUnavailable(false);
+          setLegacySaved(null);
         }
 
         setOpen(!open);
@@ -271,6 +290,24 @@ export default function LivePreview({
               Unsaved live updates
             </label>
           )}
+          <Select
+            label="Preview language"
+            value={locale}
+            options={[
+              { value: "en", label: "English" },
+              { value: "hu", label: "Magyar" },
+            ]}
+            onChangeAction={setLocale}
+          />
+          <span role="status">
+            {values && live
+              ? "Live preview of unsaved editor values"
+              : privateSnapshot
+                ? "Saved preview of the private working copy"
+                : snapshot
+                  ? "Saved preview of the selected revision"
+                  : "Saved preview of authoritative editor content"}
+          </span>
           {origin && (
             <button
               type="button"
@@ -301,7 +338,7 @@ export default function LivePreview({
                 ? status
                 : "Preview unavailable. Configure NEXT_PUBLIC_PREVIEW_ORIGIN."}
             </p>
-            {origin && (
+            {origin && (!values || live || saved) && (
               <iframe
                 ref={previewFrame}
                 src={url}

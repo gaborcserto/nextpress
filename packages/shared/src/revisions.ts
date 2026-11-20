@@ -38,9 +38,12 @@ export const RevisionRecordSchema = RevisionSnapshotSchema.extend({
   workingVersion: z.number().int(),
   createdAt: z.string(),
 });
+const previewSnapshotSchema = RevisionSnapshotSchema.extend({
+  listingTagSlug: ContentSlugSchema.nullable().optional(),
+});
 export const RevisionListSchema = z.object({
   version: z.number().int(),
-  current: RevisionSnapshotSchema,
+  current: previewSnapshotSchema,
   revisions: z.array(RevisionRecordSchema),
 });
 
@@ -49,8 +52,12 @@ export const LivePreviewMessageSchema = z.strictObject({
   type: z.literal("nextpress:preview"),
   kind: z.enum(["pages", "posts"]).default("pages"),
   session: z.string().uuid(),
-  snapshot: RevisionSnapshotSchema,
+  snapshot: previewSnapshotSchema,
 });
+
+export type LivePreviewSnapshot = z.infer<
+  typeof LivePreviewMessageSchema
+>["snapshot"];
 
 export const LivePreviewReadySchema = z.strictObject({
   type: z.literal("nextpress:ready"),

@@ -117,6 +117,10 @@ export class PrivateDraftController<T> {
 
   snapshot = () => this.state;
 
+  acknowledgedValues() {
+    return this.acknowledged.values;
+  }
+
   private publish(change: Partial<PrivateDraftState>) {
     this.state = { ...this.state, ...change };
     this.listeners.forEach((listener) => listener());

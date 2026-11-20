@@ -68,7 +68,7 @@ export const getPublishedHome = cache(() =>
 );
 
 export function getPagePosts(
-  page: PublicPublishedPage,
+  page: Pick<PublicPublishedPage, "postsFilter">,
   limit: number,
   offset: number,
 ) {

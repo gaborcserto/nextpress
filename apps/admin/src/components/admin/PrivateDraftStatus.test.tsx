@@ -25,6 +25,7 @@ it("expires the schedule control and refuses confirmation after the selected tim
       content: "",
       excerpt: null,
       pageDocument: null,
+      listingTagSlug: null,
       layout: "STANDARD",
     },
     publicState: { status: "DRAFT", publishedAt: null },

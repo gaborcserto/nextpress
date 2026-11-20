@@ -23,6 +23,12 @@ export type HomeProps = {
   posts: PublicPostSummary[];
   listVariant: PostListVariant;
 };
+export type PreviewArchiveNavigation = {
+  changePage: (page: number) => void;
+  loadPage: (
+    page: number,
+  ) => Promise<{ posts: PublicPostSummary[]; hasMore: boolean } | null>;
+};
 export type ArchiveProps = {
   title?: string;
   basePath?: string;
@@ -34,6 +40,7 @@ export type ArchiveProps = {
   postsPerPage: number;
   listingMode: "PAGINATION" | "LOAD_MORE";
   listVariant: PostListVariant;
+  previewNavigation?: PreviewArchiveNavigation;
 };
 export type TagIndexProps = PublicTagBatch & {
   page: number;

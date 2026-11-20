@@ -5,6 +5,7 @@ import {
 } from "@nextpress/shared/request-correlation";
 import { NextResponse } from "next/server";
 
+import { isLocale } from "./lib/i18n/messages";
 import {
   isPublicPath,
   localizedHref,
@@ -28,7 +29,13 @@ export function proxy(request: NextRequest) {
   const requestId = newRequestId();
   requestHeaders.set(renderRequestIdHeader, requestId);
   // Never accept a caller-supplied locale header as routing authority.
-  requestHeaders.set(localeHeader, locale ?? "en");
+  const previewLocale = request.nextUrl.searchParams.get("locale");
+  requestHeaders.set(
+    localeHeader,
+    pathname === "/live-preview" && isLocale(previewLocale)
+      ? previewLocale
+      : (locale ?? "en"),
+  );
 
   if (!isPublicPath(publicPath)) {
     const response = NextResponse.next({

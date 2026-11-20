@@ -1,9 +1,10 @@
+import { ArchivePageLink } from "@/components/public-content/ArchivePageLink";
 import { LoadMorePostList } from "@/components/public-content/LoadMorePostList";
 import postListStyles from "@/components/public-content/post-list.module.css";
 import { PostList } from "@/components/public-content/PostList";
 import { Container } from "@/components/public-ui/Container";
 import { getMaxPostsPage } from "@/lib/content/post-archive";
-import { LocaleLink as Link, UiNav, UiText } from "@/lib/i18n/client";
+import { UiNav, UiText } from "@/lib/i18n/client";
 
 import styles from "./BlogArchive.module.css";
 import headingStyles from "./BlogHeading.module.css";
@@ -21,6 +22,7 @@ export function BlogArchive({
   postsPerPage,
   listingMode,
   listVariant,
+  previewNavigation,
 }: ArchiveProps) {
   const showPagination =
     listingMode === "PAGINATION" && posts.length > 0 && (page > 1 || hasMore);
@@ -54,6 +56,7 @@ export function BlogArchive({
             hasMore={hasMore}
             postsPerPage={postsPerPage}
             variant={listVariant}
+            previewNavigation={previewNavigation}
           />
         ) : (
           <PostList posts={posts} variant={listVariant} />
@@ -65,9 +68,12 @@ export function BlogArchive({
           label="accessibility.postArchivePages"
         >
           {page > 1 ? (
-            <Link href={page === 2 ? basePath : `${basePath}?page=${page - 1}`}>
-              <UiText id="pagination.previous" />
-            </Link>
+            <ArchivePageLink
+              basePath={basePath}
+              page={page - 1}
+              label="pagination.previous"
+              previewNavigation={previewNavigation}
+            />
           ) : (
             <span aria-hidden="true" />
           )}
@@ -76,9 +82,12 @@ export function BlogArchive({
             <span aria-current="page">{page}</span>
           </p>
           {hasMore && page < getMaxPostsPage(postsPerPage) ? (
-            <Link href={`${basePath}?page=${page + 1}`}>
-              <UiText id="pagination.next" />
-            </Link>
+            <ArchivePageLink
+              basePath={basePath}
+              page={page + 1}
+              label="pagination.next"
+              previewNavigation={previewNavigation}
+            />
           ) : (
             <span aria-hidden="true" />
           )}

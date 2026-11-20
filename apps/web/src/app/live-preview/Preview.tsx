@@ -3,21 +3,23 @@
 import { richContentText } from "@nextpress/shared/content";
 import {
   LivePreviewMessageSchema,
-  type RevisionSnapshotSchema,
+  type LivePreviewSnapshot,
 } from "@nextpress/shared/revisions";
 import { useEffect, useState } from "react";
 
 import { ContentArticle } from "@/components/ContentArticle";
 import { parsePublicRichContent } from "@/lib/content/rich-content";
 
-import type { z } from "zod";
+import {
+  PreviewPageContent,
+  type PreviewAppearance,
+} from "./PreviewPageContent";
 
-type PreviewSnapshot = z.infer<typeof RevisionSnapshotSchema>;
-type PreviewProps = { adminOrigin: string };
+type PreviewProps = { adminOrigin: string; appearance: PreviewAppearance };
 
-export default function Preview({ adminOrigin }: PreviewProps) {
+export default function Preview({ adminOrigin, appearance }: PreviewProps) {
   const [kind, setKind] = useState<"pages" | "posts">("pages");
-  const [snapshot, setSnapshot] = useState<PreviewSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<LivePreviewSnapshot | null>(null);
 
   useEffect(() => {
     const session = window.location.hash.slice(1);
@@ -66,6 +68,10 @@ export default function Preview({ adminOrigin }: PreviewProps) {
         Waiting for authenticated preview. Open Live Preview from the editor.
       </p>
     );
+  }
+
+  if (kind === "pages") {
+    return <PreviewPageContent snapshot={snapshot} appearance={appearance} />;
   }
 
   return (
