@@ -1,9 +1,41 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import LivePreview from "./LivePreview";
 
 describe("Live Preview editing", () => {
+  it("uses the acknowledged private snapshot without requesting legacy history", () => {
+    const fetch = vi.spyOn(globalThis, "fetch");
+
+    try {
+      render(
+        <LivePreview
+          id="draft"
+          privateSnapshot={{
+            title: "Acknowledged private title",
+            slug: "draft",
+            content: "",
+            excerpt: null,
+            layout: "GALLERY",
+            pageDocument: null,
+          }}
+          values={{ title: "Unsaved title", slug: "draft", type: "GALLERY" }}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Live Preview" }));
+      const live = screen.getByRole("checkbox", {
+        name: "Unsaved live updates",
+      });
+
+      expect(live).toBeEnabled();
+      fireEvent.click(live);
+      expect(live).not.toBeChecked();
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      fetch.mockRestore();
+    }
+  });
+
   it("preserves unsaved fields across viewport and panel switches", () => {
     render(
       <LivePreview>

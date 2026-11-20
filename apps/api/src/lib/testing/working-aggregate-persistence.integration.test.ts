@@ -935,8 +935,14 @@ describe.skipIf(!url)(
           edit: { ...latest.edit, patch: {} },
         };
         const result = await saveDisposableWorkingAggregate(db, restore, actor);
+        const { savedAt: originalTime, ...originalAggregate } = first.aggregate;
+        const { savedAt: restoredTime, ...restoredAggregate } =
+          result.aggregate;
         expect(result.version).toBe(3);
-        expect(result.aggregate).toEqual(first.aggregate);
+        expect(restoredAggregate).toEqual(originalAggregate);
+        expect(Date.parse(restoredTime ?? "")).toBeGreaterThanOrEqual(
+          Date.parse(originalTime ?? ""),
+        );
         expect(
           await saveDisposableWorkingAggregate(db, restore, actor),
         ).toEqual(result);
@@ -1659,8 +1665,13 @@ describe.skipIf(!url)(
         await command(page.id),
         actor,
       );
+      const { savedAt: firstTime, ...firstAggregate } = first.aggregate;
+      const { savedAt: secondTime, ...secondAggregate } = second.aggregate;
       expect(second.version).toBe(2);
-      expect(second.aggregate).toEqual(first.aggregate);
+      expect(secondAggregate).toEqual(firstAggregate);
+      expect(Date.parse(secondTime ?? "")).toBeGreaterThanOrEqual(
+        Date.parse(firstTime ?? ""),
+      );
       expect(second.aggregate.snapshot).toEqual({
         ...before.aggregate.snapshot,
         fields: { ...before.aggregate.snapshot.fields, title: "Private title" },

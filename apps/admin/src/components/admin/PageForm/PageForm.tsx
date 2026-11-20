@@ -29,7 +29,10 @@ import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
-import { PrivateDraftStatus } from "../PrivateDraftStatus";
+import {
+  PrivateDraftRecovery,
+  PrivateDraftStatus,
+} from "../PrivateDraftStatus";
 
 import type { PageFormValues } from "@/lib/content/contracts";
 
@@ -99,17 +102,30 @@ export default function PageForm({
     }
   };
 
-  const { handleSubmit, fieldErrors, clearFieldError, saveStatus } =
-    useEditorSubmission({
-      form,
-      setForm,
-      submitting,
-      dirty: unsaved.dirty,
-      markSaved: unsaved.markSaved,
-      savePrivateDraft: privateDraft?.save,
-      onSubmitAction,
-    });
+  const {
+    handleSubmit,
+    fieldErrors,
+    clearFieldError,
+    saveStatus,
+    savedPublication,
+  } = useEditorSubmission({
+    form,
+    setForm,
+    submitting,
+    dirty: unsaved.dirty,
+    markSaved: unsaved.markSaved,
+    savePrivateDraft: privateDraft?.save,
+    onSubmitAction,
+  });
   const entityId = contentId ?? getEntityId(initial);
+
+  if (privateDraft?.recovering) {
+    return (
+      <AdminPageLayout title={sidebarTitle ?? "Page"} workspace="editor">
+        <PrivateDraftRecovery draft={privateDraft} />
+      </AdminPageLayout>
+    );
+  }
 
   return (
     <form id="admin-content-editor" onSubmit={handleSubmit}>
@@ -123,10 +139,13 @@ export default function PageForm({
           kind="pages"
           id={entityId}
           savedContent={initial}
+          privateSnapshot={privateDraft?.savedPreview}
           values={form}
           renderHeader={(preview) => (
             <EditorActions
-              publication={privateDraft?.publicState ?? initial}
+              publication={
+                privateDraft?.publicState ?? savedPublication ?? initial
+              }
               saveStatus={saveStatus}
               submitLabel={submitLabel}
               saving={

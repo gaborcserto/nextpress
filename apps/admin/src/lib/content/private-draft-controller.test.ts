@@ -53,6 +53,56 @@ describe("private autosave controller", () => {
     expect(transport).toHaveBeenCalledTimes(1);
     controller.dispose();
   });
+
+  it("preserves newer edits when a stale editor is reloading", async () => {
+    const response = deferred();
+    const transport = vi.fn().mockResolvedValue(privateDraftFixture("PAGE", 2));
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    const reload = controller.reload(async (canApply) => {
+      await response.promise;
+
+      if (!canApply()) {
+        throw new Error("New edits exist");
+      }
+    });
+
+    controller.update("New local edit", { title: "New local edit" });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(transport).not.toHaveBeenCalled();
+
+    response.resolve(privateDraftFixture("PAGE", 2));
+    await expect(reload).rejects.toThrow("New edits exist");
+    expect(controller.snapshot().dirty).toBe(true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(transport.mock.calls[0]?.[1]).toMatchObject({
+      expectedDraftVersion: 1,
+      edit: { patch: { title: "New local edit" } },
+    });
+    controller.dispose();
+  });
+
+  it("leaves a scheduled autosave intact when reset is rejected for unsaved edits", async () => {
+    const transport = vi.fn().mockResolvedValue(privateDraftFixture("PAGE", 2));
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 1),
+      "Original",
+      { title: "Original" },
+      transport,
+    );
+    controller.update("Unsent", { title: "Unsent" });
+
+    expect(await controller.save("RESET")).toBe(false);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(transport).toHaveBeenCalledOnce();
+    expect(transport.mock.calls[0]?.[1]).not.toHaveProperty("operation");
+  });
+
   it.each(["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE"] as const)(
     "replays a lost %s response and blocks editing until reload",
     async (operation) => {

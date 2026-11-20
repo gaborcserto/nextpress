@@ -21,7 +21,15 @@ Public routes project eligible published content from the existing Page model. D
 
 The Page and Post editors send publication fields on update only when the selected status or date changes. They adopt the saved publication date, status, and version from the update response. Historical published records without a date remain hidden after ordinary edits.
 
-Legacy page fields and `PageRevision` coexist with newer private working aggregate/revision models. Admission to private-draft rehearsal is guarded by development/test restrictions and database readiness controls. Scheduled-release execution is an explicit bounded operation; no background scheduler is installed. This is an incremental persistence foundation, not a complete production editorial workflow.
+Legacy page fields and `PageRevision` coexist with private working aggregates for existing Posts and Pages. The default editor uses an explicit save with a working-version check. The rehearsal editor autosaves supported field changes after one second of inactivity. One command runs at a time, and a lost acknowledgement is retried with the same request ID and payload. Edits made during a save stay local until their own revision is acknowledged. Unsent changes trigger navigation warnings and are kept only in memory.
+
+When an admitted editor opens an item with private changes, the editor offers to recover the latest private revision or confirm a discard. New revisions carry a server-recorded timestamp. Older revisions can be recovered with the revision number and may have no save time. Discard uses a version-checked reset to the authoritative source and retains immutable history. Stale draft or source revisions stop writes. Editors can retain or copy their local values, then explicitly reload or reset as appropriate. Changes made during a reload prevent it from replacing the current form.
+
+Saved Live Preview in the rehearsal editor uses the acknowledged private snapshot. Live updates use the current form, and the preview window receives content only from the configured Admin origin and matching preview session. The public preview shell uses the site's appearance configuration. The shared preview renders article content. It does not simulate Home routing, Posts listings, or Gallery composition.
+
+Private autosaves preserve publication state. Explicit publication commands use the accepted revision, and scheduling pins a revision for bounded execution. The existing visibility rules continue to control public delivery. The executor requires a separately authorized call, and no background scheduler is installed.
+
+Private endpoints use authenticated roles, ownership checks, origin checks for writes, and private no-store responses. Admission requires `NEXTPRESS_PRIVATE_DRAFT_REHEARSAL=enabled`, development or test mode, an independently verified database and role, and the installed writer guards. Production remains disabled. A deployment rehearsal against representative data, role and database verification, and an operational scheduler are still required before production cutover.
 
 ### Admin discovery
 

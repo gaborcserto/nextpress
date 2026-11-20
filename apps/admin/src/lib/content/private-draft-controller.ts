@@ -8,6 +8,7 @@ import {
 
 import type {
   WorkingAggregateEnvelope,
+  WorkingAggregate,
   WorkingAggregateSave,
   WorkingPatch,
 } from "@nextpress/shared/working-aggregate";
@@ -19,6 +20,7 @@ export type PrivateDraftState = {
   message: string;
   version: number;
   savedAt: string | null;
+  snapshot: WorkingAggregate;
 };
 type Attempt<T> = {
   command: WorkingAggregateSave;
@@ -68,6 +70,7 @@ export class PrivateDraftController<T> {
   private listeners = new Set<() => void>();
   private disposed = false;
   private blocked = false;
+  private reloading = false;
   private state: PrivateDraftState;
 
   constructor(
@@ -84,7 +87,8 @@ export class PrivateDraftController<T> {
       pending: false,
       message: "",
       version: draft.version,
-      savedAt: null,
+      savedAt: draft.aggregate.savedAt ?? null,
+      snapshot: draft.aggregate,
     };
 
     if (
@@ -130,7 +134,13 @@ export class PrivateDraftController<T> {
     const dirty = this.hasLocalChanges();
     this.publish({ dirty: dirty || this.attempt !== null });
 
-    if (this.flight || this.attempt || this.blocked || this.disposed) {
+    if (
+      this.flight ||
+      this.attempt ||
+      this.blocked ||
+      this.disposed ||
+      this.reloading
+    ) {
       return;
     }
 
@@ -166,15 +176,17 @@ export class PrivateDraftController<T> {
       "SCHEDULE",
       "CANCEL_SCHEDULE",
     ].includes(operation);
-    clearTimeout(this.timer);
 
-    if (this.disposed || (this.blocked && !reset)) {
+    if (this.disposed || this.reloading || (this.blocked && !reset)) {
       return Promise.resolve(false);
     }
 
     if (
-      publication &&
-      (this.hasLocalChanges() || this.attempt || this.draft.version === 0)
+      operation !== "SAVE" &&
+      (this.hasLocalChanges() ||
+        this.attempt ||
+        this.flight ||
+        (publication && this.draft.version === 0))
     ) {
       return Promise.resolve(false);
     }
@@ -182,6 +194,8 @@ export class PrivateDraftController<T> {
     if (this.flight) {
       return this.flight;
     }
+
+    clearTimeout(this.timer);
 
     if (!this.attempt) {
       if (
@@ -281,6 +295,8 @@ export class PrivateDraftController<T> {
           dirty: true,
           pending: false,
           version: result.version,
+          savedAt: result.aggregate.savedAt ?? null,
+          snapshot: result.aggregate,
           message:
             attempt.command.operation &&
             ["PUBLISH", "UNPUBLISH", "SCHEDULE", "CANCEL_SCHEDULE"].includes(
@@ -301,7 +317,8 @@ export class PrivateDraftController<T> {
         dirty,
         pending: false,
         version: result.version,
-        savedAt: new Date().toLocaleTimeString(),
+        savedAt: result.aggregate.savedAt ?? null,
+        snapshot: result.aggregate,
         message: "",
       });
 
@@ -354,7 +371,7 @@ export class PrivateDraftController<T> {
   }
 
   discardLocal(): T | null {
-    if (this.flight || this.attempt) {
+    if (this.flight || this.attempt || this.reloading) {
       return null;
     }
 
@@ -366,6 +383,28 @@ export class PrivateDraftController<T> {
     });
 
     return this.acknowledged.values;
+  }
+
+  async reload(load: (canApply: () => boolean) => Promise<void>) {
+    if (this.flight || this.attempt || this.reloading || this.disposed) {
+      throw new Error("Resolve the outstanding operation before reloading");
+    }
+
+    const current = this.current;
+    this.reloading = true;
+    clearTimeout(this.timer);
+
+    try {
+      await load(() => !this.disposed && this.current === current);
+    } catch (error) {
+      this.reloading = false;
+
+      if (!this.blocked && this.hasLocalChanges()) {
+        this.update(this.current.values, this.current.patch);
+      }
+
+      throw error;
+    }
   }
 
   activate() {

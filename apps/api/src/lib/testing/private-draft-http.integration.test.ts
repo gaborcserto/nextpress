@@ -310,9 +310,14 @@ describe.skipIf(!ownerUrl || !appUrl)(
         );
         expect(restored.status).toBe(200);
         const restoredBody = await restored.json();
-        expect(
-          WorkingAggregateEnvelopeSchema.parse(restoredBody).aggregate,
-        ).toEqual(saved.aggregate);
+        const recovered =
+          WorkingAggregateEnvelopeSchema.parse(restoredBody).aggregate;
+        const { savedAt: originalTime, ...originalAggregate } = saved.aggregate;
+        const { savedAt: recoveryTime, ...recoveredAggregate } = recovered;
+        expect(recoveredAggregate).toEqual(originalAggregate);
+        expect(Date.parse(recoveryTime ?? "")).toBeGreaterThanOrEqual(
+          Date.parse(originalTime ?? ""),
+        );
         expect(
           await (
             await http(`/api/private-drafts/${page.id}`, "PUT", restoreInput)
@@ -648,6 +653,11 @@ describe.skipIf(!ownerUrl || !appUrl)(
         await page.waitForURL(`${adminOrigin}/admin`);
 
         for (const kind of ["PAGE", "POST"] as const) {
+          await page.setViewportSize(
+            kind === "PAGE"
+              ? { width: 1280, height: 800 }
+              : { width: 390, height: 844 },
+          );
           const source = await seed(kind);
 
           const legacy = await db.pageRevision.create({
@@ -679,23 +689,29 @@ describe.skipIf(!ownerUrl || !appUrl)(
             page.getByText(/Private draft saved · revision 1/),
           ).toBeVisible();
           await page.reload();
+          const recovery = page.getByRole("region", {
+            name: "Recover private draft",
+          });
+          await browserExpect(recovery.locator("time")).toBeVisible();
+          await recovery
+            .getByRole("button", { name: "Recover private draft" })
+            .click();
           await browserExpect(
             page.getByLabel("Title", { exact: true }),
           ).toHaveValue(`Browser private ${kind}`);
-          await page
-            .getByText("Draft recovery and history", { exact: true })
-            .click();
-          await page
-            .getByRole("button", {
-              name: "Reset private draft to live source",
-              exact: true,
-            })
+          await page.reload();
+          await recovery
+            .getByRole("button", { name: "Discard recovery draft" })
             .click();
           await browserExpect(page.getByRole("dialog")).toContainText(
             "immutable historical storage",
           );
           await page
-            .getByRole("button", { name: "Confirm", exact: true })
+            .getByRole("dialog")
+            .getByRole("button", {
+              name: "Discard recovery draft",
+              exact: true,
+            })
             .click();
           await browserExpect(
             page.getByLabel("Title", { exact: true }),
@@ -786,6 +802,9 @@ describe.skipIf(!ownerUrl || !appUrl)(
           await browserExpect(
             page.getByText(/Scheduled release: PENDING/),
           ).toBeVisible();
+          await browserExpect(
+            page.getByRole("button", { name: "Publish Changes", exact: true }),
+          ).toBeEnabled();
           await page
             .getByLabel("Publication time (UTC)")
             .fill("2099-01-02T12:00");
@@ -829,6 +848,37 @@ describe.skipIf(!ownerUrl || !appUrl)(
           await browserExpect(
             page.getByRole("button", { name: "Publish Changes", exact: true }),
           ).toBeEnabled();
+
+          if (kind === "PAGE") {
+            const staleTab = await context.newPage();
+            await staleTab.goto(page.url(), { waitUntil: "domcontentloaded" });
+            const staleTitle = staleTab.getByLabel("Title", { exact: true });
+            await browserExpect(staleTitle).toHaveValue(legacy.title);
+
+            await page.getByLabel("Title", { exact: true }).fill("Winning tab");
+            await browserExpect(
+              page.getByText(/Private draft saved.*revision 11/),
+            ).toBeVisible();
+            await staleTitle.fill("Stale tab local edit");
+            await browserExpect(
+              staleTab
+                .getByRole("status")
+                .filter({ hasText: "newer private draft" }),
+            ).toBeVisible();
+            await browserExpect(staleTitle).toHaveValue("Stale tab local edit");
+            await staleTab
+              .getByRole("button", { name: "Reload private draft" })
+              .click();
+            await staleTab
+              .getByRole("dialog")
+              .getByRole("button", { name: "Confirm", exact: true })
+              .click();
+            await staleTab
+              .getByRole("button", { name: "Recover private draft" })
+              .click();
+            await browserExpect(staleTitle).toHaveValue("Winning tab");
+            await staleTab.close();
+          }
         }
 
         await context.close();

@@ -238,7 +238,7 @@ const paths: OpenAPIV3.PathsObject = {
     get: operation(
       "loadPrivateDraft",
       "Content",
-      "Load private working state or authoritative initialization snapshot",
+      "Load private working state with its server save time when recorded, or an authoritative initialization snapshot",
       ref("PrivateDraft"),
       [400, 401, 403, 404, 409, 500, 503],
       "Development rehearsal only; disabled by default and always disabled in production. Requires independently verified database/cluster/nonprivileged role and installed writer guards. ADMIN/EDITOR all; AUTHOR owned content only. Version zero is an unpersisted initialization snapshot. Latest saved private state recovers after reload. Includes the latest 100 private revision numbers/titles at load; older revisions remain retained. No public or SHADOW writes. Private no-store.",

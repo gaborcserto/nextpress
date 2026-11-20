@@ -35,6 +35,7 @@ type LivePreviewProps = {
   savedContent?: { title: string; slug: string };
   values?: PreviewValues;
   snapshot?: PreviewSnapshot;
+  privateSnapshot?: PreviewSnapshot;
 };
 
 export default function LivePreview({
@@ -44,14 +45,19 @@ export default function LivePreview({
   id,
   values,
   snapshot,
+  privateSnapshot,
   savedContent,
 }: LivePreviewProps) {
   const [open, setOpen] = useState(Boolean(snapshot));
   const [mobilePreview, setMobilePreview] = useState(Boolean(snapshot));
   const [width, setWidth] = useState("100%");
-  const [saved, setSaved] = useState<PreviewSnapshot | null>(snapshot ?? null);
+  const [legacySaved, setLegacySaved] = useState<PreviewSnapshot | null>(
+    snapshot ?? null,
+  );
+  const saved = privateSnapshot ?? legacySaved;
   const [live, setLive] = useState(true);
   const [status, setStatus] = useState("Loading preview...");
+  const [savedUnavailable, setSavedUnavailable] = useState(false);
   const [session] = useState(() => crypto.randomUUID());
   const previewFrame = useRef<HTMLIFrameElement>(null);
   const previewWindow = useRef<Window | null>(null);
@@ -78,7 +84,7 @@ export default function LivePreview({
   }, [live, values, saved]);
 
   useEffect(() => {
-    if (!open || !id || snapshot) {
+    if (!open || !id || snapshot || privateSnapshot) {
       return;
     }
 
@@ -95,16 +101,17 @@ export default function LivePreview({
 
         const data = RevisionListSchema.parse(await response.json());
 
-        setSaved(data.revisions[0] ?? data.current);
+        setLegacySaved(data.revisions[0] ?? data.current);
+        setSavedUnavailable(false);
       })
       .catch(() => {
         if (!abort.signal.aborted) {
-          setStatus("Saved preview unavailable. Check your session and retry.");
+          setSavedUnavailable(true);
         }
       });
 
     return () => abort.abort();
-  }, [open, id, snapshot, savedContent]);
+  }, [open, id, snapshot, savedContent, privateSnapshot]);
 
   useEffect(() => {
     if (!open || !origin) {
@@ -212,6 +219,10 @@ export default function LivePreview({
       className="btn btn-ghost"
       aria-expanded={open}
       onClick={() => {
+        if (!open) {
+          setStatus("Loading preview...");
+        }
+
         setOpen(!open);
         setMobilePreview(!open);
       }}
@@ -279,6 +290,12 @@ export default function LivePreview({
         <div className={styles.editor}>{children}</div>
         {open && (
           <section className={styles.preview} aria-label="Live Preview">
+            {savedUnavailable && (
+              <p role="status">
+                Saved preview unavailable. Check your session and reopen Live
+                Preview to retry.
+              </p>
+            )}
             <p role="status">
               {origin
                 ? status

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { pageValuesToDto } from "@/lib/services/page.client";
 import { postValuesToDto } from "@/lib/services/post.client";
@@ -17,7 +17,11 @@ import type { PageFormValues, PostFormValues } from "./contracts";
 
 export type PrivateEditing = {
   draft: WorkingAggregateEnvelope;
-  reloadAction: () => Promise<void>;
+  reloadAction: (
+    canApply: () => boolean,
+    acceptedVersion?: number,
+  ) => Promise<void>;
+  offerRecovery: boolean;
 };
 
 function formPatch(values: PageFormValues | PostFormValues): WorkingPatch {
@@ -48,6 +52,7 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
   editing?: PrivateEditing,
 ) {
   const [contentKey, setContentKey] = useState(0);
+  const [recovering, setRecovering] = useState(editing?.offerRecovery ?? false);
   const [controller] = useState(() =>
     editing
       ? new PrivateDraftController(editing.draft, values, formPatch(values))
@@ -69,21 +74,48 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
     controller?.update(values, formPatch(values));
   }, [controller, values]);
 
-  if (!controller || !state || !editing) {
+  const snapshot = state?.snapshot;
+  const savedPreview = useMemo(() => {
+    if (!snapshot) {
+      return null;
+    }
+
+    const { fields } = snapshot.snapshot;
+
+    return {
+      title: fields.title,
+      slug: fields.slug,
+      content: fields.content,
+      excerpt: fields.excerpt,
+      layout: fields.layout,
+      pageDocument: snapshot.rawPageDocument,
+    };
+  }, [snapshot]);
+
+  if (!controller || !state || !editing || !savedPreview) {
     return null;
   }
 
+  const reload = (acceptedVersion?: number) =>
+    controller.reload((canApply) =>
+      editing.reloadAction(canApply, acceptedVersion),
+    );
+  const { snapshot: acknowledged, ...saveState } = state;
+
   return {
-    ...state,
+    ...saveState,
     contentKey,
-    publicState: editing.draft.aggregate.publicState,
+    recovering,
+    recover: () => setRecovering(false),
+    savedPreview,
+    publicState: acknowledged.publicState,
     pendingPrivateChanges:
       state.dirty ||
       state.version > editing.draft.version ||
       editing.draft.pendingPrivateChanges === true,
     history: editing.draft.history ?? [],
     legacyHistory: editing.draft.legacyHistory ?? [],
-    release: editing.draft.aggregate.release,
+    release: acknowledged.release,
     publication: async (
       operation: "PUBLISH" | "UNPUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE",
       scheduledFor?: string,
@@ -97,7 +129,7 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       }
 
       if (!controller.hasLocalChanges()) {
-        await editing.reloadAction();
+        await reload(controller.snapshot().version);
       }
     },
     save: () => {
@@ -114,8 +146,12 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       }
     },
     reset: async () => {
-      if (await controller.save("RESET")) {
-        await editing.reloadAction();
+      if (!(await controller.save("RESET"))) {
+        throw new Error("Private discard was not acknowledged");
+      }
+
+      if (!controller.hasLocalChanges()) {
+        await reload(controller.snapshot().version);
       }
     },
     restore: async (version: number) => {
@@ -123,16 +159,20 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
         throw new Error("Private restore was not acknowledged");
       }
 
-      await editing.reloadAction();
+      if (!controller.hasLocalChanges()) {
+        await reload(controller.snapshot().version);
+      }
     },
     restoreLegacy: async (id: string) => {
       if (!(await controller.save("RESTORE_LEGACY", undefined, id))) {
         throw new Error("Legacy restore was not acknowledged");
       }
 
-      await editing.reloadAction();
+      if (!controller.hasLocalChanges()) {
+        await reload(controller.snapshot().version);
+      }
     },
-    reload: editing.reloadAction,
+    reload: () => reload(),
   };
 }
 

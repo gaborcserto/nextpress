@@ -25,7 +25,12 @@ type Admission =
   | { phase: "checking" }
   | { phase: "legacy" }
   | { phase: "error" }
-  | { phase: "private"; draft: WorkingAggregateEnvelope; generation: number };
+  | {
+      phase: "private";
+      draft: WorkingAggregateEnvelope;
+      generation: number;
+      acceptedVersion?: number;
+    };
 
 /** A rejected or uncertain private session never falls back to a legacy live-save handler. */
 export function PrivateDraftBoundary({
@@ -85,17 +90,22 @@ export function PrivateDraftBoundary({
 
   const editing = {
     draft: admission.draft,
-    reloadAction: async () => {
+    offerRecovery:
+      admission.draft.version > 0 &&
+      admission.draft.pendingPrivateChanges === true &&
+      admission.acceptedVersion !== admission.draft.version,
+    reloadAction: async (canApply: () => boolean, acceptedVersion?: number) => {
       const draft = await requestPrivateDraft(id);
 
-      if (draft.aggregate.kind !== kind) {
-        throw new Error("Content type changed");
+      if (draft.aggregate.kind !== kind || !canApply()) {
+        throw new Error("Reload could not safely replace the current editor");
       }
 
       setAdmission({
         phase: "private",
         draft,
         generation: admission.generation + 1,
+        acceptedVersion,
       });
     },
   };

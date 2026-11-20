@@ -698,6 +698,7 @@ export async function saveWorkingAggregate(
           revisionId,
           aggregate.snapshot,
         ));
+        aggregate = { ...aggregate, savedAt: new Date().toISOString() };
         await tx.$executeRaw`INSERT INTO "NPWorkingRevision"
       (id, "pageId", version, "sourceVersion", "requestId", "requestHash", aggregate)
       VALUES (${revisionId}::uuid, ${command.pageId}, ${version}, ${acceptedSourceVersion},

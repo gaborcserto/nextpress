@@ -56,6 +56,80 @@ const recoveryConfirmation = {
   },
 };
 
+export function PrivateDraftRecovery({
+  draft,
+}: {
+  draft: PrivateDraftControls;
+}) {
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function discard() {
+    setBusy(true);
+    setError("");
+
+    try {
+      await draft.reset();
+      setConfirmDiscard(false);
+    } catch {
+      setError(
+        "Discard could not be confirmed. Cancel this dialog and open the draft to check its status or retry an outstanding request.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="admin-private-draft" aria-label="Recover private draft">
+      <h2 className="font-semibold">Recover private draft</h2>
+      <p>
+        Private revision {draft.version} has edits that differ from the
+        authoritative content.
+      </p>
+      <p>
+        {draft.savedAt ? (
+          <>
+            Saved{" "}
+            <time dateTime={draft.savedAt}>
+              {new Date(draft.savedAt).toLocaleString()}
+            </time>
+          </>
+        ) : (
+          "Save time unavailable for this revision."
+        )}
+      </p>
+      <p role="status">{draft.message}</p>
+      <div className="flex flex-wrap gap-2 mt-2">
+        <Button type="button" disabled={busy} onClick={draft.recover}>
+          Recover private draft
+        </Button>
+        <Button
+          type="button"
+          disabled={busy || draft.pending}
+          onClick={() => setConfirmDiscard(true)}
+        >
+          Discard recovery draft
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard recovery draft?"
+        confirmLabel="Discard recovery draft"
+        onCancelAction={() => setConfirmDiscard(false)}
+        onConfirmAction={() => {
+          void discard();
+        }}
+        loading={busy}
+        error={error}
+      >
+        {recoveryConfirmation.reset.description}
+      </ConfirmDialog>
+    </section>
+  );
+}
+
 export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
   const [confirmation, setConfirmation] = useState<
     keyof typeof recoveryConfirmation | null
@@ -239,7 +313,9 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       {draft.savedAt && (
         <p>
           Last acknowledged at{" "}
-          <time dateTime={draft.savedAt}>{draft.savedAt}</time>
+          <time dateTime={draft.savedAt}>
+            {new Date(draft.savedAt).toLocaleString()}
+          </time>
         </p>
       )}
       {draft.pending && draft.phase === "error" && (
@@ -250,7 +326,9 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       )}
       <details
         className="admin-editor-disclosure"
-        open={draft.phase === "error" || undefined}
+        open={
+          draft.phase === "error" || draft.phase === "conflict" || undefined
+        }
       >
         <summary>Draft recovery and history</summary>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -266,14 +344,14 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           )}
           <Button
             type="button"
-            disabled={draft.pending || busy}
+            disabled={draft.pending || busy || !draft.dirty}
             onClick={() => setConfirmation("local")}
           >
             Discard local changes
           </Button>
           <Button
             type="button"
-            disabled={draft.pending || busy}
+            disabled={draft.pending || busy || draft.phase === "unsaved"}
             onClick={() => setConfirmation("reset")}
           >
             Reset private draft to live source

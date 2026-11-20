@@ -175,6 +175,36 @@ describe("private editor admission", () => {
 });
 
 describe.each<DraftKind>(["PAGE", "POST"])("%s private editor", (kind) => {
+  it("offers the saved recovery revision before mounting editable content", async () => {
+    const draft = privateDraftFixture(kind, 2);
+    draft.pendingPrivateChanges = true;
+    draft.aggregate.savedAt = "2026-11-20T10:00:00Z";
+    draft.aggregate.snapshot.fields.title = "Recovered title";
+    mockDraftRequests({ get: () => Response.json(draft) });
+
+    renderDraftBoundary(kind);
+    const recovery = await screen.findByRole("region", {
+      name: "Recover private draft",
+    });
+
+    expect(within(recovery).getByText(/Private revision 2/)).toBeVisible();
+    expect(recovery.querySelector("time")).toHaveAttribute(
+      "datetime",
+      draft.aggregate.savedAt,
+    );
+    expect(
+      screen.queryByRole("textbox", { name: "Title" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(recovery).getByRole("button", { name: "Recover private draft" }),
+    );
+
+    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue(
+      "Recovered title",
+    );
+    expect(draftRequests("PUT")).toHaveLength(0);
+  });
+
   it("renders the admitted draft with accessible publication guidance", async () => {
     const draftRegion = await openPrivateEditor(kind);
 

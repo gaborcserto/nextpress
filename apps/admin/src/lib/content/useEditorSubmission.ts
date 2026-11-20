@@ -26,7 +26,8 @@ export function useEditorSubmission<T extends FormValues>({
   savePrivateDraft,
   onSubmitAction,
 }: EditorSubmission<T>) {
-  const [hasSaved, setHasSaved] = useState(false);
+  const [savedPublication, setSavedPublication] =
+    useState<PublicationFields | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     title?: string;
@@ -80,10 +81,13 @@ export function useEditorSubmission<T extends FormValues>({
     }
 
     markSaved(saved);
-    setHasSaved(true);
+    setSavedPublication({
+      status: saved.status,
+      publishedAt: saved.publishedAt,
+    });
   };
 
-  let saveStatus = hasSaved ? "Saved" : "No unsaved changes";
+  let saveStatus = savedPublication ? "Saved" : "No unsaved changes";
 
   if (submitting) {
     saveStatus = "Saving...";
@@ -97,5 +101,11 @@ export function useEditorSubmission<T extends FormValues>({
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
   };
 
-  return { handleSubmit, fieldErrors, clearFieldError, saveStatus };
+  return {
+    handleSubmit,
+    fieldErrors,
+    clearFieldError,
+    saveStatus,
+    savedPublication,
+  };
 }

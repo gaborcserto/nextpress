@@ -25,6 +25,7 @@ export const WorkingAggregateSchema = z
     baseFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     snapshot: EditorialSnapshotSchema,
     rawPageDocument: z.string().nullable(),
+    savedAt: z.iso.datetime({ offset: true }).optional(),
     publicState: z.strictObject({
       status: z.enum(["DRAFT", "PUBLISHED"]),
       publishedAt: z.iso.datetime({ offset: true }).nullable(),
