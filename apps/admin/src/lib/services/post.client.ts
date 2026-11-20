@@ -2,6 +2,10 @@
 
 import { apiFetch } from "@/lib/api";
 import { slateToString } from "@/lib/content/editor";
+import {
+  readLegacyUpdateResponse,
+  type LegacyUpdate,
+} from "@/lib/content/legacy-editor";
 
 import type { PageSchema } from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
@@ -22,12 +26,17 @@ export type PostDto = z.input<typeof PageSchema>;
  * - Serializes validated rich-content documents
  */
 export function postValuesToDto(values: PostFormValues): PostDto {
+  return { ...postContentFields(values), status: values.status };
+}
+
+function postContentFields(
+  values: LegacyUpdate<PostFormValues>,
+): Omit<PostDto, "status"> {
   const tagIds =
     values.tags?.map((tag) => tag.id).filter((id): id is string => !!id) ?? [];
 
   return {
     type: "POST",
-    status: values.status,
     slug: values.slug,
     title: values.title,
     excerpt: slateToString(values.excerpt),
@@ -69,10 +78,14 @@ export async function createPostApi(
  */
 export async function updatePostApi(
   id: string,
-  values: PostFormValues,
+  values: LegacyUpdate<PostFormValues>,
   expectedVersion: number,
-): Promise<PostApiResult> {
-  const body = { ...postValuesToDto(values), expectedVersion };
+) {
+  const body = {
+    ...postContentFields(values),
+    status: values.status,
+    expectedVersion,
+  };
 
   const res = await apiFetch(`/api/post/${id}`, {
     method: "PUT",
@@ -80,5 +93,5 @@ export async function updatePostApi(
     body: JSON.stringify(body),
   });
 
-  return { ok: res.ok, status: res.status };
+  return readLegacyUpdateResponse(res);
 }

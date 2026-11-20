@@ -17,7 +17,7 @@ it("expires the schedule control and refuses confirmation after the selected tim
     version: 1,
     savedAt: null,
     contentKey: 0,
-    publicStatus: "DRAFT",
+    publicState: { status: "DRAFT", publishedAt: null },
     pendingPrivateChanges: true,
     history: [],
     legacyHistory: [],

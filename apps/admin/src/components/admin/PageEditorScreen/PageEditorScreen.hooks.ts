@@ -1,22 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import useSWR from "swr";
-
-import { jsonFetcher } from "@/lib/api";
 import { EMPTY_SLATE_VALUE } from "@/lib/content/editor";
-import {
-  legacyEditorRevalidation,
-  prepareLegacyUpdate,
-  reportLegacySaveFailure,
-} from "@/lib/content/legacy-editor";
+import { useLegacyEditor } from "@/lib/content/useLegacyEditor";
 import { createPageApi, updatePageApi } from "@/lib/services/page.client";
-import { showToast } from "@/ui/utils";
 
 import type { PageFormValues } from "@/lib/content/contracts";
-
-import type { EditPageResponse } from "./PageEditorScreen.types";
 
 const EMPTY_INITIAL: PageFormValues = {
   type: "STANDARD",
@@ -31,89 +19,13 @@ const EMPTY_INITIAL: PageFormValues = {
 };
 
 export function usePageEditor(id?: string) {
-  const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
-
-  const isEdit = !!id;
-
-  const { data, error, isLoading, mutate } = useSWR<EditPageResponse>(
-    isEdit && id ? `/api/pages/${id}` : null,
-    jsonFetcher,
-    legacyEditorRevalidation,
-  );
-
-  const item: PageFormValues | null = isEdit
-    ? (data?.item ?? null)
-    : EMPTY_INITIAL;
-  const notFound = isEdit && !isLoading && !data?.item;
-
-  const handleSubmit = async (values: PageFormValues): Promise<boolean> => {
-    if (savingRef.current) {
-      return false;
-    }
-
-    if (!values.title || !values.slug) {
-      showToast("Title and slug are required.", "warning");
-
-      return false;
-    }
-
-    savingRef.current = true;
-    setSaving(true);
-
-    try {
-      if (id && data?.item.workingVersion === undefined) {
-        showToast("Reload the editor before saving.", "warning");
-
-        return false;
-      }
-
-      const submittedValues = prepareLegacyUpdate(values, data?.item);
-      const { ok, status } =
-        id && data
-          ? await updatePageApi(id, submittedValues, data.item.workingVersion)
-          : await createPageApi(values);
-
-      if (!ok) {
-        reportLegacySaveFailure(status, isEdit);
-
-        return false;
-      }
-
-      showToast(isEdit ? "Page updated." : "Page created.", "success");
-
-      if (data) {
-        // Advance only our successful write; a GET could return a newer remote edit.
-        await mutate(
-          { item: { ...values, workingVersion: data.item.workingVersion + 1 } },
-          { revalidate: false },
-        );
-      } else {
-        router.push("/admin/pages");
-      }
-
-      return true;
-    } catch {
-      showToast(
-        `Unable to ${isEdit ? "update" : "create"} page. Please try again.`,
-        "error",
-      );
-
-      return false;
-    } finally {
-      savingRef.current = false;
-      setSaving(false);
-    }
-  };
-
-  return {
-    isEdit,
-    item,
-    isLoading,
-    notFound,
-    saving,
-    error,
-    handleSubmit,
-  };
+  return useLegacyEditor({
+    id: id,
+    endpoint: "/api/pages",
+    listHref: "/admin/pages",
+    label: "Page",
+    initial: EMPTY_INITIAL,
+    create: createPageApi,
+    update: updatePageApi,
+  });
 }

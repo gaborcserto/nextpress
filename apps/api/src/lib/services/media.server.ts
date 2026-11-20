@@ -18,6 +18,7 @@ import {
   isEditor,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { publicPublicationWhere } from "@/lib/public/eligibility";
 
 import { mediaStorage } from "./media-storage.server";
 
@@ -121,8 +122,7 @@ export async function serveMedia(id: string, actor?: ContentActor) {
   if (!canManage) {
     const published = await prisma.page.findMany({
       where: {
-        status: "PUBLISHED",
-        publishedAt: { not: null, lte: new Date() },
+        ...publicPublicationWhere(new Date()),
         OR: [
           { coverId: id },
           { pageDocument: { contains: JSON.stringify(id) } },

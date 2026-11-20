@@ -3,10 +3,12 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { pageValuesToDto } from "@/lib/services/page.client";
+import { deferred } from "@/lib/testing/deferred.fixture";
 
 import PageForm from "./PageForm";
 
 import type { PageFormValues } from "@/lib/content/contracts";
+import type { LegacySaveOutcome } from "@/lib/content/legacy-editor";
 
 const { submitAction } = vi.hoisted(() => ({ submitAction: vi.fn() }));
 
@@ -61,7 +63,9 @@ const initial: PageFormValues = {
 
 function renderPage(
   values: PageFormValues,
-  save: (values: PageFormValues) => Promise<boolean> = vi.fn(async () => true),
+  save: (values: PageFormValues) => Promise<LegacySaveOutcome> = vi.fn(
+    async () => true,
+  ),
 ) {
   return render(
     <PageForm
@@ -76,6 +80,48 @@ function renderPage(
 }
 
 describe("PageForm", () => {
+  it("retains edits typed during a save and adopts the server publication date on the next submit", async () => {
+    const { resolve, promise } = deferred<LegacySaveOutcome>();
+    const savedAt = "2026-01-01T12:34:00.000Z";
+    const save = vi
+      .fn()
+      .mockReturnValueOnce(promise)
+      .mockResolvedValueOnce(true);
+    renderPage(
+      {
+        ...initial,
+        title: "Scheduled page",
+        slug: "scheduled-page",
+        status: "PUBLISHED",
+        publishedAt: "2099-01-01T12:34:00.000Z",
+      },
+      save,
+    );
+    const editor = screen
+      .getByRole("button", { name: "Save" })
+      .closest("form")!;
+    const title = screen.getByLabelText("Title");
+
+    expect(screen.getByText("Scheduled", { exact: true })).toBeVisible();
+    fireEvent.submit(editor);
+    fireEvent.change(title, { target: { value: "Newer edit" } });
+
+    await act(async () =>
+      resolve({ status: "PUBLISHED", publishedAt: savedAt }),
+    );
+
+    expect(title).toHaveValue("Newer edit");
+    expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
+    await act(async () => fireEvent.submit(editor));
+
+    expect(save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: "Newer edit",
+        publishedAt: savedAt,
+      }),
+    );
+  });
+
   it("keeps header and footer menu placements independently selectable and saved", async () => {
     const save = vi.fn(async () => true);
     renderPage(
@@ -345,6 +391,7 @@ describe("PageForm", () => {
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "A new page" },
     });
+    expect(screen.queryByText("Slug is required.")).not.toBeInTheDocument();
     fireEvent.submit(form);
 
     expect(submitAction).toHaveBeenCalledOnce();

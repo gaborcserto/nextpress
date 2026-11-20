@@ -74,6 +74,33 @@ describe("secure media boundaries", () => {
     );
   });
 
+  it("requires a due publication before reading anonymously referenced media", async () => {
+    db.media.findUnique.mockResolvedValue({ key: "asset.png" });
+    db.page.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ coverId: "asset" }]);
+    storage.read.mockResolvedValue(new Uint8Array([1, 2]));
+
+    await expect(serveMedia("asset")).rejects.toBeInstanceOf(
+      ContentNotFoundError,
+    );
+    expect(db.page.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "PUBLISHED",
+          publishedAt: { not: null, lte: expect.any(Date) },
+          OR: [{ coverId: "asset" }, { pageDocument: { contains: '"asset"' } }],
+        },
+      }),
+    );
+    expect(storage.read).not.toHaveBeenCalled();
+
+    const response = await serveMedia("asset");
+
+    expect(response.status).toBe(200);
+    expect(storage.read).toHaveBeenCalledWith("asset.png");
+  });
+
   it("does not expose a private image through a guessed ID or text that resembles a reference", async () => {
     db.media.findUnique.mockResolvedValue({
       key: "private.png",

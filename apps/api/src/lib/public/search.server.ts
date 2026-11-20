@@ -4,6 +4,7 @@ import { prisma, type Prisma } from "@nextpress/db";
 import { PublicSearchQuerySchema } from "@nextpress/shared/api-contracts";
 import { richContentText } from "@nextpress/shared/content";
 
+import { publicPublicationWhere } from "./eligibility";
 import { parsePublicRichContent } from "./rich-content";
 
 import type { z } from "zod";
@@ -12,10 +13,8 @@ export async function searchPublishedContent(
   input: z.input<typeof PublicSearchQuerySchema>,
 ) {
   const query = PublicSearchQuerySchema.parse(input);
-  const published = {
-    status: "PUBLISHED",
-    publishedAt: { not: null, lte: new Date() },
-  } satisfies Prisma.PageWhereInput;
+  const published = publicPublicationWhere(new Date());
+
   const taxonomies = await prisma.taxonomy.findMany({
     where: { pages: { some: { page: { ...published, type: "POST" } } } },
     select: { type: true, slug: true, name: true },

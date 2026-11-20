@@ -5,15 +5,20 @@ import { useContext } from "react";
 import { createPortal } from "react-dom";
 import { FaCalendarAlt, FaClock, FaSave, FaTimes } from "react-icons/fa";
 
+import {
+  publicationLabels,
+  savedPublicationState,
+} from "@/lib/content/publication-status";
 import { Button } from "@/ui/primitives";
 import { EditorHeaderContext } from "@/ui/shell/EditorHeaderContext";
 
 import type { ReactNode } from "react";
 
+import type { PublicationFields } from "@/lib/content/publication-status";
 import type { PrivateDraftControls } from "@/lib/content/usePrivateDraft";
 
 type EditorActionsProps = {
-  status: string;
+  publication: PublicationFields;
   saveStatus: string;
   submitLabel: string;
   saving: boolean;
@@ -39,7 +44,7 @@ function privateSaveStatus(draft: PrivateDraftControls) {
 }
 
 export function EditorActions({
-  status,
+  publication,
   saveStatus,
   submitLabel,
   saving,
@@ -84,8 +89,11 @@ export function EditorActions({
         </div>
       </div>
       <div className="admin-action-status">
-        <span className="badge badge-soft" data-content-status={status}>
-          {status === "PUBLISHED" ? "Published" : "Draft"}
+        <span
+          className="badge badge-soft"
+          data-content-status={publication.status}
+        >
+          {publicationLabels[savedPublicationState(publication)]}
         </span>
         <span role="status">
           {privateDraft ? privateSaveStatus(privateDraft) : saveStatus}

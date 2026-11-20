@@ -10,6 +10,7 @@ import { PublicTaxonomyParamsSchema } from "@nextpress/shared/api-contracts";
 import { ContentSlugSchema, richContentText } from "@nextpress/shared/content";
 import { readPageDocument } from "@nextpress/shared/page-document";
 
+import { publicPublicationWhere } from "./eligibility";
 import { parsePublicRichContent } from "./rich-content";
 
 import type {
@@ -153,8 +154,7 @@ export async function getPublishedPost(
     where: {
       slug,
       type: "POST",
-      status: "PUBLISHED",
-      publishedAt: { not: null, lte: new Date() },
+      ...publicPublicationWhere(new Date()),
     },
     select: publicContentSelect,
   });
@@ -181,8 +181,7 @@ export async function getPublishedPage(
     where: {
       slug,
       type: "PAGE",
-      status: "PUBLISHED",
-      publishedAt: { not: null, lte: new Date() },
+      ...publicPublicationWhere(new Date()),
     },
     select: publicContentSelect,
   });
@@ -202,8 +201,7 @@ export async function getPublicPageNavigation(): Promise<PublicPageNavigation> {
   const rows = await prisma.page.findMany({
     where: {
       type: "PAGE",
-      status: "PUBLISHED",
-      publishedAt: { not: null, lte: new Date() },
+      ...publicPublicationWhere(new Date()),
       OR: [{ inHeaderMenu: true }, { inFooterMenu: true }],
     },
     // The model has no menu position; title and slug give stable alphabetical ordering.
@@ -227,10 +225,12 @@ export async function getPublishedPosts({
   limit = DEFAULT_POSTS_PER_PAGE,
   offset = 0,
   taxonomy,
+  now = new Date(),
 }: {
   limit?: number;
   offset?: number;
   taxonomy?: z.infer<typeof PublicTaxonomyParamsSchema>;
+  now?: Date;
 } = {}): Promise<PublicPostBatch> {
   const boundedLimit = Number.isFinite(limit)
     ? Math.min(MAX_POSTS_PER_PAGE, Math.max(1, Math.floor(limit)))
@@ -249,8 +249,7 @@ export async function getPublishedPosts({
           }
         : {}),
       type: "POST",
-      status: "PUBLISHED",
-      publishedAt: { not: null, lte: new Date() },
+      ...publicPublicationWhere(now),
     },
     orderBy: [{ publishedAt: "desc" }, { slug: "asc" }],
     skip,
@@ -276,6 +275,8 @@ export async function getPublishedTaxonomyPosts(
     return null;
   }
 
+  const now = new Date();
+
   const taxonomy = await prisma.taxonomy.findFirst({
     where: { type: parsed.data.type, slug: parsed.data.slug },
     select: { type: true, slug: true, name: true },
@@ -288,6 +289,7 @@ export async function getPublishedTaxonomyPosts(
   const batch = await getPublishedPosts({
     ...pagination,
     taxonomy: parsed.data,
+    now,
   });
 
   return {
@@ -316,8 +318,7 @@ export async function getPublishedTags({
         some: {
           page: {
             type: "POST",
-            status: "PUBLISHED",
-            publishedAt: { not: null, lte: new Date() },
+            ...publicPublicationWhere(new Date()),
           },
         },
       },

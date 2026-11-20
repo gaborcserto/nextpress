@@ -79,6 +79,14 @@ function stableValue(value: unknown, cache: WeakMap<object, string>): string {
   return result;
 }
 
+function editorSnapshot(
+  { tags, ...fields }: { tags: unknown },
+  persistedTags: boolean,
+  cache: WeakMap<object, string>,
+): string {
+  return stableValue(persistedTags ? fields : { ...fields, tags }, cache);
+}
+
 /** Mount only after authoritative initial data is ready; reset only on accepted writes. */
 export function useUnsavedChanges<T extends { tags: unknown }>(
   values: T,
@@ -87,11 +95,10 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
 ) {
   const router = useRouter();
   const [cache] = useState(() => new WeakMap<object, string>());
-  const snapshot = useMemo(() => {
-    const { tags, ...fields } = values;
-
-    return stableValue(persistedTags ? fields : { ...fields, tags }, cache);
-  }, [values, persistedTags, cache]);
+  const snapshot = useMemo(
+    () => editorSnapshot(values, persistedTags, cache),
+    [values, persistedTags, cache],
+  );
   const [baseline, setBaseline] = useState(snapshot);
   const dirty = dirtyOverride ?? snapshot !== baseline;
   const [open, setOpen] = useState(false);
@@ -200,7 +207,10 @@ export function useUnsavedChanges<T extends { tags: unknown }>(
 
   return {
     dirty,
-    markSaved: () => setBaseline(snapshot),
+    markSaved: (saved?: T) =>
+      setBaseline(
+        saved ? editorSnapshot(saved, persistedTags, cache) : snapshot,
+      ),
     requestNavigation,
     dialog: (
       <ConfirmDialog

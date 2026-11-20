@@ -3,6 +3,7 @@ import { PublicContentIndexQuerySchema } from "@nextpress/shared/api-contracts";
 
 import { bad, ok, internalError } from "@/lib/api";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
+import { publicPublicationWhere } from "@/lib/public/eligibility";
 
 async function get(req: Request) {
   const params = new URL(req.url).searchParams;
@@ -25,8 +26,7 @@ async function get(req: Request) {
     const rows = await prisma.page.findMany({
       where: {
         type: kind,
-        status: "PUBLISHED",
-        publishedAt: { not: null, lte: new Date() },
+        ...publicPublicationWhere(new Date()),
         ...(taxonomyId ? { taxonomies: { some: { taxonomyId } } } : {}),
       },
       orderBy: [{ publishedAt: "desc" }, { slug: "asc" }],

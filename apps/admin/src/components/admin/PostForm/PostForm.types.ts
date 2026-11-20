@@ -6,6 +6,7 @@ import type {
   TagUpdateEntityFn,
   UploadFn,
 } from "@/lib/content/contracts";
+import type { LegacySaveOutcome } from "@/lib/content/legacy-editor";
 import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
 
 export type { PostFormValues, PostStatus } from "@/lib/content/contracts";
@@ -14,7 +15,9 @@ export type PostFormProps = {
   privateEditing?: PrivateEditing;
   contentId?: string;
   initial: PostFormValues;
-  onSubmitAction: (values: PostFormValues) => Promise<boolean> | boolean;
+  onSubmitAction: (
+    values: PostFormValues,
+  ) => Promise<LegacySaveOutcome> | LegacySaveOutcome;
   submitting?: boolean;
   submitLabel?: string;
 

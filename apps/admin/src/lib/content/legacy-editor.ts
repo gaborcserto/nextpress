@@ -1,4 +1,8 @@
+import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
+
 import { showToast } from "@/ui/utils";
+
+import type { PublicationFields } from "./publication-status";
 
 // A background fetch must not replace the form's concurrency token.
 export const legacyEditorRevalidation = {
@@ -7,17 +11,44 @@ export const legacyEditorRevalidation = {
   revalidateOnReconnect: false,
 };
 
-export function prepareLegacyUpdate<T extends { publishedAt?: string | null }>(
-  values: T,
-  loaded: T | undefined,
-): T {
-  const submitted = { ...values };
+const publicationAcknowledgementSchema = ContentRecordSchema.pick({
+  status: true,
+  publishedAt: true,
+  workingVersion: true,
+});
 
-  if (loaded && values.publishedAt === loaded.publishedAt) {
-    delete submitted.publishedAt;
+export type PublicationAcknowledgement = ReturnType<
+  typeof publicationAcknowledgementSchema.parse
+>;
+export type LegacySaveOutcome =
+  | boolean
+  | Omit<PublicationAcknowledgement, "workingVersion">;
+export type LegacyUpdate<T> = Omit<T, keyof PublicationFields> &
+  Partial<PublicationFields>;
+
+export function prepareLegacyUpdate<T extends PublicationFields>(
+  { status, publishedAt, ...content }: T,
+  loaded: PublicationFields,
+): LegacyUpdate<T> {
+  return {
+    ...content,
+    ...(status !== loaded.status ? { status } : {}),
+    ...((publishedAt ?? null) !== (loaded.publishedAt ?? null)
+      ? { publishedAt }
+      : {}),
+  };
+}
+
+export async function readLegacyUpdateResponse(response: Response) {
+  if (!response.ok) {
+    return { ok: false as const, status: response.status };
   }
 
-  return submitted;
+  const acknowledgement = publicationAcknowledgementSchema.parse(
+    await response.json(),
+  );
+
+  return { ok: true as const, acknowledgement };
 }
 
 export function reportLegacySaveFailure(status: number, isEdit: boolean): void {

@@ -61,6 +61,9 @@ it("applies publication, type, taxonomy and bounded pagination before selecting 
       }),
     }),
   );
+  const clock = taxonomy.mock.calls[0][0].where.pages.some.page.publishedAt.lte;
+  expect(count.mock.calls[0][0].where.publishedAt.lte).toBe(clock);
+  expect(findMany.mock.calls[0][0].where.publishedAt.lte).toBe(clock);
   expect(findMany.mock.calls[0][0].select).not.toHaveProperty("content");
   expect(findMany.mock.calls[0][0].where.OR).toHaveLength(4);
 });

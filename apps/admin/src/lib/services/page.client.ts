@@ -2,6 +2,10 @@
 
 import { apiFetch } from "@/lib/api";
 import { slateToString } from "@/lib/content/editor";
+import {
+  readLegacyUpdateResponse,
+  type LegacyUpdate,
+} from "@/lib/content/legacy-editor";
 
 import type { PageSchema } from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
@@ -11,13 +15,18 @@ import type { PageFormValues } from "@/lib/content/contracts";
 export type PageDto = z.input<typeof PageSchema>;
 
 export function pageValuesToDto(values: PageFormValues): PageDto {
+  return { ...pageContentFields(values), status: values.status };
+}
+
+function pageContentFields(
+  values: LegacyUpdate<PageFormValues>,
+): Omit<PageDto, "status"> {
   const tagIds =
     values.tags?.map((tag) => tag.id).filter((id): id is string => !!id) ?? [];
 
   return {
     type: "PAGE",
     layout: values.type,
-    status: values.status,
     ...(values.publishedAt !== undefined
       ? { publishedAt: values.publishedAt }
       : {}),
@@ -51,10 +60,14 @@ export async function createPageApi(
 
 export async function updatePageApi(
   id: string,
-  values: PageFormValues,
+  values: LegacyUpdate<PageFormValues>,
   expectedVersion: number,
-): Promise<PageApiResult> {
-  const body = { ...pageValuesToDto(values), expectedVersion };
+) {
+  const body = {
+    ...pageContentFields(values),
+    status: values.status,
+    expectedVersion,
+  };
 
   const res = await apiFetch(`/api/pages/${id}`, {
     method: "PUT",
@@ -62,5 +75,5 @@ export async function updatePageApi(
     body: JSON.stringify(body),
   });
 
-  return { ok: res.ok, status: res.status };
+  return readLegacyUpdateResponse(res);
 }

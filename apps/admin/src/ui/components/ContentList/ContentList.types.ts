@@ -1,3 +1,4 @@
+import type { PublicationState } from "@/lib/content/publication-status";
 import type { ContentPagination } from "@/lib/content/useContentList";
 
 export type ContentListItem = {
@@ -6,7 +7,7 @@ export type ContentListItem = {
   slug: string;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
-  publicationState: "DRAFT" | "PUBLISHED" | "SCHEDULED" | "MISSING_DATE";
+  publicationState: PublicationState;
   author?: string | null;
   categories?: string[];
   tags?: string[];

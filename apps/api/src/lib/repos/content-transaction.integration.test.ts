@@ -42,6 +42,164 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     await db.taxonomy.deleteMany({ where: { slug: { startsWith: slug } } });
     await db.$disconnect();
   });
+  it("excludes drafts, missing dates and future schedules from anonymous endpoints", async () => {
+    const { GET: contentIndex } =
+      await import("@/app/api/public/content/route");
+    const { GET: navigation } =
+      await import("@/app/api/public/navigation/route");
+    const { GET: publicPage } =
+      await import("@/app/api/public/pages/[slug]/route");
+    const { GET: publicPost } =
+      await import("@/app/api/public/posts/[slug]/route");
+    const { GET: posts } = await import("@/app/api/public/posts/route");
+    const { GET: search } = await import("@/app/api/public/search/route");
+    const { GET: tags } = await import("@/app/api/public/tags/route");
+    const { GET: taxonomyPosts } =
+      await import("@/app/api/public/taxonomies/[type]/[slug]/route");
+
+    const states = [
+      { name: "draft", status: "DRAFT", publishedAt: new Date("2020-01-01") },
+      { name: "missing", status: "PUBLISHED", publishedAt: null },
+      {
+        name: "future",
+        status: "PUBLISHED",
+        publishedAt: new Date("2099-01-01"),
+      },
+      {
+        name: "live",
+        status: "PUBLISHED",
+        publishedAt: new Date("2020-01-01"),
+      },
+    ] as const;
+
+    for (const { name, status, publishedAt } of states) {
+      const tag = await db.taxonomy.create({
+        data: { slug: `${slug}-${name}`, name, type: "TAG" },
+      });
+
+      await db.page.createMany({
+        data: (["PAGE", "POST"] as const).map((type) => ({
+          type,
+          status,
+          publishedAt,
+          slug: `${slug}-${name}-${type.toLowerCase()}`,
+          title: slug,
+          content: "",
+          inHeaderMenu: true,
+        })),
+      });
+
+      const post = await db.page.findUniqueOrThrow({
+        where: { slug: `${slug}-${name}-post` },
+      });
+      await db.pageOnTaxonomy.create({
+        data: { pageId: post.id, taxonomyId: tag.id },
+      });
+
+      const expectedStatus = name === "live" ? 200 : 404;
+
+      const pageResponse = await publicPage(
+        new Request("http://localhost/api/public/pages"),
+        {
+          params: Promise.resolve({ slug: `${slug}-${name}-page` }),
+        },
+      );
+
+      const postResponse = await publicPost(
+        new Request("http://localhost/api/public/posts"),
+        {
+          params: Promise.resolve({ slug: post.slug }),
+        },
+      );
+
+      expect(pageResponse.status, name).toBe(expectedStatus);
+      expect(postResponse.status, name).toBe(expectedStatus);
+    }
+
+    const livePage = { slug: `${slug}-live-page` };
+    const livePost = { slug: `${slug}-live-post` };
+    const liveTag = { slug: `${slug}-live` };
+    const response = await search(
+      new Request(`http://localhost/api/public/search?q=${slug}`),
+    );
+
+    expect(await response.json()).toMatchObject({
+      total: 2,
+      results: [livePage, livePost],
+      taxonomies: [liveTag],
+    });
+
+    const menu = await navigation(
+      new Request("http://localhost/api/public/navigation"),
+    );
+    expect(await menu.json()).toMatchObject({ header: [livePage] });
+
+    const index = await contentIndex(
+      new Request("http://localhost/api/public/content?kind=PAGE"),
+    );
+    expect(await index.json()).toMatchObject({ items: [livePage] });
+
+    const archive = await posts(
+      new Request("http://localhost/api/public/posts"),
+    );
+    expect(await archive.json()).toMatchObject({ posts: [livePost] });
+
+    const tagList = await tags(new Request("http://localhost/api/public/tags"));
+    expect(await tagList.json()).toMatchObject({ tags: [liveTag] });
+
+    const hiddenTag = await taxonomyPosts(
+      new Request("http://localhost/api/public/taxonomies"),
+      {
+        params: Promise.resolve({ type: "TAG", slug: `${slug}-future` }),
+      },
+    );
+
+    expect(await hiddenTag.json()).toMatchObject({ posts: [] });
+  });
+
+  it.each(["PAGE", "POST"] as const)(
+    "%s retains historical missing publication dates on ordinary updates",
+    async (type) => {
+      const historical = await db.page.create({
+        data: {
+          type,
+          status: "PUBLISHED",
+          slug: `${slug}-legacy-${type.toLowerCase()}`,
+          title: "Historical record",
+          content: "",
+        },
+      });
+
+      const saved = await update(
+        historical.id,
+        { expectedVersion: 0, title: "Edited" },
+        type,
+        actor,
+      );
+
+      expect(saved).toMatchObject({
+        status: "PUBLISHED",
+        publishedAt: null,
+        workingVersion: 1,
+        title: "Edited",
+      });
+
+      const { GET: detail } =
+        type === "PAGE"
+          ? await import("@/app/api/public/pages/[slug]/route")
+          : await import("@/app/api/public/posts/[slug]/route");
+
+      const anonymous = await detail(
+        new Request("http://localhost/api/public"),
+        {
+          params: Promise.resolve({ slug: historical.slug }),
+        },
+      );
+
+      expect(anonymous.status).toBe(404);
+    },
+  );
+
   it.each(["PAGE", "POST"] as const)(
     "%s reloads a draft, schedule, live save and withdrawal",
     async (type) => {

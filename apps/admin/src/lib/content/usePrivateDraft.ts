@@ -73,7 +73,7 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
   return {
     ...state,
     contentKey,
-    publicStatus: editing.draft.aggregate.publicState.status,
+    publicState: editing.draft.aggregate.publicState,
     pendingPrivateChanges:
       state.dirty ||
       state.version > editing.draft.version ||

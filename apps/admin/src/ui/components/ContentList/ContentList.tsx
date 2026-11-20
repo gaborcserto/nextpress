@@ -7,6 +7,7 @@ import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
+import { publicationLabels } from "@/lib/content/publication-status";
 import {
   DataListEmptyRow,
   DataListLoading,
@@ -31,7 +32,7 @@ import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import ContentListPagination from "./ContentListPagination";
 
-import type { ContentListItem, ContentListProps } from "./ContentList.types";
+import type { ContentListProps } from "./ContentList.types";
 
 type ConfirmPayload = { id: string; title: string };
 
@@ -234,7 +235,7 @@ export default function ContentList({
                           data-content-status={item.status}
                           title="Publication status reflects the API response time and updates when this list refreshes."
                         >
-                          {publicationLabel(item.publicationState)}
+                          {publicationLabels[item.publicationState]}
                         </span>
                       </td>
 
@@ -315,15 +316,4 @@ export default function ContentList({
       </ConfirmDialog>
     </AdminPageLayout>
   );
-}
-
-function publicationLabel(state: ContentListItem["publicationState"]) {
-  const labels = {
-    DRAFT: "Draft",
-    PUBLISHED: "Published",
-    SCHEDULED: "Scheduled",
-    MISSING_DATE: "Publication date missing",
-  } as const;
-
-  return labels[state];
 }

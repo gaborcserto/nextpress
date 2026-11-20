@@ -5,13 +5,16 @@ import type {
   TagLoadOptionsFn,
   TagUpdateEntityFn,
 } from "@/lib/content/contracts";
+import type { LegacySaveOutcome } from "@/lib/content/legacy-editor";
 import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
 
 export type PageFormProps = {
   privateEditing?: PrivateEditing;
   contentId?: string;
   initial: PageFormValues;
-  onSubmitAction: (values: PageFormValues) => Promise<boolean> | boolean;
+  onSubmitAction: (
+    values: PageFormValues,
+  ) => Promise<LegacySaveOutcome> | LegacySaveOutcome;
   submitting?: boolean;
   submitLabel?: string;
 

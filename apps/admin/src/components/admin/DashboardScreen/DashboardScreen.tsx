@@ -7,6 +7,7 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { useSession } from "@/lib/auth/auth-client";
+import { publicationLabels } from "@/lib/content/publication-status";
 import { DataListLoading } from "@/ui/components/DataList";
 import { Alert, Button, LinkIconButton } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
@@ -94,13 +95,7 @@ function CollectionOverview({
                     data-content-status={item.status}
                     title="Publication status reflects the API response time and updates when this dashboard refreshes."
                   >
-                    {item.publicationState === "DRAFT"
-                      ? "Draft"
-                      : item.publicationState === "SCHEDULED"
-                        ? "Scheduled"
-                        : item.publicationState === "MISSING_DATE"
-                          ? "Publication date missing"
-                          : "Published"}
+                    {publicationLabels[item.publicationState]}
                   </span>
                   <FaArrowRight aria-hidden="true" />
                 </Link>

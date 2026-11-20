@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 
 import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
 } from "@/lib/content/editor";
+import { useEditorSubmission } from "@/lib/content/useEditorSubmission";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
 import { slugify } from "@/lib/utils";
@@ -66,12 +67,6 @@ export default function PageForm({
   const unsaved = useUnsavedChanges(form, false, privateDraft?.dirty);
 
   const [slugEdited, setSlugEdited] = useState<boolean>(Boolean(initial.slug));
-  const [hasSaved, setHasSaved] = useState(false);
-  const [saveFailed, setSaveFailed] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{
-    title?: string;
-    slug?: string;
-  }>({});
 
   const setField = <K extends keyof PageFormValues>(
     key: K,
@@ -102,49 +97,17 @@ export default function PageForm({
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (submitting) {
-      return;
-    }
-
-    const errors = {
-      ...(form.title.trim() ? {} : { title: "Title is required." }),
-      ...(form.slug.trim() ? {} : { slug: "Slug is required." }),
-    };
-    setFieldErrors(errors);
-
-    if (Object.keys(errors).length) {
-      return;
-    }
-
-    setSaveFailed(false);
-
-    if (privateDraft) {
-      await privateDraft.save();
-
-      return;
-    }
-
-    if ((await onSubmitAction(form)) === true) {
-      unsaved.markSaved();
-      setHasSaved(true);
-    } else {
-      setSaveFailed(true);
-    }
-  };
-
+  const { handleSubmit, fieldErrors, clearFieldError, saveStatus } =
+    useEditorSubmission({
+      form,
+      setForm,
+      submitting,
+      dirty: unsaved.dirty,
+      markSaved: unsaved.markSaved,
+      savePrivateDraft: privateDraft?.save,
+      onSubmitAction,
+    });
   const entityId = contentId ?? getEntityId(initial);
-  let saveStatus = hasSaved ? "Saved" : "No unsaved changes";
-
-  if (submitting) {
-    saveStatus = "Saving...";
-  } else if (saveFailed) {
-    saveStatus = "Save failed. Your edits are retained. Retry saving.";
-  } else if (unsaved.dirty) {
-    saveStatus = "Unsaved changes";
-  }
 
   return (
     <form id="admin-content-editor" onSubmit={handleSubmit}>
@@ -161,7 +124,7 @@ export default function PageForm({
           values={form}
           renderHeader={(preview) => (
             <EditorActions
-              status={privateDraft?.publicStatus ?? form.status}
+              publication={privateDraft?.publicState ?? initial}
               saveStatus={saveStatus}
               submitLabel={submitLabel}
               saving={
@@ -284,11 +247,11 @@ export default function PageForm({
                       value={form.title}
                       onChange={(e) => {
                         onTitleChange(e.target.value);
-                        setFieldErrors((current) => ({
-                          ...current,
-                          title: undefined,
-                          slug: slugEdited ? current.slug : undefined,
-                        }));
+                        clearFieldError("title");
+
+                        if (!slugEdited) {
+                          clearFieldError("slug");
+                        }
                       }}
                       required
                       error={fieldErrors.title}
@@ -308,10 +271,7 @@ export default function PageForm({
                       onChange={(e) => {
                         setSlugEdited(true);
                         setField("slug", slugify(e.target.value));
-                        setFieldErrors((current) => ({
-                          ...current,
-                          slug: undefined,
-                        }));
+                        clearFieldError("slug");
                       }}
                       required
                       error={fieldErrors.slug}

@@ -190,11 +190,15 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           disabled={publicationDisabled}
           onClick={() => setConfirmation("publish")}
         >
-          {draft.publicStatus === "PUBLISHED" ? "Publish Changes" : "Publish"}
+          {draft.publicState.status === "PUBLISHED"
+            ? "Publish Changes"
+            : "Publish"}
         </Button>
         <Button
           type="button"
-          disabled={publicationDisabled || draft.publicStatus !== "PUBLISHED"}
+          disabled={
+            publicationDisabled || draft.publicState.status !== "PUBLISHED"
+          }
           onClick={() => setConfirmation("unpublish")}
         >
           Unpublish

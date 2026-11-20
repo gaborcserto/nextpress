@@ -15,9 +15,11 @@ The npm workspace monorepo is coordinated by Turborepo:
 
 Prisma repositories and API services are authoritative for persistence and domain operations. Request handlers validate untrusted inputs and apply authentication/authorization on the server. Better Auth session identity is distinct from role/ownership authorization. Admin UI controls do not enforce protected operations.
 
-Public routes project eligible published content from the existing Page model. A publication time must be present and due. Private working revisions are not public-reader inputs. The web app validates its HTTP response boundary; requests currently use `no-store`. This avoids coupling public rendering to database credentials but means caching and high-throughput behavior remain to be designed and measured.
+Public routes project eligible published content from the existing Page model. Detail, navigation, discovery, and public media reference queries share one eligibility predicate. Content must have published status and a publication time at or before the query clock. Private working revisions are not public-reader inputs. The web app validates its HTTP response boundary; requests currently use `no-store`. This avoids coupling public rendering to database credentials but means caching and high-throughput behavior remain to be designed and measured.
 
 ## Editorial persistence
+
+The Page and Post editors send publication fields on update only when the selected status or date changes. They adopt the saved publication date, status, and version from the update response. Historical published records without a date remain hidden after ordinary edits.
 
 Legacy page fields and `PageRevision` coexist with newer private working aggregate/revision models. Admission to private-draft rehearsal is guarded by development/test restrictions and database readiness controls. Scheduled-release execution is an explicit bounded operation; no background scheduler is installed. This is an incremental persistence foundation, not a complete production editorial workflow.
 
