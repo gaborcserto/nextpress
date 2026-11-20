@@ -17,7 +17,7 @@ import {
   type WorkingAggregate,
 } from "@/lib/validation/working-aggregate";
 
-import { legacyPageMapping } from "./legacy-content-backfill.server";
+import { legacyPageMapping } from "./editorial-mapping";
 
 import type {
   PageRevision,

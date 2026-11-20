@@ -2,8 +2,9 @@ import {
   requireContentWrite,
   type ContentActor,
 } from "@/lib/auth/content-access";
-import { deletePage, listPages } from "@/lib/repos";
+import { deletePage } from "@/lib/repos";
 
+import { listAdministrativeContent } from "./content-list.server";
 import {
   createContentService,
   updateContentService,
@@ -35,22 +36,10 @@ export async function deletePageService(
 /**
  * List pages with pagination (for admin).
  */
-export async function listPagesService(
+export function listPagesService(
   page: number,
   limit: number,
   actor?: ContentActor | null,
 ) {
-  const safePage = Math.max(1, page);
-  const safeLimit = Math.min(100, Math.max(1, limit));
-  const skip = (safePage - 1) * safeLimit;
-
-  const { items, total } = await listPages(skip, safeLimit, { actor });
-
-  return {
-    items,
-    page: safePage,
-    limit: safeLimit,
-    total,
-    pages: Math.ceil(total / safeLimit),
-  };
+  return listAdministrativeContent("PAGE", page, limit, actor);
 }

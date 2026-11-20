@@ -15,7 +15,7 @@ import {
   WorkingAggregateSchema,
 } from "@/lib/validation/working-aggregate";
 
-import { mapEditorialReferenceEdges } from "./legacy-content-backfill.server";
+import { mapEditorialReferenceEdges } from "./editorial-mapping";
 import {
   assertWorkingAggregateBase,
   captureWorkingAggregate,

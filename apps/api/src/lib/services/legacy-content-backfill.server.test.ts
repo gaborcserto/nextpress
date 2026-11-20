@@ -1,10 +1,10 @@
 import { prisma } from "@nextpress/db/src/client";
 import { describe, expect, it, vi } from "vitest";
 
+import { mapEditorialReferenceEdges } from "./editorial-mapping";
 import { verifyBackfillDatabase } from "./legacy-backfill-fence.server";
 import {
   backfillLegacyContent,
-  mapEditorialReferenceEdges,
   mapLegacyRevisionHistory,
 } from "./legacy-content-backfill.server";
 import { persistLegacyPageInDisposableDatabase } from "../testing/legacy-backfill-persistence";

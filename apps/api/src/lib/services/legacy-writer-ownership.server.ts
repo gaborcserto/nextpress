@@ -9,7 +9,7 @@ import {
 import {
   BackfillConflictError,
   inspectLegacyPage,
-} from "./legacy-content-backfill.server";
+} from "./legacy-backfill-planning.server";
 
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 

@@ -78,6 +78,15 @@ describe("portable CMS contracts", () => {
     });
   });
 
+  it("preserves explicit date clearing and tag removal in a partial update", () => {
+    const input = { expectedVersion: 2, publishedAt: null, tagIds: [] };
+
+    expect(PageUpdateSchema.parse(input)).toEqual(input);
+    expect(PageUpdateSchema.safeParse({ ...input, tagIds: null }).success).toBe(
+      false,
+    );
+  });
+
   it("keeps legacy editorial arrays distinct from delivery documents", () => {
     const content = readRichContent(
       '[{"type":"paragraph","children":[{"text":"legacy"}]}]',

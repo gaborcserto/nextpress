@@ -1,17 +1,10 @@
 import { prisma } from "@nextpress/db/src/client";
 
-import { ok, bad, conflict, oops, forbid } from "@/lib/api";
+import { ok, bad } from "@/lib/api";
+import { contentMutationError } from "@/lib/api/content-mutation-error";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
-import {
-  ContentForbiddenError,
-  contentReadWhere,
-} from "@/lib/auth/content-access";
-import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
-import {
-  PageValidationError,
-  PageConflictError,
-} from "@/lib/services/content.shared";
+import { contentReadWhere } from "@/lib/auth/content-access";
 import {
   createPageService,
   listPagesService,
@@ -39,23 +32,7 @@ export const POST = withAuth(
 
       return ok(created, 201);
     } catch (err) {
-      if (err instanceof ContentForbiddenError) {
-        return forbid();
-      }
-
-      if (err instanceof TaxonomyScopeError) {
-        return bad(err.message);
-      }
-
-      if (err instanceof PageValidationError) {
-        return bad(err.message, { issues: err.issues });
-      }
-
-      if (err instanceof PageConflictError) {
-        return conflict(err.message);
-      }
-
-      return oops(err);
+      return contentMutationError(err, "create");
     }
   },
   "create-content",

@@ -1,26 +1,10 @@
 import { readRichContent } from "@nextpress/shared/content";
 
-import {
-  ok,
-  bad,
-  notfound,
-  conflict,
-  internalError,
-  oops,
-  forbid,
-} from "@/lib/api";
+import { ok, bad, notfound, internalError } from "@/lib/api";
+import { contentMutationError } from "@/lib/api/content-mutation-error";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
-import {
-  ContentForbiddenError,
-  ContentNotFoundError,
-} from "@/lib/auth/content-access";
 import { getPageById, getTagsForPage } from "@/lib/repos";
-import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
-import {
-  PageValidationError,
-  PageConflictError,
-} from "@/lib/services/content.shared";
 import {
   deletePageService,
   updatePageService,
@@ -110,27 +94,7 @@ export const PUT = withAuth(
 
       return ok(updated);
     } catch (err) {
-      if (err instanceof ContentForbiddenError) {
-        return forbid();
-      }
-
-      if (err instanceof ContentNotFoundError) {
-        return notfound();
-      }
-
-      if (err instanceof TaxonomyScopeError) {
-        return bad(err.message);
-      }
-
-      if (err instanceof PageValidationError) {
-        return bad(err.message, { issues: err.issues });
-      }
-
-      if (err instanceof PageConflictError) {
-        return conflict(err.message);
-      }
-
-      return oops(err);
+      return contentMutationError(err, "update");
     }
   },
   "content",
@@ -149,15 +113,7 @@ export const DELETE = withAuth(
 
       return ok({ ok: true });
     } catch (err) {
-      if (err instanceof ContentForbiddenError) {
-        return forbid();
-      }
-
-      if (err instanceof ContentNotFoundError) {
-        return notfound();
-      }
-
-      return oops(err);
+      return contentMutationError(err, "delete");
     }
   },
   "content",

@@ -30,20 +30,31 @@ export const TagCreateSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
 });
 
-/** Create PAGE / POST */
-export const PageSchema = z.object({
+const contentWriteFields = {
   type: z.enum(["PAGE", "POST"]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
   slug: ContentSlugSchema,
   title: z.string().trim().min(1).max(300),
-  excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)).default(
-    EMPTY_RICH_CONTENT,
-  ),
-  content: SerializedRichContentSchema.default(EMPTY_RICH_CONTENT),
-  layout: ContentLayoutSchema.optional(),
-  inHeaderMenu: z.boolean().optional(),
-  inFooterMenu: z.boolean().optional(),
-  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)),
+  content: SerializedRichContentSchema,
+  layout: ContentLayoutSchema,
+  inHeaderMenu: z.boolean(),
+  inFooterMenu: z.boolean(),
+  publishedAt: z.iso.datetime({ offset: true }).nullable(),
+};
+
+/** Create PAGE / POST */
+export const PageSchema = z.object({
+  type: contentWriteFields.type,
+  status: contentWriteFields.status,
+  slug: contentWriteFields.slug,
+  title: contentWriteFields.title,
+  excerpt: contentWriteFields.excerpt.default(EMPTY_RICH_CONTENT),
+  content: contentWriteFields.content.default(EMPTY_RICH_CONTENT),
+  layout: contentWriteFields.layout.optional(),
+  inHeaderMenu: contentWriteFields.inHeaderMenu.optional(),
+  inFooterMenu: contentWriteFields.inFooterMenu.optional(),
+  publishedAt: contentWriteFields.publishedAt.optional(),
 
   tagIds: TagIdsSchema,
 });
@@ -53,16 +64,16 @@ export type PageCreateInput = Omit<z.infer<typeof PageSchema>, "tagIds">;
 /** Update PAGE / POST */
 export const PageUpdateSchema = z.object({
   expectedVersion: z.number().int().min(0).max(2_147_483_646),
-  type: z.enum(["PAGE", "POST"]).optional(),
-  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
-  slug: ContentSlugSchema.optional(),
-  title: z.string().trim().min(1).max(300).optional(),
-  excerpt: SerializedRichContentSchema.pipe(z.string().max(10_000)).optional(),
-  content: SerializedRichContentSchema.optional(),
-  layout: ContentLayoutSchema.optional(),
-  inHeaderMenu: z.boolean().optional(),
-  inFooterMenu: z.boolean().optional(),
-  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  type: contentWriteFields.type.optional(),
+  status: contentWriteFields.status.optional(),
+  slug: contentWriteFields.slug.optional(),
+  title: contentWriteFields.title.optional(),
+  excerpt: contentWriteFields.excerpt.optional(),
+  content: contentWriteFields.content.optional(),
+  layout: contentWriteFields.layout.optional(),
+  inHeaderMenu: contentWriteFields.inHeaderMenu.optional(),
+  inFooterMenu: contentWriteFields.inFooterMenu.optional(),
+  publishedAt: contentWriteFields.publishedAt.optional(),
 
   tagIds: TagIdsSchema.removeDefault().optional(),
 });

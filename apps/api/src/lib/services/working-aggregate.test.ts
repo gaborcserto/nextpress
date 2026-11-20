@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { WorkingAggregateSchema } from "@/lib/validation/working-aggregate";
 
-import { mapEditorialReferenceEdges } from "./legacy-content-backfill.server";
+import { mapEditorialReferenceEdges } from "./editorial-mapping";
 import {
   assertWorkingAggregateBase,
   captureWorkingAggregate,
@@ -15,6 +15,17 @@ import {
 import { workingPersistenceFailure } from "./working-persistence-errors";
 
 vi.mock("@nextpress/db/src/client", () => ({ prisma: {} }));
+
+vi.mock("./legacy-content-backfill.server", () => {
+  throw new Error(
+    "Working aggregate must load independently of backfill orchestration",
+  );
+});
+vi.mock("./legacy-backfill-planning.server", () => {
+  throw new Error(
+    "Working aggregate must load independently of backfill planning",
+  );
+});
 
 it("reports unique content collisions as deterministic conflicts without adapter details", () => {
   expect(
