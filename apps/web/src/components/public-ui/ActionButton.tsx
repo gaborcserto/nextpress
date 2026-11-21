@@ -1,4 +1,4 @@
-import styles from "./public-ui.module.scss";
+import styles from "./public-ui.module.css";
 
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 

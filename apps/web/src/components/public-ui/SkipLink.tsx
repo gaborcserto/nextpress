@@ -1,6 +1,6 @@
 import { UiText } from "@/lib/i18n/client";
 
-import styles from "./public-ui.module.scss";
+import styles from "./public-ui.module.css";
 
 export function SkipLink({
   href = "#main-content",

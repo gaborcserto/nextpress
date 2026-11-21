@@ -29,17 +29,16 @@
   transition:
     background-color var(--duration-short) var(--easing-standard),
     border-color var(--duration-short) var(--easing-standard);
+}
 
-  &:hover {
-    border-color: var(--color-action-hover);
-    background: var(--color-action-hover);
-    color: var(--color-text-on-action);
-  }
-
-  &:focus-visible {
-    outline: 3px solid var(--color-focus-ring);
-    outline-offset: 3px;
-  }
+.action:hover {
+  border-color: var(--color-action-hover);
+  background: var(--color-action-hover);
+  color: var(--color-text-on-action);
+}
+.action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 .actionButton:disabled {
