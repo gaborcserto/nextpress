@@ -22,7 +22,16 @@ const { findFirst, findMany } = vi.hoisted(() => ({
   findFirst: vi.fn(),
   findMany: vi.fn(),
 }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findFirst, findMany } } }));
+vi.mock("@nextpress/db", () => ({
+  prisma: {
+    page: { findFirst, findMany },
+    $transaction: (
+      transaction: (tx: {
+        page: { findFirst: typeof findFirst; findMany: typeof findMany };
+      }) => unknown,
+    ) => transaction({ page: { findFirst, findMany } }),
+  },
+}));
 vi.mock("@nextpress/db/src/client", () => ({
   prisma: { page: { findFirst, findMany } },
 }));
@@ -36,6 +45,7 @@ it.each([page, post])(
   async (handler) => {
     const fixture = editorialFixtures[1];
     findFirst.mockResolvedValue(fixture);
+    findMany.mockResolvedValue([{ ...fixture, parentId: null }]);
     const response = await handler(
       new Request("http://localhost/api/public/pages/baseline"),
       { params: Promise.resolve({ slug: "baseline" }) },

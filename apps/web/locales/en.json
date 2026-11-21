@@ -43,6 +43,7 @@
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
     "primaryNavigation": "Primary",
+    "sidebarNavigation": "Sidebar",
     "footerNavigation": "Footer",
     "recoveryNavigation": "Recovery",
     "postNavigation": "Post navigation",

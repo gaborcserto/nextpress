@@ -7,7 +7,15 @@ const { findFirst, findMany, findMedia } = vi.hoisted(() => ({
   findMany: vi.fn(),
 }));
 vi.mock("@nextpress/db", () => ({
-  prisma: { page: { findFirst, findMany }, media: { findMany: findMedia } },
+  prisma: {
+    page: { findFirst, findMany },
+    media: { findMany: findMedia },
+    $transaction: (
+      transaction: (tx: {
+        page: { findFirst: typeof findFirst; findMany: typeof findMany };
+      }) => unknown,
+    ) => transaction({ page: { findFirst, findMany } }),
+  },
 }));
 
 import {
@@ -61,6 +69,9 @@ beforeEach(() => {
 
 describe("public published content boundary", () => {
   it("reads only explicitly published pages whose publication time has arrived", async () => {
+    findMany.mockResolvedValue([
+      { id: row.id, slug: row.slug, parentId: null, layout: "STANDARD" },
+    ]);
     expect(await getPublishedPage("published")).toMatchObject({
       slug: "published",
       publishedAt: row.publishedAt.toISOString(),
@@ -455,6 +466,10 @@ describe("public published content boundary", () => {
       content: '{"version":2}',
       excerpt: "[",
     });
+    findMany.mockResolvedValue([
+      { id: row.id, slug: row.slug, parentId: null, layout: "STANDARD" },
+    ]);
+
     expect(await getPublishedPage("published")).toMatchObject({
       slug: "published",
       summary: "",

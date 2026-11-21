@@ -45,13 +45,14 @@ export function normalizePublicListPagination({
 async function getContent(
   kind: "posts" | "pages",
   slug: string,
+  path?: string,
 ): Promise<PublicContent | null> {
   if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) {
     return null;
   }
 
   return fetchPublic(
-    `${kind}/${encodeURIComponent(slug)}`,
+    `${kind}/${encodeURIComponent(slug)}${path ? `?path=${encodeURIComponent(path)}` : ""}`,
     PublicContentSchema,
     true,
   );
@@ -60,8 +61,8 @@ async function getContent(
 export const getPublishedPost = cache((slug: string) =>
   getContent("posts", slug),
 );
-export const getPublishedPage = cache((slug: string) =>
-  getContent("pages", slug),
+export const getPublishedPage = cache((slug: string, path?: string) =>
+  getContent("pages", slug, path),
 );
 export const getPublishedHome = cache(() =>
   fetchPublic("home", PublicContentSchema, true),

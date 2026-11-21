@@ -1,6 +1,6 @@
-﻿# ADR-003: PDF documents use the existing asset store
+# ADR-003: PDF documents use the existing asset store
 
-- Status: Accepted for the partial FUNC-03.2 implementation
+- Status: Accepted for FUNC-03.2 under the revised attachment-delivery criteria
 
 The Document Library stores PDFs in existing Media rows, distinguished by their verified MIME type. It reuses generated IDs and keys, the local storage boundary, write compensation, ownership scopes, the upload queue, and the revision lock used by reference-aware deletion. The title uses the existing caption field. Existing image keys and IDs are unchanged. PDF writes skip the image decoder. No migration or provider integration is needed.
 
@@ -8,6 +8,6 @@ The API accepts one raw PDF per authenticated upload request. The browser queue 
 
 qpdf inspects parsed object dictionaries without exporting document streams. The application rejects encrypted documents and recognized annotations, actions, forms, embedded files, and external file references. This deliberately excludes ordinary link annotations and fillable PDFs. Structural inspection does not exhaustively validate page streams, identify every polyglot, scan for malware, or sanitize file bytes. The API does not render or open the original file or fetch document resources. [qpdf CLI and parser limits](https://qpdf.readthedocs.io/en/12.4/cli.html).
 
-Public and protected downloads stream attachments with PDF MIME, nosniff, no-store, and a UTF-8 filename with an ASCII fallback. A due published Post or Page must contain an exact validated document-block reference before the anonymous endpoint serves it. Drafts and retained revisions protect deletion independently. Downloads from Live and Saved Preview open through the configured Admin origin in a separate tab and require the applicable session or current public availability. A user can review the downloaded file in a local viewer. In-browser visual PDF preview remains partial pending an isolated viewer or a sandboxed rasterization path. HTTP range and conditional requests are deferred. [Content-Disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition).
+Public and protected downloads stream attachments with PDF MIME, nosniff, no-store, and a UTF-8 filename with an ASCII fallback. A due published Post or Page must contain an exact validated document-block reference before the anonymous endpoint serves it. Drafts and retained revisions protect deletion independently. Downloads from Live and Saved Preview open through the configured Admin origin in a separate tab and require the applicable session or current public availability. A user can review the downloaded file in a local viewer. In-browser visual PDF preview is optional future work in FUNC-03.3. HTTP range and conditional requests are deferred. [Content-Disposition](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition).
 
 Future formats need an explicit validation and delivery policy. Other possible extensions include a Downloads page type, application settings for bounded upload limits, thumbnails, text extraction, full-text search, malware scanning, object storage, and delivery or CDN optimization.

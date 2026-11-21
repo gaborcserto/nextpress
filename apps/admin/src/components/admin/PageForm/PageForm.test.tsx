@@ -122,35 +122,15 @@ describe("PageForm", () => {
     );
   });
 
-  it("keeps header and footer menu placements independently selectable and saved", async () => {
-    const save = vi.fn(async () => true);
+  it("opens managed menu placement from the Page editor", () => {
     renderPage(
-      {
-        ...initial,
-        title: "Navigation page",
-        slug: "navigation-page",
-        inHeaderMenu: true,
-      },
-      save,
+      initial,
+      vi.fn(async () => true),
     );
 
-    const headerPlacement = screen.getByRole("checkbox", {
-      name: "Show in header menu",
-    });
-    const footerPlacement = screen.getByRole("checkbox", {
-      name: "Show in footer menu",
-    });
-    expect(headerPlacement).toBeChecked();
-    expect(footerPlacement).not.toBeChecked();
-
-    fireEvent.click(footerPlacement);
-    await act(async () =>
-      fireEvent.click(screen.getByRole("button", { name: "Save" })),
-    );
-
-    expect(save).toHaveBeenCalledWith(
-      expect.objectContaining({ inHeaderMenu: true, inFooterMenu: true }),
-    );
+    expect(
+      screen.getByRole("link", { name: "Manage menu placement" }),
+    ).toHaveAttribute("href", "/admin/settings/menus");
   });
 
   it("retains failed edits and retries tags through the same form save", async () => {
@@ -342,13 +322,6 @@ describe("PageForm", () => {
         />,
       );
       expect(
-        screen.getByText(
-          parentId
-            ? "A parent page is assigned."
-            : "No parent page is assigned.",
-        ),
-      ).toBeInTheDocument();
-      expect(
         screen.queryByRole("combobox", { name: "Parent page" }),
       ).not.toBeInTheDocument();
       fireEvent.change(screen.getByLabelText("Title"), {
@@ -361,11 +334,13 @@ describe("PageForm", () => {
       });
       expect(save).toHaveBeenCalledOnce();
       expect(fetchSpy).not.toHaveBeenCalledWith(
-        "/api/pages?select=parent",
+        "/api/admin/page-hierarchy",
         expect.anything(),
       );
       expect(
-        fetchSpy.mock.calls.some(([url]) => url === "/api/pages?select=parent"),
+        fetchSpy.mock.calls.some(
+          ([url]) => url === "/api/admin/page-hierarchy",
+        ),
       ).toBe(false);
       fetchSpy.mockRestore();
     },

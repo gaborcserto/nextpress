@@ -20,6 +20,7 @@ export function resolveWebsiteAppearance(value: unknown) {
     stylePreset: template.stylePreset,
     colorMode: appearance.colorMode,
     views: template.views,
+    navigation: template.navigation,
     listVariant: resolvePostListTemplate(publicAppearance.template).id,
   };
 }

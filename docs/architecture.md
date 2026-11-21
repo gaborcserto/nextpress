@@ -15,7 +15,7 @@ The npm workspace monorepo is coordinated by Turborepo:
 
 Prisma repositories and API services are authoritative for persistence and domain operations. Request handlers validate untrusted inputs and apply authentication/authorization on the server. Better Auth session identity is distinct from role/ownership authorization. Admin UI controls do not enforce protected operations.
 
-Public routes project eligible published content from the existing Page model. Detail, navigation, discovery, and public media reference queries share one eligibility predicate. Content must have published status and a publication time at or before the query clock. Private working revisions are not public-reader inputs. The web app validates its HTTP response boundary; requests currently use `no-store`. This avoids coupling public rendering to database credentials but means caching and high-throughput behavior remain to be designed and measured.
+Public routes project eligible published content from the existing Page model. Detail, navigation, discovery, and public media reference queries share one eligibility predicate. Content must have published status and a publication time at or before the query clock. Nested Page reads require an eligible ancestry. Navigation menu snapshots and location assignments are resolved in the API and projected through the public shell. Private working revisions are not public-reader inputs. The web app validates its HTTP response boundary; requests currently use `no-store`. This avoids coupling public rendering to database credentials but means caching and high-throughput behavior remain to be designed and measured.
 
 ## Editorial persistence
 

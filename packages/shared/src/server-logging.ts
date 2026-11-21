@@ -40,6 +40,26 @@ const events = {
     outcome: "failure",
   },
   "user.role.changed": { category: "audit", level: "info", outcome: "success" },
+  "navigation.menu.created": {
+    category: "audit",
+    level: "info",
+    outcome: "success",
+  },
+  "navigation.menu.updated": {
+    category: "audit",
+    level: "info",
+    outcome: "success",
+  },
+  "navigation.menu.deleted": {
+    category: "audit",
+    level: "info",
+    outcome: "success",
+  },
+  "page.hierarchy.updated": {
+    category: "audit",
+    level: "info",
+    outcome: "success",
+  },
   "user.deleted": { category: "audit", level: "info", outcome: "success" },
   "media.uploaded": { category: "audit", level: "info", outcome: "success" },
   "media.deleted": { category: "audit", level: "info", outcome: "success" },
@@ -98,6 +118,10 @@ type AuditTarget = {
 
 type AuditFields = {
   "user.role.changed": AuditTarget & { role: RoleName };
+  "navigation.menu.created": AuditTarget;
+  "navigation.menu.updated": AuditTarget;
+  "navigation.menu.deleted": AuditTarget;
+  "page.hierarchy.updated": AuditTarget;
   "user.deleted": AuditTarget;
   "media.uploaded": AuditTarget;
   "media.deleted": AuditTarget;
@@ -198,7 +222,12 @@ export function writeServerLog(
         : undefined,
     actorId: category === "audit" && isEntityId(actorId) ? actorId : undefined,
     targetId:
-      category === "audit" && isEntityId(targetId) ? targetId : undefined,
+      category === "audit" &&
+      (isEntityId(targetId) ||
+        (event.startsWith("navigation.menu.") &&
+          ["initial-header", "initial-footer"].some((id) => id === targetId)))
+        ? targetId
+        : undefined,
     role: event === "user.role.changed" && isRole(role) ? role : undefined,
     action:
       event === "revision.transition" &&

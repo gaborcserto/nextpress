@@ -37,13 +37,15 @@ The schema distinguishes `PageType` (content classification) and `PageLayout` (l
 | Gallery Page        | Editors can attach and order up to 48 images. Public and preview views share the Gallery renderer and its localized empty state.                                                            |
 | Other modeled types | Partial; model enums/forms exist, public behavior varies by type                                                                                                                            |
 
-Intended hierarchy includes parent/child pages, nested structure, ordering, hierarchical navigation, cycle prevention, and keyboard-accessible organization. Current parent relationship and hierarchy controls are partial; audit required for the complete set.
+Pages support parent assignment, child listing, sibling order and nested public paths. The API rejects cycles and moves beyond eight levels. Hierarchy is managed independently of menu placement.
 
 ## Navigation
 
-Intended capabilities: database-driven menus; header, footer, and optional sidebar locations; nested menus/dropdowns; destinations for pages, posts, taxonomy, and external URLs; ordering; template-specific locations; defined empty-menu behavior; and mobile navigation. Current settings and menu UI/contracts exist, but end-to-end coverage of this set is **Partial**.
+Use **Menus** under Administration to manage Header, Footer and Sidebar links. Each menu can use Pages, Posts, Categories, Tags, explicit site paths, HTTP(S) links, or group labels. Use the pointer or keyboard to edit menus through **Move up**, **Move down** and **Parent item**. A menu save applies the complete change. Link destinations tied to content IDs follow the current public URL.
 
-The Minimal public template is intended to support an optional Sidebar menu, disabled by default and integrated into its editorial layout rather than creating an unrelated dashboard-style column. This intended behavior is not claimed complete.
+Administrators and editors can open **Page hierarchy** from the Pages list or an existing Page editor. Choose a parent and sibling order to move a Page. Child links and the proposed path appear in the same panel. Web omits links through unpublished ancestors. Sidebar navigation appears only for the Minimal preset when its assigned menu contains public links.
+
+See [Page paths and navigation menus](decisions/004-navigation-and-page-hierarchy.md) for limits, canonical URLs and preview behavior.
 
 ## Media
 

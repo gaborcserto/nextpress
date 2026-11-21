@@ -26,13 +26,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       PublicContentIndexSchema,
     );
     entries.push(
-      ...batch.items.map((item) => ({
-        url: new URL(
-          `/en/${item.type === "POST" ? "posts" : "pages"}/${item.slug}`,
-          origin,
-        ).href,
-        lastModified: item.updatedAt,
-      })),
+      ...batch.items
+        .filter((item) => item.canonicalPath !== "/")
+        .map((item) => ({
+          url: new URL(
+            `/en${item.canonicalPath ?? `/${item.type === "POST" ? "posts" : "pages"}/${item.slug}`}`,
+            origin,
+          ).href,
+          lastModified: item.updatedAt,
+        })),
     );
 
     if (!batch.hasMore) {

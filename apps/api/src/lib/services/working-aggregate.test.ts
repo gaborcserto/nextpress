@@ -58,6 +58,7 @@ function source(
     coverId: "cover",
     inHeaderMenu: true,
     inFooterMenu: false,
+    siblingOrder: 0,
     parentId: "parent",
     listingKind: "EVENTS",
     listingTaxonomyId: "category",

@@ -32,6 +32,7 @@ const publishingItems: readonly NavConfig[] = [
 const administrationItems: readonly NavConfig[] = [
   { href: "/admin/users", label: "Users", icon: FaUsers },
   { href: "/admin/settings", label: "Settings", icon: FaCog },
+  { href: "/admin/settings/menus", label: "Menus", icon: FaCog },
 ];
 
 export default function Sidebar({

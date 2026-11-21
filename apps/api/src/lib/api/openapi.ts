@@ -17,6 +17,10 @@ import {
   PublicTagBatchSchema,
   PublicPostBatchSchema,
   PublicNavigationSchema,
+  PublicMenusSchema,
+  PageHierarchyMutationSchema,
+  NavigationMenuListSchema,
+  NavigationMenuMutationSchema,
   PublicSiteSettingsSchema,
   SessionDiscoverySchema,
   ProviderDiscoverySchema,
@@ -131,6 +135,26 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   MediaDetails: schema(MediaDetailsSchema),
   MediaEdit: schema(MediaEditSchema),
   PublicContentIndex: schema(PublicContentIndexSchema),
+  PublicMenus: schema(PublicMenusSchema),
+  NavigationMenuList: schema(NavigationMenuListSchema),
+  NavigationMenuMutation: schema(NavigationMenuMutationSchema),
+  NavigationMenuResult: object({ id: string }),
+  PageHierarchy: array(
+    object({
+      id: string,
+      title: string,
+      slug: string,
+      layout: string,
+      parentId: nullableString,
+      siblingOrder: integer,
+    }),
+  ),
+  PageHierarchyMutation: schema(PageHierarchyMutationSchema),
+  PageHierarchyResult: object({
+    id: string,
+    parentId: nullableString,
+    siblingOrder: integer,
+  }),
   Health: object({ status: { type: "string", enum: ["ok"] } }),
   Error: schema(ApiErrorSchema),
   Success: object({ ok: { type: "boolean", enum: [true] } }),
@@ -816,6 +840,56 @@ paths["/api/admin/settings/appearance/catalog"] = {
     [401, 403, 500],
     "ADMIN only. Returns the API release's supported renderers, with each template's default and available presets.",
     "protected",
+  ),
+};
+
+paths["/api/admin/navigation"] = {
+  get: operation(
+    "listNavigationMenus",
+    "Settings",
+    "List menus",
+    ref("NavigationMenuList"),
+    [401, 403, 500],
+    "ADMIN only.",
+    "protected",
+  ),
+  post: operation(
+    "mutateNavigationMenu",
+    "Settings",
+    "Create, replace or delete a menu",
+    ref("NavigationMenuResult"),
+    [400, ...mutationCodes, 409, 500],
+    "ADMIN only. Replaces the menu snapshot atomically. Updates and deletions require the expected version.",
+    "protected",
+    "NavigationMenuMutation",
+  ),
+};
+
+const navigationCreate = paths["/api/admin/navigation"].post;
+
+if (navigationCreate) {
+  navigationCreate.responses[201] = navigationCreate.responses[200];
+}
+
+paths["/api/admin/page-hierarchy"] = {
+  get: operation(
+    "readPageHierarchy",
+    "Content",
+    "List Pages for hierarchy management",
+    ref("PageHierarchy"),
+    [401, 403, 500],
+    "ADMIN and EDITOR only.",
+    "protected",
+  ),
+  put: operation(
+    "updatePageHierarchy",
+    "Content",
+    "Move or reorder a Page",
+    ref("PageHierarchyResult"),
+    [400, ...mutationCodes, 404, 409, 500],
+    "ADMIN and EDITOR only. Requires the previously read parent and sibling order.",
+    "protected",
+    "PageHierarchyMutation",
   ),
 };
 

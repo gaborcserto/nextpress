@@ -45,6 +45,116 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     await db.$disconnect();
   });
 
+  it("commits a menu reorder once and projects only published destinations", async () => {
+    const { saveMenu, deleteMenu, MenuConflictError, listMenus } =
+      await import("./navigation");
+    const { getPublicMenus } = await import("@/lib/public/menus.server");
+
+    const parent = await db.page.create({
+      data: {
+        type: "PAGE",
+        title: "Company",
+        slug: `${slug}-company`,
+        content: "",
+        status: "PUBLISHED",
+        publishedAt: new Date("2025-01-01"),
+      },
+    });
+
+    const child = await db.page.create({
+      data: {
+        type: "PAGE",
+        title: "Team",
+        slug: `${slug}-team`,
+        content: "",
+        parentId: parent.id,
+        status: "PUBLISHED",
+        publishedAt: new Date("2025-01-01"),
+      },
+    });
+
+    const linked = {
+      id: "team",
+      kind: "content" as const,
+      value: child.id,
+      label: "",
+      parentId: null,
+      newTab: false,
+    };
+    const external = {
+      id: "external",
+      kind: "external" as const,
+      value: "https://example.com",
+      label: "External",
+      parentId: null,
+      newTab: true,
+    };
+    const input = {
+      name: "Test sidebar",
+      locations: ["sidebar" as const],
+      items: [linked, external],
+    };
+    const { id } = await saveMenu(input);
+
+    try {
+      const results = await Promise.allSettled([
+        saveMenu({ ...input, items: [external, linked] }, { id, version: 0 }),
+        saveMenu({ ...input, name: "Another reorder" }, { id, version: 0 }),
+      ]);
+
+      expect(
+        results.filter(({ status }) => status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(results.find(({ status }) => status === "rejected")).toMatchObject(
+        {
+          reason: expect.any(MenuConflictError),
+        },
+      );
+      expect((await getPublicMenus()).sidebar).toContainEqual({
+        href: `/${parent.slug}/${child.slug}`,
+        label: "Team",
+        parent: null,
+        newTab: false,
+      });
+
+      await db.page.update({
+        where: { id: parent.id },
+        data: { slug: `${slug}-renamed` },
+      });
+      expect((await getPublicMenus()).sidebar).toContainEqual({
+        href: `/${slug}-renamed/${child.slug}`,
+        label: "Team",
+        parent: null,
+        newTab: false,
+      });
+
+      await db.page.update({
+        where: { id: parent.id },
+        data: { status: "DRAFT" },
+      });
+      expect((await getPublicMenus()).sidebar).toEqual([
+        {
+          href: external.value,
+          label: external.label,
+          newTab: true,
+          parent: null,
+        },
+      ]);
+      await db.page.delete({ where: { id: child.id } });
+      expect((await getPublicMenus()).sidebar).toHaveLength(1);
+    } finally {
+      const saved = (await listMenus()).find((menu) => menu.id === id);
+
+      if (saved) {
+        await deleteMenu(saved.id, saved.version);
+      }
+
+      await db.page.deleteMany({
+        where: { id: { in: [child.id, parent.id] } },
+      });
+    }
+  });
+
   it("serializes gallery assignment against asset deletion", async () => {
     const { deleteMedia, MediaReferencedError } =
       await import("@/lib/services/media.server");

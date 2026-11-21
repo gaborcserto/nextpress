@@ -10,8 +10,10 @@ import type { ReactNode } from "react";
 export function NavigationLink({
   href,
   children,
+  newTab,
 }: {
   href: string;
+  newTab?: boolean;
   children: ReactNode;
 }) {
   const currentPath = usePathname();
@@ -22,7 +24,12 @@ export function NavigationLink({
     (targetPath === "/posts" && pathname?.startsWith("/posts/"));
 
   return (
-    <Link href={href} aria-current={current ? "page" : undefined}>
+    <Link
+      href={href}
+      target={newTab ? "_blank" : undefined}
+      rel={newTab ? "noopener noreferrer" : undefined}
+      aria-current={current ? "page" : undefined}
+    >
       {children}
     </Link>
   );

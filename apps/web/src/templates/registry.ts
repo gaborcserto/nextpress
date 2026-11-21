@@ -12,6 +12,12 @@ import { BlogTags } from "./blog/BlogTags";
 
 import type { WebsiteTemplate, StylePresetId } from "./types";
 
+const blogNavigation = {
+  classic: { sidebar: false },
+  modern: { sidebar: false },
+  minimal: { sidebar: true },
+} satisfies Record<StylePresetId, { sidebar: boolean }>;
+
 export const websiteTemplates = [
   {
     id: "blog",
@@ -44,5 +50,5 @@ export function resolveWebsiteTemplate(
     template.presets.find((entry) => entry === appearance.stylePreset) ??
     DEFAULT_APPEARANCE.stylePreset;
 
-  return { ...template, stylePreset };
+  return { ...template, stylePreset, navigation: blogNavigation[stylePreset] };
 }

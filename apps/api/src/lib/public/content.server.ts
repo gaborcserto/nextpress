@@ -19,6 +19,8 @@ import {
   readPageDocument,
 } from "@nextpress/shared/page-document";
 
+import { publishedPagePaths } from "@/lib/repos/page-hierarchy";
+
 import { publicPublicationWhere } from "./eligibility";
 import { parsePublicRichContent } from "./rich-content";
 
@@ -50,6 +52,7 @@ const publicContentSelect = {
 
 const publicPageSelect = {
   ...publicContentSelect,
+  id: true,
   layout: true,
   listingTaxonomy: { select: { type: true, slug: true } },
   gallery: {
@@ -246,21 +249,40 @@ export async function getPublishedPost(
 /** Static pages use the same strict publication boundary as public posts. */
 export async function getPublishedPage(
   slug: string,
+  expectedPath?: string,
 ): Promise<PublicPublishedPage | null> {
   if (!ContentSlugSchema.safeParse(slug).success || slug !== slug.trim()) {
     return null;
   }
 
-  const row = await prisma.page.findFirst({
-    where: {
-      slug,
-      type: "PAGE",
-      ...publicPublicationWhere(new Date()),
-    },
-    select: publicPageSelect,
-  });
+  const now = new Date();
+  const match = await prisma.$transaction(
+    async (tx) => {
+      const row = await tx.page.findFirst({
+        where: { slug, type: "PAGE", ...publicPublicationWhere(now) },
+        select: publicPageSelect,
+      });
 
-  return row?.publishedAt ? projectPublicPage(row) : null;
+      if (!row?.publishedAt) {
+        return null;
+      }
+
+      const paths = await publishedPagePaths(tx, [row.id], now);
+      const canonicalPath = paths.get(row.id);
+
+      return canonicalPath && (!expectedPath || expectedPath === canonicalPath)
+        ? { row, canonicalPath }
+        : null;
+    },
+    { isolationLevel: "RepeatableRead" },
+  );
+
+  return match
+    ? {
+        ...(await projectPublicPage(match.row)),
+        canonicalPath: match.canonicalPath,
+      }
+    : null;
 }
 
 export async function getPublishedHome(): Promise<PublicPublishedPage | null> {

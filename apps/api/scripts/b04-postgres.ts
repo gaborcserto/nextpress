@@ -397,6 +397,7 @@ async function verifyFamily(family: "content" | "security") {
           GRANT EXECUTE ON FUNCTION pg_control_system() TO np_private_app;
           GRANT SELECT ON "User","Role","Account","Session","OAuthProvider","SiteSettings",
             "Page","PageRevision","PageOnTaxonomy","PageMedia","Taxonomy","Media",
+            "NavigationMenu","NavigationItem","NavigationAssignment",
             "ContentEditorialState","LegacyBackfillFence","NPContentFence","NPWorkingRevision",
             "NPWorkingMedia","NPWorkingTaxonomy","NPWorkingPage" TO np_private_app;
           GRANT INSERT, DELETE ON "Session" TO np_private_app;

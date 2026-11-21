@@ -15,7 +15,15 @@ const { findFirst, findMany, findUnique, authenticate } = vi.hoisted(() => ({
   authenticate: vi.fn(),
 }));
 vi.mock("@nextpress/db", () => ({
-  prisma: { page: { findFirst, findMany }, siteSettings: { findUnique } },
+  prisma: {
+    page: { findFirst, findMany },
+    siteSettings: { findUnique },
+    $transaction: (
+      run: (tx: {
+        page: { findFirst: typeof findFirst; findMany: typeof findMany };
+      }) => unknown,
+    ) => run({ page: { findFirst, findMany } }),
+  },
 }));
 vi.mock("@/lib/auth/auth-server", () => ({ getSessionWithRole: authenticate }));
 import { GET as navigation } from "./navigation/route";
@@ -25,6 +33,8 @@ import { GET as posts } from "./posts/route";
 import { GET as settings } from "./settings/route";
 const row = {
   slug: "published",
+  id: "page-fixture",
+  parentId: null,
   title: "Published",
   excerpt: "Summary",
   content: serializeRichContent([

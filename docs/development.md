@@ -49,3 +49,9 @@ Prefer the installed framework, runtime, or browser capability when it fits the 
 ### Disposable Docker cleanup
 
 The Chromium and guarded PostgreSQL runners keep databases in run-owned containers with temporary data on dedicated networks. The database outage runner uses an explicitly labeled volume. Each runner checks the local Docker endpoint and verifies ownership before removing its resources on success or failure. Interrupt handling reaches cleanup at the next checkpoint, which can be delayed while a subprocess is running. Forced process termination or loss of the Docker daemon can leave resources behind. Use the run ID and inspect the container, network, and any volume before recovering them. Preserve anything whose ownership cannot be established.
+
+For a focused Chromium run that provisions a disposable database, applies migrations, verifies the legacy upgrade, and runs the requested browser tests separately from the B04 database suites, use:
+
+```sh
+npm run test:e2e -- --browser-only e2e/navigation.spec.ts
+```

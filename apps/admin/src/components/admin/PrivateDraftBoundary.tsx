@@ -118,6 +118,7 @@ export function PrivateDraftBoundary({
 
   return kind === "PAGE" ? (
     <PageForm
+      contentId={id}
       key={admission.generation}
       initial={privatePageValues(admission.draft)}
       privateEditing={editing}

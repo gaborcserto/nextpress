@@ -1,8 +1,13 @@
-import { getPublicPageNavigation } from "@/lib/content/public-content.server";
+import { PublicMenusSchema } from "@nextpress/shared/api-contracts";
+import { cache } from "react";
+
+import { fetchPublic } from "@/lib/content/public-api.server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
 import type { ReactNode } from "react";
+
+const getPublicMenus = cache(() => fetchPublic("menus", PublicMenusSchema));
 
 export async function PublicWebsiteShell({
   children,
@@ -11,15 +16,17 @@ export async function PublicWebsiteShell({
 }) {
   const [settings, navigation] = await Promise.all([
     getPublicSiteSettings(),
-    getPublicPageNavigation(),
+    getPublicMenus(),
   ]);
-  const { Shell } = resolveWebsiteAppearance(settings.appearance).views;
+
+  const appearance = resolveWebsiteAppearance(settings.appearance);
+  const { Shell } = appearance.views;
 
   return (
     <Shell
       siteName={settings.siteName}
-      headerPages={navigation.header}
-      footerPages={navigation.footer}
+      menus={navigation}
+      supportsSidebar={appearance.navigation.sidebar}
     >
       {children}
     </Shell>

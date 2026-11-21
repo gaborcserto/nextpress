@@ -1,6 +1,7 @@
 "use client";
 
 import { pageLayouts } from "@nextpress/shared/content";
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -16,7 +17,6 @@ import {
   EventFields,
   EMPTY_SLATE_VALUE,
   ListingFields,
-  MenuPlacementField,
   PageTypeField,
   PublicationDatePicker,
   RedirectField,
@@ -31,6 +31,7 @@ import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
 import { DocumentImageField } from "../Media/DocumentImageField";
 import { CoverMediaField, GalleryMediaField } from "../Media/EditorMediaFields";
+import { PageHierarchy } from "../PageHierarchy/PageHierarchy";
 import {
   PrivateDraftRecovery,
   PrivateDraftStatus,
@@ -237,26 +238,13 @@ export default function PageForm({
                     />
                   </Section>
 
-                  <Section
-                    title="Hierarchy"
-                    desc="Parent selection is not available yet. Existing relationships are preserved."
-                  >
-                    <p className="text-sm">
-                      {form.parentId
-                        ? "A parent page is assigned."
-                        : "No parent page is assigned."}
-                    </p>
-                  </Section>
-
-                  <Section
-                    title="Menu placement"
-                    desc="Where should this page appear?"
-                  >
-                    <MenuPlacementField
-                      inHeader={form.inHeaderMenu}
-                      inFooter={form.inFooterMenu}
-                      onChangeAction={(key, value) => setField(key, value)}
-                    />
+                  {contentId && (
+                    <PageHierarchy id={contentId} pendingSlug={form.slug} />
+                  )}
+                  <Section title="Navigation">
+                    <Link href="/admin/settings/menus" className="underline">
+                      Manage menu placement
+                    </Link>
                   </Section>
                 </>
               }

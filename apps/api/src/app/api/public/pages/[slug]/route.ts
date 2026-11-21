@@ -7,11 +7,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function get(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    const item = await getPublishedPage((await params).slug);
+    const item = await getPublishedPage(
+      (await params).slug,
+      new URL(req.url).searchParams.get("path") ?? undefined,
+    );
+
     const response = item ? ok(PublicContentSchema.parse(item)) : notfound();
     response.headers.set("Cache-Control", "no-store");
 

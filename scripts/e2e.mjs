@@ -206,7 +206,11 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
   ]);
 
   // Guarded families own their independent clusters, roles, identity and cleanup.
-  for (const family of ["content", "security"]) {
+  const browserArguments = process.argv.slice(2);
+  const browserOnly = browserArguments.includes("--browser-only");
+  const families = browserOnly ? [] : ["content", "security"];
+
+  for (const family of families) {
     await runTestStep(
       process.execPath,
       [
@@ -240,7 +244,7 @@ export default defineConfig({schema: ${JSON.stringify(path.resolve("packages/db/
   await runTestStep(process.execPath, [
     "node_modules/@playwright/test/cli.js",
     "test",
-    ...process.argv.slice(2),
+    ...browserArguments.filter((argument) => argument !== "--browser-only"),
   ]);
   await runTestStep(process.execPath, ["scripts/e2e-outage.mjs"]);
 } finally {

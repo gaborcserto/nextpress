@@ -184,3 +184,32 @@ export function parsePublicRichContent(
 
   return result.success ? result.data : textDocument();
 }
+
+export const maxPageDepth = 8;
+const reservedRoots = new Set([
+  "api",
+  "admin",
+  "auth",
+  "categories",
+  "en",
+  "hu",
+  "live-preview",
+  "media",
+  "pages",
+  "posts",
+  "search",
+  "tags",
+]);
+
+export function isPagePath(segments: string[]) {
+  return (
+    segments.length > 0 &&
+    segments.length <= maxPageDepth &&
+    !reservedRoots.has(segments[0] ?? "") &&
+    segments.every(
+      (segment) =>
+        segment === segment.trim() &&
+        ContentSlugSchema.safeParse(segment).success,
+    )
+  );
+}

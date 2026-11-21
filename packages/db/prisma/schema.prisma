@@ -195,9 +195,10 @@ model Page {
   inFooterMenu Boolean @default(false)
 
   // Hierarchy
-  parentId String?
-  parent   Page?   @relation("ChildPages", fields: [parentId], references: [id])
-  children Page[]  @relation("ChildPages")
+  siblingOrder Int     @default(0)
+  parentId     String?
+  parent       Page?   @relation("ChildPages", fields: [parentId], references: [id], onDelete: Restrict)
+  children     Page[]  @relation("ChildPages")
 
   // Taxonomies
   taxonomies PageOnTaxonomy[]
@@ -239,6 +240,8 @@ model Page {
 
   privateWorkingRevisions  NPWorkingRevision[]
   privateWorkingReferences NPWorkingPage[]
+
+  @@index([parentId, siblingOrder, id])
 }
 
 model Media {
@@ -257,7 +260,7 @@ model Media {
   uploadedById String?
   uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 
   PageMedia                        PageMedia[]
@@ -634,4 +637,51 @@ model LegacyBackfillFence {
   generation BigInt    @default(autoincrement())
   owner      String?   @db.Uuid
   expiresAt  DateTime? @db.Timestamptz(3)
+}
+
+enum NavigationLocation {
+  header
+  footer
+  sidebar
+}
+
+enum NavigationItemKind {
+  content
+  taxonomy
+  external
+  internal
+  group
+}
+
+model NavigationMenu {
+  id          String                 @id @default(cuid())
+  name        String
+  version     Int                    @default(0)
+  items       NavigationItem[]
+  assignments NavigationAssignment[]
+}
+
+model NavigationAssignment {
+  location NavigationLocation @id
+  menuId   String
+  menu     NavigationMenu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@index([menuId])
+}
+
+model NavigationItem {
+  menuId   String
+  id       String
+  parentId String?
+  position Int
+  kind     NavigationItemKind
+  value    String
+  label    String
+  newTab   Boolean            @default(false)
+  menu     NavigationMenu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent   NavigationItem?    @relation("NavigationChildren", fields: [menuId, parentId], references: [menuId, id], onDelete: Cascade)
+  children NavigationItem[]   @relation("NavigationChildren")
+
+  @@id([menuId, id])
+  @@index([menuId, parentId, position])
 }

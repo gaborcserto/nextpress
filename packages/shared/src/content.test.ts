@@ -7,6 +7,8 @@ import {
   serializeRichContent,
   SerializedRichContentSchema,
   textDocument,
+  isPagePath,
+  maxPageDepth,
 } from "./content";
 
 describe("rich content contract", () => {
@@ -101,5 +103,23 @@ describe("content slugs", () => {
   );
   it("accepts canonical single-segment slugs", () => {
     expect(ContentSlugSchema.parse("hello-world-2")).toBe("hello-world-2");
+  });
+});
+
+describe("public Page paths", () => {
+  it("allows bounded branches with ordinary slug segments", () => {
+    expect(isPagePath(["company", "team"])).toBe(true);
+    expect(
+      isPagePath(Array.from({ length: maxPageDepth }, () => "level")),
+    ).toBe(true);
+    expect(
+      isPagePath(Array.from({ length: maxPageDepth + 1 }, () => "level")),
+    ).toBe(false);
+  });
+
+  it("protects reserved roots without blocking the same word below a Page", () => {
+    expect(isPagePath(["posts", "example"])).toBe(false);
+    expect(isPagePath(["company", "posts"])).toBe(true);
+    expect(isPagePath(["company", ".."])).toBe(false);
   });
 });

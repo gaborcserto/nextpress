@@ -41,3 +41,4 @@ Do not invent historical rationale or dates. Existing architecture is summarized
 Add a numbered ADR when a new choice needs durable context. A decision rationale or date belongs in a record only when verified from evidence.
 
 - [ADR-003: PDF documents use the existing asset store](003-pdf-document-assets.md)
+- [ADR-004: Page paths and navigation menus](004-navigation-and-page-hierarchy.md)

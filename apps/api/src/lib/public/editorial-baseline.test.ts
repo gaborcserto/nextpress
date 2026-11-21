@@ -10,8 +10,20 @@ import {
   historicalDocuments,
 } from "./editorial-baseline.fixtures";
 
-const { findFirst } = vi.hoisted(() => ({ findFirst: vi.fn() }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findFirst } } }));
+const { findFirst, findMany } = vi.hoisted(() => ({
+  findFirst: vi.fn(),
+  findMany: vi.fn(),
+}));
+vi.mock("@nextpress/db", () => ({
+  prisma: {
+    page: { findFirst, findMany },
+    $transaction: (
+      run: (tx: {
+        page: { findFirst: typeof findFirst; findMany: typeof findMany };
+      }) => unknown,
+    ) => run({ page: { findFirst, findMany } }),
+  },
+}));
 
 afterEach(() => vi.useRealTimers());
 
@@ -34,6 +46,7 @@ it.each(editorialFixtures)(
         ? fixture
         : null;
     });
+    findMany.mockResolvedValue([{ ...fixture, parentId: null }]);
     const result = await (
       fixture.type === "POST" ? getPublishedPost : getPublishedPage
     )(fixture.slug);

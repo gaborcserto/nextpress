@@ -62,7 +62,7 @@ async function prepareLegacyContent() {
       { count: number; fingerprint: string }[]
     >`
       SELECT count(*)::integer AS count,
-        md5(string_agg((to_jsonb(p)-'pageDocument'-'workingVersion')::text,'' ORDER BY id)) AS fingerprint
+        md5(string_agg((to_jsonb(p)-'pageDocument'-'workingVersion'-'siblingOrder')::text,'' ORDER BY id)) AS fingerprint
       FROM "Page" p`;
 
     if (mode === "before") {
@@ -78,10 +78,36 @@ async function prepareLegacyContent() {
       const pages = await prisma.page.findMany();
       assert.ok(
         pages.every(
-          (page) => page.workingVersion === 0 && page.pageDocument === null,
+          (page) =>
+            page.workingVersion === 0 &&
+            page.pageDocument === null &&
+            page.siblingOrder === 0,
         ),
       );
       assert.equal(await prisma.pageRevision.count(), 0);
+      const assignments = await prisma.navigationAssignment.findMany({
+        include: { menu: { include: { items: true } } },
+      });
+
+      for (const location of ["header", "footer"] as const) {
+        const items = assignments.find((entry) => entry.location === location)
+          ?.menu.items;
+        const ids = items
+          ?.filter((item) => item.kind === "content")
+          .map((item) => item.value)
+          .sort();
+        const expected = pages
+          .filter(
+            (page) =>
+              page.type === "PAGE" &&
+              (location === "header" ? page.inHeaderMenu : page.inFooterMenu),
+          )
+          .map((page) => page.id)
+          .sort();
+
+        assert.deepEqual(ids, expected);
+      }
+
       console.log(
         `Upgrade preserved all fields of ${pages.length} legacy records; zero versions, null composition, no revisions`,
       );

@@ -24,7 +24,7 @@ Snapshot based on source, tests, configuration, and Prisma models in this reposi
 | Rich text                                | Implemented                | Slate editor in `apps/admin/src/ui/components/SlateEditor`, with utility and component tests.                                                                                                                                                  |
 | Taxonomy                                 | Implemented                | Taxonomy models and API/admin management; current model uses typed taxonomy associations.                                                                                                                                                      |
 | Media                                    | Partial                    | The Admin library, local PNG/JPEG workflow, cover selection, ordered galleries, and protected preview use the existing API-backed media model. See [media features](features.md#media).                                                        |
-| Page hierarchy                           | Partial                    | `Page.parentId` and hierarchy controls exist. Full navigation organization and all desired keyboard/reorder behavior are not established.                                                                                                      |
+| Page hierarchy                           | Complete                   | Admin parent and sibling-order editing, child listing, and localized nested public URLs are implemented. See the FUNC-04 roadmap for verification status.                                                                                      |
 | Legacy revisions                         | Partial                    | `PageRevision` and revision APIs/history exist; recovery and draft continuity remain distinct workflows.                                                                                                                                       |
 | Private drafts/autosave/recovery         | Partial, guarded rehearsal | Working aggregate persistence and HTTP paths exist, but private draft admission is off by default and requires independently verified database safeguards. Rehearsal is development/test only. No unattended scheduler exists. See API README. |
 | Publishing/scheduling                    | Partial                    | Explicit publication states and guarded pinned scheduled-release execution exist. No automatic scheduler is installed; scheduling is not a generally admitted production workflow.                                                             |
@@ -32,15 +32,15 @@ Snapshot based on source, tests, configuration, and Prisma models in this reposi
 
 ## Public Web
 
-| Area                                           | Status      | Evidence and limits                                                                                                                           |
-| ---------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Homepage, post archives/details, managed pages | Implemented | App Router pages at `apps/web/src/app`, server content loaders, and route tests.                                                              |
-| Template/preset rendering                      | Partial     | Blog template registry and classic/modern/minimal presets exist. This is not a general-purpose page-builder system.                           |
-| Header/footer/navigation                       | Partial     | Public shell and blog navigation exist. Configurable database-driven nested header/footer/sidebar menu coverage is incomplete.                |
-| Search and taxonomy archives                   | Implemented | Search and tag/category routes, query actions, and tests exist. Search is not semantic.                                                       |
-| SEO                                            | Implemented | Metadata, sitemap, robots, canonical/Open Graph behavior and tests exist.                                                                     |
-| Accessibility/responsive behavior              | Partial     | Semantic controls, skip link, responsive CSS, and focused tests exist; no complete WCAG audit is recorded.                                    |
-| Public content isolation                       | Implemented | Web consumes anonymous `/api/public/*`; validation rejects private fields. Requests currently use `no-store`, limiting caching opportunities. |
+| Area                                           | Status      | Evidence and limits                                                                                                                                |
+| ---------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Homepage, post archives/details, managed pages | Implemented | App Router pages at `apps/web/src/app`, server content loaders, and route tests.                                                                   |
+| Template/preset rendering                      | Partial     | Blog template registry and classic/modern/minimal presets exist. This is not a general-purpose page-builder system.                                |
+| Header/footer/navigation                       | Complete    | Database-managed nested Header and Footer menus and the optional Minimal Sidebar are implemented. See the FUNC-04 roadmap for verification status. |
+| Search and taxonomy archives                   | Implemented | Search and tag/category routes, query actions, and tests exist. Search is not semantic.                                                            |
+| SEO                                            | Implemented | Metadata, sitemap, robots, canonical/Open Graph behavior and tests exist.                                                                          |
+| Accessibility/responsive behavior              | Partial     | Semantic controls, skip link, responsive CSS, and focused tests exist; no complete WCAG audit is recorded.                                         |
+| Public content isolation                       | Implemented | Web consumes anonymous `/api/public/*`; validation rejects private fields. Requests currently use `no-store`, limiting caching opportunities.      |
 
 ## Engineering and readiness
 

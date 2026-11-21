@@ -17,6 +17,7 @@ for (const [path, result, operationId] of [
   ["public/posts/{slug}", "PublicContent", "publicPost"],
   ["public/pages/{slug}", "PublicContent", "publicPage"],
   ["public/home", "PublicContent", "publicHome"],
+  ["public/menus", "PublicMenus", "publicMenus"],
   ["public/navigation", "PublicNavigation", "publicNavigation"],
   ["public/settings", "PublicSiteSettings", "publicSettings"],
   ["discovery/session", "SessionDiscovery", "sessionDiscovery"],
@@ -42,6 +43,17 @@ for (const [path, result, operationId] of [
     read.parameters = [
       parameter("slug", "path", string, "Canonical content slug."),
     ];
+  }
+
+  if (path === "public/pages/{slug}") {
+    read.parameters?.push(
+      parameter(
+        "path",
+        "query",
+        string,
+        "Require the currently published canonical Page path.",
+      ),
+    );
   }
 
   if (path === "public/posts") {

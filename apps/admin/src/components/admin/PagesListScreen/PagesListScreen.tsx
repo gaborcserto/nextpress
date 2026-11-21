@@ -2,6 +2,7 @@
 
 import { resolvePageType } from "@nextpress/shared/content";
 
+import { PageHierarchy } from "@/components/admin/PageHierarchy/PageHierarchy";
 import { ContentList, type ContentListItem } from "@/ui/components";
 
 import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
@@ -30,20 +31,23 @@ export default function PagesListScreen() {
   }));
 
   return (
-    <ContentList
-      heading="Pages"
-      createHref="/admin/pages/new"
-      createLabel="Create Page"
-      editHrefAction={(id) => `/admin/pages/${id}`}
-      items={mapped}
-      isLoading={isLoading}
-      error={error ? "Unable to load pages. Please try again." : undefined}
-      pagination={pagination}
-      query={query}
-      pageTypes={labels}
-      onRetryAction={() => void mutate()}
-      deletingId={deletingId}
-      onDeleteAction={deletePage}
-    />
+    <>
+      <PageHierarchy />
+      <ContentList
+        heading="Pages"
+        createHref="/admin/pages/new"
+        createLabel="Create Page"
+        editHrefAction={(id) => `/admin/pages/${id}`}
+        items={mapped}
+        isLoading={isLoading}
+        error={error ? "Unable to load pages. Please try again." : undefined}
+        pagination={pagination}
+        query={query}
+        pageTypes={labels}
+        onRetryAction={() => void mutate()}
+        deletingId={deletingId}
+        onDeleteAction={deletePage}
+      />
+    </>
   );
 }

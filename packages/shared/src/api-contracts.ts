@@ -298,6 +298,7 @@ export const PublicPostSummarySchema = z.strictObject({
   cover: PublicCoverSchema.optional(),
 });
 export const PublicContentSchema = z.strictObject({
+  canonicalPath: z.string().startsWith("/").optional(),
   pageType: PageTypeSchema.optional(),
   gallery: z.array(GalleryImageSchema).max(maxGalleryImages).optional(),
   gifMediaIds: z.array(MediaIdSchema).optional(),
@@ -318,6 +319,7 @@ export const PublicContentIndexSchema = z.strictObject({
   items: z.array(
     z.strictObject({
       type: z.enum(["PAGE", "POST"]),
+      canonicalPath: z.string().startsWith("/").optional(),
       slug: ContentSlugSchema,
       title: z.string(),
       updatedAt: z.iso.datetime(),
@@ -399,4 +401,92 @@ export const PublicSearchResultSchema = z.object({
     .max(10),
   total: z.number().int().nonnegative(),
   taxonomies: z.array(PublicTaxonomySchema),
+});
+
+export const NavigationLocationSchema = z.enum(["header", "footer", "sidebar"]);
+export const maxMenuItems = 200;
+export const maxMenuDepth = 5;
+
+export const NavigationHrefSchema = z
+  .string()
+  .max(2048)
+  .refine((href) => {
+    if (/[\\\s]/.test(href)) {
+      return false;
+    }
+
+    if (href.startsWith("/")) {
+      return !href.startsWith("//");
+    }
+
+    if (!/^https?:\/\//i.test(href)) {
+      return false;
+    }
+
+    const url = URL.parse(href);
+
+    return Boolean(url && !url.username && !url.password);
+  });
+
+export const NavigationItemSchema = z.strictObject({
+  id: z.string().min(1).max(128),
+  parentId: z.string().min(1).max(128).nullable(),
+  kind: z.enum(["content", "taxonomy", "external", "internal", "group"]),
+  label: z.string().trim().max(160),
+  value: z.string().trim().max(2048),
+  newTab: z.boolean(),
+});
+
+export const NavigationMenuInputSchema = z.strictObject({
+  name: z.string().trim().min(1).max(100),
+  locations: z.array(NavigationLocationSchema).max(3),
+  items: z.array(NavigationItemSchema).max(maxMenuItems),
+});
+
+export const NavigationMenuSchema = NavigationMenuInputSchema.extend({
+  id: z.string(),
+  version: z.number().int().nonnegative(),
+});
+
+export const NavigationMenuListSchema = z.array(NavigationMenuSchema);
+
+export const PublicMenuItemSchema = z.strictObject({
+  parent: z.number().int().nonnegative().nullable(),
+  label: z.string(),
+  href: NavigationHrefSchema.nullable(),
+  newTab: z.boolean(),
+});
+
+export const PublicMenusSchema = z.strictObject({
+  header: z.array(PublicMenuItemSchema).max(maxMenuItems),
+  footer: z.array(PublicMenuItemSchema).max(maxMenuItems),
+  sidebar: z.array(PublicMenuItemSchema).max(maxMenuItems),
+});
+
+export type NavigationMenuInput = z.infer<typeof NavigationMenuInputSchema>;
+export type NavigationItemInput = z.infer<typeof NavigationItemSchema>;
+export type PublicMenuItem = z.infer<typeof PublicMenuItemSchema>;
+const existingMenu = z.strictObject({
+  id: z.string().min(1).max(128),
+  version: z.number().int().nonnegative(),
+});
+export const NavigationMenuMutationSchema = z.discriminatedUnion("action", [
+  z.strictObject({
+    action: z.literal("create"),
+    menu: NavigationMenuInputSchema,
+  }),
+  existingMenu.extend({
+    action: z.literal("update"),
+    menu: NavigationMenuInputSchema,
+  }),
+  existingMenu.extend({ action: z.literal("delete") }),
+]);
+
+const hierarchyPageId = z.string().min(1).max(128);
+export const PageHierarchyMutationSchema = z.strictObject({
+  id: hierarchyPageId,
+  parentId: hierarchyPageId.nullable(),
+  siblingOrder: z.number().int().min(0).max(1000000),
+  previousParentId: hierarchyPageId.nullable(),
+  previousSiblingOrder: z.number().int().nonnegative(),
 });

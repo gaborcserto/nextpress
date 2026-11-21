@@ -28,9 +28,16 @@ describe("BlogShell", () => {
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 
-  it("links the site identity and primary navigation to the public home route", () => {
+  it("links the site identity and configured primary home item to the public home route", () => {
     render(
-      <BlogShell siteName="Example Publication">
+      <BlogShell
+        siteName="Example Publication"
+        menus={{
+          header: [{ href: "/", label: "/", parent: null, newTab: false }],
+          footer: [],
+          sidebar: [],
+        }}
+      >
         <p>Page content</p>
       </BlogShell>,
     );
@@ -55,11 +62,18 @@ describe("BlogShell", () => {
     render(
       <BlogShell
         siteName="Example Publication"
-        headerPages={[
-          { slug: "about", title: "About" },
-          { slug: "contact", title: "Contact" },
-        ]}
-        footerPages={[{ slug: "contact", title: "Contact" }]}
+        menus={{
+          header: [
+            { href: "/", label: "/", parent: null, newTab: false },
+            { href: "/posts", label: "/posts", parent: null, newTab: false },
+            { href: "/about", label: "About", parent: null, newTab: false },
+            { href: "/contact", label: "Contact", parent: null, newTab: false },
+          ],
+          footer: [
+            { href: "/contact", label: "Contact", parent: null, newTab: false },
+          ],
+          sidebar: [],
+        }}
       >
         <p>Page content</p>
       </BlogShell>,
@@ -76,17 +90,17 @@ describe("BlogShell", () => {
     );
     expect(primary.getByRole("link", { name: "About" })).toHaveAttribute(
       "href",
-      "/en/pages/about",
+      "/en/about",
     );
     expect(primary.getByRole("link", { name: "Contact" })).toHaveAttribute(
       "href",
-      "/en/pages/contact",
+      "/en/contact",
     );
     expect(
       within(screen.getByRole("navigation", { name: "Footer" })).getByRole(
         "link",
         { name: "Contact" },
       ),
-    ).toHaveAttribute("href", "/en/pages/contact");
+    ).toHaveAttribute("href", "/en/contact");
   });
 });

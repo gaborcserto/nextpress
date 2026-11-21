@@ -2,33 +2,39 @@ import { HeaderSearch } from "@/components/public-shell/HeaderSearch";
 import { StickyHeader } from "@/components/public-shell/StickyHeader";
 import { Container } from "@/components/public-ui/Container";
 import { SkipLink } from "@/components/public-ui/SkipLink";
-import {
-  LocaleLink as Link,
-  VisitorControls,
-  UiNav,
-  UiText,
-} from "@/lib/i18n/client";
+import { LocaleLink as Link, VisitorControls, UiNav } from "@/lib/i18n/client";
 
 import { BlogNavigation } from "./BlogNavigation";
 import styles from "./BlogShell.module.css";
 import { BlogWordmark } from "./BlogWordmark";
-import { NavigationLink } from "./NavigationLink";
+import { MenuTree } from "./MenuTree";
 
+import type { PublicMenuItem } from "@nextpress/shared/api-contracts";
 import type { ReactNode } from "react";
 
-type NavigationPage = { slug: string; title: string };
+type Menus = Record<"header" | "footer" | "sidebar", PublicMenuItem[]>;
+
+const emptyMenus: Menus = { header: [], footer: [], sidebar: [] };
 
 export function BlogShell({
   children,
   siteName,
-  headerPages = [],
-  footerPages = [],
+  menus = emptyMenus,
+  supportsSidebar,
 }: {
   children: ReactNode;
   siteName: string;
-  headerPages?: NavigationPage[];
-  footerPages?: NavigationPage[];
+  menus?: Menus;
+  supportsSidebar?: boolean;
 }) {
+  const { header, footer } = menus;
+  const sidebar = supportsSidebar ? menus.sidebar : [];
+  const main = (
+    <main className={styles.main} id="main-content" tabIndex={-1}>
+      {children}
+    </main>
+  );
+
   return (
     <div className={styles.shell}>
       <SkipLink />
@@ -39,51 +45,34 @@ export function BlogShell({
             <BlogWordmark siteName={siteName} />
           </Link>
           <BlogNavigation>
-            <ul className={styles.navigation}>
-              <li>
-                <NavigationLink href="/">
-                  <UiText id="navigation.home" />
-                </NavigationLink>
-              </li>
-              <li>
-                <NavigationLink href="/posts">
-                  <UiText id="navigation.posts" />
-                </NavigationLink>
-              </li>
-              {headerPages.map(({ slug, title }) => (
-                <li key={slug}>
-                  <NavigationLink href={`/pages/${slug}`}>
-                    {title}
-                  </NavigationLink>
-                </li>
-              ))}
-            </ul>
+            {header.length > 0 && <MenuTree items={header} dropdown />}
             <HeaderSearch />
             <VisitorControls />
           </BlogNavigation>
         </Container>
       </StickyHeader>
-      <main className={styles.main} id="main-content" tabIndex={-1}>
-        {children}
-      </main>
+      {sidebar?.length ? (
+        <div className={styles.sidebarLayout}>
+          {main}
+          <aside>
+            <UiNav label="accessibility.sidebarNavigation">
+              <MenuTree items={sidebar} />
+            </UiNav>
+          </aside>
+        </div>
+      ) : (
+        main
+      )}
       <footer className={styles.footer}>
         <Container className={styles.footerContent}>
           <p>
             <BlogWordmark siteName={siteName} />
           </p>
-          {footerPages.length > 0 ? (
+          {footer.length > 0 && (
             <UiNav label="accessibility.footerNavigation">
-              <ul className={styles.navigation}>
-                {footerPages.map(({ slug, title }) => (
-                  <li key={slug}>
-                    <NavigationLink href={`/pages/${slug}`}>
-                      {title}
-                    </NavigationLink>
-                  </li>
-                ))}
-              </ul>
+              <MenuTree items={footer} />
             </UiNav>
-          ) : null}
+          )}
         </Container>
       </footer>
     </div>

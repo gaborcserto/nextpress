@@ -21,7 +21,9 @@ export function stripLocalePrefix(pathname: string): string {
 export function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/" ||
-    /^\/(posts|pages|tags|categories|search)(\/|$)/.test(pathname)
+    /^\/(?!api(?:\/|$)|admin(?:\/|$)|auth(?:\/|$)|media(?:\/|$)|live-preview(?:\/|$))[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*\/?$/.test(
+      pathname,
+    )
   );
 }
 
