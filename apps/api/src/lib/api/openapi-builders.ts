@@ -20,8 +20,8 @@ export const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
 
 const errors: Record<number, string> = {
   400: "Invalid JSON, parameters or payload; content validation may include issues.",
-  401: "Session missing or role disallowed (both currently return 401).",
-  403: "Untrusted mutation Origin or content ownership restriction.",
+  401: "Authentication required.",
+  403: "Role or ownership restriction, or untrusted mutation Origin.",
   404: "Resource missing or hidden by content read scope.",
   409: "Resource conflict, stale revision, referenced media, writer maintenance, or last-administrator protection.",
   413: "Request body exceeds 5,000,000 bytes.",

@@ -1,5 +1,16 @@
-import DashboardScreen from "@/components/admin/DashboardScreen/DashboardScreen";
+import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  return <DashboardScreen />;
+import DashboardScreen from "@/components/admin/DashboardScreen/DashboardScreen";
+import { getSessionWithRole } from "@/lib/auth/session.server";
+
+export default async function DashboardPage() {
+  const session = await getSessionWithRole();
+
+  if (!session?.user?.id) {
+    redirect("/auth/sign-in?callbackUrl=%2Fadmin");
+  }
+
+  const { id, name, role } = session.user;
+
+  return <DashboardScreen account={{ id, name, role }} />;
 }

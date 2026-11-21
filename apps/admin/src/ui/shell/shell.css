@@ -347,7 +347,7 @@
 
 .admin-overview-list a {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
@@ -383,7 +383,7 @@
 
 @media (width < 24rem) {
   .admin-overview-list a {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-overview-list a > svg {

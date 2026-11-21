@@ -35,6 +35,12 @@ Private autosaves preserve publication state. Explicit publication commands use 
 
 Private endpoints use authenticated roles, ownership checks, origin checks for writes, and private no-store responses. Admission requires `NEXTPRESS_PRIVATE_DRAFT_REHEARSAL=enabled`, development or test mode, an independently verified database and role, and the installed writer guards. Production remains disabled. A deployment rehearsal against representative data, role and database verification, and an operational scheduler are still required before production cutover.
 
+### Admin dashboard
+
+Admin loads one private, non-cacheable summary through its existing same-origin API forwarding. The API admits administrators and editors for the full collection and scopes authors to their own Posts and Pages. Counts and the two lists share a PostgreSQL repeatable-read snapshot and a single publication cutoff. Each list returns at most eight records with an ID tie-break for equal timestamps. Recent updates use the content record's modification date and show its author when available.
+
+The default workflow makes a published-status record with a future date visible once its date is reached. The dashboard reports upcoming dates as scheduled and flags records with missing publication dates separately. The guarded rehearsal keeps pending releases, including overdue ones, and private revisions behind its existing admission checks. The dashboard reads the authoritative Post and Page records and displays date and time in the browser's locale and time zone.
+
 ### Admin discovery
 
 Posts and Pages query the existing content endpoints. Search matches title or slug case-insensitively. Both lists filter by editorial publication state and sort by title, creation time, modification time, or stored publication time. Posts also accept exact tag and category slugs. Pages accept Standard, Home, Posts, or Gallery, with legacy layouts grouped under Standard as in the editor. Existing list access still applies before any filter.

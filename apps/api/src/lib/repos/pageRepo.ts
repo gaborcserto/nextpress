@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/content-access";
 import {
   editorialPublicationState,
+  editorialPublicationWhere,
   resolvePublicationDate,
 } from "@/lib/publication";
 import { ContentVersionConflictError, slugify } from "@/lib/utils";
@@ -82,24 +83,6 @@ export async function getPageById(
 export type ContentListFilters = z.infer<typeof PageListFiltersSchema> &
   z.infer<typeof PostListFiltersSchema>;
 
-function publicationFilter(
-  status: ContentListFilters["status"],
-  now: Date,
-): Prisma.PageWhereInput {
-  switch (status) {
-    case "DRAFT":
-      return { status };
-    case "PUBLISHED":
-      return { status, publishedAt: { lte: now } };
-    case "SCHEDULED":
-      return { status: "PUBLISHED", publishedAt: { gt: now } };
-    case "MISSING_DATE":
-      return { status: "PUBLISHED", publishedAt: null };
-    default:
-      return {};
-  }
-}
-
 export async function listPages(
   skip: number,
   take: number,
@@ -131,7 +114,7 @@ export async function listPages(
   }
 
   if (status) {
-    conditions.push(publicationFilter(status, now));
+    conditions.push(editorialPublicationWhere(status, now));
   }
 
   if (pageType) {

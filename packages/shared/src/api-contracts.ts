@@ -98,6 +98,12 @@ export const TagSchema = z.object({
 export const TagWithUsageSchema = TagSchema.extend({
   usedCount: z.number().int().nonnegative(),
 });
+const publicationState = z.enum([
+  "DRAFT",
+  "PUBLISHED",
+  "SCHEDULED",
+  "MISSING_DATE",
+]);
 const date = z.iso.datetime({ offset: true });
 const nullableString = z.string().nullable();
 const editorialFields = {
@@ -175,12 +181,7 @@ export const ContentListSchema = ListPaginationSchema.extend({
       layout: ContentLayoutSchema.optional(),
       status: z.enum(["DRAFT", "PUBLISHED"]),
       publishedAt: date.nullable(),
-      publicationState: z.enum([
-        "DRAFT",
-        "PUBLISHED",
-        "SCHEDULED",
-        "MISSING_DATE",
-      ]),
+      publicationState,
       slug: z.string(),
       title: z.string(),
       excerpt: nullableString,
@@ -189,6 +190,33 @@ export const ContentListSchema = ListPaginationSchema.extend({
     }),
   ),
 });
+const dashboardContent = ContentListSchema.shape.items.element.pick({
+  id: true,
+  title: true,
+  type: true,
+});
+const count = z.number().int().nonnegative();
+export const DashboardSummarySchema = z.object({
+  posts: z.object({ total: count, published: count }),
+  pages: z.object({ total: count, published: count }),
+  drafts: count,
+  scheduled: count,
+  missingPublicationDate: count,
+  recentContent: z
+    .array(
+      dashboardContent.extend({
+        updatedAt: date,
+        publicationState,
+        authorName: nullableString,
+      }),
+    )
+    .max(8),
+  scheduledContent: z
+    .array(dashboardContent.extend({ publishedAt: date }))
+    .max(8),
+});
+export type DashboardSummary = z.infer<typeof DashboardSummarySchema>;
+
 export const ContentRecordSchema = z.object({
   workingVersion: z.number().int().nonnegative(),
   id: z.string(),

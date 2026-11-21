@@ -1,3 +1,5 @@
+import type { Prisma } from "@nextpress/db/generated/prisma/client";
+
 type PublicationState = {
   status: "DRAFT" | "PUBLISHED";
   publishedAt: Date | null;
@@ -13,6 +15,22 @@ export type EditorialPublicationState =
   | "PUBLISHED"
   | "SCHEDULED"
   | "MISSING_DATE";
+
+export function editorialPublicationWhere(
+  state: EditorialPublicationState,
+  now: Date,
+): Prisma.PageWhereInput {
+  switch (state) {
+    case "DRAFT":
+      return { status: state };
+    case "PUBLISHED":
+      return { status: state, publishedAt: { lte: now } };
+    case "SCHEDULED":
+      return { status: "PUBLISHED", publishedAt: { gt: now } };
+    case "MISSING_DATE":
+      return { status: "PUBLISHED", publishedAt: null };
+  }
+}
 
 export function editorialPublicationState(
   status: PublicationState["status"],

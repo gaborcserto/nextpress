@@ -5,6 +5,7 @@ import {
   TagWithUsageSchema,
   ContentRecordSchema,
   ContentListSchema,
+  DashboardSummarySchema,
   PageListFiltersSchema,
   PostListFiltersSchema,
   TaxonomyListFiltersSchema,
@@ -221,6 +222,17 @@ const readScope =
 const writeScope =
   "ADMIN, EDITOR or AUTHOR. AUTHOR may update only owned content. Mutations require a trusted Origin and application/json; request body maximum 5,000,000 bytes.";
 const paths: OpenAPIV3.PathsObject = {
+  "/api/admin/dashboard": {
+    get: operation(
+      "getDashboardSummary",
+      "Content",
+      "Get the editorial dashboard summary",
+      schema(DashboardSummarySchema),
+      [401, 403, 500],
+      "ADMIN and EDITOR see all Posts and Pages; AUTHOR sees only owned content. Missing sessions receive 401 and other roles receive 403. The response is private and non-cacheable. Counts and up to eight entries per list use one snapshot and the default date-based publication rules. Guarded private revisions and releases are outside this projection.",
+      "protected",
+    ),
+  },
   "/api/private-drafts/execute": {
     post: operation(
       "executePrivateReleases",

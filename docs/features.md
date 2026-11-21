@@ -4,17 +4,18 @@ Statuses describe the current evidence: **Implemented**, **Partial**, **Planned*
 
 ## Content and editorial
 
-| Capability                                                | Status      | Notes                                                                                                                                                    |
-| --------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Posts and standard pages, metadata, taxonomy, cover media | Implemented | Admin/API/public flows exist.                                                                                                                            |
-| Draft persistence and explicit save                       | Partial     | Legacy page persistence exists; newer private working aggregates are guarded rehearsal only.                                                             |
-| Autosave, restore/recovery, conflict handling             | Partial     | Existing Posts and Pages support debounced autosave and version-checked recovery in the guarded rehearsal. Production activation remains open.           |
-| Publishing and unpublishing                               | Implemented | Page and Post edits preserve existing publication unless the editor changes the status or date.                                                          |
-| Publication date picker                                   | Implemented | Server-rendered fields initialize in the browser's locale and time zone after hydration.                                                                 |
-| Scheduled publishing                                      | Partial     | Dated Page and Post publication becomes visible when due. Private release rehearsal requires an explicit execution step.                                 |
-| Revision history                                          | Partial     | Legacy revision history exists; complete user-facing revision/recovery lifecycle is not established.                                                     |
-| Preview                                                   | Implemented | Live or saved preview uses Web's detail, archive, and structured-block rendering for Standard, Home, Posts, and Gallery with the configured Blog preset. |
-| Content relationships                                     | Partial     | Page hierarchy and taxonomy/media associations exist; broader relationships need audit.                                                                  |
+| Capability                                                | Status      | Notes                                                                                                                                                                   |
+| --------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Posts and standard pages, metadata, taxonomy, cover media | Implemented | Admin/API/public flows exist.                                                                                                                                           |
+| Draft persistence and explicit save                       | Partial     | Legacy page persistence exists; newer private working aggregates are guarded rehearsal only.                                                                            |
+| Autosave, restore/recovery, conflict handling             | Partial     | Existing Posts and Pages support debounced autosave and version-checked recovery in the guarded rehearsal. Production activation remains open.                          |
+| Publishing and unpublishing                               | Implemented | Page and Post edits preserve existing publication unless the editor changes the status or date.                                                                         |
+| Publication date picker                                   | Implemented | Server-rendered fields initialize in the browser's locale and time zone after hydration.                                                                                |
+| Scheduled publishing                                      | Partial     | Dated Page and Post publication becomes visible when due. Private release rehearsal requires an explicit execution step.                                                |
+| Editorial dashboard                                       | Implemented | Shows scoped Post and Page totals, publication states, recent updates, upcoming publications, and editor shortcuts. Guarded rehearsal data stays in the private editor. |
+| Revision history                                          | Partial     | Legacy revision history exists; complete user-facing revision/recovery lifecycle is not established.                                                                    |
+| Preview                                                   | Implemented | Live or saved preview uses Web's detail, archive, and structured-block rendering for Standard, Home, Posts, and Gallery with the configured Blog preset.                |
+| Content relationships                                     | Partial     | Page hierarchy and taxonomy/media associations exist; broader relationships need audit.                                                                                 |
 
 Admin Posts, Pages, Tags, and Categories support server-side search, ordering,
 and pagination. Posts and Pages also expose editorial state and record dates,

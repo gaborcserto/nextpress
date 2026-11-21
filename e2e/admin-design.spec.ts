@@ -89,10 +89,10 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
 
     if (path === "") {
       await expect(
-        page.getByRole("heading", { name: "Recent posts" }),
+        page.getByRole("heading", { name: "Recently updated content" }),
       ).toBeVisible();
-      await expect(page.getByText(/\d+ accessible posts/)).toBeVisible();
-      await expect(page.getByText(/\d+ accessible pages/)).toBeVisible();
+      await expect(page.getByText("Total Posts")).toBeVisible();
+      await expect(page.getByText("Total Pages")).toBeVisible();
     }
 
     if (["/posts", "/pages", "/users", "/taxonomy"].includes(path)) {
