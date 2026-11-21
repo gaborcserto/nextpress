@@ -233,6 +233,27 @@ it("pins supported Docker contexts to local endpoints and rejects other platform
   expect(() => disposableDockerContext("darwin")).toThrow();
 });
 
+it("recognizes an owned container whose network endpoint has not been created", () => {
+  const target = evidence();
+  const container = target.container.map((item) => ({
+    ...item,
+    State: { Running: false },
+    NetworkSettings: { Networks: {} },
+  }));
+  const network = target.network.map((item) => ({ ...item, Containers: {} }));
+
+  expect(() =>
+    verifyProvisioningCleanup(manifest, container, network),
+  ).not.toThrow();
+  expect(() =>
+    verifyProvisioningCleanup(
+      manifest,
+      container.map((item) => ({ ...item, State: { Running: true } })),
+      network,
+    ),
+  ).toThrow();
+});
+
 it("cleans only owned provisioning resources even when startup fails", () => {
   const target = evidence();
   target.container[0]!.State.Running = false;

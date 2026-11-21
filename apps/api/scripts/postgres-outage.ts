@@ -2,6 +2,7 @@ import { chromium, expect } from "@playwright/test";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -9,12 +10,14 @@ import { fileURLToPath } from "node:url";
 import {
   disposableDockerContext,
   verifyLocalDocker,
+  watchDisposableInterrupt,
 } from "../src/lib/testing/docker-database";
 
 import type { Browser } from "@playwright/test";
 import type { ChildProcess } from "node:child_process";
 
 const dockerContext = disposableDockerContext().name;
+const require = createRequire(import.meta.url);
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../..",
@@ -83,7 +86,7 @@ function run(command: string, args: string[], env = process.env) {
     encoding: "utf8",
     stdio: "inherit",
     timeout: 120_000,
-    shell: process.platform === "win32",
+    shell: process.platform === "win32" && command !== process.execPath,
   });
 
   if (result.error) {
@@ -433,8 +436,19 @@ async function verifyRecovery() {
 }
 
 async function cleanup() {
-  await browser?.close();
-  await stopApplications();
+  try {
+    await browser?.close();
+  } finally {
+    try {
+      await stopApplications();
+    } finally {
+      removeDatabaseResources();
+    }
+  }
+}
+
+function removeDatabaseResources() {
+  verifyLocalDocker();
 
   if (containerId) {
     inspectOwnedContainer();
@@ -460,6 +474,8 @@ async function main() {
   if (existing.status === 0) {
     throw new Error("Generated disposable container name unexpectedly exists");
   }
+
+  const interruption = watchDisposableInterrupt();
 
   try {
     docker(
@@ -491,21 +507,29 @@ async function main() {
       `POSTGRES_DB=${databaseName}`,
       image,
     );
+    await interruption.checkpoint();
     docker("start", containerId);
     inspectOwnedContainer();
     await waitForDatabase();
+    await interruption.checkpoint();
     const environment = { ...process.env, DATABASE_URL: databaseUrl };
     run(
       "npm",
       ["--workspace", "@nextpress/db", "run", "prisma:deploy"],
       environment,
     );
+    await interruption.checkpoint();
     initializeSettings();
 
     const appEnvironment = { ...process.env, DATABASE_URL: databaseUrl };
 
-    run("npx", ["turbo", "run", "build", "--concurrency=2"], appEnvironment);
+    run(
+      process.execPath,
+      [require.resolve("turbo/bin/turbo"), "run", "build", "--concurrency=2"],
+      appEnvironment,
+    );
 
+    await interruption.checkpoint();
     prepareStandaloneAssets("api");
     prepareStandaloneAssets("admin");
     prepareStandaloneAssets("web");
@@ -515,11 +539,18 @@ async function main() {
     await waitForHttp(`${apiOrigin}/api/health`, 200);
     await waitForResponse(`${adminOrigin}/auth/sign-in`);
     await waitForHttp(`${webOrigin}/en/posts`, 200);
+    await interruption.checkpoint();
     await verifyNormalOperation();
+    await interruption.checkpoint();
     await verifyOutage();
+    await interruption.checkpoint();
     await verifyRecovery();
   } finally {
-    await cleanup();
+    try {
+      await cleanup();
+    } finally {
+      interruption.close();
+    }
   }
 }
 

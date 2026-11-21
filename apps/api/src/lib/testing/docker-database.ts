@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { setImmediate as nextTurn } from "node:timers/promises";
 import { z } from "zod";
 
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
@@ -190,13 +191,69 @@ export function verifyDockerEvidence(
   }
 }
 
+export function watchDisposableInterrupt() {
+  const controller = new AbortController();
+  const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
+
+  if (process.platform === "win32") {
+    signals.push("SIGBREAK");
+  }
+
+  function interrupt(signal: NodeJS.Signals) {
+    controller.abort(new Error(`Disposable test interrupted by ${signal}`));
+    process.exitCode = 1;
+  }
+
+  for (const signal of signals) {
+    process.on(signal, interrupt);
+  }
+
+  return {
+    async checkpoint() {
+      await nextTurn();
+      controller.signal.throwIfAborted();
+    },
+    close() {
+      for (const signal of signals) {
+        process.off(signal, interrupt);
+      }
+    },
+  };
+}
+
+export function removeDisposableNetwork(network: string, run: string) {
+  const [owned] = z
+    .array(
+      z.object({
+        Id: z.string(),
+        Labels: z.record(z.string(), z.string()),
+        Containers: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .length(1)
+    .parse(JSON.parse(docker("network", "inspect", network)));
+
+  if (
+    !owned ||
+    owned.Id !== network ||
+    owned.Labels["nextpress.disposable"] !== run ||
+    Object.keys(owned.Containers).length
+  ) {
+    throw new Error(
+      "Refusing cleanup of an unowned or shared disposable network",
+    );
+  }
+
+  docker("network", "rm", network);
+}
+
 // Before PostgreSQL starts, cluster/SQL evidence cannot exist. Cleanup can only
 // target exact IDs returned by this run's create commands, never discovered peers.
 export function verifyProvisioningCleanup(
   expected: Pick<
     DisposableManifest,
     "run" | "container" | "network" | "image" | "port"
-  >,
+  > & { networkName?: string },
   raw: unknown,
   networkRaw: unknown,
 ) {
@@ -215,6 +272,7 @@ export function verifyProvisioningCleanup(
     .length(1)
     .parse(networkRaw);
   const bindings = container?.HostConfig.PortBindings["5432/tcp"];
+  const endpoints = Object.values(container?.NetworkSettings.Networks ?? {});
 
   if (
     !container ||
@@ -223,9 +281,11 @@ export function verifyProvisioningCleanup(
     container.Image !== expected.image ||
     container.Config.Labels["nextpress.disposable"] !== expected.run ||
     container.HostConfig.Privileged ||
-    container.HostConfig.NetworkMode !== `nextpress-b04-${expected.run}` ||
-    Object.values(container.NetworkSettings.Networks).length !== 1 ||
-    Object.values(container.NetworkSettings.Networks).some(
+    container.HostConfig.NetworkMode !==
+      (expected.networkName ?? `nextpress-b04-${expected.run}`) ||
+    endpoints.length > 1 ||
+    (container.State.Running && endpoints.length !== 1) ||
+    endpoints.some(
       (endpoint) =>
         endpoint.NetworkID !== "" && endpoint.NetworkID !== expected.network,
     ) ||

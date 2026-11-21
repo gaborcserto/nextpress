@@ -103,6 +103,10 @@ Avoid generic boilerplate, wrapper layers, fragmented helpers, speculative abstr
 - Prefer the platform and existing dependencies. Add or upgrade a dependency only when the task requires it and the benefit justifies the maintenance and security cost.
 - Change dependencies in the owning workspace and let npm update `package-lock.json`; do not hand-edit the lockfile.
 
+## Disposable Docker tests
+
+Use the guarded test runners for Docker-backed PostgreSQL. Give each run unique ownership labels and track the exact IDs returned during provisioning. Use isolated data and loopback bindings. On success, failure, or a handled interrupt, verify the local Docker context and resource ownership before removing the run's database container, dedicated network, and any explicitly owned volume. Preserve resources if verification fails and report the remaining IDs or names. Never prune Docker or clean by name prefix.
+
 ## Commands and environment
 
 Run commands from the repository root unless a workspace is intentionally targeted. The package manager is npm `12.2.2`.

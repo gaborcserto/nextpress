@@ -17,11 +17,13 @@ import { disposableDatabaseName } from "../src/lib/testing/disposable-database";
 import {
   disposableManifestPath,
   disposableDockerContext,
+  removeDisposableNetwork,
   verifyDockerEvidence,
   verifyDisposableDatabase,
   verifyDockerTarget,
   verifyLocalDocker,
   verifyProvisioningCleanup,
+  watchDisposableInterrupt,
   type DisposableManifest,
 } from "../src/lib/testing/docker-database";
 import {
@@ -202,32 +204,6 @@ function sql(container: string, database: string, statement: string) {
   }
 }
 
-function removeNetwork(network: string, run: string) {
-  const [ownedNetwork] = z
-    .array(
-      z.object({
-        Id: z.string(),
-        Labels: z.record(z.string(), z.string()),
-        Containers: z.record(z.string(), z.unknown()),
-      }),
-    )
-    .length(1)
-    .parse(JSON.parse(docker("network", "inspect", network)));
-
-  if (
-    !ownedNetwork ||
-    ownedNetwork.Id !== network ||
-    ownedNetwork.Labels["nextpress.disposable"] !== run ||
-    Object.keys(ownedNetwork.Containers).length
-  ) {
-    throw new Error(
-      "Refusing cleanup of an unowned or shared disposable network",
-    );
-  }
-
-  docker("network", "rm", network);
-}
-
 async function verifyFamily(family: "content" | "security") {
   verifyLocalDocker();
   const run = randomBytes(6).toString("hex");
@@ -240,22 +216,24 @@ async function verifyFamily(family: "content" | "security") {
     "postgres@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8";
   docker("pull", reference);
   const image = docker("image", "inspect", reference, "--format", "{{.Id}}");
-  const network = docker(
-    "network",
-    "create",
-
-    "--driver",
-    "bridge",
-    "--label",
-    `nextpress.disposable=${run}`,
-    networkName,
-  );
+  let network: string | undefined;
   let container: string | undefined;
   let manifest: DisposableManifest | undefined;
   let clusterVerified = false;
   let evidenceCreated = false;
+  const interruption = watchDisposableInterrupt();
 
   try {
+    network = docker(
+      "network",
+      "create",
+
+      "--driver",
+      "bridge",
+      "--label",
+      `nextpress.disposable=${run}`,
+      networkName,
+    );
     container = docker(
       "create",
       "--name",
@@ -276,6 +254,7 @@ async function verifyFamily(family: "content" | "security") {
       `POSTGRES_DB=${database}`,
       image,
     );
+    await interruption.checkpoint();
     docker("start", container);
     const endpoints = z
       .record(z.string(), z.object({ IPAddress: z.string() }))
@@ -384,7 +363,9 @@ async function verifyFamily(family: "content" | "security") {
         mode: 0o600,
       });
       evidenceCreated = true;
+      await interruption.checkpoint();
       npm(["--workspace", "@nextpress/db", "run", "prisma:deploy"]);
+      await interruption.checkpoint();
       await verifyDisposableDatabase(database, prisma, manifest);
       sql(
         container,
@@ -405,6 +386,7 @@ async function verifyFamily(family: "content" | "security") {
           "--maxWorkers=1",
           "--testTimeout=30000",
         ]);
+        await interruption.checkpoint();
         sql(
           container,
           database,
@@ -458,6 +440,7 @@ async function verifyFamily(family: "content" | "security") {
         ]);
       }
 
+      await interruption.checkpoint();
       await verifyDisposableDatabase(database, prisma, manifest);
       console.log(
         "Cleanup inventory",
@@ -482,7 +465,7 @@ async function verifyFamily(family: "content" | "security") {
       // mismatch deliberately leaves resources for investigation.
       verifyLocalDocker();
 
-      if (container) {
+      if (container && network) {
         if (clusterVerified && manifest) {
           verifyDockerTarget(manifest);
         } else {
@@ -496,7 +479,9 @@ async function verifyFamily(family: "content" | "security") {
         docker("rm", "--force", container);
       }
 
-      removeNetwork(network, run);
+      if (network) {
+        removeDisposableNetwork(network, run);
+      }
 
       if (evidenceCreated) {
         unlinkSync(disposableManifestPath);
@@ -505,12 +490,14 @@ async function verifyFamily(family: "content" | "security") {
       console.log("Disposable cluster, network and evidence removed");
     } catch (error) {
       console.error(
-        "Cleanup failure:",
+        `Cleanup failure for run ${run} (container ${container ?? "none"}, network ${network ?? "none"}):`,
         redactVerificationOutput(
           error instanceof Error ? error.message : String(error),
         ),
       );
       process.exitCode = 1;
+    } finally {
+      interruption.close();
     }
   }
 }
