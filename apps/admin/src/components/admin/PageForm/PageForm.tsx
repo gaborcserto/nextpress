@@ -1,6 +1,7 @@
 "use client";
 
 import { pageLayouts } from "@nextpress/shared/content";
+import { slugify } from "@nextpress/shared/slugify";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -12,7 +13,6 @@ import {
 import { useEditorSubmission } from "@/lib/content/useEditorSubmission";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
-import { slugify } from "@/lib/utils";
 import {
   EventFields,
   EMPTY_SLATE_VALUE,

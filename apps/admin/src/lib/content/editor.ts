@@ -3,8 +3,7 @@ import {
   RichBlocksSchema,
   serializeRichContent,
 } from "@nextpress/shared/content";
-
-import { slugify } from "@/lib/utils";
+import { slugify } from "@nextpress/shared/slugify";
 
 import type { Descendant } from "slate";
 

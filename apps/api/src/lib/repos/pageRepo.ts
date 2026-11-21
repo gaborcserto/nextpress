@@ -10,6 +10,7 @@ import {
   readPageDocument,
   serializePageDocument,
 } from "@nextpress/shared/page-document";
+import { slugify } from "@nextpress/shared/slugify";
 
 import {
   contentReadWhere,
@@ -22,7 +23,7 @@ import {
   editorialPublicationWhere,
   resolvePublicationDate,
 } from "@/lib/publication";
-import { ContentVersionConflictError, slugify } from "@/lib/utils";
+import { ContentVersionConflictError } from "@/lib/utils";
 import { escapeListSearch } from "@/lib/validation/list-query";
 
 import { setTagsForPage } from "./tagRepo";

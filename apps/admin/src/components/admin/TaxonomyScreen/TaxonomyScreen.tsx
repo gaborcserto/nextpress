@@ -1,6 +1,7 @@
 "use client";
 
 import { TaxonomyListSchema } from "@nextpress/shared/api-contracts";
+import { slugify } from "@nextpress/shared/slugify";
 import { useRef, useState } from "react";
 import { FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
 
@@ -10,7 +11,6 @@ import {
   createTagAction,
   deleteTagAdminAction,
 } from "@/lib/services/tag.client";
-import { slugify } from "@/lib/utils";
 import ContentListPagination from "@/ui/components/ContentList/ContentListPagination";
 import {
   DataListEmptyRow,

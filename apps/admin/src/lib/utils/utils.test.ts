@@ -1,6 +1,5 @@
+import { slugify } from "@nextpress/shared/slugify";
 import { describe, expect, it } from "vitest";
-
-import { slugify } from "./index";
 
 describe("slugify", () => {
   it("normalizes accents, whitespace, punctuation, and repeated hyphens", () => {

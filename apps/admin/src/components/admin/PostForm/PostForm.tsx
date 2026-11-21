@@ -1,5 +1,6 @@
 "use client";
 
+import { slugify } from "@nextpress/shared/slugify";
 import { useState } from "react";
 
 import {
@@ -10,7 +11,6 @@ import {
 import { useEditorSubmission } from "@/lib/content/useEditorSubmission";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
-import { slugify } from "@/lib/utils";
 import {
   EMPTY_SLATE_VALUE,
   PostIntroFields,

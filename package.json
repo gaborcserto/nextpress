@@ -47,7 +47,6 @@
     "format:check": "node scripts/check-changed.mjs --format-check --full"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.7",
     "@nextpress/eslint-config": "*",
     "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^7.0.1",

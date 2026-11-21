@@ -1,5 +1,6 @@
 import { prisma } from "@nextpress/db/src/client";
 import { tryCatch, unwrapResult } from "@nextpress/shared";
+import { slugify } from "@nextpress/shared/slugify";
 
 import {
   contentReadWhere,
@@ -17,7 +18,6 @@ import {
   setTagsForPage,
   listTagsWithUsage,
 } from "@/lib/repos";
-import { slugify } from "@/lib/utils";
 import { TagCreateSchema, TagIdsSchema } from "@/lib/validation";
 
 import type { TagDto, TagWithUsageDto } from "@/lib/repos";
