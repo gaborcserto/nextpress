@@ -1,11 +1,14 @@
 import { serializeRichContent } from "@nextpress/shared/content";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findFirst, findMany } = vi.hoisted(() => ({
+const { findFirst, findMany, findMedia } = vi.hoisted(() => ({
   findFirst: vi.fn(),
+  findMedia: vi.fn(),
   findMany: vi.fn(),
 }));
-vi.mock("@nextpress/db", () => ({ prisma: { page: { findFirst, findMany } } }));
+vi.mock("@nextpress/db", () => ({
+  prisma: { page: { findFirst, findMany }, media: { findMany: findMedia } },
+}));
 
 import {
   getPublicPageNavigation,
@@ -53,6 +56,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   findFirst.mockResolvedValue(row);
   findMany.mockResolvedValue([]);
+  findMedia.mockResolvedValue([]);
 });
 
 describe("public published content boundary", () => {

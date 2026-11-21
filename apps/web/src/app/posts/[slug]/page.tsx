@@ -50,7 +50,12 @@ export default async function PostPage({ params }: PostPageProps) {
   return (
     <PublicWebsiteShell>
       <Post content={post} additionalPosts={additional.posts}>
-        {post.pageDocument && <PageDocument document={post.pageDocument} />}
+        {post.pageDocument && (
+          <PageDocument
+            document={post.pageDocument}
+            gifMediaIds={post.gifMediaIds}
+          />
+        )}
       </Post>
     </PublicWebsiteShell>
   );

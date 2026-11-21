@@ -1,6 +1,10 @@
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
-import { MediaCollectionSchema } from "@nextpress/shared/media";
+import {
+  MediaAssetSchema,
+  MediaCollectionSchema,
+} from "@nextpress/shared/media";
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 
 test.setTimeout(120_000);
 
@@ -23,6 +27,133 @@ async function signIn(page: Page) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
 }
+
+test("uploads static and animated GIFs without autoplay in the library", async ({
+  page,
+}) => {
+  await signIn(page);
+  const still = await sharp(png).gif().toBuffer();
+  const frames = Buffer.from([255, 0, 0, 255, 0, 0, 255, 255]);
+
+  const animated = await sharp(frames, {
+    raw: { width: 1, height: 2, channels: 4, pageHeight: 1 },
+  })
+    .gif({ delay: [120, 230], loop: 2 })
+    .toBuffer();
+
+  await page.goto("/admin/media");
+  await page.getByLabel("Upload images").setInputFiles([
+    { name: "still.gif", mimeType: "image/gif", buffer: still },
+    { name: "moving.gif", mimeType: "image/gif", buffer: animated },
+  ]);
+  await expect(page.getByText("Uploaded", { exact: true })).toHaveCount(2);
+
+  await page.getByLabel("Original format").selectOption("image/gif");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const moving = page.getByRole("button", { name: /moving\.gif/ });
+  await expect(moving.locator("img")).toHaveCount(0);
+  await moving.click();
+  const details = page.getByRole("dialog", { name: "Media details" });
+  await expect(details.locator("img")).toHaveCount(0);
+
+  const delivered = page.waitForResponse(
+    (response) =>
+      /\/api\/media\/[a-f0-9-]+$/.test(response.url()) &&
+      response.status() === 200,
+  );
+  await details.getByRole("button", { name: "Show GIF" }).click();
+  const response = await delivered;
+  const metadata = await sharp(await response.body(), {
+    animated: true,
+  }).metadata();
+
+  expect(response.headers()["content-type"]).toBe("image/gif");
+  expect(response.headers()["cache-control"]).toBe("private, no-store");
+  expect(metadata).toMatchObject({ pages: 2, delay: [120, 230], loop: 2 });
+  await expect
+    .poll(() =>
+      details
+        .locator("img")
+        .evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBe(1);
+  await details.getByRole("button", { name: "Hide GIF" }).click();
+  await expect(details.locator("img")).toHaveCount(0);
+});
+
+test("plays a GIF on demand in protected previews and revokes public delivery after deletion", async ({
+  page,
+  request,
+}) => {
+  await signIn(page);
+  const gif = await sharp(png).gif().toBuffer();
+
+  const upload = await page.request.post("/api/media", {
+    headers,
+    data: {
+      data: gif.toString("base64"),
+      mime: "image/gif",
+      alt: "Gallery GIF",
+    },
+  });
+  expect(upload.status()).toBe(201);
+  const asset = MediaAssetSchema.parse(await upload.json());
+  const source = `${web}/media/${asset.id}`;
+
+  expect((await request.get(source)).status()).toBe(404);
+
+  const created = await page.request.post("/api/pages", {
+    headers,
+    data: {
+      type: "PAGE",
+      layout: "GALLERY",
+      status: "PUBLISHED",
+      title: "GIF gallery",
+      slug: "gif-gallery",
+      galleryIds: [asset.id],
+    },
+  });
+  expect(created.status()).toBe(201);
+  const gallery = ContentRecordSchema.parse(await created.json());
+
+  await page.goto(`/admin/pages/${gallery.id}`);
+  await page.getByRole("button", { name: "Live Preview", exact: true }).click();
+  const preview = page.frameLocator('iframe[title="Public frontend preview"]');
+  const playback = preview.getByRole("button", {
+    name: /Show GIF.*Gallery GIF/,
+  });
+  await playback.scrollIntoViewIfNeeded();
+  await playback.click();
+  const image = preview.getByRole("img", { name: "Gallery GIF" });
+  await expect
+    .poll(() =>
+      image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+    )
+    .toBe(4);
+
+  await page.getByLabel("Unsaved live updates").uncheck();
+  await expect(image.or(playback)).toBeVisible();
+  await page.goto(`${web}/en/pages/${gallery.slug}`);
+  await expect(page.getByRole("img", { name: "Gallery GIF" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Show GIF.*Gallery GIF/ }).click();
+  await expect
+    .poll(() =>
+      page
+        .getByRole("img", { name: "Gallery GIF" })
+        .evaluate((element: HTMLImageElement) => element.naturalWidth),
+    )
+    .toBe(4);
+  expect((await request.get(source)).headers()["content-type"]).toBe(
+    "image/gif",
+  );
+
+  expect(
+    (
+      await page.request.delete(`/api/pages/${gallery.id}`, { headers })
+    ).status(),
+  ).toBe(200);
+  expect((await request.get(source)).status()).toBe(404);
+});
 
 test("uploads media, edits metadata and browses the same assets on desktop and mobile", async ({
   page,
@@ -134,12 +265,17 @@ test("saves ordered Gallery images and a cover, previews unsaved changes and pro
 }) => {
   await signIn(page);
   const assets = await Promise.all(
-    ["gallery-a.png", "gallery-b.png"].map(async (filename, index) => {
+    (["webp", "avif"] as const).map(async (format, index) => {
+      const filename = `gallery-${index}.${format}`;
+      const fixture = await sharp(png)
+        .toFormat(format, { lossless: true })
+        .toBuffer();
+
       const response = await page.request.post("/api/media", {
         headers,
         data: {
-          data: png.toString("base64"),
-          mime: "image/png",
+          data: fixture.toString("base64"),
+          mime: `image/${format}`,
           filename,
           alt: `Gallery subject ${index + 1}`,
         },
@@ -220,7 +356,17 @@ test("saves ordered Gallery images and a cover, previews unsaved changes and pro
   expect(
     (await page.request.delete(`/api/media/${first.id}`, { headers })).status(),
   ).toBe(409);
-  expect((await request.get(`${web}/media/${first.id}`)).status()).toBe(200);
+  const publishedImage = await request.get(`${web}/media/${first.id}`);
+  expect(publishedImage.status()).toBe(200);
+  expect(publishedImage.headers()["content-type"]).toBe("image/webp");
+  expect(publishedImage.headers()["cache-control"]).toBe("no-store");
+  expect(
+    (
+      await request.get(
+        `${web}/_next/image?url=%2Fmedia%2F${first.id}&w=640&q=75`,
+      )
+    ).status(),
+  ).toBe(400);
 
   await page.reload();
   await expect(group.getByRole("listitem").first()).toContainText(assets[1]);

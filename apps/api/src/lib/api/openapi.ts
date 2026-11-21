@@ -311,10 +311,10 @@ const paths: OpenAPIV3.PathsObject = {
     post: operation(
       "uploadMedia",
       "Media",
-      "Upload validated PNG or JPEG",
+      "Upload validated JPEG, PNG, WebP, AVIF, or GIF",
       ref("MediaAsset"),
       [400, ...mutationCodes, 409, 500],
-      "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Validated, auto-oriented and normalized to PNG without source metadata. Optional original filename is stored as display text. ADMIN/EDITOR/AUTHOR only.",
+      "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Validated, auto-oriented and stored in the detected format without source metadata. GIF is the supported animation format. Optional original filename is stored as display text. ADMIN/EDITOR/AUTHOR only.",
       "protected",
       "MediaUpload",
       201,
@@ -366,7 +366,7 @@ const paths: OpenAPIV3.PathsObject = {
       "Serve authorized or published referenced media",
       { type: "string", format: "binary" },
       [404, 500],
-      "Private media requires an editor/admin or owning author session. No-store; PNG only.",
+      "Private media requires an editor/admin or owning author session. No-store.",
       "optional",
     ),
     delete: operation(

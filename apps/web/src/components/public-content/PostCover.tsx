@@ -31,6 +31,7 @@ export function PostCover({
     <div className={card ? styles.cardMedia : styles.articleMedia}>
       <ContentMediaImage
         src={cover.url}
+        gif={cover.gif}
         alt={cover.decorative ? "" : cover.alt || `Cover for ${title}`}
         width={cover.width}
         height={cover.height}

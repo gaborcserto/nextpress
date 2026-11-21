@@ -14,7 +14,10 @@ import {
   richContentText,
 } from "@nextpress/shared/content";
 import { maxGalleryImages } from "@nextpress/shared/media";
-import { readPageDocument } from "@nextpress/shared/page-document";
+import {
+  pageMediaIds,
+  readPageDocument,
+} from "@nextpress/shared/page-document";
 
 import { publicPublicationWhere } from "./eligibility";
 import { parsePublicRichContent } from "./rich-content";
@@ -61,25 +64,36 @@ const publicPageSelect = {
           width: true,
           height: true,
           caption: true,
+          mime: true,
         },
       },
     },
   },
 } satisfies Prisma.PageSelect;
 
-function projectPublicPage(
+async function projectPublicPage(
   row: Prisma.PageGetPayload<{ select: typeof publicPageSelect }>,
-): PublicPublishedPage {
+): Promise<PublicPublishedPage> {
   const pageType = resolvePageType(row.layout);
   const filter = PublicTaxonomyParamsSchema.safeParse(row.listingTaxonomy);
 
+  const content = await projectPublicContent(row);
+
   return {
-    ...projectPublicContent(row),
+    ...content,
     pageType,
     ...(pageType === "gallery"
       ? {
-          gallery: (row.gallery ?? []).flatMap(({ media }) =>
-            media.url === `/media/${media.id}` ? [media] : [],
+          gallery: (row.gallery ?? []).flatMap(
+            ({ media: { mime, ...media } }) =>
+              media.url === `/media/${media.id}`
+                ? [
+                    {
+                      ...media,
+                      ...(mime === "image/gif" ? { gif: true as const } : {}),
+                    },
+                  ]
+                : [],
           ),
         }
       : {}),
@@ -138,6 +152,7 @@ function projectPublicCover(
     ? {
         url: cover.url,
         alt: cover.alt ?? "",
+        ...(cover.mime === "image/gif" ? { gif: true as const } : {}),
         ...(cover.alt === "" ? { decorative: true as const } : {}),
         width: cover.width,
         height: cover.height,
@@ -145,14 +160,25 @@ function projectPublicCover(
     : null;
 }
 
-function projectPublicContent(row: PublicContentRow): PublicContent {
+async function projectPublicContent(
+  row: PublicContentRow,
+): Promise<PublicContent> {
   if (!row.publishedAt) {
     throw new Error("Missing publication time");
   }
 
   const document = row.pageDocument ? readPageDocument(row.pageDocument) : null;
 
+  const mediaIds = document?.supported ? pageMediaIds(document.document) : [];
+  const gifs = mediaIds.length
+    ? await prisma.media.findMany({
+        where: { id: { in: mediaIds }, mime: "image/gif" },
+        select: { id: true },
+      })
+    : [];
+
   return {
+    ...(gifs.length ? { gifMediaIds: gifs.map(({ id }) => id) } : {}),
     ...(row.pageDocument
       ? { pageDocument: document?.supported ? document.document : null }
       : {}),
@@ -214,10 +240,7 @@ export async function getPublishedPost(
     return null;
   }
 
-  return {
-    ...projectPublicContent(row),
-    publishedAt: row.publishedAt.toISOString(),
-  };
+  return projectPublicContent(row);
 }
 
 /** Static pages use the same strict publication boundary as public posts. */

@@ -98,7 +98,12 @@ export default async function StaticPage({ params, searchParams }: PageProps) {
       >
         <PostCover title={page.title} cover={page.cover} />
         <RichContent content={page.content} />
-        {page.pageDocument && <PageDocument document={page.pageDocument} />}
+        {page.pageDocument && (
+          <PageDocument
+            document={page.pageDocument}
+            gifMediaIds={page.gifMediaIds}
+          />
+        )}
       </Archive>
     </PublicWebsiteShell>
   );

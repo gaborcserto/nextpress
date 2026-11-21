@@ -266,6 +266,7 @@ export const PublicCoverSchema = z
     url: z.string().regex(/^\/(?!\/)/),
     alt: z.string(),
     decorative: z.literal(true).optional(),
+    gif: z.literal(true).optional(),
     width: z.number().int().nullable(),
     height: z.number().int().nullable(),
   })
@@ -299,6 +300,7 @@ export const PublicPostSummarySchema = z.strictObject({
 export const PublicContentSchema = z.strictObject({
   pageType: PageTypeSchema.optional(),
   gallery: z.array(GalleryImageSchema).max(maxGalleryImages).optional(),
+  gifMediaIds: z.array(MediaIdSchema).optional(),
   postsFilter: PublicTaxonomyParamsSchema.optional(),
   pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,

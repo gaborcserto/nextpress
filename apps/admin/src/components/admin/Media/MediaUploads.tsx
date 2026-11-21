@@ -7,7 +7,7 @@ import {
 } from "@nextpress/shared/media";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { jsonFetcher } from "@/lib/api";
+import { ApiRequestError, jsonFetcher } from "@/lib/api";
 import { Button } from "@/ui/primitives";
 
 import { useMediaMessages } from "./messages";
@@ -20,6 +20,7 @@ type Upload = {
     | "uploading"
     | "uploaded"
     | "invalidFile"
+    | "unsupportedAnimation"
     | "failedUpload"
     | "cancelled";
 };
@@ -102,8 +103,15 @@ export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
           await upload(item.file);
           uploaded = true;
           setStatus(item.id, "uploaded");
-        } catch {
-          setStatus(item.id, "failedUpload");
+        } catch (error) {
+          const unsupportedAnimation =
+            error instanceof ApiRequestError &&
+            error.status === 400 &&
+            error.message === "Unsupported image animation";
+          setStatus(
+            item.id,
+            unsupportedAnimation ? "unsupportedAnimation" : "failedUpload",
+          );
         }
       }
     } finally {
@@ -155,7 +163,7 @@ export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
         id={inputId}
         type="file"
         multiple
-        accept="image/png,image/jpeg"
+        accept={MediaInputMimeSchema.options.join(",")}
         aria-describedby={inputId + "-hint"}
         disabled={running}
         className="file-input w-full max-w-sm"

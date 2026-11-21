@@ -1,4 +1,8 @@
 import {
+  maxStoredMediaBytes,
+  MediaInputMimeSchema,
+} from "@nextpress/shared/media";
+import {
   pageMediaIds,
   readPageDocument,
 } from "@nextpress/shared/page-document";
@@ -33,13 +37,17 @@ export async function loadPreviewMedia(id: string, signal: AbortSignal) {
       cache: "no-store",
     });
 
-    if (!response.ok || response.headers.get("Content-Type") !== "image/png") {
+    if (
+      !response.ok ||
+      !MediaInputMimeSchema.safeParse(response.headers.get("Content-Type"))
+        .success
+    ) {
       return null;
     }
 
     const bytes = await response.arrayBuffer();
 
-    return bytes.byteLength <= 8_388_608 ? bytes : null;
+    return bytes.byteLength <= maxStoredMediaBytes ? bytes : null;
   } catch {
     return null;
   }

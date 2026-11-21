@@ -19,7 +19,12 @@ export function PublishedPage({
   return (
     <PublicWebsiteShell>
       <Page content={page}>
-        {page.pageDocument && <PageDocument document={page.pageDocument} />}
+        {page.pageDocument && (
+          <PageDocument
+            document={page.pageDocument}
+            gifMediaIds={page.gifMediaIds}
+          />
+        )}
         {page.pageType === "gallery" && <MediaGallery images={page.gallery} />}
       </Page>
     </PublicWebsiteShell>

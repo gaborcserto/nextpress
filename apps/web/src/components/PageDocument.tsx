@@ -16,6 +16,18 @@ async function DocumentListing(props: DocumentListingProps) {
   return <DocumentListingItems items={listing.items} />;
 }
 
-export function PageDocument({ document }: { document: Document }) {
-  return <PageDocumentView document={document} Listing={DocumentListing} />;
+export function PageDocument({
+  document,
+  gifMediaIds,
+}: {
+  document: Document;
+  gifMediaIds?: readonly string[];
+}) {
+  return (
+    <PageDocumentView
+      document={document}
+      Listing={DocumentListing}
+      gifMediaIds={gifMediaIds}
+    />
+  );
 }

@@ -39,6 +39,7 @@ type PageTypeLiteral = "PAGE" | "POST";
 export const editorImageSelect = {
   id: true,
   url: true,
+  mime: true,
   alt: true,
   width: true,
   height: true,

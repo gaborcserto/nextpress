@@ -51,7 +51,9 @@ The Admin Media Library supports filename and metadata search, bounded grid and 
 
 Post and Page editors share the picker for cover images and existing structured image and hero blocks. Gallery pages store ordered references and use each asset's alternative text and caption. Structured image blocks can override alternative text in context. Media relationships are read-only in the guarded private editor, which preserves and previews its existing references.
 
-PNG and JPEG inputs up to 2 MiB and 16 million pixels are accepted. Uploaded images are auto-oriented and stored as PNG, with source metadata removed and an 8 MiB stored limit. Older records may have unknown filenames, original format, size, or modification date. WebP, AVIF, GIF, remote imports, and cloud storage remain outside this workflow.
+JPEG, PNG, still WebP, still AVIF, and static or animated GIF are accepted. New uploads are stored and served in their verified input format. Existing PNG objects and their references are preserved. Older records may lack filenames, original format, size, or modification date. The library filters by original format and shows the stored MIME type and size in asset details.
+
+GIF playback is opt-in in media details, public content, and protected previews, including for visitors who prefer reduced motion. The library and picker show a GIF label in collections. Captions and alternative text remain available in the editorial views. Editors remain responsible for reviewing GIFs for rapid flashes before publication. Animated WebP, APNG, and AVIF sequences are rejected with localized guidance to use GIF. See the [media decision record](decisions/002-media-storage-and-delivery.md) for limits and delivery policy.
 
 ## Public website
 

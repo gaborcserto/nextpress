@@ -43,3 +43,5 @@ CI compares the pull request or push commit range and uses Turbo filters for cha
 - Apply the media metadata migration before using the Admin Media Library. The migration preserves existing asset IDs and storage keys, and adds restrictive foreign-key deletion for cover and Gallery references. Use the disposable PostgreSQL and Chromium harness for write-heavy verification.
 
 See workspace READMEs for API-only integration guidance and API reference behavior.
+
+Prefer the installed framework, runtime, or browser capability when it fits the requirements. Follow the [native-first development principle](../AGENTS.md#native-first-development) when choosing an implementation or dependency.

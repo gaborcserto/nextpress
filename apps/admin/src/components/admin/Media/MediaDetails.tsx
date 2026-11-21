@@ -76,6 +76,7 @@ function MetadataForm({
   const text = useMediaMessages();
   const [asset, setAsset] = useState(initial);
   const [decorative, setDecorative] = useState(initial.alt === "");
+  const [showGif, setShowGif] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -156,7 +157,16 @@ function MetadataForm({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <section className="min-w-0 space-y-3">
-        <MediaThumbnail asset={asset} />
+        <MediaThumbnail asset={asset} showGif={showGif} />
+        {asset.mime === "image/gif" && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowGif(!showGif)}
+          >
+            {showGif ? text.hideGif : text.showGif}
+          </Button>
+        )}
         <dl className="grid gap-2 text-sm wrap-anywhere">
           {[
             [text.id, asset.id, true],

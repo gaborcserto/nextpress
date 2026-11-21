@@ -1,3 +1,4 @@
+import { MediaInputMimeSchema } from "@nextpress/shared/media";
 import { z } from "zod";
 
 import type { OpenAPIV3 } from "openapi-types";
@@ -55,8 +56,10 @@ export function operation(
 
   if ("format" in result && result.format === "binary") {
     responses[success] = {
-      description: "PNG image",
-      content: { "image/png": { schema: result } },
+      description: "Validated image",
+      content: Object.fromEntries(
+        MediaInputMimeSchema.options.map((mime) => [mime, { schema: result }]),
+      ),
     };
   }
 

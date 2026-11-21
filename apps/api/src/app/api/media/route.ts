@@ -5,6 +5,7 @@ import { bad, ok, oops } from "@/lib/api";
 import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import { tooManyRequests } from "@/lib/security/rate-limit.server";
+import { UnsupportedMediaAnimationError } from "@/lib/services/media-image.server";
 import {
   listMedia,
   uploadMedia,
@@ -38,6 +39,10 @@ export const POST = withAuth(
     } catch (error) {
       if (error instanceof MediaBusyError) {
         return tooManyRequests(1);
+      }
+
+      if (error instanceof UnsupportedMediaAnimationError) {
+        return bad("Unsupported image animation");
       }
 
       if (

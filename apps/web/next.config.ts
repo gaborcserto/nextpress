@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   skipTrailingSlashRedirect: true,
   output: "standalone",
+  // Media authorization is checked on every delivery, including after unpublishing.
+  images: { localPatterns: [], remotePatterns: [] },
   async headers() {
     return [
       {
@@ -21,12 +23,14 @@ const nextConfig: NextConfig = {
             header.key === "Content-Security-Policy"
               ? {
                   ...header,
-                  value: header.value.replace(
-                    "frame-ancestors 'none'",
-                    process.env.PREVIEW_ADMIN_ORIGIN
-                      ? `frame-ancestors ${new URL(process.env.PREVIEW_ADMIN_ORIGIN).origin}`
-                      : "frame-ancestors 'none'",
-                  ),
+                  value: header.value
+                    .replace("img-src 'self'", "img-src 'self' blob:")
+                    .replace(
+                      "frame-ancestors 'none'",
+                      process.env.PREVIEW_ADMIN_ORIGIN
+                        ? `frame-ancestors ${new URL(process.env.PREVIEW_ADMIN_ORIGIN).origin}`
+                        : "frame-ancestors 'none'",
+                    ),
                 }
               : header,
           ),

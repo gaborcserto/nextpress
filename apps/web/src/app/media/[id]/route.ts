@@ -1,3 +1,4 @@
+import { MediaInputMimeSchema } from "@nextpress/shared/media";
 import {
   renderRequestId,
   requestIdHeader,
@@ -53,9 +54,22 @@ export async function GET(
       });
     }
 
+    const mime = MediaInputMimeSchema.safeParse(
+      response.headers.get("Content-Type"),
+    );
+
+    if (!mime.success) {
+      await response.body?.cancel();
+
+      return new Response(null, {
+        status: 503,
+        headers: { [requestIdHeader]: requestId },
+      });
+    }
+
     return new Response(response.body, {
       headers: {
-        "Content-Type": "image/png",
+        "Content-Type": mime.data,
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
         [requestIdHeader]: requestId,

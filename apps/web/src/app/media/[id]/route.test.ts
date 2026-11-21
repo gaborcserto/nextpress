@@ -85,3 +85,35 @@ it("fails closed for private media, path traversal and missing production config
   ).toBe(503);
   expect(upstream).not.toHaveBeenCalled();
 });
+
+it.each(["image/webp", "image/avif", "image/gif"])(
+  "preserves the public %s response type without caching the bytes",
+  async (mime) => {
+    upstream.mockResolvedValue(
+      new Response("image bytes", { headers: { "Content-Type": mime } }),
+    );
+
+    const response = await GET(new Request("http://web.test/media/image"), {
+      params: Promise.resolve({ id: "image" }),
+    });
+
+    expect(response.headers.get("Content-Type")).toBe(mime);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  },
+);
+
+it("refuses content types outside the media allowlist", async () => {
+  upstream.mockResolvedValue(
+    new Response("<svg></svg>", {
+      headers: { "Content-Type": "image/svg+xml" },
+    }),
+  );
+
+  const response = await GET(new Request("http://web.test/media/image"), {
+    params: Promise.resolve({ id: "image" }),
+  });
+
+  expect(response.status).toBe(503);
+  expect(await response.text()).toBe("");
+});

@@ -16,6 +16,7 @@ export function MediaGallery({ images = [] }: { images?: GalleryImage[] }) {
           <figure>
             <ContentMediaImage
               src={image.url}
+              gif={image.gif}
               alt={image.alt ?? ""}
               width={image.width ?? 1200}
               height={image.height ?? 800}

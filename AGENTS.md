@@ -30,6 +30,12 @@ The database package owns `packages/db/prisma/schema.prisma`, migrations, seed l
 
 Place internal architecture, development, planning, infrastructure, and code-quality documentation in `.notes/`.
 
+## Native-first development
+
+Before implementing custom functionality or adding a dependency, check the installed Next.js, React, Node.js, and modern Web Platform capabilities against version-specific official documentation. Prefer stable, officially supported capabilities that meet functional, architectural, security, accessibility, and performance requirements. Keep custom code where domain behavior, security, portability, or missing capabilities justify it. Avoid speculative abstractions and experimental APIs for convenience.
+
+Preserve API, Admin, and Public Web boundaries and self-hosted operation without Vercel, a CDN, or a cloud provider. Document significant deviations from native capabilities. NATIVE-01 owns the separate project-wide audit.
+
 ## Grounded implementation
 
 Before implementing:

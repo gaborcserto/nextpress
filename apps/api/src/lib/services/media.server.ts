@@ -3,6 +3,8 @@ import "server-only";
 import { prisma } from "@nextpress/db/src/client";
 import {
   maxMediaUploadBytes,
+  maxStoredMediaBytes,
+  MediaInputMimeSchema,
   MediaUploadSchema,
 } from "@nextpress/shared/media";
 import {
@@ -11,7 +13,6 @@ import {
 } from "@nextpress/shared/page-document";
 import { writeServerLog } from "@nextpress/shared/server-logging";
 import { randomUUID } from "node:crypto";
-import sharp from "sharp";
 
 import { apiLogContext } from "@/lib/api/request-log-context.server";
 import {
@@ -23,6 +24,10 @@ import {
 } from "@/lib/auth/content-access";
 import { publicPublicationWhere } from "@/lib/public/eligibility";
 
+import {
+  normalizeMediaImage,
+  UnsupportedMediaAnimationError,
+} from "./media-image.server";
 import {
   mediaWriteWhere,
   libraryMetadata,
@@ -66,17 +71,6 @@ function logCleanupFailure() {
   });
 }
 
-function normalizeImage(bytes: Buffer) {
-  return sharp(bytes, {
-    limitInputPixels: 16_000_000,
-    animated: false,
-    failOn: "warning",
-  })
-    .autoOrient()
-    .png()
-    .toBuffer({ resolveWithObject: true });
-}
-
 export async function listMedia(actor: ContentActor) {
   contentWriteWhere(actor);
 
@@ -92,14 +86,9 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
   contentWriteWhere(actor);
   const parsed = MediaUploadSchema.parse(input);
   const bytes = Buffer.from(parsed.data, "base64");
-  const isPng = bytes
-    .subarray(0, 8)
-    .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-  const isJpeg = bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
 
   if (
     bytes.length > maxMediaUploadBytes ||
-    (parsed.mime === "image/png" ? !isPng : !isJpeg) ||
     (parsed.filename && /[\\/\p{Cc}\p{Cf}]/u.test(parsed.filename)) ||
     parsed.filename === "." ||
     parsed.filename === ".."
@@ -107,7 +96,7 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
     throw new MediaValidationError();
   }
 
-  let normalized: Awaited<ReturnType<typeof normalizeImage>>;
+  let normalized: Awaited<ReturnType<typeof normalizeMediaImage>>;
 
   if (activeDecodes >= maxActiveDecodes) {
     throw new MediaBusyError();
@@ -116,18 +105,22 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
   activeDecodes++;
 
   try {
-    normalized = await normalizeImage(bytes);
-  } catch {
+    normalized = await normalizeMediaImage(bytes, parsed.mime);
+  } catch (error) {
+    if (error instanceof UnsupportedMediaAnimationError) {
+      throw error;
+    }
+
     throw new MediaValidationError();
   } finally {
     activeDecodes--;
   }
 
-  if (normalized.data.length > 8_388_608) {
+  if (normalized.data.length > maxStoredMediaBytes) {
     throw new MediaValidationError();
   }
 
-  const key = `${randomUUID()}.png`;
+  const key = `${randomUUID()}.${normalized.extension}`;
   const id = randomUUID();
 
   try {
@@ -146,13 +139,13 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
         id,
         key,
         url: `/media/${id}`,
-        mime: "image/png",
+        mime: parsed.mime,
         filename: parsed.filename,
         originalMime: parsed.mime,
         size: normalized.data.length,
         alt: parsed.alt,
-        width: normalized.info.width,
-        height: normalized.info.height,
+        width: normalized.width,
+        height: normalized.height,
         uploadedById: actor.id,
       },
       select: libraryMetadata,
@@ -181,7 +174,7 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
 export async function serveMedia(id: string, actor?: ContentActor) {
   const media = await prisma.media.findUnique({ where: { id } });
 
-  if (!media?.key) {
+  if (!media?.key || !MediaInputMimeSchema.safeParse(media.mime).success) {
     throw new ContentNotFoundError();
   }
 
@@ -251,7 +244,7 @@ export async function serveMedia(id: string, actor?: ContentActor) {
 
   return new Response(new Uint8Array(bytes), {
     headers: {
-      "Content-Type": "image/png",
+      "Content-Type": media.mime,
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, no-store",
       "Content-Disposition": "inline",

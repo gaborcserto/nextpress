@@ -76,7 +76,10 @@ describe("secure media boundaries", () => {
   });
 
   it("requires a due publication before reading anonymously referenced media", async () => {
-    db.media.findUnique.mockResolvedValue({ key: "asset.png" });
+    db.media.findUnique.mockResolvedValue({
+      key: "asset.png",
+      mime: "image/png",
+    });
     db.page.findMany
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ coverId: "asset" }]);
@@ -113,6 +116,7 @@ describe("secure media boundaries", () => {
   it("does not expose a private image through a guessed ID or text that resembles a reference", async () => {
     db.media.findUnique.mockResolvedValue({
       key: "private.png",
+      mime: "image/png",
       uploadedById: "author",
     });
     db.page.findMany.mockResolvedValue([
@@ -143,6 +147,35 @@ describe("secure media boundaries", () => {
     ).rejects.toThrow("database failure");
     expect(storage.remove).toHaveBeenCalledWith(
       expect.stringMatching(/\.png$/),
+    );
+  });
+
+  it("does not create metadata when local storage rejects the upload", async () => {
+    storage.put.mockRejectedValueOnce(new Error("storage unavailable"));
+
+    await expect(
+      uploadMedia({ data: image, mime: "image/png", alt: null }, actor),
+    ).rejects.toThrow("storage unavailable");
+
+    expect(db.media.create).not.toHaveBeenCalled();
+  });
+
+  it("treats a mismatched filename extension as display text", async () => {
+    db.media.create.mockResolvedValue({ id: "image" });
+
+    await uploadMedia(
+      { data: image, mime: "image/png", alt: null, filename: "image.jpg" },
+      actor,
+    );
+
+    expect(db.media.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          filename: "image.jpg",
+          mime: "image/png",
+          key: expect.stringMatching(/\.png$/),
+        }),
+      }),
     );
   });
 
@@ -179,7 +212,7 @@ describe("secure media boundaries", () => {
     );
 
     const stored = await sharp(storage.put.mock.calls[0][1]).metadata();
-    expect(stored).toMatchObject({ width: 2, height: 4, format: "png" });
+    expect(stored).toMatchObject({ width: 2, height: 4, format: "jpeg" });
     expect(stored.exif).toBeUndefined();
     expect(db.media.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -239,6 +272,7 @@ describe("secure media boundaries", () => {
   it("reports a missing PNG across the authenticated read boundary", async () => {
     db.media.findUnique.mockResolvedValue({
       key: "private.png",
+      mime: "image/png",
       uploadedById: actor.id,
     });
     storage.read.mockRejectedValue(

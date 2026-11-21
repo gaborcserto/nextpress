@@ -2,7 +2,9 @@
 
 import { MediaIdSchema } from "@nextpress/shared/media";
 import Image, { type ImageProps } from "next/image";
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+
+import { useMessages } from "@/lib/i18n/client";
 
 export const PreviewMediaContext = createContext<
   ((id: string, signal: AbortSignal) => Promise<ArrayBuffer | null>) | null
@@ -10,6 +12,7 @@ export const PreviewMediaContext = createContext<
 
 type MediaProps = Pick<ImageProps, "alt" | "loading" | "sizes" | "style"> & {
   src: string;
+  gif?: boolean;
   width: number;
   height: number;
 };
@@ -19,6 +22,7 @@ export function ContentMediaImage({
   width,
   height,
   alt,
+  gif,
   ...props
 }: MediaProps) {
   const load = useContext(PreviewMediaContext);
@@ -39,6 +43,10 @@ export function ContentMediaImage({
     ) : null;
   }
 
+  if (gif) {
+    return <GifPlayback src={src} alt={alt} width={width} height={height} />;
+  }
+
   return (
     <Image
       src={src}
@@ -48,6 +56,35 @@ export function ContentMediaImage({
       {...props}
       unoptimized
     />
+  );
+}
+
+function GifPlayback({
+  src,
+  alt,
+  width,
+  height,
+}: Pick<MediaProps, "src" | "alt" | "width" | "height">) {
+  const [show, setShow] = useState(false);
+  const { media } = useMessages();
+
+  return (
+    <div>
+      <button type="button" onClick={() => setShow(!show)}>
+        {show ? media.hideGif : media.showGif}
+        {alt && ` · ${alt}`}
+      </button>
+      {show && (
+        <Image
+          src={src}
+          alt={alt}
+          width={width}
+          height={height}
+          style={{ width: "100%", height: "auto" }}
+          unoptimized
+        />
+      )}
+    </div>
   );
 }
 
@@ -65,6 +102,9 @@ function PreviewImage({
   load: NonNullable<React.ContextType<typeof PreviewMediaContext>>;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const [gif, setGif] = useState<{ url: string; loader: typeof load } | null>(
+    null,
+  );
 
   useEffect(() => {
     const canvas = ref.current;
@@ -74,6 +114,7 @@ function PreviewImage({
     }
 
     const abort = new AbortController();
+    let objectUrl: string | undefined;
 
     async function draw(element: HTMLCanvasElement) {
       try {
@@ -83,9 +124,18 @@ function PreviewImage({
           return;
         }
 
-        const image = await createImageBitmap(
-          new Blob([bytes], { type: "image/png" }),
-        );
+        const signature = new TextDecoder().decode(bytes.slice(0, 6));
+
+        if (signature === "GIF87a" || signature === "GIF89a") {
+          objectUrl = URL.createObjectURL(
+            new Blob([bytes], { type: "image/gif" }),
+          );
+          setGif({ url: objectUrl, loader: load });
+
+          return;
+        }
+
+        const image = await createImageBitmap(new Blob([bytes]));
 
         try {
           if (!abort.signal.aborted) {
@@ -121,8 +171,18 @@ function PreviewImage({
     return () => {
       observer.disconnect();
       abort.abort();
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
   }, [id, load]);
+
+  if (gif?.loader === load) {
+    return (
+      <GifPlayback src={gif.url} alt={alt} width={width} height={height} />
+    );
+  }
 
   const scale = Math.min(1, 1024 / Math.max(width, height));
 

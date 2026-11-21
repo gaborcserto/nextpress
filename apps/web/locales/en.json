@@ -1,4 +1,5 @@
 {
+  "media": { "showGif": "Show GIF", "hideGif": "Hide GIF" },
   "pages": { "galleryEmpty": "This gallery is empty." },
   "navigation": {
     "home": "Home",

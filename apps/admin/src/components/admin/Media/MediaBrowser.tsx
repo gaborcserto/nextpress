@@ -2,6 +2,7 @@
 
 import {
   MediaBrowseSchema,
+  MediaInputMimeSchema,
   MediaCollectionSchema,
   type MediaAsset,
   type MediaBrowse,
@@ -20,10 +21,13 @@ export const initialMediaQuery = MediaBrowseSchema.parse({});
 
 export function MediaThumbnail({
   asset,
+  showGif = false,
 }: {
+  showGif?: boolean;
   asset: {
     id: string;
     url: string;
+    mime?: string | null;
     alt?: string | null;
     width?: number | null;
     height?: number | null;
@@ -36,6 +40,14 @@ export function MediaThumbnail({
 
   if (!url) {
     return null;
+  }
+
+  if (asset.mime === "image/gif" && !showGif) {
+    return (
+      <span className="grid aspect-[4/3] place-items-center rounded-md bg-base-200">
+        GIF
+      </span>
+    );
   }
 
   return (
@@ -135,8 +147,11 @@ export function MediaBrowser({
             className="select"
           >
             <option value="">{text.any}</option>
-            <option value="image/png">PNG</option>
-            <option value="image/jpeg">JPEG</option>
+            {MediaInputMimeSchema.options.map((mime) => (
+              <option key={mime} value={mime}>
+                {mime.slice(6).toUpperCase()}
+              </option>
+            ))}
           </select>
         </label>
         <label className="grid gap-1 text-sm">

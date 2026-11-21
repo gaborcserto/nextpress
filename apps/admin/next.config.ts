@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXTPRESS_E2E === "1" ? ".next-e2e" : ".next",
   poweredByHeader: false,
   output: "standalone",
+  // Media authorization is checked on every delivery, including after unpublishing.
+  images: { localPatterns: [], remotePatterns: [] },
   async headers() {
     return [
       {

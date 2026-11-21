@@ -21,6 +21,7 @@ export const GalleryIdsSchema = z
 export const EditorImageSchema = z.object({
   id: MediaIdSchema,
   url: z.string(),
+  mime: z.string().optional(),
   alt: z.string().nullable().optional(),
   width: z.number().int().nullable().optional(),
   height: z.number().int().nullable().optional(),
@@ -30,11 +31,21 @@ export const EditorImageSchema = z.object({
 export type EditorImage = z.infer<typeof EditorImageSchema>;
 export const GalleryImageSchema = EditorImageSchema.omit({
   filename: true,
+  mime: true,
 }).extend({
+  gif: z.literal(true).optional(),
   url: z.string().regex(/^\/media\/[a-zA-Z0-9_-]{1,128}$/),
 });
 export type GalleryImage = z.infer<typeof GalleryImageSchema>;
-export const MediaInputMimeSchema = z.enum(["image/png", "image/jpeg"]);
+export const MediaInputMimeSchema = z.enum([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/avif",
+  "image/gif",
+]);
+export type MediaInputMime = z.infer<typeof MediaInputMimeSchema>;
+export const maxStoredMediaBytes = 8_388_608;
 export const maxMediaUploadBytes = 2_097_152;
 
 const plainText = (limit: number) =>

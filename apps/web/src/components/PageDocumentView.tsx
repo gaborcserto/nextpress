@@ -40,9 +40,11 @@ export function DocumentListingItems({
 function Block({
   block,
   Listing,
+  gifMediaIds,
 }: {
   block: PageBlock;
   Listing: ListingComponent;
+  gifMediaIds?: readonly string[];
 }) {
   switch (block.type) {
     case "rich-text":
@@ -55,6 +57,7 @@ function Block({
           {block.props.mediaId && (
             <ContentMediaImage
               src={`/media/${block.props.mediaId}`}
+              gif={gifMediaIds?.includes(block.props.mediaId)}
               alt=""
               width={1200}
               height={800}
@@ -67,6 +70,7 @@ function Block({
       return (
         <ContentMediaImage
           src={`/media/${block.props.mediaId}`}
+          gif={gifMediaIds?.includes(block.props.mediaId)}
           alt={block.props.alt}
           width={1200}
           height={800}
@@ -92,7 +96,12 @@ function Block({
           {block.regions.map((region, index) => (
             <section key={index}>
               {region.map((child) => (
-                <Block key={child.id} block={child} Listing={Listing} />
+                <Block
+                  key={child.id}
+                  block={child}
+                  Listing={Listing}
+                  gifMediaIds={gifMediaIds}
+                />
               ))}
             </section>
           ))}
@@ -106,14 +115,21 @@ function Block({
 export function PageDocumentView({
   document,
   Listing,
+  gifMediaIds,
 }: {
   document: Document;
   Listing: ListingComponent;
+  gifMediaIds?: readonly string[];
 }) {
   return (
     <div className={styles.document}>
       {document.blocks.map((block) => (
-        <Block key={block.id} block={block} Listing={Listing} />
+        <Block
+          key={block.id}
+          block={block}
+          Listing={Listing}
+          gifMediaIds={gifMediaIds}
+        />
       ))}
     </div>
   );

@@ -4,7 +4,7 @@ import { mkdir, open, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 
 function storagePath(key: string) {
-  if (!/^[a-f0-9-]{36}\.png$/.test(key)) {
+  if (!/^[a-f0-9-]{36}\.(?:png|jpg|webp|avif|gif)$/.test(key)) {
     throw new Error("Invalid storage key");
   }
 
