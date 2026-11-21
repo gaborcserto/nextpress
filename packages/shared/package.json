@@ -16,6 +16,7 @@
     "./api-contracts": "./src/api-contracts.ts",
     "./roles": "./src/roles.ts",
     "./oauth-providers": "./src/oauth-providers.ts",
+    "./site-date-time": "./src/site-date-time.ts",
     "./settings-contracts": "./src/settings-contracts.ts",
     "./editorial-contracts": "./src/editorial-contracts.ts",
     "./working-aggregate": "./src/working-aggregate.ts",

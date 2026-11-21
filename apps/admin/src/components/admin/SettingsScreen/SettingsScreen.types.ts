@@ -1,3 +1,4 @@
+import type { SiteDateTime } from "@nextpress/shared/site-date-time";
 import type { Dispatch, SetStateAction } from "react";
 
 import type {
@@ -14,6 +15,7 @@ export type {
 
 export type SettingsScreenState = {
   form: SettingsFormValues;
+  savedDateTime: SiteDateTime;
   setForm: Dispatch<SetStateAction<SettingsFormValues>>;
   loaded: boolean;
   loadError: string | null;

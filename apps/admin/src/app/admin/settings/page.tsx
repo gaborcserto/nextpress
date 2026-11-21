@@ -1,5 +1,7 @@
 import { SettingsScreen } from "@/components/admin/SettingsScreen";
 
 export default function AdminSettingsPage() {
-  return <SettingsScreen />;
+  const timeZones = ["UTC", ...(Intl.supportedValuesOf?.("timeZone") ?? [])];
+
+  return <SettingsScreen timeZones={timeZones} />;
 }

@@ -13,6 +13,7 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { safeImageUrl } from "@/lib/security/image-url";
+import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import { Button } from "@/ui/primitives";
 
 import { MediaUploads } from "./MediaUploads";
@@ -259,9 +260,14 @@ export function MediaBrowser({
                       {documents && (
                         <small className="block text-(--text-muted)">
                           {text.createdAt}{" "}
-                          {new Date(asset.createdAt).toLocaleDateString()}
-                          {asset.updatedAt &&
-                            ` · ${text.updatedAt} ${new Date(asset.updatedAt).toLocaleDateString()}`}
+                          <AdminTimestamp value={asset.createdAt} />
+                          {asset.updatedAt && (
+                            <>
+                              {" "}
+                              · {text.updatedAt}{" "}
+                              <AdminTimestamp value={asset.updatedAt} />
+                            </>
+                          )}
                         </small>
                       )}
                       {active && (

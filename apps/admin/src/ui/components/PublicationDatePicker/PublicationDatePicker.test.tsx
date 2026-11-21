@@ -24,7 +24,7 @@ describe("PublicationDatePicker", () => {
     render(picker, { container, hydrate: true, onRecoverableError });
 
     const local = new Date("2026-12-01T12:30:45.678Z");
-    const expectedTime = [local.getHours(), local.getMinutes()]
+    const expectedTime = [local.getUTCHours(), local.getUTCMinutes()]
       .map((part) => String(part).padStart(2, "0"))
       .join(":");
     expect(screen.getByLabelText("Publish time")).toHaveValue(expectedTime);
@@ -79,9 +79,7 @@ describe("PublicationDatePicker", () => {
     });
     fireEvent.blur(timeField);
 
-    expect(onChange).toHaveBeenCalledWith(
-      new Date(2026, 11, 1, 13, 45).toISOString(),
-    );
+    expect(onChange).toHaveBeenCalledWith("2026-12-01T13:45:00.000Z");
   });
 
   it("rejects invalid manually entered dates and times", () => {
@@ -146,9 +144,7 @@ describe("PublicationDatePicker", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Apply" }));
 
-    expect(onChange).toHaveBeenCalledWith(
-      new Date(2026, 11, 1, 16, 0).toISOString(),
-    );
+    expect(onChange).toHaveBeenCalledWith("2026-12-01T16:00:00.000Z");
   });
 
   it("clears the publication date and cancels without changing it", () => {

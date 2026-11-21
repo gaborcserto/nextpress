@@ -17,6 +17,10 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { publicationLabels } from "@/lib/content/publication-status";
+import {
+  AdminTimestamp,
+  useAdminDateLocale,
+} from "@/lib/settings/admin-date-time";
 import { DataListLoading } from "@/ui/components/DataList";
 import { Alert, Button, LinkIconButton } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
@@ -85,12 +89,9 @@ type ContentPanelProps =
   | { kind: "scheduled"; items: DashboardSummary["scheduledContent"] };
 
 function ContentPanel({ kind, items }: ContentPanelProps) {
+  const hu = useAdminDateLocale() === "hu";
   const scheduled = kind === "scheduled";
   const Icon = scheduled ? FaCalendarAlt : FaClock;
-  const time = new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
 
   return (
     <section className="admin-collection" aria-labelledby={`dashboard-${kind}`}>
@@ -100,7 +101,11 @@ function ContentPanel({ kind, items }: ContentPanelProps) {
             <Icon aria-hidden="true" />
           </span>
           <h2 id={`dashboard-${kind}`} className="font-semibold">
-            {scheduled ? "Scheduled publishing" : "Recently updated content"}
+            {scheduled
+              ? hu
+                ? "Ütemezett közzététel"
+                : "Scheduled publishing"
+              : "Recently updated content"}
           </h2>
         </div>
       </header>
@@ -126,10 +131,16 @@ function ContentPanel({ kind, items }: ContentPanelProps) {
                       {collection.label}
                       {recent && item.authorName && ` · ${item.authorName}`}
                     </p>
-                    <time dateTime={timestamp}>
-                      {recent ? "Updated " : "Publishes "}{" "}
-                      {time.format(new Date(timestamp))}
-                    </time>
+                    <span>
+                      {recent
+                        ? hu
+                          ? "Módosítva"
+                          : "Updated"
+                        : hu
+                          ? "Közzététel"
+                          : "Publishes"}{" "}
+                      <AdminTimestamp value={timestamp} />
+                    </span>
                     <span className="badge badge-soft mt-2">
                       {publicationLabels[state]}
                     </span>

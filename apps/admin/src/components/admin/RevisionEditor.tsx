@@ -18,6 +18,7 @@ import {
   FaUndo,
 } from "react-icons/fa";
 
+import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import { Button, Field, Input, Section, Select } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell";
 
@@ -327,11 +328,7 @@ export default function RevisionEditor({
                     <div>
                       <dt>Saved</dt>
                       <dd>
-                        <time dateTime={selectedRevision.createdAt}>
-                          {new Date(
-                            selectedRevision.createdAt,
-                          ).toLocaleString()}
-                        </time>
+                        <AdminTimestamp value={selectedRevision.createdAt} />
                       </dd>
                     </div>
                     <div>

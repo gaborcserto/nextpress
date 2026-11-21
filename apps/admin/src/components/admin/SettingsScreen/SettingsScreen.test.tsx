@@ -1,4 +1,5 @@
 import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
+import { DEFAULT_SITE_DATE_TIME } from "@nextpress/shared/site-date-time";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,11 +15,13 @@ const { useSettingsScreen, jsonFetcher } = vi.hoisted(() => ({
   jsonFetcher: vi.fn(),
 }));
 vi.mock("./SettingsScreen.hooks", () => ({ useSettingsScreen }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/lib/api", () => ({ jsonFetcher }));
 
 function mockLoadedSettings(overrides: Partial<SettingsScreenState> = {}) {
   useSettingsScreen.mockReturnValue({
     form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
+    savedDateTime: DEFAULT_SITE_DATE_TIME,
     setForm: vi.fn(),
     loaded: true,
     loadError: null,

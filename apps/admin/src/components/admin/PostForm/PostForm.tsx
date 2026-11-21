@@ -184,11 +184,11 @@ export default function PostForm({
 
                       <Field
                         label="Publish date"
-                        htmlFor="post-published-at"
+                        htmlFor="post-published-at-date"
                         hint={
                           privateEditing
                             ? "Current public date. Use the private draft publication controls to publish or schedule."
-                            : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                            : "A future date schedules publication when status is Published. Clear to publish immediately."
                         }
                         span={12}
                       >

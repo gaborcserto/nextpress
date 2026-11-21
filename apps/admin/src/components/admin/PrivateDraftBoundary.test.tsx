@@ -249,7 +249,9 @@ describe.each<DraftKind>(["PAGE", "POST"])("%s private editor", (kind) => {
 
     expect(screen.getByLabelText("Status", { exact: true })).toBeDisabled();
     expect(
-      screen.getByLabelText("Publish date", { exact: true }),
+      screen
+        .getAllByLabelText("Publish date", { exact: true })
+        .find((field) => field.id !== "private-schedule-date"),
     ).toBeDisabled();
   });
 

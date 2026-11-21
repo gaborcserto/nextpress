@@ -7,6 +7,7 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { publicationLabels } from "@/lib/content/publication-status";
+import { useAdminDateLocale } from "@/lib/settings/admin-date-time";
 import {
   DataListEmptyRow,
   DataListLoading,
@@ -57,6 +58,7 @@ export default function ContentList({
   const { data: account } = useSWR("/api/discovery/session", async (url) =>
     SessionDiscoverySchema.parse(await jsonFetcher<unknown>(url)),
   );
+  const hu = useAdminDateLocale() === "hu";
   const role = account?.user?.role;
   const canDelete = role === "ADMIN" || role === "EDITOR";
   const confirm = useConfirmDialog<ConfirmPayload>();
@@ -202,7 +204,8 @@ export default function ContentList({
                         )}
                         {item.scheduledAt && (
                           <div>
-                            Scheduled <ListDate value={item.scheduledAt} />
+                            {hu ? "Ütemezve" : "Scheduled"}{" "}
+                            <ListDate value={item.scheduledAt} />
                           </div>
                         )}
                       </td>

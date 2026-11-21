@@ -11,7 +11,7 @@ import {
 import { MediaGallery } from "@/components/public-content/MediaGallery";
 import { PostCover } from "@/components/public-content/PostCover";
 import { RichContent } from "@/components/RichContent";
-import { UiText } from "@/lib/i18n/client";
+import { LocalizedDate, UiText } from "@/lib/i18n/client";
 import { BlogArchive } from "@/templates/blog/BlogArchive";
 import { BlogPage } from "@/templates/blog/BlogPage";
 
@@ -133,6 +133,7 @@ function PreviewPostsPage({
       previewNavigation={navigation}
     >
       <PostCover title={snapshot.title} cover={previewCover(snapshot.cover)} />
+      {snapshot.publishedAt && <LocalizedDate value={snapshot.publishedAt} />}
       <RichContent content={snapshot.content} />
       {children}
       {result?.page !== page && (

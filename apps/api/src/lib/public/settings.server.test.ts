@@ -1,3 +1,4 @@
+import { DEFAULT_SITE_DATE_TIME } from "@nextpress/shared/site-date-time";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { findUnique } = vi.hoisted(() => ({ findUnique: vi.fn() }));
@@ -16,6 +17,9 @@ describe("public site settings boundary", () => {
       siteDescription: " Independent reporting. ",
       postListingMode: "LOAD_MORE",
       postsPerPage: 25,
+      timeZone: "Asia/Tokyo",
+      dateFormat: "iso",
+      timeFormat: "12h-seconds",
       id: "default",
       defaultUserRole: "ADMIN",
       siteUrl: "https://example.test",
@@ -29,6 +33,11 @@ describe("public site settings boundary", () => {
     });
 
     expect(await getPublicSiteSettings()).toEqual({
+      dateTime: {
+        timeZone: "Asia/Tokyo",
+        dateFormat: "iso",
+        timeFormat: "12h-seconds",
+      },
       siteName: "Example Publication",
       siteDescription: "Independent reporting.",
       postListingMode: "LOAD_MORE",
@@ -49,6 +58,9 @@ describe("public site settings boundary", () => {
         siteDescription: true,
         postListingMode: true,
         postsPerPage: true,
+        timeZone: true,
+        dateFormat: true,
+        timeFormat: true,
       },
     });
   });
@@ -79,6 +91,7 @@ describe("public site settings boundary", () => {
       findUnique.mockResolvedValue(settings);
 
       expect(await getPublicSiteSettings()).toEqual({
+        dateTime: DEFAULT_SITE_DATE_TIME,
         siteName: "NextPress",
         siteDescription: "A publication powered by NextPress.",
         postListingMode: "PAGINATION",
@@ -101,6 +114,7 @@ describe("public site settings boundary", () => {
     });
 
     expect(await getPublicSiteSettings()).toEqual({
+      dateTime: DEFAULT_SITE_DATE_TIME,
       siteName: "Example Publication",
       siteDescription: "A publication powered by NextPress.",
       postListingMode: "PAGINATION",
@@ -120,6 +134,7 @@ describe("public site settings boundary", () => {
     });
 
     expect(await getPublicSiteSettings()).toEqual({
+      dateTime: DEFAULT_SITE_DATE_TIME,
       siteName: "Legacy publication",
       siteDescription: "A publication powered by NextPress.",
       postListingMode: "PAGINATION",

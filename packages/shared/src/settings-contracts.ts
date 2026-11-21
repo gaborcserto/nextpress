@@ -6,6 +6,7 @@ import {
   PostsPerPageSchema,
 } from "./post-listing-settings";
 import { ROLES } from "./roles";
+import { SiteDateTimeSchema } from "./site-date-time";
 
 function hasCompleteOAuthProviders(
   providers: ReadonlyArray<{ provider: string }>,
@@ -19,6 +20,7 @@ function hasCompleteOAuthProviders(
 }
 
 export const SettingsPayloadSchema = z.object({
+  dateTime: SiteDateTimeSchema.optional(),
   siteName: z.string(),
   siteDescription: z.string(),
   siteUrl: z.string(),
@@ -93,6 +95,7 @@ export const SettingsSavedSchema = z.object({
 
 // Reject incomplete authoritative responses instead of normalizing them into writable defaults.
 export const SettingsResponseSchema = z.object({
+  dateTime: SiteDateTimeSchema.optional(),
   siteName: z.string(),
   siteDescription: z.string(),
   siteUrl: z.string(),

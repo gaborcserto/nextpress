@@ -10,6 +10,7 @@ import {
   getPagePosts,
   getPublishedPage,
 } from "@/lib/content/public-content.server";
+import { LocalizedDate } from "@/lib/i18n/client";
 import { localizedHref } from "@/lib/i18n/routing";
 import { getLocale } from "@/lib/i18n/server";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
@@ -106,6 +107,7 @@ export async function RenderPublishedPage(
         listVariant={appearance.listVariant}
       >
         <PostCover title={page.title} cover={page.cover} />
+        <LocalizedDate value={page.publishedAt} />
         <RichContent content={page.content} />
         {page.pageDocument && (
           <PageDocument

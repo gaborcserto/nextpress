@@ -1,5 +1,8 @@
+import { DEFAULT_SITE_DATE_TIME } from "@nextpress/shared/site-date-time";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+import { AdminDateTimeProvider } from "@/lib/settings/admin-date-time";
 
 import PostForm from "./PostForm";
 
@@ -42,23 +45,27 @@ describe("PostForm", () => {
     const submit = vi.fn();
     const original = "2024-10-27T01:30:56.789Z";
     render(
-      <PostForm
-        initial={{
-          title: "Post",
-          slug: "post",
-          status: "PUBLISHED",
-          excerpt: [],
-          content: [],
-          tags: [],
-          cover: null,
-          publishedAt: original,
-        }}
-        onSubmitAction={submit}
-        loadTagOptionsAction={async () => []}
-        createTagAction={vi.fn()}
-        loadEntityTagsAction={async () => []}
-        updateEntityTagsAction={vi.fn()}
-      />,
+      <AdminDateTimeProvider
+        settings={{ ...DEFAULT_SITE_DATE_TIME, timeZone: "Europe/Budapest" }}
+      >
+        <PostForm
+          initial={{
+            title: "Post",
+            slug: "post",
+            status: "PUBLISHED",
+            excerpt: [],
+            content: [],
+            tags: [],
+            cover: null,
+            publishedAt: original,
+          }}
+          onSubmitAction={submit}
+          loadTagOptionsAction={async () => []}
+          createTagAction={vi.fn()}
+          loadEntityTagsAction={async () => []}
+          updateEntityTagsAction={vi.fn()}
+        />
+      </AdminDateTimeProvider>,
     );
     const form = screen
       .getByRole("button", { name: "Save post" })
@@ -83,7 +90,7 @@ describe("PostForm", () => {
     fireEvent.submit(form);
     expect(submit).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        publishedAt: new Date("2024-07-01T12:00").toISOString(),
+        publishedAt: "2024-07-01T10:00:00.000Z",
       }),
     );
   });

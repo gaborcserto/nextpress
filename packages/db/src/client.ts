@@ -4,7 +4,18 @@ import { resolveDatabase } from "./database-config";
 import { PrismaClient } from "../generated/prisma/client";
 
 const { connectionString, target } = resolveDatabase(process.env);
-const adapter = new PrismaPg({ connectionString }, { schema: target.schema });
+const databaseUrl = new URL(connectionString);
+const startupOptions = databaseUrl.searchParams.get("options");
+
+// TIMESTAMP(3) defaults cast the database clock to the session timezone.
+databaseUrl.searchParams.set(
+  "options",
+  [startupOptions, "-c timezone=UTC"].filter(Boolean).join(" "),
+);
+const adapter = new PrismaPg(
+  { connectionString: databaseUrl.href },
+  { schema: target.schema },
+);
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

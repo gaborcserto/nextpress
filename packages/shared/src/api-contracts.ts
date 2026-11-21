@@ -24,6 +24,7 @@ import {
   MAX_POSTS_OFFSET,
   DEFAULT_POSTS_PER_PAGE,
 } from "./post-listing-settings";
+import { SiteDateTimeSchema } from "./site-date-time";
 
 export const TagIdsSchema = z
   .array(z.string().trim().min(1).max(64))
@@ -351,6 +352,7 @@ export const PublicNavigationSchema = z.strictObject({
   footer: z.array(navigationItem),
 });
 export const PublicSiteSettingsSchema = z.strictObject({
+  dateTime: SiteDateTimeSchema.optional(),
   appearance: PublicAppearanceSchema.optional(),
   siteName: z.string(),
   siteDescription: z.string(),

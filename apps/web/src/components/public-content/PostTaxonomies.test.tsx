@@ -95,7 +95,7 @@ it("places taxonomy after the excerpt in default post entries", () => {
     />,
   );
   const title = screen.getByRole("heading", { name: "Story" });
-  const date = screen.getByText("January 1, 2025");
+  const date = screen.getByText("January 1, 2025, 00:00");
   const summary = screen.getByText("A short excerpt.");
   const categoryLink = screen.getByRole("link", { name: category.name });
   const tagLink = screen.getByRole("link", { name: tag.name });

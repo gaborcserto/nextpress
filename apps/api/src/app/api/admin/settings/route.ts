@@ -6,6 +6,7 @@ import {
   SettingsPayloadSchema,
   SettingsUpdateSchema,
 } from "@nextpress/shared/settings-contracts";
+import { readSiteDateTime } from "@nextpress/shared/site-date-time";
 
 import { bad, ok, internalError } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
@@ -54,6 +55,9 @@ async function ensureSettings() {
       defaultUserRole: true,
       postListingMode: true,
       postsPerPage: true,
+      timeZone: true,
+      dateFormat: true,
+      timeFormat: true,
     },
   });
 
@@ -92,6 +96,7 @@ export const GET = withAuth(["ADMIN"], async () => {
     );
 
     return ok({
+      dateTime: readSiteDateTime(settings),
       siteName: settings.siteName,
       siteDescription: settings.siteDescription ?? "",
       siteUrl: settings.siteUrl ?? "",
@@ -216,6 +221,9 @@ export const PUT = withAuth(
             defaultUserRole: body.defaultUserRole,
             postListingMode: body.postListingMode,
             postsPerPage: body.postsPerPage,
+            timeZone: body.dateTime?.timeZone,
+            dateFormat: body.dateTime?.dateFormat,
+            timeFormat: body.dateTime?.timeFormat,
           },
           update: {
             siteName: body.siteName.trim(),
@@ -225,6 +233,9 @@ export const PUT = withAuth(
             defaultUserRole: body.defaultUserRole,
             postListingMode: body.postListingMode,
             postsPerPage: body.postsPerPage,
+            timeZone: body.dateTime?.timeZone,
+            dateFormat: body.dateTime?.dateFormat,
+            timeFormat: body.dateTime?.timeFormat,
           },
           select: { id: true },
         });

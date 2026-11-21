@@ -5,6 +5,10 @@ import {
   normalizePostsPerPage,
   type PostListingMode,
 } from "@nextpress/shared";
+import {
+  SiteDateTimeSchema,
+  type SiteDateTime,
+} from "@nextpress/shared/site-date-time";
 
 import type { SettingsApiPayload } from "@nextpress/shared/settings-contracts";
 
@@ -21,6 +25,7 @@ export type OAuthProviderSettings = {
 };
 
 export type SettingsFormValues = {
+  dateTime?: SiteDateTime;
   siteName: string;
   siteDescription: string;
   siteUrl: string;
@@ -54,6 +59,7 @@ export function normalizeSettingsForm(
   );
 
   return {
+    dateTime: data?.dateTime,
     siteName: data?.siteName ?? "",
     siteDescription: data?.siteDescription ?? "",
     siteUrl: data?.siteUrl ?? "",
@@ -72,6 +78,10 @@ export function buildSettingsPayload(
   credentials: ProviderCredentialUpdates,
 ): SettingsApiPayload {
   return {
+    dateTime:
+      form.dateTime === undefined
+        ? undefined
+        : SiteDateTimeSchema.parse(form.dateTime),
     siteName: form.siteName,
     siteDescription: form.siteDescription,
     siteUrl: form.siteUrl,

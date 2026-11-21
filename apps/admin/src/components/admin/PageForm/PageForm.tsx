@@ -197,11 +197,11 @@ export default function PageForm({
 
                       <Field
                         label="Publish date"
-                        htmlFor="page-published-at"
+                        htmlFor="page-published-at-date"
                         hint={
                           privateEditing
                             ? "Current public date. Use the private draft publication controls to publish or schedule."
-                            : "Your local time. A future date schedules publication when status is Published. Clear to publish immediately."
+                            : "A future date schedules publication when status is Published. Clear to publish immediately."
                         }
                         span={12}
                       >

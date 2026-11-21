@@ -8,6 +8,7 @@ import { useState, type FormEvent, type SyntheticEvent } from "react";
 import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 
 import { ROLES } from "@/lib/auth/roles";
+import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import {
   DataListEmptyRow,
   DataListLoading,
@@ -228,7 +229,7 @@ export default function UsersScreen() {
                         <span className="admin-cell-label" aria-hidden="true">
                           Created
                         </span>
-                        {new Date(u.createdAt).toLocaleDateString()}
+                        <AdminTimestamp value={u.createdAt} />
                       </td>
 
                       <td

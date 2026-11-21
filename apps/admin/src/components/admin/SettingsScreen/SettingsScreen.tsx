@@ -1,6 +1,11 @@
 ﻿"use client";
 
 import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
+import {
+  DEFAULT_SITE_DATE_TIME,
+  SiteDateTimeSchema,
+} from "@nextpress/shared/site-date-time";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 import { FaSave } from "react-icons/fa";
@@ -22,6 +27,7 @@ import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 import { showToast } from "@/ui/utils";
 
 import AppearanceSettings from "./AppearanceSettings";
+import { DateTimeSettings } from "./DateTimeSettings";
 import { useSettingsScreen } from "./SettingsScreen.hooks";
 import {
   selectSettingsSection,
@@ -77,7 +83,12 @@ function readCredentialUpdates(
   return updates;
 }
 
-export default function SettingsScreen() {
+export default function SettingsScreen({
+  timeZones = ["UTC"],
+}: {
+  timeZones?: readonly string[];
+}) {
+  const router = useRouter();
   const activeSection = useSettingsSection();
   const credentialForm = useRef<HTMLFormElement>(null);
   const {
@@ -89,8 +100,28 @@ export default function SettingsScreen() {
     save,
     loaded,
     loadError,
+    savedDateTime,
     retry,
   } = useSettingsScreen("SUBSCRIBER");
+  const dateTime = form.dateTime ?? DEFAULT_SITE_DATE_TIME;
+  const dateTimeDirty =
+    JSON.stringify(dateTime) !== JSON.stringify(savedDateTime);
+
+  useEffect(() => {
+    if (!dateTimeDirty) {
+      return;
+    }
+
+    function preventLeaving(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = true;
+    }
+
+    window.addEventListener("beforeunload", preventLeaving);
+
+    return () => window.removeEventListener("beforeunload", preventLeaving);
+  }, [dateTimeDirty]);
+
   const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage)
     .success
     ? undefined
@@ -125,6 +156,13 @@ export default function SettingsScreen() {
     event.preventDefault();
 
     if (!credentialForm.current || saving) {
+      return;
+    }
+
+    if (!SiteDateTimeSchema.safeParse(dateTime).success) {
+      flushSync(() => selectSettingsSection("settings-general"));
+      document.getElementById("site-time-zone")?.focus();
+
       return;
     }
 
@@ -167,6 +205,7 @@ export default function SettingsScreen() {
         }
       }
 
+      router.refresh();
       showToast("Settings saved.", "success");
     }
   };
@@ -317,6 +356,20 @@ export default function SettingsScreen() {
                     </div>
                   </div>
                 </Section>
+                <DateTimeSettings
+                  value={dateTime}
+                  timeZones={timeZones}
+                  dirty={dateTimeDirty}
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, dateTime: value }))
+                  }
+                  onCancel={() =>
+                    setForm((current) => ({
+                      ...current,
+                      dateTime: savedDateTime,
+                    }))
+                  }
+                />
               </fieldset>
               <div
                 id="settings-appearance"

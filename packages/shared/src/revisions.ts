@@ -45,6 +45,7 @@ export const RevisionRecordSchema = RevisionSnapshotSchema.extend({
   createdAt: z.string(),
 });
 const previewSnapshotSchema = RevisionSnapshotSchema.extend({
+  publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   listingTagSlug: ContentSlugSchema.nullable().optional(),
   cover: EditorImageSchema.omit({ filename: true, caption: true })
     .nullable()

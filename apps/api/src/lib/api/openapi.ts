@@ -591,7 +591,7 @@ for (const [path, kind, detail] of [
       `Update ${kind.toLowerCase()}`,
       ref("ContentRecord"),
       [400, ...mutationCodes, 404, 409, 500],
-      `${writeScope} Partial update despite PUT; expectedVersion from editorial GET workingVersion is required. Missing versions return 400; stale versions return 409 without writing. Content type cannot change. Explicit publication validates the merged title and slug. Omitted status/date preserve publication state and schedule. PUBLISHED with a future publishedAt is scheduled; public delivery starts at that instant without a worker. Explicit null publishedAt means now for PUBLISHED, null for DRAFT. Unpublishing retains the historical date unless explicitly cleared. Saving published content updates live content. Unknown fields are stripped.${pageTypes}`,
+      `${writeScope} Partial update despite PUT; expectedVersion from editorial GET workingVersion is required. Missing versions return 400; stale versions return 409 without writing. Content type cannot change. Explicit publication validates the merged title and slug. Omitted status/date preserve publication state and schedule. PUBLISHED with a future publishedAt is scheduled; public delivery starts at that instant without a worker. Provide publishedAt as an ISO 8601 instant with Z or an explicit offset. Explicit null publishedAt means now for PUBLISHED, null for DRAFT. Unpublishing retains the historical date unless explicitly cleared. Saving published content updates live content. Unknown fields are stripped.${pageTypes}`,
       "protected",
       `${kind}Update`,
     ),
@@ -794,7 +794,7 @@ paths["/api/admin/settings"] = {
     "Read administration settings",
     ref("Settings"),
     [401, 403, 500],
-    "ADMIN only. Initializes missing settings/provider rows and returns exactly one entry per supported OAuth provider. Credential presence flags are returned; secrets are never returned.",
+    "ADMIN only. Initializes missing settings/provider rows and returns exactly one entry per supported OAuth provider. Date and time settings govern display and new editor input. Credential presence flags are returned; secrets are never returned.",
     "protected",
   ),
   put: operation(

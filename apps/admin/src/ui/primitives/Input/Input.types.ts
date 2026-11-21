@@ -1,8 +1,8 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import type { InputVariant, UiColor, UiSize, UiRadius } from "@/ui/theme/types";
 
-export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
+export type InputProps = Omit<ComponentPropsWithRef<"input">, "size"> & {
   label?: string;
   hint?: string;
   error?: string;

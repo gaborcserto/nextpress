@@ -35,6 +35,7 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
       excerpt: true,
       layout: true,
       pageDocument: true,
+      publishedAt: true,
       cover: { select: editorImageSelect },
       gallery: editorGallerySelect,
       listingTaxonomy: { select: { slug: true, type: true } },

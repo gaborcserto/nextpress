@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+import {
+  AdminTimestamp,
+  useAdminDateLocale,
+  useAdminTimestampFormatter,
+} from "@/lib/settings/admin-date-time";
+import PublicationDatePicker from "@/ui/components/PublicationDatePicker/PublicationDatePicker";
 import { Button } from "@/ui/primitives/Buttons";
 import { ConfirmDialog } from "@/ui/primitives/ConfirmDialog";
 import { Select } from "@/ui/primitives/Select";
@@ -91,10 +97,7 @@ export function PrivateDraftRecovery({
       <p>
         {draft.savedAt ? (
           <>
-            Saved{" "}
-            <time dateTime={draft.savedAt}>
-              {new Date(draft.savedAt).toLocaleString()}
-            </time>
+            Saved <AdminTimestamp value={draft.savedAt} />
           </>
         ) : (
           "Save time unavailable for this revision."
@@ -138,9 +141,16 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
   const [error, setError] = useState("");
   const [restoreVersion, setRestoreVersion] = useState("");
   const [legacyRevisionId, setLegacyRevisionId] = useState("");
-  const [scheduledFor, setScheduledFor] = useState("");
-  const [scheduleIsFuture, setScheduleIsFuture] = useState(false);
-  const scheduledTime = Date.parse(`${scheduledFor}:00Z`);
+  const [scheduledFor, setScheduledFor] = useState<string | null>(() =>
+    draft.release?.state === "PENDING" ? draft.release.scheduledFor : null,
+  );
+  const hu = useAdminDateLocale() === "hu";
+  const formatTimestamp = useAdminTimestampFormatter();
+  const [validSchedule, setValidSchedule] = useState(true);
+  const scheduledTime = Date.parse(scheduledFor ?? "");
+  const [scheduleIsFuture, setScheduleIsFuture] = useState(
+    () => scheduledTime > Date.now(),
+  );
 
   useEffect(() => {
     if (!scheduleIsFuture) {
@@ -168,13 +178,13 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
     return () => clearTimeout(timer);
   }, [scheduledTime, scheduleIsFuture]);
 
-  const changeSchedule = (value: string) => {
+  const changeSchedule = (value: string | null) => {
     setScheduledFor(value);
-    setScheduleIsFuture(Date.parse(`${value}:00Z`) > Date.now());
+    setScheduleIsFuture(Date.parse(value ?? "") > Date.now());
   };
 
   const requestSchedule = () => {
-    if (scheduledTime > Date.now()) {
+    if (validSchedule && scheduledTime > Date.now()) {
       setError("");
       setConfirmation("schedule");
     } else {
@@ -187,6 +197,11 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
     draft.dirty ||
     draft.phase !== "saved" ||
     draft.version === 0;
+  const releaseLabels = {
+    PENDING: "Függőben",
+    CANCELLED: "Visszavonva",
+    EXECUTED: "Közzétéve",
+  };
   const dialog = recoveryConfirmation[confirmation ?? "reload"];
 
   const confirm = async () => {
@@ -199,14 +214,18 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       } else if (confirmation === "unpublish") {
         await draft.publication("UNPUBLISH");
       } else if (confirmation === "schedule") {
-        if (scheduledTime <= Date.now()) {
+        if (!scheduledFor || !validSchedule || scheduledTime <= Date.now()) {
           setScheduleIsFuture(false);
-          setError("Choose a publication time in the future.");
+          setError(
+            hu
+              ? "Válasszon jövőbeli időpontot."
+              : "Choose a publication time in the future.",
+          );
 
           return;
         }
 
-        await draft.publication("SCHEDULE", `${scheduledFor}:00Z`);
+        await draft.publication("SCHEDULE", scheduledFor);
       } else if (confirmation === "cancelSchedule") {
         await draft.publication("CANCEL_SCHEDULE");
       } else if (confirmation === "local") {
@@ -252,11 +271,18 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           ? "Pending private changes"
           : "Private content matches the public source"}
       </p>
-      <p>
-        Scheduled release:{" "}
-        {draft.release
-          ? `${draft.release.state} at ${draft.release.scheduledFor}`
-          : "None"}
+      <p id="private-release-summary">
+        {hu ? "Ütemezett közzététel" : "Scheduled release"}{" "}
+        {draft.release ? (
+          <>
+            <AdminTimestamp value={draft.release.scheduledFor} /> (
+            {hu ? releaseLabels[draft.release.state] : draft.release.state})
+          </>
+        ) : hu ? (
+          "Nincs"
+        ) : (
+          "None"
+        )}
       </p>
       <div className="flex flex-wrap items-center gap-2 mt-2">
         <Button
@@ -284,19 +310,18 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       >
         <summary>Schedule publication</summary>
         <div className="space-y-2 pt-2">
-          <label htmlFor="private-schedule" className="block">
-            Publication time (UTC)
-          </label>
-          <input
+          <PublicationDatePicker
             id="private-schedule"
-            type="datetime-local"
-            className="input w-full"
             value={scheduledFor}
-            onChange={(event) => changeSchedule(event.target.value)}
+            onChange={changeSchedule}
+            onValidityChange={setValidSchedule}
+            disabled={publicationDisabled}
           />
           <Button
             type="button"
-            disabled={publicationDisabled || !scheduleIsFuture}
+            disabled={
+              publicationDisabled || !validSchedule || !scheduleIsFuture
+            }
             onClick={requestSchedule}
           >
             {draft.release?.state === "PENDING" ? "Reschedule" : "Schedule"}
@@ -312,10 +337,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
       </details>
       {draft.savedAt && (
         <p>
-          Last acknowledged at{" "}
-          <time dateTime={draft.savedAt}>
-            {new Date(draft.savedAt).toLocaleString()}
-          </time>
+          Last acknowledged at <AdminTimestamp value={draft.savedAt} />
         </p>
       )}
       {draft.pending && draft.phase === "error" && (
@@ -404,7 +426,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
               { value: "", label: "Select a legacy revision" },
               ...draft.legacyHistory.map((revision) => ({
                 value: revision.id,
-                label: `${revision.createdAt}: ${revision.title}`,
+                label: `${formatTimestamp(revision.createdAt)} · ${revision.title}`,
               })),
             ]}
             onChangeAction={setLegacyRevisionId}

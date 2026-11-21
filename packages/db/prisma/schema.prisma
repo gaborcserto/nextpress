@@ -142,6 +142,9 @@ model SiteSettings {
   websiteTemplate String          @default("blog")
   stylePreset     String          @default("classic")
   colorMode       String          @default("light")
+  timeZone        String          @default("UTC")
+  dateFormat      String          @default("localized")
+  timeFormat      String          @default("24h")
 
   defaultUserRole String @default("SUBSCRIBER") // must match Role.name
 

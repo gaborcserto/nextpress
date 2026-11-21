@@ -11,16 +11,12 @@ import { useState } from "react";
 import useSWR from "swr";
 
 import { ApiRequestError, apiFetch, jsonFetcher } from "@/lib/api";
+import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import { Button, ConfirmDialog } from "@/ui/primitives";
 
 import { MediaThumbnail } from "./MediaBrowser";
 import { MediaDialog } from "./MediaDialog";
 import { useMediaMessages } from "./messages";
-
-const time = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
 
 async function fetchDetails(url: string) {
   return MediaDetailsSchema.parse(
@@ -200,10 +196,15 @@ function MetadataForm({
                 ? `${asset.width} × ${asset.height}`
                 : null,
             ],
-            [text.createdAt, time.format(new Date(asset.createdAt))],
+            [
+              text.createdAt,
+              <AdminTimestamp key="created" value={asset.createdAt} />,
+            ],
             [
               text.updatedAt,
-              asset.updatedAt ? time.format(new Date(asset.updatedAt)) : null,
+              asset.updatedAt ? (
+                <AdminTimestamp key="updated" value={asset.updatedAt} />
+              ) : null,
             ],
             [text.url, asset.url, true],
             ...(documents

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useSyncExternalStore } from "react";
+import { useContext, useId, useRef, useState } from "react";
 import {
   FaCalendarAlt,
   FaChevronLeft,
@@ -10,40 +10,54 @@ import {
   FaSortUp,
 } from "react-icons/fa";
 
+import {
+  AdminDateTimeContext,
+  useAdminDateLocale,
+} from "@/lib/settings/admin-date-time";
 import { Button } from "@/ui/primitives/Buttons/Buttons";
 import Input from "@/ui/primitives/Input/Input";
 
+import { pickerMessages } from "./messages";
+import {
+  publicationWallTime,
+  resolvePublicationTime,
+} from "./publication-time";
 import styles from "./PublicationDatePicker.module.css";
 
 type PickerMode = "calendar" | "time" | null;
 
 function localDate(year: number, month: number, day: number) {
-  return new Date(year, month, day, 12);
+  return new Date(Date.UTC(year, month, day, 12));
 }
 
 function dateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 function parseDate(value: string, locale: string) {
-  const values = value.match(/\d+/g)?.map(Number);
+  const input = value.trim();
+  const yearFirst = /^(\d{4})[./-]\s*(\d{1,2})[./-]\s*(\d{1,2})\.?$/.exec(
+    input,
+  );
+  const monthFirst =
+    locale === "en-US" && /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(input);
+  const values =
+    yearFirst?.slice(1) ??
+    (monthFirst ? [monthFirst[3], monthFirst[1], monthFirst[2]] : null);
 
-  if (!values || values.length !== 3) {
+  if (!values) {
     return null;
   }
 
-  const [year, month, day] =
-    values[0] > 31
-      ? values
-      : locale.toLowerCase().startsWith("en-us")
-        ? [values[2], values[0], values[1]]
-        : [values[2], values[1], values[0]];
-  const candidate = new Date(year, month - 1, day, 12);
+  const [year, month, day] = values.map(Number);
+  const candidate = localDate(year, month - 1, day);
 
   if (
-    candidate.getFullYear() !== year ||
-    candidate.getMonth() !== month - 1 ||
-    candidate.getDate() !== day
+    year < 1000 ||
+    year > 9999 ||
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
   ) {
     return null;
   }
@@ -66,23 +80,24 @@ function parseTime(value: string) {
 
 function formatDate(date: Date, locale: string) {
   return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(date);
 }
 
-function toLocalParts(value: string | null) {
-  const date = value ? new Date(value) : null;
-
-  if (!date || Number.isNaN(date.getTime())) {
+function toLocalParts(value: string | null, timeZone: string) {
+  if (!value) {
     return null;
   }
 
+  const local = publicationWallTime(value, timeZone);
+
   return {
-    date,
-    dateKey: dateKey(date),
-    time: `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`,
+    date: localDate(local.year, local.month - 1, local.day),
+    dateKey: local.toPlainDate().toString(),
+    time: local.toPlainTime().toString({ smallestUnit: "minute" }),
   };
 }
 
@@ -90,21 +105,32 @@ function PublicationDatePickerFields({
   id,
   value,
   locale,
+  timeZone,
   disabled,
   onChange,
+  onValidityChange,
 }: {
   id: string;
   value: string | null;
   locale: string;
+  timeZone: string;
   disabled?: boolean;
   onChange: (value: string | null) => void;
+  onValidityChange?: (valid: boolean) => void;
 }) {
   const dialogId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const timeTriggerRef = useRef<HTMLButtonElement>(null);
   const dayRefs = useRef(new Map<string, HTMLButtonElement>());
-  const parts = toLocalParts(value);
+  const parts = toLocalParts(value, timeZone);
+  const text = pickerMessages[locale === "hu" ? "hu" : "en"];
+  const [occurrences, setOccurrences] = useState<
+    ReturnType<typeof resolvePublicationTime>
+  >([]);
+  const dateInput = useRef<HTMLInputElement>(null);
+  const timeInput = useRef<HTMLInputElement>(null);
+  const [previousValue, setPreviousValue] = useState(value);
   const [dateText, setDateText] = useState(() =>
     parts ? formatDate(parts.date, locale) : "",
   );
@@ -113,25 +139,40 @@ function PublicationDatePickerFields({
   const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
   const [mode, setMode] = useState<PickerMode>(null);
-  const [cursor, setCursor] = useState(() => (parts ? parts.date : new Date()));
+  const todayParts = toLocalParts(new Date().toISOString(), timeZone);
+  const [cursor, setCursor] = useState(
+    () => parts?.date ?? todayParts?.date ?? new Date(),
+  );
+
+  if (value !== previousValue) {
+    setPreviousValue(value);
+    setDateText(parts ? formatDate(parts.date, locale) : "");
+    setTimeText(parts?.time ?? "");
+    setDateError("");
+    setTimeError("");
+    setOccurrences([]);
+  }
+
   const days = Array.from({ length: 42 }, (_, index) => {
-    const first = localDate(cursor.getFullYear(), cursor.getMonth(), 1);
-    const offset = (first.getDay() + 6) % 7;
+    const first = localDate(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1);
+    const offset = (first.getUTCDay() + 6) % 7;
 
     return localDate(
-      cursor.getFullYear(),
-      cursor.getMonth(),
+      cursor.getUTCFullYear(),
+      cursor.getUTCMonth(),
       index - offset + 1,
     );
   });
-  const labels = new Intl.DateTimeFormat(undefined, {
+  const labels = new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
     year: "numeric",
     month: "long",
   });
   const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
-    new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
-      localDate(2024, 0, index + 1),
-    ),
+    new Intl.DateTimeFormat(locale, {
+      weekday: "short",
+      timeZone: "UTC",
+    }).format(localDate(2024, 0, index + 1)),
   );
   const daySteps: Record<string, number> = {
     ArrowLeft: -1,
@@ -139,7 +180,7 @@ function PublicationDatePickerFields({
     ArrowUp: -7,
     ArrowDown: 7,
   };
-  const today = dateKey(new Date());
+  const today = todayParts?.dateKey;
 
   function openPopover(nextMode: Exclude<PickerMode, null>) {
     const dialog = dialogRef.current;
@@ -151,7 +192,7 @@ function PublicationDatePickerFields({
     }
 
     const selected = parts?.dateKey || today;
-    setCursor(parts?.date ?? new Date());
+    setCursor(parts?.date ?? todayParts?.date ?? new Date());
     setMode(nextMode);
 
     if (nextMode === "time") {
@@ -189,7 +230,9 @@ function PublicationDatePickerFields({
       dialog.style.maxHeight = `${availableHeight}px`;
 
       if (nextMode === "calendar") {
-        dayRefs.current.get(selected)?.focus();
+        if (selected) {
+          dayRefs.current.get(selected)?.focus();
+        }
       } else {
         dialog.querySelector<HTMLInputElement>("input")?.focus();
       }
@@ -197,56 +240,73 @@ function PublicationDatePickerFields({
   }
 
   function commit(dateValue: string, timeValue: string) {
+    onValidityChange?.(false);
     const date = parseDate(dateValue, locale);
     const time = parseTime(timeValue);
 
     if (!date) {
-      setDateError("Enter a valid date.");
+      setDateError(text.invalidDate);
+      dateInput.current?.setCustomValidity(text.invalidDate);
 
       return false;
     }
 
     if (!time) {
-      setTimeError("Enter a time from 00:00 to 23:59.");
+      setTimeError(text.invalidTime);
+      timeInput.current?.setCustomValidity(text.invalidTime);
 
       return false;
     }
 
-    const result = new Date(
-      date.year,
-      date.month - 1,
-      date.day,
-      time.hours,
-      time.minutes,
-      0,
-      0,
-    );
+    const day = localDate(date.year, date.month - 1, date.day);
+    const clock = `${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}`;
+    const key = dateKey(day);
 
-    if (
-      result.getFullYear() !== date.year ||
-      result.getMonth() !== date.month - 1 ||
-      result.getDate() !== date.day ||
-      result.getHours() !== time.hours ||
-      result.getMinutes() !== time.minutes
-    ) {
-      setTimeError(
-        "This local time does not exist because of a daylight-saving change.",
-      );
-
-      return false;
-    }
-
+    setDateText(formatDate(day, locale));
+    setTimeText(clock);
     setDateError("");
-    setTimeError("");
-    onChange(result.toISOString());
-    setDateText(
-      formatDate(new Date(date.year, date.month - 1, date.day, 12), locale),
-    );
-    setTimeText(
-      `${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}`,
-    );
+    dateInput.current?.setCustomValidity("");
+
+    // A visit to an existing minute preserves both its occurrence and its precision.
+    if (parts?.dateKey === key && parts.time === clock) {
+      clearTimeError();
+      onValidityChange?.(true);
+
+      return true;
+    }
+
+    const matches = resolvePublicationTime(`${key}T${clock}`, timeZone);
+
+    if (matches.length !== 1) {
+      const message = matches.length ? text.overlap : text.gap;
+      setOccurrences(matches);
+      setTimeError(message);
+      timeInput.current?.setCustomValidity(message);
+
+      return false;
+    }
+
+    clearTimeError();
+    onValidityChange?.(true);
+    onChange(matches[0].instant);
 
     return true;
+  }
+
+  function clearTimeError() {
+    setOccurrences([]);
+    setTimeError("");
+    timeInput.current?.setCustomValidity("");
+  }
+
+  function clearDate() {
+    onValidityChange?.(true);
+    onChange(null);
+    setDateText("");
+    setTimeText("");
+    setDateError("");
+    dateInput.current?.setCustomValidity("");
+    clearTimeError();
   }
 
   function closePopover(restoreFocus = true) {
@@ -263,50 +323,54 @@ function PublicationDatePickerFields({
     const date =
       parts?.date ??
       (parsedDate
-        ? new Date(parsedDate.year, parsedDate.month - 1, parsedDate.day, 12)
+        ? localDate(parsedDate.year, parsedDate.month - 1, parsedDate.day)
         : null);
 
     if (!date) {
-      setDateError("Enter a valid date first.");
+      setDateError(text.dateFirst);
 
       return;
     }
 
     const value = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 
-    if (commit(formatDate(date, locale), value)) {
-      setTimeText(value);
-      closePopover(false);
-      document.getElementById(`${id}-time`)?.focus();
-    }
+    commit(formatDate(date, locale), value);
+    closePopover(false);
+    timeInput.current?.focus();
   }
 
   return (
     <div className={styles.picker}>
+      <p id={`${id}-zone`}>
+        {text.zone} {timeZone}
+      </p>
       <div className={styles.fields}>
         <div className={styles.field}>
           <Input
+            ref={dateInput}
             id={`${id}-date`}
             type="text"
             inputMode="numeric"
+            maxLength={16}
             autoComplete="off"
-            aria-label="Publish date"
+            aria-label={text.date}
             value={dateText}
             aria-invalid={Boolean(dateError)}
-            aria-describedby={dateError ? `${id}-date-error` : undefined}
+            aria-describedby={dateError ? `${id}-date-error` : `${id}-zone`}
             disabled={disabled}
             fullWidth
             onChange={(event) => {
               setDateText(event.target.value);
               setDateError("");
+              onValidityChange?.(false);
+              event.currentTarget.setCustomValidity(text.applyDate);
+              setOccurrences([]);
             }}
             onBlur={() => {
               if (dateText.trim()) {
                 commit(dateText, timeText || parts?.time || "00:00");
               } else {
-                onChange(null);
-                setTimeText("");
-                setDateError("");
+                clearDate();
               }
             }}
             onKeyDown={(event) => {
@@ -320,7 +384,7 @@ function PublicationDatePickerFields({
             ref={triggerRef}
             type="button"
             className={styles.iconButton}
-            aria-label="Open calendar"
+            aria-label={text.calendar}
             aria-haspopup="dialog"
             aria-controls={dialogId}
             disabled={disabled}
@@ -337,22 +401,27 @@ function PublicationDatePickerFields({
         </div>
         <div className={styles.field}>
           <Input
+            ref={timeInput}
             id={`${id}-time`}
             type="text"
             inputMode="numeric"
+            maxLength={16}
             autoComplete="off"
-            aria-label="Publish time"
+            aria-label={text.time}
             placeholder="HH:MM"
             value={timeText}
             aria-invalid={Boolean(timeError)}
-            aria-describedby={timeError ? `${id}-time-error` : undefined}
+            aria-describedby={timeError ? `${id}-time-error` : `${id}-zone`}
             disabled={disabled}
             onChange={(event) => {
               setTimeText(event.target.value);
               setTimeError("");
+              onValidityChange?.(false);
+              event.currentTarget.setCustomValidity(text.applyTime);
+              setOccurrences([]);
             }}
             onBlur={() => {
-              if (timeText.trim()) {
+              if (dateText || timeText) {
                 commit(dateText, timeText);
               }
             }}
@@ -367,7 +436,7 @@ function PublicationDatePickerFields({
             ref={timeTriggerRef}
             type="button"
             className={styles.iconButton}
-            aria-label="Open time selector"
+            aria-label={text.timeSelector}
             aria-haspopup="dialog"
             aria-controls={dialogId}
             disabled={disabled}
@@ -383,13 +452,29 @@ function PublicationDatePickerFields({
           )}
         </div>
       </div>
+      {occurrences.length > 1 && (
+        <div role="group" aria-label={text.overlap}>
+          {occurrences.map((occurrence, index) => (
+            <Button
+              key={occurrence.instant}
+              type="button"
+              size="sm"
+              onClick={() => {
+                clearTimeError();
+                onValidityChange?.(true);
+                onChange(occurrence.instant);
+              }}
+            >
+              {index === 0 ? text.first : text.second} (UTC{occurrence.offset})
+            </Button>
+          ))}
+        </div>
+      )}
       <dialog
         ref={dialogRef}
         id={dialogId}
         className={styles.dialog}
-        aria-label={
-          mode === "time" ? "Choose publish time" : "Choose publish date"
-        }
+        aria-label={mode === "time" ? text.chooseTime : text.chooseDate}
         onClose={() => setMode(null)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -408,10 +493,14 @@ function PublicationDatePickerFields({
               <button
                 className={styles.iconControl}
                 type="button"
-                aria-label="Previous month"
+                aria-label={text.previous}
                 onClick={() =>
                   setCursor(
-                    localDate(cursor.getFullYear(), cursor.getMonth() - 1, 1),
+                    localDate(
+                      cursor.getUTCFullYear(),
+                      cursor.getUTCMonth() - 1,
+                      1,
+                    ),
                   )
                 }
               >
@@ -421,17 +510,25 @@ function PublicationDatePickerFields({
               <button
                 className={styles.iconControl}
                 type="button"
-                aria-label="Next month"
+                aria-label={text.next}
                 onClick={() =>
                   setCursor(
-                    localDate(cursor.getFullYear(), cursor.getMonth() + 1, 1),
+                    localDate(
+                      cursor.getUTCFullYear(),
+                      cursor.getUTCMonth() + 1,
+                      1,
+                    ),
                   )
                 }
               >
                 <FaChevronRight />
               </button>
             </header>
-            <div className={styles.grid} role="group" aria-label="Choose day">
+            <div
+              className={styles.grid}
+              role="group"
+              aria-label={text.chooseDay}
+            >
               {weekdayLabels.map((label, index) => (
                 <span
                   className={styles.weekday}
@@ -452,11 +549,12 @@ function PublicationDatePickerFields({
                     }
                   }}
                   type="button"
-                  data-outside={day.getMonth() !== cursor.getMonth()}
+                  data-outside={day.getUTCMonth() !== cursor.getUTCMonth()}
                   data-today={dateKey(day) === today}
                   aria-pressed={parts?.dateKey === dateKey(day)}
                   aria-label={new Intl.DateTimeFormat(locale, {
                     dateStyle: "full",
+                    timeZone: "UTC",
                   }).format(day)}
                   tabIndex={dateKey(day) === (parts?.dateKey || today) ? 0 : -1}
                   onKeyDown={(event) => {
@@ -468,9 +566,9 @@ function PublicationDatePickerFields({
 
                     event.preventDefault();
                     const next = localDate(
-                      day.getFullYear(),
-                      day.getMonth(),
-                      day.getDate() + delta,
+                      day.getUTCFullYear(),
+                      day.getUTCMonth(),
+                      day.getUTCDate() + delta,
                     );
                     setCursor(next);
                     requestAnimationFrame(() =>
@@ -480,14 +578,13 @@ function PublicationDatePickerFields({
                   onClick={() => {
                     const nextDate = formatDate(day, locale);
 
-                    if (commit(nextDate, timeText || parts?.time || "00:00")) {
-                      setDateText(nextDate);
-                      closePopover();
-                    }
+                    commit(nextDate, timeText || parts?.time || "00:00");
+                    closePopover();
                   }}
                 >
-                  {new Intl.DateTimeFormat(undefined, {
+                  {new Intl.DateTimeFormat(locale, {
                     day: "numeric",
+                    timeZone: "UTC",
                   }).format(day)}
                 </button>
               ))}
@@ -499,13 +596,11 @@ function PublicationDatePickerFields({
                 variant="ghost"
                 color="neutral"
                 onClick={() => {
-                  onChange(null);
-                  setDateText("");
-                  setDateError("");
+                  clearDate();
                   closePopover();
                 }}
               >
-                Clear
+                {text.clear}
               </Button>
               <Button
                 type="button"
@@ -514,18 +609,19 @@ function PublicationDatePickerFields({
                 color="neutral"
                 onClick={() => closePopover()}
               >
-                Cancel
+                {text.cancel}
               </Button>
             </footer>
           </>
         ) : (
           <>
             <header className={styles.timeHeader}>
-              <strong>Select time</strong>
+              <strong>{text.selectTime}</strong>
             </header>
             <div className={styles.timePicker}>
               {(["Hour", "Minute"] as const).map((label) => {
                 const hourField = label === "Hour";
+                const fieldLabel = hourField ? text.hour : text.minute;
                 const time = parseTime(draftTime) ?? { hours: 0, minutes: 0 };
                 const current = hourField ? time.hours : time.minutes;
                 const limit = hourField ? 24 : 60;
@@ -542,19 +638,19 @@ function PublicationDatePickerFields({
                 return (
                   <div key={label}>
                     <label htmlFor={`${id}-${label.toLowerCase()}`}>
-                      {label}
+                      {fieldLabel}
                     </label>
                     <span className={styles.stepper}>
                       <button
                         className={styles.iconControl}
                         type="button"
-                        aria-label={`Increase ${label.toLowerCase()}`}
+                        aria-label={`${text.increase} ${fieldLabel}`}
                         onClick={() => step(1)}
                       >
                         <FaSortUp aria-hidden="true" />
                       </button>
                       <input
-                        aria-label={label}
+                        aria-label={fieldLabel}
                         id={`${id}-${label.toLowerCase()}`}
                         type="text"
                         inputMode="numeric"
@@ -586,7 +682,7 @@ function PublicationDatePickerFields({
                       <button
                         className={styles.iconControl}
                         type="button"
-                        aria-label={`Decrease ${label.toLowerCase()}`}
+                        aria-label={`${text.decrease} ${fieldLabel}`}
                         onClick={() => step(-1)}
                       >
                         <FaSortDown aria-hidden="true" />
@@ -608,7 +704,7 @@ function PublicationDatePickerFields({
                   )
                 }
               >
-                Apply
+                {text.apply}
               </Button>
               <Button
                 type="button"
@@ -617,7 +713,7 @@ function PublicationDatePickerFields({
                 color="neutral"
                 onClick={() => closePopover()}
               >
-                Cancel
+                {text.cancel}
               </Button>
             </footer>
           </>
@@ -627,39 +723,30 @@ function PublicationDatePickerFields({
   );
 }
 
-function subscribeToLocale() {
-  return () => {};
-}
-
-function browserLocale() {
-  return document.documentElement.lang || navigator.language || "en-US";
-}
-
-function serverLocale() {
-  return null;
-}
-
 export default function PublicationDatePicker(props: {
   id: string;
   value: string | null;
   disabled?: boolean;
   onChange: (value: string | null) => void;
+  onValidityChange?: (valid: boolean) => void;
 }) {
-  // Locale and local time depend on the browser. Hydrate the same empty fields
-  // first, then initialize the editable values in the visitor's time zone.
-  const locale = useSyncExternalStore(
-    subscribeToLocale,
-    browserLocale,
-    serverLocale,
-  );
+  const locale = useAdminDateLocale();
+  const settings = useContext(AdminDateTimeContext);
+
+  if (!settings) {
+    return (
+      <p role="alert">
+        {pickerMessages[locale === "hu" ? "hu" : "en"].unavailable}
+      </p>
+    );
+  }
 
   return (
     <PublicationDatePickerFields
       {...props}
-      key={locale === null ? "server" : (props.value ?? "empty")}
-      locale={locale ?? "en-US"}
-      value={locale === null ? null : props.value}
-      disabled={locale === null || props.disabled}
+      key={JSON.stringify([settings.timeZone, locale])}
+      locale={locale}
+      timeZone={settings.timeZone}
     />
   );
 }

@@ -75,3 +75,13 @@ All items remain **Proposed**: article summaries, title suggestions, SEO recomme
 ### Document Library
 
 The Admin Document Library supports PDF browsing, per-file upload status, metadata editing and authorized attachment downloads. Post and Page editors can select a PDF and set the label and description for its structured download block. The public site requires a current published reference, while the Admin endpoint can serve protected documents to editors and owning authors. Referenced documents are protected from deletion. See the [PDF storage and delivery decision](decisions/003-pdf-document-assets.md) for limits, preview behavior and deployment requirements.
+
+## Site date and time
+
+In **Admin → Settings → General**, choose an IANA timezone such as `Europe/Budapest`, `Europe/London`, `America/New_York`, or `Asia/Tokyo`. The default is `UTC`. The searchable timezone field offers identifiers from the Admin runtime's internationalization data and also accepts a typed identifier. The API validates it against the server runtime's timezone data.
+
+Choose a localized long date, dotted year-month-day, day-first or month-first slashes, or ISO date. Time can use a 12-hour or 24-hour clock with optional seconds. The preview uses a fixed example instant. Settings and picker labels use Hungarian when the browser prefers Hungarian and English otherwise. The public site uses the visitor's selected language for localized date components.
+
+The Page and Post publication controls interpret wall-clock input in the displayed site timezone. A skipped time is rejected. If the clock repeats an hour, choose the first or second occurrence using the displayed UTC offsets. Editing a publication time uses minute precision. Reopening an unchanged time preserves its original occurrence, seconds, and milliseconds.
+
+Changing the timezone changes how NextPress displays created, modified, and publication timestamps and interprets new editor input. It leaves all saved instants in place, including future releases. Reload a public page or reopen an active preview to pick up changed settings. Older historical revisions may lack a captured publication time.

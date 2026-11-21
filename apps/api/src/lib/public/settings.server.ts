@@ -7,6 +7,7 @@ import {
   PostListingModeSchema,
   normalizePostsPerPage,
 } from "@nextpress/shared";
+import { readSiteDateTime } from "@nextpress/shared/site-date-time";
 
 import type { PublicSiteSettingsSchema } from "@nextpress/shared/api-contracts";
 import type { z } from "zod";
@@ -21,6 +22,9 @@ const publicSiteSettingsSelect = {
   siteDescription: true,
   postListingMode: true,
   postsPerPage: true,
+  timeZone: true,
+  dateFormat: true,
+  timeFormat: true,
 } satisfies Prisma.SiteSettingsSelect;
 
 export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
@@ -34,6 +38,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
   );
 
   return {
+    dateTime: readSiteDateTime(settings),
     appearance: normalizeAppearance(
       settings && {
         websiteTemplate: settings.websiteTemplate,

@@ -91,7 +91,7 @@ describe("Home", () => {
       "href",
       "/en/categories/essays",
     );
-    expect(screen.getByText("February 3, 2025")).toHaveAttribute(
+    expect(screen.getByText("February 3, 2025, 00:00")).toHaveAttribute(
       "datetime",
       "2025-02-03T00:00:00.000Z",
     );

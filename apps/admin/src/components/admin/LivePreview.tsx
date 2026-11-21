@@ -25,6 +25,7 @@ const origin = process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
 type PreviewSnapshot = LivePreviewSnapshot;
 type PreviewValues = {
   type?: ContentLayout;
+  publishedAt?: string | null;
   title: string;
   slug: string;
   content?: SlateLike;
@@ -89,6 +90,7 @@ export default function LivePreview({
       if (live && values) {
         currentSnapshot.current = {
           title: values.title,
+          publishedAt: values.publishedAt,
           slug: values.slug,
           content: slateToString(values.content),
           excerpt: slateToString(values.excerpt),

@@ -90,10 +90,9 @@ it("shows scoped counts and links recent and scheduled content to their editors"
     name: /Launch.*Publishes.*Scheduled/,
   });
   expect(scheduledLink).toHaveAttribute("href", "/admin/pages/page-id");
-  expect(within(scheduledLink).getByText(/^Publishes/)).toHaveAttribute(
-    "datetime",
-    "2026-12-21T09:00:00Z",
-  );
+  expect(
+    within(scheduledLink).getByText("December 21, 2026, 09:00"),
+  ).toHaveAttribute("datetime", "2026-12-21T09:00:00Z");
 });
 
 it("omits create actions and skips the editorial request for a subscriber", () => {

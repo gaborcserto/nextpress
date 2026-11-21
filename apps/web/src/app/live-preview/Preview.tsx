@@ -11,6 +11,7 @@ import { ContentArticle } from "@/components/ContentArticle";
 import { PreviewMediaContext } from "@/components/public-content/ContentMediaImage";
 import { PostCover } from "@/components/public-content/PostCover";
 import { parsePublicRichContent } from "@/lib/content/rich-content";
+import { LocalizedDate } from "@/lib/i18n/client";
 
 import {
   PreviewPageContent,
@@ -96,6 +97,9 @@ export default function Preview({ adminOrigin, appearance }: PreviewProps) {
           content={snapshot.content}
           intro={
             <>
+              {snapshot.publishedAt && (
+                <LocalizedDate value={snapshot.publishedAt} />
+              )}
               {snapshot.excerpt && (
                 <p>
                   {richContentText(parsePublicRichContent(snapshot.excerpt))}

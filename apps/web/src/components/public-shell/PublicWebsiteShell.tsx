@@ -2,6 +2,7 @@ import { PublicMenusSchema } from "@nextpress/shared/api-contracts";
 import { cache } from "react";
 
 import { fetchPublic } from "@/lib/content/public-api.server";
+import { SiteDateTimeProvider } from "@/lib/i18n/client";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
@@ -28,7 +29,9 @@ export async function PublicWebsiteShell({
       menus={navigation}
       supportsSidebar={appearance.navigation.sidebar}
     >
-      {children}
+      <SiteDateTimeProvider settings={settings.dateTime}>
+        {children}
+      </SiteDateTimeProvider>
     </Shell>
   );
 }

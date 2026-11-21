@@ -1,5 +1,5 @@
 import { publicContentPath } from "@/lib/content/routes";
-import { LocaleLink as Link, UiText } from "@/lib/i18n/client";
+import { LocalizedDate, LocaleLink as Link, UiText } from "@/lib/i18n/client";
 
 import styles from "./post-list.module.css";
 import { PostTaxonomies } from "./PostTaxonomies";
@@ -33,9 +33,7 @@ export function CompactPostList({
               {post.title}
             </Link>
           </h3>
-          <time dateTime={post.publishedAt}>
-            {post.publishedAt.slice(0, 10)}
-          </time>
+          <LocalizedDate value={post.publishedAt} />
           <PostTaxonomies taxonomies={showTaxonomies ? post.taxonomies : []} />
         </li>
       ))}

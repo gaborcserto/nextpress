@@ -4,6 +4,7 @@ import {
   SettingsResponseSchema,
   SettingsSavedSchema,
 } from "@nextpress/shared/settings-contracts";
+import { DEFAULT_SITE_DATE_TIME } from "@nextpress/shared/site-date-time";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
@@ -37,6 +38,8 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
     normalizeSettingsForm(undefined, fallbackRole),
   );
 
+  const [savedDateTime, setSavedDateTime] = useState(DEFAULT_SITE_DATE_TIME);
+
   const load = useCallback(() => {
     request.current?.abort();
     const controller = new AbortController();
@@ -56,6 +59,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
 
         if (!loadedRef.current) {
           setForm(normalizeSettingsForm(data, loadContext.fallbackRole));
+          setSavedDateTime(data.dateTime ?? DEFAULT_SITE_DATE_TIME);
           loadedRef.current = true;
           setLoaded(true);
         }
@@ -114,6 +118,8 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
           })),
         }));
 
+        setSavedDateTime(form.dateTime ?? DEFAULT_SITE_DATE_TIME);
+
         return true;
       } catch {
         setError(
@@ -131,6 +137,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
 
   return {
     form,
+    savedDateTime,
     setForm,
     loaded,
     loadError: loading ? null : loadError,

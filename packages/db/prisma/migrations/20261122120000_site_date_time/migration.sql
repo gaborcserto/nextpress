@@ -1,0 +1,4 @@
+ALTER TABLE "SiteSettings"
+  ADD COLUMN "timeZone" TEXT NOT NULL DEFAULT 'UTC',
+  ADD COLUMN "dateFormat" TEXT NOT NULL DEFAULT 'localized',
+  ADD COLUMN "timeFormat" TEXT NOT NULL DEFAULT '24h';

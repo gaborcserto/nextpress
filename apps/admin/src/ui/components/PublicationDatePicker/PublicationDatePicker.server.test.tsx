@@ -16,5 +16,6 @@ it("server-renders the picker without a browser or local date assumptions", () =
 
   expect(markup).toContain('aria-label="Publish date"');
   expect(markup).toContain('aria-label="Publish time"');
-  expect(markup).not.toContain("12/01/2026");
+  expect(markup).toContain('value="12/01/2026"');
+  expect(markup).toContain('value="12:30"');
 });

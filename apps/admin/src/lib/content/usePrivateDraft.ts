@@ -86,6 +86,10 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
 
     return {
       title: fields.title,
+      publishedAt:
+        snapshot.release?.state === "PENDING"
+          ? snapshot.release.scheduledFor
+          : snapshot.publicState.publishedAt,
       slug: fields.slug,
       content: fields.content,
       excerpt: fields.excerpt,

@@ -1,5 +1,10 @@
 ﻿"use client";
 
+import {
+  DEFAULT_SITE_DATE_TIME,
+  formatSiteDateTime,
+  type SiteDateTime,
+} from "@nextpress/shared/site-date-time";
 import Link from "next/link";
 import { createContext, useContext, useId, useState } from "react";
 import { IoGlobeOutline, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
@@ -35,6 +40,8 @@ export function PreferenceProvider({
   );
 }
 
+const SiteDateTimeContext = createContext(DEFAULT_SITE_DATE_TIME);
+
 const LocaleContext = createContext<Locale>("en");
 
 export function LocaleProvider({
@@ -46,6 +53,20 @@ export function LocaleProvider({
 }) {
   return (
     <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>
+  );
+}
+
+export function SiteDateTimeProvider({
+  settings = DEFAULT_SITE_DATE_TIME,
+  children,
+}: {
+  settings?: SiteDateTime;
+  children: ReactNode;
+}) {
+  return (
+    <SiteDateTimeContext.Provider value={settings}>
+      {children}
+    </SiteDateTimeContext.Provider>
   );
 }
 
@@ -63,14 +84,10 @@ export function UiText({ id }: { id: MessageKey }) {
 
 export function LocalizedDate({ value }: { value: string }) {
   const locale = useContext(LocaleContext);
+  const dateTime = useContext(SiteDateTimeContext);
 
   return (
-    <time dateTime={value}>
-      {new Intl.DateTimeFormat(locale, {
-        dateStyle: "long",
-        timeZone: "UTC",
-      }).format(new Date(value))}
-    </time>
+    <time dateTime={value}>{formatSiteDateTime(value, dateTime, locale)}</time>
   );
 }
 

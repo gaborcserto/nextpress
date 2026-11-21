@@ -23,7 +23,7 @@ const password = "Disposable private rehearsal passphrase 2026";
 const email = `private-${randomUUID()}@example.invalid`;
 const authorId = `private-${randomUUID()}`;
 const tagId = `private-tag-${randomUUID()}`;
-const processes: ChildProcess[] = [];
+const processes: { child: ChildProcess; port: number }[] = [];
 let db: typeof import("@nextpress/db/src/client").prisma;
 let client: Client;
 let cookie = "";
@@ -69,7 +69,7 @@ async function startApp(workspace: "api" | "admin" | "web", port: number) {
       },
     },
   );
-  processes.push(child);
+  processes.push({ child, port });
   const deadline = Date.now() + 90000;
 
   while (Date.now() < deadline) {
@@ -222,21 +222,53 @@ describe.skipIf(!ownerUrl || !appUrl)(
     }, 120000);
 
     afterAll(async () => {
-      for (const child of processes.reverse()) {
-        if (child.pid && child.exitCode === null) {
+      try {
+        for (const { child, port } of processes.reverse()) {
+          if (
+            !child.pid ||
+            child.exitCode !== null ||
+            child.signalCode !== null
+          ) {
+            continue;
+          }
+
           if (process.platform === "win32") {
-            execFileSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
-              stdio: "ignore",
-              windowsHide: true,
-            });
+            try {
+              execFileSync(
+                "taskkill",
+                ["/PID", String(child.pid), "/T", "/F"],
+                {
+                  stdio: "ignore",
+                  windowsHide: true,
+                },
+              );
+            } catch (failure) {
+              // The child can exit between the Node status check and taskkill.
+              try {
+                process.kill(child.pid, 0);
+              } catch (probe) {
+                if (
+                  probe instanceof Error &&
+                  "code" in probe &&
+                  probe.code === "ESRCH"
+                ) {
+                  await freePort(port);
+                  continue;
+                }
+
+                throw probe;
+              }
+
+              throw failure;
+            }
           } else {
             child.kill("SIGTERM");
           }
         }
+      } finally {
+        await client?.end();
+        await db?.$disconnect();
       }
-
-      await client?.end();
-      await db?.$disconnect();
     }, 30000);
 
     it.each(["PAGE", "POST"] as const)(
@@ -798,42 +830,43 @@ describe.skipIf(!ownerUrl || !appUrl)(
               .title,
           ).toBe(legacy.title);
           await page.getByText("Schedule publication", { exact: true }).click();
-          await page
-            .getByLabel("Publication time (UTC)")
-            .fill("2099-01-01T12:00");
+          const scheduleDate = page.locator("#private-schedule-date");
+          const scheduleTime = page.locator("#private-schedule-time");
+          await scheduleDate.fill("2099-01-01");
+          await scheduleDate.press("Enter");
+          await scheduleTime.fill("12:00");
+          await scheduleTime.press("Enter");
           await page
             .getByRole("button", { name: "Schedule", exact: true })
             .click();
           await page
             .getByRole("button", { name: "Confirm", exact: true })
             .click();
-          await browserExpect(
-            page.getByText(/Scheduled release: PENDING/),
-          ).toBeVisible();
+          const releaseSummary = page.locator("#private-release-summary");
+          await browserExpect(releaseSummary).toContainText("PENDING");
           await browserExpect(
             page.getByRole("button", { name: "Publish Changes", exact: true }),
           ).toBeEnabled();
-          await page
-            .getByLabel("Publication time (UTC)")
-            .fill("2099-01-02T12:00");
+          await scheduleDate.fill("2099-01-02");
+          await scheduleDate.press("Enter");
           await page
             .getByRole("button", { name: "Reschedule", exact: true })
             .click();
           await page
             .getByRole("button", { name: "Confirm", exact: true })
             .click();
-          await browserExpect(
-            page.getByText(/Scheduled release: PENDING at 2099-01-02/),
-          ).toBeVisible();
+          await browserExpect(releaseSummary).toContainText("PENDING");
+          await browserExpect(releaseSummary.locator("time")).toHaveAttribute(
+            "datetime",
+            "2099-01-02T12:00:00.000Z",
+          );
           await page
             .getByRole("button", { name: "Cancel Schedule", exact: true })
             .click();
           await page
             .getByRole("button", { name: "Confirm", exact: true })
             .click();
-          await browserExpect(
-            page.getByText(/Scheduled release: CANCELLED/),
-          ).toBeVisible();
+          await browserExpect(releaseSummary).toContainText("CANCELLED");
           await page
             .getByRole("button", { name: "Unpublish", exact: true })
             .click();

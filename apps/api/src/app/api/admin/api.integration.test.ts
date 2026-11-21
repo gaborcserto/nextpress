@@ -324,6 +324,11 @@ describe("admin API route integration", () => {
           ...settingsPayload(),
           postListingMode: "LOAD_MORE",
           postsPerPage: 25,
+          dateTime: {
+            timeZone: "Europe/Budapest",
+            dateFormat: "dmy",
+            timeFormat: "12h-seconds",
+          },
           oauthProviders: settingsPayload().oauthProviders.map((provider) =>
             provider.provider === "google"
               ? { ...provider, enabled: true, clientId: "new-client" }
@@ -343,6 +348,9 @@ describe("admin API route integration", () => {
             siteName: "NextPress",
             postListingMode: "LOAD_MORE",
             postsPerPage: 25,
+            timeZone: "Europe/Budapest",
+            dateFormat: "dmy",
+            timeFormat: "12h-seconds",
           }),
         }),
       );
@@ -363,6 +371,20 @@ describe("admin API route integration", () => {
           prisma.siteSettings.upsert.mock.calls[0]?.[0].update,
         ).not.toHaveProperty(field);
       }
+    });
+
+    it.each([
+      { timeZone: "+02:00", dateFormat: "iso", timeFormat: "24h" },
+      { timeZone: "UTC", dateFormat: "arbitrary", timeFormat: "24h" },
+      { timeZone: "UTC", dateFormat: "iso", timeFormat: "arbitrary" },
+    ])("rejects invalid site date/time settings: %j", async (dateTime) => {
+      const response = await putSettings(
+        request("PUT", { ...settingsPayload(), dateTime }),
+        { params: {} },
+      );
+
+      expect(response.status).toBe(400);
+      expect(prisma.siteSettings.upsert).not.toHaveBeenCalled();
     });
 
     it("reports effective credentials after clearing a stored client ID and submitting whitespace", async () => {
