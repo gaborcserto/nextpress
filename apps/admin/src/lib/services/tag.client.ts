@@ -67,8 +67,13 @@ function unwrapOkData(raw: unknown): unknown {
  * Load tag options for autocomplete / multiselect fields.
  * Used by TagMultiSelect during search.
  */
-export async function loadTagOptionsAction(query: string): Promise<TagValue[]> {
-  const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`);
+export async function loadTagOptionsAction(
+  query: string,
+  signal?: AbortSignal,
+): Promise<TagValue[]> {
+  const res = await fetch(`/api/tags?query=${encodeURIComponent(query)}`, {
+    signal,
+  });
 
   if (!res.ok) {
     throw new Error("Failed to load tag options");

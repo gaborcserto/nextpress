@@ -1,7 +1,17 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { deferred } from "@/lib/testing/deferred.fixture";
+
 import { TagMultiSelect } from "./TagMultiSelect";
+
+import type { TagLoadOptionsFn, TagValue } from "./TagMultiSelect.types";
 
 describe("TagMultiSelect", () => {
   it("reports search failures instead of offering creation from incomplete results", async () => {
@@ -70,5 +80,58 @@ describe("TagMultiSelect", () => {
       "Unable to create tag.",
     );
     expect(input).not.toBeDisabled();
+  });
+
+  it("aborts superseded and unmounted tag searches and ignores late results", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const first = deferred<TagValue[]>();
+      const second = deferred<TagValue[]>();
+      const loadOptions = vi
+        .fn<TagLoadOptionsFn>()
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValueOnce([{ id: "new", name: "Newest", slug: "newest" }])
+        .mockReturnValueOnce(second.promise);
+      const { unmount } = render(
+        <TagMultiSelect
+          value={[]}
+          onChangeAction={vi.fn()}
+          loadOptionsAction={loadOptions}
+          createTagAction={vi.fn()}
+        />,
+      );
+
+      const input = screen.getByRole("textbox", { name: "Tag selector" });
+      fireEvent.change(input, { target: { value: "old" } });
+      await act(async () => vi.advanceTimersByTimeAsync(200));
+      const oldSignal = loadOptions.mock.calls[0]?.[1];
+
+      fireEvent.change(input, { target: { value: "new" } });
+      await act(async () => vi.advanceTimersByTimeAsync(200));
+      await act(async () =>
+        first.resolve([{ id: "old", name: "Older", slug: "older" }]),
+      );
+
+      expect(oldSignal?.aborted).toBe(true);
+      expect(screen.getByRole("button", { name: "Newest" })).toBeVisible();
+      expect(
+        screen.queryByRole("button", { name: "Older" }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+      fireEvent.change(input, { target: { value: "next" } });
+      await act(async () => vi.advanceTimersByTimeAsync(200));
+      const pendingSignal = loadOptions.mock.calls[2]?.[1];
+
+      unmount();
+      await act(async () =>
+        second.reject(new DOMException("Aborted", "AbortError")),
+      );
+
+      expect(pendingSignal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

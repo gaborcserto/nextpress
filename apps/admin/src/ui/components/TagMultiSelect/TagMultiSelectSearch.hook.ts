@@ -31,16 +31,16 @@ export function useTagMultiSelectSearch(
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const options = await search.loadOptions(trimmed);
+        const options = await search.loadOptions(trimmed, controller.signal);
 
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setResult({ search, options, error: null });
         }
       } catch {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setResult({
             search,
             options: [],
@@ -51,7 +51,7 @@ export function useTagMultiSelectSearch(
     }, 200);
 
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
   }, [search]);

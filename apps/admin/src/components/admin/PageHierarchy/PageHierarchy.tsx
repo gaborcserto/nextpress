@@ -6,10 +6,11 @@ import {
   pageLayouts,
 } from "@nextpress/shared/content";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
-import { apiFetch } from "@/lib/api";
+import { ApiRequestError, apiFetch, jsonResult } from "@/lib/api";
+import { useAdminDateLocale } from "@/lib/settings/admin-date-time";
 import { Button, Input, Select } from "@/ui/primitives";
 
 type HierarchyPage = z.infer<typeof page>;
@@ -48,50 +49,54 @@ export function PageHierarchy({
   id?: string;
   pendingSlug?: string;
 }) {
-  const [requested, setRequested] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [pages, setPages] = useState<HierarchyPage[] | null>(null);
   const [selected, setSelected] = useState(id ?? "");
-  const [hidden, setHidden] = useState(false);
-  const [error, setError] = useState("");
+  const [failure, setFailure] = useState<"failed" | "unauthorized" | null>(
+    null,
+  );
+  const summary = useRef<HTMLElement>(null);
+  const hu = useAdminDateLocale() === "hu";
 
   useEffect(() => {
-    if (!requested) {
+    if (!attempt) {
       return;
     }
 
     const controller = new AbortController();
 
     async function load() {
-      try {
-        const response = await apiFetch(endpoint, {
-          signal: controller.signal,
-        });
+      const [data, error] = await jsonResult<unknown>(endpoint, {
+        signal: controller.signal,
+      });
 
-        if (response.status === 403) {
-          setHidden(true);
+      if (controller.signal.aborted) {
+        return;
+      }
 
-          return;
-        }
+      const parsed = hierarchy.safeParse(data);
 
-        if (!response.ok) {
-          throw new Error("Unable to load Page hierarchy.");
-        }
-
-        setPages(hierarchy.parse(await response.json()));
-      } catch {
-        if (!controller.signal.aborted) {
-          setError("Unable to load Page hierarchy.");
-        }
+      if (!error && parsed.success) {
+        setPages(parsed.data);
+      } else if (
+        error instanceof ApiRequestError &&
+        [401, 403].includes(error.status)
+      ) {
+        setFailure("unauthorized");
+      } else {
+        setFailure("failed");
       }
     }
 
     void load();
 
     return () => controller.abort();
-  }, [requested]);
+  }, [attempt]);
 
-  if (hidden) {
-    return null;
+  function retry() {
+    summary.current?.focus();
+    setFailure(null);
+    setAttempt(attempt + 1);
   }
 
   const current = pages?.find((entry) => entry.id === selected);
@@ -100,18 +105,38 @@ export function PageHierarchy({
     <details
       className="rounded border border-current/20 p-4"
       onToggle={(event) => {
-        if (event.currentTarget.open) {
-          setRequested(true);
+        if (event.currentTarget.open && !attempt) {
+          setAttempt(1);
         }
       }}
     >
-      <summary className="cursor-pointer font-semibold">Page hierarchy</summary>
-      {error ? (
-        <p role="alert">{error}</p>
-      ) : (
-        requested && !pages && <p role="status">Loading Page hierarchy…</p>
+      <summary ref={summary} className="cursor-pointer font-semibold">
+        {hu ? "Oldalhierarchia" : "Page hierarchy"}
+      </summary>
+      {failure && (
+        <p role="alert">
+          {failure === "unauthorized"
+            ? hu
+              ? "Nincs jogosultsága az oldalhierarchia megtekintéséhez."
+              : "You do not have access to the Page hierarchy."
+            : hu
+              ? "Az oldalhierarchia nem tölthető be."
+              : "Unable to load Page hierarchy."}
+        </p>
       )}
-      {pages && !id && (
+      {failure === "failed" && (
+        <Button onClick={retry}>{hu ? "Újrapróbálkozás" : "Retry"}</Button>
+      )}
+      {!!attempt && (
+        <p role="status">
+          {!pages &&
+            !failure &&
+            (hu ? "Oldalhierarchia betöltése…" : "Loading Page hierarchy…")}
+          {pages?.length === 0 &&
+            (hu ? "Nincsenek elérhető oldalak." : "No Pages found.")}
+        </p>
+      )}
+      {!!pages?.length && !id && (
         <Select
           label="Page"
           value={selected}
