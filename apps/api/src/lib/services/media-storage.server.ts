@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 
 function storagePath(key: string) {
@@ -25,7 +25,26 @@ export const mediaStorage = {
   async put(key: string, bytes: Uint8Array) {
     const destination = storagePath(key);
     await mkdir(path.dirname(destination), { recursive: true, mode: 0o700 });
-    await writeFile(destination, bytes, { flag: "wx", mode: 0o600 });
+    const file = await open(destination, "wx", 0o600);
+
+    try {
+      try {
+        await file.writeFile(bytes);
+      } finally {
+        await file.close();
+      }
+    } catch (error) {
+      try {
+        await unlink(destination);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "Incomplete media write",
+        );
+      }
+
+      throw error;
+    }
   },
   read(key: string) {
     return readFile(/* turbopackIgnore: true */ storagePath(key));

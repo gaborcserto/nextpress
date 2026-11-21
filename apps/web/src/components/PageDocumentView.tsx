@@ -2,8 +2,8 @@ import {
   type PageBlock,
   type PageDocument as Document,
 } from "@nextpress/shared/page-document";
-import Image from "next/image";
 
+import { ContentMediaImage } from "@/components/public-content/ContentMediaImage";
 import { LocaleLink as Link } from "@/lib/i18n/client";
 
 import styles from "./PageDocument.module.css";
@@ -53,12 +53,11 @@ function Block({
           <h2>{block.props.title}</h2>
           <p>{block.props.description}</p>
           {block.props.mediaId && (
-            <Image
+            <ContentMediaImage
               src={`/media/${block.props.mediaId}`}
               alt=""
               width={1200}
               height={800}
-              unoptimized
               style={{ width: "100%", height: "auto" }}
             />
           )}
@@ -66,12 +65,11 @@ function Block({
       );
     case "image":
       return (
-        <Image
+        <ContentMediaImage
           src={`/media/${block.props.mediaId}`}
           alt={block.props.alt}
           width={1200}
           height={800}
-          unoptimized
           style={{ width: "100%", height: "auto" }}
         />
       );

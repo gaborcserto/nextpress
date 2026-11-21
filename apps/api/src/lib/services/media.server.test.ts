@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { db, storage } = vi.hoisted(() => ({
@@ -89,7 +90,15 @@ describe("secure media boundaries", () => {
         where: {
           status: "PUBLISHED",
           publishedAt: { not: null, lte: expect.any(Date) },
-          OR: [{ coverId: "asset" }, { pageDocument: { contains: '"asset"' } }],
+          OR: [
+            { coverId: "asset" },
+            {
+              type: "PAGE",
+              layout: "GALLERY",
+              gallery: { some: { mediaId: "asset" } },
+            },
+            { pageDocument: { contains: '"asset"' } },
+          ],
         },
       }),
     );
@@ -128,11 +137,116 @@ describe("secure media boundaries", () => {
 
   it("removes the stored object when metadata persistence fails", async () => {
     db.media.create.mockRejectedValue(new Error("database failure"));
+    db.media.findUnique.mockResolvedValue(null);
     await expect(
       uploadMedia({ data: image, mime: "image/png", alt: "" }, actor),
     ).rejects.toThrow("database failure");
     expect(storage.remove).toHaveBeenCalledWith(
       expect.stringMatching(/\.png$/),
+    );
+  });
+
+  it.each(["../secret.png", "subfolder\\asset.png", "asset\u0000.png"])(
+    "rejects a filename with unsafe path or control characters",
+    async (filename) => {
+      await expect(
+        uploadMedia(
+          { data: image, mime: "image/png", alt: null, filename },
+          actor,
+        ),
+      ).rejects.toThrow();
+      expect(storage.put).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rotates JPEG pixels using EXIF and strips source metadata", async () => {
+    const jpeg = await sharp({
+      create: { width: 4, height: 2, channels: 3, background: "red" },
+    })
+      .jpeg()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+    db.media.create.mockResolvedValue({ id: "jpeg" });
+
+    await uploadMedia(
+      {
+        data: jpeg.toString("base64"),
+        mime: "image/jpeg",
+        alt: null,
+        filename: "Őszi kép.jpg",
+      },
+      actor,
+    );
+
+    const stored = await sharp(storage.put.mock.calls[0][1]).metadata();
+    expect(stored).toMatchObject({ width: 2, height: 4, format: "png" });
+    expect(stored.exif).toBeUndefined();
+    expect(db.media.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          filename: "Őszi kép.jpg",
+          originalMime: "image/jpeg",
+          alt: null,
+        }),
+      }),
+    );
+  });
+
+  it("rejects images beyond the decoded pixel budget", async () => {
+    const png = await sharp({
+      create: { width: 4001, height: 4000, channels: 3, background: "black" },
+    })
+      .png()
+      .toBuffer();
+
+    await expect(
+      uploadMedia(
+        { data: png.toString("base64"), mime: "image/png", alt: null },
+        actor,
+      ),
+    ).rejects.toThrow();
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported MIME types and bytes above the compressed size limit", async () => {
+    const oversized = Buffer.concat([
+      Buffer.from(image, "base64"),
+      Buffer.alloc(2_097_152),
+    ]);
+
+    await expect(
+      uploadMedia({ data: image, mime: "image/gif", alt: null }, actor),
+    ).rejects.toThrow();
+    await expect(
+      uploadMedia(
+        { data: oversized.toString("base64"), mime: "image/png", alt: null },
+        actor,
+      ),
+    ).rejects.toThrow();
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it("retains bytes when the follow-up read confirms a committed upload", async () => {
+    db.media.create.mockRejectedValue(new Error("connection lost"));
+    db.media.findUnique.mockResolvedValue({ id: "committed" });
+
+    await expect(
+      uploadMedia({ data: image, mime: "image/png", alt: null }, actor),
+    ).resolves.toEqual({ id: "committed" });
+    expect(storage.remove).not.toHaveBeenCalled();
+  });
+
+  it("reports a missing PNG across the authenticated read boundary", async () => {
+    db.media.findUnique.mockResolvedValue({
+      key: "private.png",
+      uploadedById: actor.id,
+    });
+    storage.read.mockRejectedValue(
+      Object.assign(new Error("Missing file"), { code: "ENOENT" }),
+    );
+
+    await expect(serveMedia("asset", actor)).rejects.toBeInstanceOf(
+      ContentNotFoundError,
     );
   });
 });
@@ -143,7 +257,7 @@ describe("media deletion transaction characterization", () => {
   let filePresent: boolean;
   const tx = {
     $executeRaw: vi.fn(),
-    media: { findUnique: vi.fn(), delete: vi.fn() },
+    media: { findUnique: vi.fn(), delete: vi.fn(), count: vi.fn() },
     page: { count: vi.fn() },
     pageRevision: { count: vi.fn() },
   };
@@ -156,6 +270,7 @@ describe("media deletion transaction characterization", () => {
       metadataPresent ? { key, uploadedById: "author" } : null,
     );
     tx.media.delete.mockResolvedValue({});
+    tx.media.count.mockResolvedValue(0);
     tx.page.count.mockResolvedValue(0);
     tx.pageRevision.count.mockResolvedValue(0);
     storage.remove.mockImplementation(async () => {

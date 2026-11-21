@@ -34,7 +34,7 @@ The schema distinguishes `PageType` (content classification) and `PageLayout` (l
 | Standard pages      | Implemented                                                                                                                                                                                 |
 | Home Page           | Implemented. One published designation, subject to its publication date. The localized root uses the default homepage when unavailable.                                                     |
 | Posts Page          | Implemented. Lists published posts at its own page URL with an optional existing tag filter, site listing mode, and bounded pagination. The existing archive and search URLs are supported. |
-| Gallery Page        | Type and localized empty state implemented. Media attachment and rendering are deferred to FUNC-03.                                                                                         |
+| Gallery Page        | Editors can attach and order up to 48 images. Public and preview views share the Gallery renderer and its localized empty state.                                                            |
 | Other modeled types | Partial; model enums/forms exist, public behavior varies by type                                                                                                                            |
 
 Intended hierarchy includes parent/child pages, nested structure, ordering, hierarchical navigation, cycle prevention, and keyboard-accessible organization. Current parent relationship and hierarchy controls are partial; audit required for the complete set.
@@ -47,7 +47,11 @@ The Minimal public template is intended to support an optional Sidebar menu, dis
 
 ## Media
 
-PNG/JPEG uploads, asset library, reusable media references, metadata, and cover images are **Partial to Implemented** by sub-capability: upload/library and reference-aware deletion exist; galleries, broader format support, remote durable storage, and complete lifecycle handling remain incomplete or unverified.
+The Admin Media Library supports filename and metadata search, bounded grid and list browsing, batch uploads, metadata editing, and reference-aware deletion. Administrators and editors can manage all assets. Authors manage their own uploads. Subscribers can view images eligible for public delivery.
+
+Post and Page editors share the picker for cover images and existing structured image and hero blocks. Gallery pages store ordered references and use each asset's alternative text and caption. Structured image blocks can override alternative text in context. Media relationships are read-only in the guarded private editor, which preserves and previews its existing references.
+
+PNG and JPEG inputs up to 2 MiB and 16 million pixels are accepted. Uploaded images are auto-oriented and stored as PNG, with source metadata removed and an 8 MiB stored limit. Older records may have unknown filenames, original format, size, or modification date. WebP, AVIF, GIF, remote imports, and cloud storage remain outside this workflow.
 
 ## Public website
 

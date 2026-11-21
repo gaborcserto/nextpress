@@ -25,6 +25,9 @@ import { GET as listAdminTags } from "./admin/tags/route";
 import { PATCH as updateUserRole } from "./admin/users/[id]/role/route";
 import { DELETE as deleteUser } from "./admin/users/[id]/route";
 import { POST as createUser } from "./admin/users/create/route";
+import { PATCH as patchMediaMetadata } from "./media/[id]/metadata/route";
+import { GET as browseMedia } from "./media/library/route";
+import { POST as uploadMedia } from "./media/route";
 import {
   PATCH as transitionRevision,
   POST as savePageRevision,
@@ -266,6 +269,7 @@ function content(
     excerpt: "",
     layout: "STANDARD" as const,
     cover: null,
+    gallery: [],
     createdAt: new Date(),
     updatedAt: new Date(),
     coverId: null,
@@ -318,6 +322,44 @@ function request(method = "GET", body?: unknown, query = "") {
 function context(id: string) {
   return { params: Promise.resolve({ id }) };
 }
+
+describe("media management authorization", () => {
+  it.each([
+    { viewer: null, status: 401 },
+    { viewer: "SUBSCRIBER" as const, status: 403 },
+  ])(
+    "denies browsing, upload and metadata changes with status $status",
+    async ({ viewer, status }) => {
+      role = viewer;
+      const ctx = context("asset");
+
+      expect((await browseMedia(request(), ctx)).status).toBe(status);
+      expect((await uploadMedia(request("POST", {}), ctx)).status).toBe(status);
+      expect(
+        (
+          await patchMediaMetadata(
+            request("PATCH", {
+              alt: "New alt",
+              caption: null,
+              description: null,
+            }),
+            ctx,
+          )
+        ).status,
+      ).toBe(status);
+    },
+  );
+
+  it("rejects duplicate pagination parameters before querying assets", async () => {
+    role = "AUTHOR";
+    const response = await browseMedia(
+      request("GET", undefined, "?page=1&page=2"),
+      context(""),
+    );
+
+    expect(response.status).toBe(400);
+  });
+});
 
 beforeEach(() => {
   actionLimits.clear();
@@ -1472,6 +1514,7 @@ describe.each(routes)(
               type: "POST",
               excerpt: EMPTY_RICH_CONTENT,
               cover: null,
+              gallery: [],
               publishedAt: "2024-02-01T12:00:00.000Z",
             };
       expect((await create(request("POST", dto), context(""))).status).toBe(

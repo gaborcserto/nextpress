@@ -5,6 +5,12 @@ import {
   ContentSlugSchema,
   SerializedRichContentSchema,
 } from "./content";
+import {
+  EditorImageSchema,
+  GalleryImageSchema,
+  MediaIdSchema,
+  maxGalleryImages,
+} from "./media";
 import { PageDocumentSchema } from "./page-document";
 
 const workingVersion = z.number().int().min(0).max(2_147_483_646);
@@ -40,6 +46,10 @@ export const RevisionRecordSchema = RevisionSnapshotSchema.extend({
 });
 const previewSnapshotSchema = RevisionSnapshotSchema.extend({
   listingTagSlug: ContentSlugSchema.nullable().optional(),
+  cover: EditorImageSchema.omit({ filename: true, caption: true })
+    .nullable()
+    .optional(),
+  gallery: z.array(GalleryImageSchema).max(maxGalleryImages).optional(),
 });
 export const RevisionListSchema = z.object({
   version: z.number().int(),
@@ -62,4 +72,19 @@ export type LivePreviewSnapshot = z.infer<
 export const LivePreviewReadySchema = z.strictObject({
   type: z.literal("nextpress:ready"),
   session: z.string().uuid(),
+});
+
+export const PreviewMediaRequestSchema = z.strictObject({
+  type: z.literal("nextpress:media-request"),
+  session: z.string().uuid(),
+  requestId: z.string().uuid(),
+  id: MediaIdSchema,
+});
+
+export const PreviewMediaResponseSchema = PreviewMediaRequestSchema.extend({
+  type: z.literal("nextpress:media-response"),
+  bytes: z
+    .instanceof(ArrayBuffer)
+    .refine((bytes) => bytes.byteLength <= 8_388_608)
+    .nullable(),
 });

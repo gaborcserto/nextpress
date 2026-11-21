@@ -23,12 +23,12 @@ import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
+import { DocumentImageField } from "../Media/DocumentImageField";
+import { CoverMediaField } from "../Media/EditorMediaFields";
 import {
   PrivateDraftRecovery,
   PrivateDraftStatus,
 } from "../PrivateDraftStatus";
-
-import type { MediaValue } from "@/lib/content/contracts";
 
 import type {
   PostFormProps,
@@ -48,7 +48,6 @@ export default function PostForm({
   onSubmitAction,
   submitting = false,
   submitLabel = "Save post",
-  imageUploadAction,
   loadTagOptionsAction,
   createTagAction,
   sidebarTitle,
@@ -279,17 +278,12 @@ export default function PostForm({
                   disabled={submitting}
                   excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
                   onExcerptChangeAction={(value) => setField("excerpt", value)}
-                  cover={form.cover}
-                  onCoverChangeAction={(media: MediaValue | null) =>
-                    setField("cover", media)
-                  }
-                  onCoverAltChangeAction={(alt: string) =>
-                    setField(
-                      "cover",
-                      form.cover ? { ...form.cover, alt } : null,
-                    )
-                  }
-                  uploaderAction={imageUploadAction}
+                />
+                <CoverMediaField
+                  value={form.cover}
+                  onChange={(media) => setField("cover", media)}
+                  readOnly={Boolean(privateEditing)}
+                  disabled={submitting}
                 />
               </Section>
 
@@ -300,6 +294,13 @@ export default function PostForm({
                   value={form.content ?? EMPTY_SLATE_VALUE}
                   onChangeAction={(val) => setField("content", val)}
                 />
+                {!privateEditing && form.pageDocument !== undefined && (
+                  <DocumentImageField
+                    value={form.pageDocument}
+                    onChange={(document) => setField("pageDocument", document)}
+                    disabled={submitting}
+                  />
+                )}
               </Section>
             </AdminPageColumns>
           </fieldset>

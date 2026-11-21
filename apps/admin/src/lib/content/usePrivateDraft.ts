@@ -7,6 +7,7 @@ import { postValuesToDto } from "@/lib/services/post.client";
 
 import { PrivateDraftController } from "./private-draft-controller";
 
+import type { LivePreviewSnapshot } from "@nextpress/shared/revisions";
 import type {
   WorkingAggregateEnvelope,
   WorkingPatch,
@@ -76,12 +77,12 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
 
   const snapshot = state?.snapshot;
   const acknowledgedValues = controller?.acknowledgedValues();
-  const savedPreview = useMemo(() => {
+  const savedPreview = useMemo<LivePreviewSnapshot | null>(() => {
     if (!snapshot) {
       return null;
     }
 
-    const { fields } = snapshot.snapshot;
+    const { fields, relationships } = snapshot.snapshot;
 
     return {
       title: fields.title,
@@ -90,6 +91,12 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
       excerpt: fields.excerpt,
       layout: fields.layout,
       pageDocument: snapshot.rawPageDocument,
+      cover: relationships.coverId
+        ? { id: relationships.coverId, url: `/media/${relationships.coverId}` }
+        : null,
+      gallery: relationships.gallery
+        .slice(0, 48)
+        .map(({ mediaId: id }) => ({ id, url: `/media/${id}` })),
       listingTagSlug:
         acknowledgedValues && "type" in acknowledgedValues
           ? (acknowledgedValues.listingTag?.slug ?? null)

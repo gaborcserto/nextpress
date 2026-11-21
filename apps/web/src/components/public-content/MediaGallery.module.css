@@ -1,0 +1,44 @@
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+  margin-block: var(--space-6);
+}
+
+.gallery li {
+  min-width: 0;
+}
+
+.gallery figure {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
+}
+
+.gallery :is(img, canvas) {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gallery figcaption {
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+:global([data-style-preset="classic"]) .gallery {
+  gap: var(--space-6);
+}
+
+:global([data-style-preset="minimal"]) .gallery figure {
+  border-radius: 0;
+  background: transparent;
+}
+
+:global([data-style-preset="minimal"]) .gallery figcaption {
+  padding-inline: 0;
+}

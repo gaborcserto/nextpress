@@ -30,6 +30,12 @@ function pageContentFields(
   return {
     type: "PAGE",
     layout: values.type,
+    coverId:
+      values.cover === undefined ? undefined : (values.cover?.id ?? null),
+    pageDocument: values.pageDocument ?? undefined,
+    ...(values.type === pageLayouts.gallery && values.gallery
+      ? { galleryIds: values.gallery.map(({ id }) => id) }
+      : {}),
     ...(values.type === pageLayouts.posts
       ? { listingTaxonomyId: values.listingTaxonomyId }
       : {}),

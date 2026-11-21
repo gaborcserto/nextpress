@@ -13,6 +13,7 @@ import {
   resolvePageType,
   richContentText,
 } from "@nextpress/shared/content";
+import { maxGalleryImages } from "@nextpress/shared/media";
 import { readPageDocument } from "@nextpress/shared/page-document";
 
 import { publicPublicationWhere } from "./eligibility";
@@ -48,6 +49,22 @@ const publicPageSelect = {
   ...publicContentSelect,
   layout: true,
   listingTaxonomy: { select: { type: true, slug: true } },
+  gallery: {
+    orderBy: [{ sort: "asc" }, { mediaId: "asc" }],
+    take: maxGalleryImages,
+    select: {
+      media: {
+        select: {
+          id: true,
+          url: true,
+          alt: true,
+          width: true,
+          height: true,
+          caption: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.PageSelect;
 
 function projectPublicPage(
@@ -59,6 +76,13 @@ function projectPublicPage(
   return {
     ...projectPublicContent(row),
     pageType,
+    ...(pageType === "gallery"
+      ? {
+          gallery: (row.gallery ?? []).flatMap(({ media }) =>
+            media.url === `/media/${media.id}` ? [media] : [],
+          ),
+        }
+      : {}),
     ...(pageType === "posts" && filter.success
       ? { postsFilter: filter.data }
       : {}),
@@ -114,6 +138,7 @@ function projectPublicCover(
     ? {
         url: cover.url,
         alt: cover.alt ?? "",
+        ...(cover.alt === "" ? { decorative: true as const } : {}),
         width: cover.width,
         height: cover.height,
       }

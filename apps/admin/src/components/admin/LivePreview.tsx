@@ -3,6 +3,7 @@
 import {
   LivePreviewMessageSchema,
   LivePreviewReadySchema,
+  PreviewMediaRequestSchema,
   RevisionListSchema,
   type LivePreviewSnapshot,
 } from "@nextpress/shared/revisions";
@@ -13,8 +14,11 @@ import { slateToString, type SlateLike } from "@/lib/content/editor";
 import { Select } from "@/ui/primitives/Select";
 
 import styles from "./LivePreview.module.css";
+import { loadPreviewMedia, previewMediaIds } from "./Media/preview-media";
 
 import type { ContentLayout } from "@nextpress/shared/content";
+import type { EditorImage } from "@nextpress/shared/media";
+import type { PageDocument } from "@nextpress/shared/page-document";
 
 const origin = process.env.NEXT_PUBLIC_PREVIEW_ORIGIN;
 
@@ -26,6 +30,9 @@ type PreviewValues = {
   content?: SlateLike;
   excerpt?: SlateLike;
   listingTag?: { slug: string } | null;
+  cover?: EditorImage | null;
+  gallery?: EditorImage[];
+  pageDocument?: PageDocument | null;
 };
 type LivePreviewProps = {
   children?: ReactNode;
@@ -70,6 +77,7 @@ export default function LivePreview({
   const [session] = useState(() => crypto.randomUUID());
   const previewFrame = useRef<HTMLIFrameElement>(null);
   const previewWindow = useRef<Window | null>(null);
+  const readyWindows = useRef(new WeakSet<Window>());
   const url = origin
     ? `${origin}/live-preview?locale=${locale}#${session}`
     : "";
@@ -85,7 +93,16 @@ export default function LivePreview({
           content: slateToString(values.content),
           excerpt: slateToString(values.excerpt),
           layout: values.type ?? saved?.layout ?? "STANDARD",
-          pageDocument: saved?.pageDocument ?? null,
+          pageDocument: values.pageDocument
+            ? JSON.stringify(values.pageDocument)
+            : (saved?.pageDocument ?? null),
+          cover: values.cover === undefined ? saved?.cover : values.cover,
+          gallery: values.gallery?.flatMap(
+            ({ id, url, alt, width, height, caption }) =>
+              url === `/media/${id}`
+                ? [{ id, url, alt, width, height, caption }]
+                : [],
+          ),
           listingTagSlug: values.listingTag?.slug ?? null,
         };
       } else {
@@ -138,9 +155,18 @@ export default function LivePreview({
     const previewOrigin = origin;
     const expiresAt = Date.now() + 15 * 60_000;
     const lastSentMessages = new Map<Window, string>();
+    const lastSentMedia = new Map<Window, Set<string>>();
+    const pending = new Map<string, Promise<ArrayBuffer | null>>();
+    const abortMedia = new AbortController();
+    let mediaQueue = Promise.resolve();
 
     function sendPreview(target: Window | null) {
-      if (!currentSnapshot.current || Date.now() > expiresAt) {
+      if (
+        !target ||
+        !readyWindows.current.has(target) ||
+        !currentSnapshot.current ||
+        Date.now() > expiresAt
+      ) {
         return;
       }
 
@@ -151,7 +177,7 @@ export default function LivePreview({
         snapshot: currentSnapshot.current,
       });
 
-      if (!message.success || !target) {
+      if (!message.success) {
         return;
       }
 
@@ -163,6 +189,7 @@ export default function LivePreview({
 
       target.postMessage(message.data, previewOrigin);
       lastSentMessages.set(target, serialized);
+      lastSentMedia.set(target, previewMediaIds(message.data.snapshot));
     }
 
     function receivePreviewReady(event: MessageEvent) {
@@ -174,18 +201,59 @@ export default function LivePreview({
         return;
       }
 
+      const target =
+        event.source === previewWindow.current
+          ? previewWindow.current
+          : previewFrame.current?.contentWindow;
+
+      const media = PreviewMediaRequestSchema.safeParse(event.data);
+
+      if (
+        media.success &&
+        media.data.session === session &&
+        target &&
+        Date.now() <= expiresAt
+      ) {
+        const { id } = media.data;
+
+        if (!lastSentMedia.get(target)?.has(id)) {
+          return;
+        }
+
+        let request = pending.get(id);
+
+        if (!request && pending.size < 48) {
+          request = mediaQueue
+            .then(() => loadPreviewMedia(id, abortMedia.signal))
+            .finally(() => pending.delete(id));
+          pending.set(id, request);
+          mediaQueue = request.then(() => undefined);
+        }
+
+        void (request ?? Promise.resolve(null)).then((bytes) => {
+          if (
+            !abortMedia.signal.aborted &&
+            Date.now() <= expiresAt &&
+            lastSentMedia.get(target)?.has(id)
+          ) {
+            target.postMessage(
+              { ...media.data, type: "nextpress:media-response", bytes },
+              previewOrigin,
+            );
+          }
+        });
+
+        return;
+      }
+
       const ready = LivePreviewReadySchema.safeParse(event.data);
 
       if (!ready.success || ready.data.session !== session) {
         return;
       }
 
-      const target =
-        event.source === previewWindow.current
-          ? previewWindow.current
-          : previewFrame.current?.contentWindow;
-
       if (target) {
+        readyWindows.current.add(target);
         lastSentMessages.delete(target);
       }
 
@@ -221,12 +289,17 @@ export default function LivePreview({
 
     return () => {
       window.removeEventListener("message", receivePreviewReady);
+      abortMedia.abort();
       clearInterval(interval);
       clearTimeout(timeout);
     };
   }, [open, session, kind, locale]);
 
   function openPreviewTab() {
+    if (previewWindow.current) {
+      readyWindows.current.delete(previewWindow.current);
+    }
+
     previewWindow.current = window.open(url, "nextpress-preview");
   }
 

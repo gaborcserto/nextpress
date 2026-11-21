@@ -17,6 +17,7 @@ import {
   type ContentActor,
 } from "@/lib/auth/content-access";
 import { resolvePublicationDate } from "@/lib/publication";
+import { editorGallerySelect, editorImageSelect } from "@/lib/repos/pageRepo";
 import { PublicationFieldsSchema } from "@/lib/validation/page";
 
 export class RevisionConflictError extends Error {}
@@ -32,6 +33,8 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
       excerpt: true,
       layout: true,
       pageDocument: true,
+      cover: { select: editorImageSelect },
+      gallery: editorGallerySelect,
       listingTaxonomy: { select: { slug: true, type: true } },
     },
   });
@@ -46,12 +49,23 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
     take: 100,
   });
 
-  const { listingTaxonomy, ...current } = page;
+  const { listingTaxonomy, gallery, ...current } = page;
 
   return {
     version: page.workingVersion,
     current: {
       ...current,
+      gallery: gallery
+        .filter(({ media }) => media.url === `/media/${media.id}`)
+        .slice(0, 48)
+        .map(({ media: { id, alt, width, height, caption, url } }) => ({
+          id,
+          alt,
+          width,
+          height,
+          caption,
+          url,
+        })),
       listingTagSlug:
         listingTaxonomy?.type === "TAG" ? listingTaxonomy.slug : null,
     },

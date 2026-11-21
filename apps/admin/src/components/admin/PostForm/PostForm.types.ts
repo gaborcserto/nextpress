@@ -4,7 +4,6 @@ import type {
   TagLoadEntityFn,
   TagLoadOptionsFn,
   TagUpdateEntityFn,
-  UploadFn,
 } from "@/lib/content/contracts";
 import type { LegacySaveOutcome } from "@/lib/content/legacy-editor";
 import type { PrivateEditing } from "@/lib/content/usePrivateDraft";
@@ -20,9 +19,6 @@ export type PostFormProps = {
   ) => Promise<LegacySaveOutcome> | LegacySaveOutcome;
   submitting?: boolean;
   submitLabel?: string;
-
-  /** Optional: alternate storage backend for cover image upload */
-  imageUploadAction?: UploadFn;
 
   /** Async tag search (Taxonomy type = TAG) */
   loadTagOptionsAction: TagLoadOptionsFn;

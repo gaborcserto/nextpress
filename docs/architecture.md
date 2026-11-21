@@ -27,7 +27,11 @@ When an admitted editor opens an item with private changes, the editor offers to
 
 Live Preview shows the current form, including unsaved edits and page-type changes. Saved Preview uses the acknowledged private working snapshot in rehearsal and the authoritative current revision in the default editor. A historical revision preview shows the explicitly selected revision. Older historical revisions lack listing-filter metadata.
 
-The Web preview uses the public Blog shell, site appearance settings, detail and archive views, structured page blocks, and English or Hungarian messages. Standard and managed Home show their page content. The public route keeps its existing homepage lookup and fallback. Posts preview reuses published-post discovery, the selected tag, and the configured pagination or load-more mode. Pagination stays inside the preview session. Gallery shares the localized public empty state. Site navigation and article links still point to public destinations.
+The Web preview uses the public Blog shell, site appearance settings, detail and archive views, structured page blocks, and English or Hungarian messages. Standard and managed Home show their page content. The public route keeps its existing homepage lookup and fallback. Posts preview reuses published-post discovery, the selected tag, and the configured pagination or load-more mode. Pagination stays inside the preview session. Gallery shares the public renderer and localized empty state. Site navigation and article links still point to public destinations.
+
+## Media library and delivery
+
+Admin uses authenticated API browsing and metadata endpoints and the existing upload and deletion routes. The API controls file access, local storage, roles and ownership. Web uses the anonymous media endpoint, which requires a due published cover, Gallery, or supported structured block reference. Live and Saved Preview can use authenticated image bytes through the existing preview session. See [API-owned media storage and delivery](decisions/002-media-storage-and-delivery.md).
 
 The preview window receives the snapshot in memory from the configured Admin origin, opener or parent, and matching session. It does not put draft content into a request, browser storage, or a public URL. Web requests only published data for post archives and listing blocks using bounded public discovery parameters. Private reads continue to use the editor's authenticated endpoints.
 

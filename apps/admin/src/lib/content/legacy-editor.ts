@@ -5,6 +5,9 @@ import {
 
 import { showToast } from "@/ui/utils";
 
+import type { EditorImage } from "@nextpress/shared/media";
+import type { PageDocument } from "@nextpress/shared/page-document";
+
 import type { PublicationFields } from "./publication-status";
 
 // A background fetch must not replace the form's concurrency token.
@@ -26,15 +29,33 @@ export type PublicationAcknowledgement = ReturnType<
 export type LegacySaveOutcome =
   | boolean
   | Omit<PublicationAcknowledgement, "workingVersion">;
-export type LegacyUpdate<T> = Omit<T, keyof PublicationFields> &
-  Partial<PublicationFields>;
+type MediaFields = {
+  cover?: EditorImage | null;
+  gallery?: EditorImage[];
+  pageDocument?: PageDocument | null;
+};
 
-export function prepareLegacyUpdate<T extends PublicationFields>(
-  { status, publishedAt, ...content }: T,
-  loaded: PublicationFields,
+export type LegacyUpdate<T> = Omit<
+  T,
+  keyof PublicationFields | keyof MediaFields
+> &
+  Partial<PublicationFields> &
+  MediaFields;
+
+export function prepareLegacyUpdate<T extends PublicationFields & MediaFields>(
+  { status, publishedAt, cover, gallery, pageDocument, ...content }: T,
+  loaded: PublicationFields & MediaFields,
 ): LegacyUpdate<T> {
   return {
     ...content,
+    ...(cover?.id !== loaded.cover?.id ? { cover } : {}),
+    ...(JSON.stringify(gallery?.map(({ id }) => id)) !==
+    JSON.stringify(loaded.gallery?.map(({ id }) => id))
+      ? { gallery }
+      : {}),
+    ...(JSON.stringify(pageDocument) !== JSON.stringify(loaded.pageDocument)
+      ? { pageDocument }
+      : {}),
     ...(status !== loaded.status ? { status } : {}),
     ...((publishedAt ?? null) !== (loaded.publishedAt ?? null)
       ? { publishedAt }

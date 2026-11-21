@@ -4,10 +4,12 @@ import { ZodError } from "zod";
 import { bad, ok, oops } from "@/lib/api";
 import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
+import { tooManyRequests } from "@/lib/security/rate-limit.server";
 import {
   listMedia,
   uploadMedia,
   MediaValidationError,
+  MediaBusyError,
 } from "@/lib/services/media.server";
 
 export const GET = withAuth(
@@ -34,6 +36,10 @@ export const POST = withAuth(
 
       return ok(media, 201);
     } catch (error) {
+      if (error instanceof MediaBusyError) {
+        return tooManyRequests(1);
+      }
+
       if (
         error instanceof ZodError ||
         error instanceof MediaValidationError ||

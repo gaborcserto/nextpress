@@ -5,6 +5,7 @@ import {
   FaCog,
   FaCopy,
   FaHome,
+  FaImages,
   FaTags,
   FaThumbtack,
   FaTimes,
@@ -15,6 +16,7 @@ import {
   TbLayoutSidebarRightExpandFilled,
 } from "react-icons/tb";
 
+import { useMediaMessages } from "@/components/admin/Media/messages";
 import { NavItem } from "@/ui/shell/NavItem";
 
 import type { NavConfig, SidebarProps } from "./Sidebar.types";
@@ -39,14 +41,22 @@ export default function Sidebar({
   onToggleCollapsedAction,
 }: SidebarProps) {
   const pathname = usePathname();
+  const mediaText = useMediaMessages();
+  const editorialItems =
+    role && role !== "SUBSCRIBER"
+      ? [
+          ...publishingItems,
+          { href: "/admin/media", label: mediaText.library, icon: FaImages },
+        ]
+      : publishingItems;
   const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
   const groups =
     role === "ADMIN"
       ? [
-          { label: "Publishing", items: publishingItems },
+          { label: "Publishing", items: editorialItems },
           { label: "Administration", items: administrationItems },
         ]
-      : [{ label: "Publishing", items: publishingItems }];
+      : [{ label: "Publishing", items: editorialItems }];
 
   return (
     <div className="admin-sidebar" data-collapsed={collapsed}>

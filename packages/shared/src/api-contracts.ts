@@ -10,6 +10,13 @@ import {
   RichBlocksSchema,
   RichDocumentSchema,
 } from "./content";
+import {
+  EditorImageSchema,
+  GalleryIdsSchema,
+  GalleryImageSchema,
+  MediaIdSchema,
+  maxGalleryImages,
+} from "./media";
 import { PageDocumentSchema } from "./page-document";
 import {
   PostListingModeSchema,
@@ -58,6 +65,9 @@ export const PageSchema = z.object({
   inHeaderMenu: contentWriteFields.inHeaderMenu.optional(),
   inFooterMenu: contentWriteFields.inFooterMenu.optional(),
   publishedAt: contentWriteFields.publishedAt.optional(),
+  coverId: MediaIdSchema.nullable().optional(),
+  pageDocument: PageDocumentSchema.optional(),
+  galleryIds: GalleryIdsSchema.optional(),
 
   tagIds: TagIdsSchema,
 });
@@ -67,6 +77,9 @@ export type PageCreateInput = Omit<z.infer<typeof PageSchema>, "tagIds">;
 /** Update PAGE / POST */
 export const PageUpdateSchema = z.object({
   expectedVersion: z.number().int().min(0).max(2_147_483_646),
+  coverId: MediaIdSchema.nullable().optional(),
+  pageDocument: PageDocumentSchema.optional(),
+  galleryIds: GalleryIdsSchema.optional(),
   type: contentWriteFields.type.optional(),
   status: contentWriteFields.status.optional(),
   slug: contentWriteFields.slug.optional(),
@@ -113,18 +126,19 @@ const editorialFields = {
   title: z.string(),
   content: RichBlocksSchema,
   tags: z.array(TagSchema),
+  pageDocument: PageDocumentSchema.nullable().optional(),
 };
 const listingKind = z.enum(["POSTS", "PRODUCTS", "EVENTS"]).nullable();
 export const EditorialPostSchema = z.object({
   ...editorialFields,
   excerpt: RichBlocksSchema,
   publishedAt: date.nullable(),
-  cover: z
-    .object({ id: z.string(), url: z.string(), alt: nullableString })
-    .nullable(),
+  cover: EditorImageSchema.nullable(),
 });
 export const EditorialPageSchema = z.object({
   ...editorialFields,
+  cover: EditorImageSchema.nullable().optional(),
+  gallery: z.array(EditorImageSchema).optional(),
   publishedAt: date.nullable(),
   type: ContentLayoutSchema,
   parentId: nullableString,
@@ -251,6 +265,7 @@ export const PublicCoverSchema = z
   .strictObject({
     url: z.string().regex(/^\/(?!\/)/),
     alt: z.string(),
+    decorative: z.literal(true).optional(),
     width: z.number().int().nullable(),
     height: z.number().int().nullable(),
   })
@@ -283,6 +298,7 @@ export const PublicPostSummarySchema = z.strictObject({
 });
 export const PublicContentSchema = z.strictObject({
   pageType: PageTypeSchema.optional(),
+  gallery: z.array(GalleryImageSchema).max(maxGalleryImages).optional(),
   postsFilter: PublicTaxonomyParamsSchema.optional(),
   pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,

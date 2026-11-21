@@ -40,5 +40,6 @@ CI compares the pull request or push commit range and uses Turbo filters for cha
 - Authentication bootstrap failure: check API URL/origin settings and local secret/credentials; never paste secrets into logs or docs.
 - Missing published public content on a fresh DB is expected until content is created and published.
 - Keep media storage (`MEDIA_STORAGE_ROOT` or API `.media`) outside `public/`; local media needs backup alongside the database.
+- Apply the media metadata migration before using the Admin Media Library. The migration preserves existing asset IDs and storage keys, and adds restrictive foreign-key deletion for cover and Gallery references. Use the disposable PostgreSQL and Chromium harness for write-heavy verification.
 
 See workspace READMEs for API-only integration guidance and API reference behavior.

@@ -1,3 +1,4 @@
+import { MediaIdSchema } from "@nextpress/shared/media";
 import { writeServerLog } from "@nextpress/shared/server-logging";
 
 import { conflict, forbid, notfound, ok, oops } from "@/lib/api";
@@ -15,11 +16,14 @@ import {
 } from "@/lib/services/media.server";
 
 async function get(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+
+  if (!MediaIdSchema.safeParse(id).success) {
+    return notfound();
+  }
+
   try {
-    return await serveMedia(
-      (await ctx.params).id,
-      (await getSessionWithRole())?.user,
-    );
+    return await serveMedia(id, (await getSessionWithRole())?.user);
   } catch (error) {
     return error instanceof ContentNotFoundError ? notfound() : oops(error);
   }
@@ -28,6 +32,10 @@ async function get(_req: Request, ctx: { params: Promise<{ id: string }> }) {
 export const DELETE = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
   async (_req, ctx, { session }) => {
+    if (!MediaIdSchema.safeParse(ctx.params.id).success) {
+      return notfound();
+    }
+
     try {
       await deleteMedia(ctx.params.id, session.user);
       writeServerLog("api", "media.deleted", {
@@ -42,7 +50,10 @@ export const DELETE = withAuth(
         return notfound();
       }
 
-      if (error instanceof MediaReferencedError) {
+      if (
+        error instanceof MediaReferencedError ||
+        (error instanceof Error && "code" in error && error.code === "P2003")
+      ) {
         return conflict("Media is referenced by content or revisions");
       }
 

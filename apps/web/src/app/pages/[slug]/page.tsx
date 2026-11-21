@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { PageDocument } from "@/components/PageDocument";
+import { PostCover } from "@/components/public-content/PostCover";
 import { PublishedPage } from "@/components/public-content/PublishedPage";
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
 import { RichContent } from "@/components/RichContent";
@@ -95,6 +96,7 @@ export default async function StaticPage({ params, searchParams }: PageProps) {
         listingMode={settings.postListingMode}
         listVariant={appearance.listVariant}
       >
+        <PostCover title={page.title} cover={page.cover} />
         <RichContent content={page.content} />
         {page.pageDocument && <PageDocument document={page.pageDocument} />}
       </Archive>

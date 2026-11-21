@@ -5,7 +5,13 @@ import {
   type DashboardSummary,
 } from "@nextpress/shared/api-contracts";
 import Link from "next/link";
-import { FaArrowRight, FaCalendarAlt, FaClock, FaPlus } from "react-icons/fa";
+import {
+  FaArrowRight,
+  FaCalendarAlt,
+  FaClock,
+  FaImages,
+  FaPlus,
+} from "react-icons/fa";
 import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
@@ -13,6 +19,8 @@ import { publicationLabels } from "@/lib/content/publication-status";
 import { DataListLoading } from "@/ui/components/DataList";
 import { Alert, Button, LinkIconButton } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import { useMediaMessages } from "../Media/messages";
 
 import type { RoleName } from "@/lib/auth/roles";
 
@@ -142,6 +150,7 @@ export default function DashboardScreen({
   account: DashboardAccount;
 }) {
   const canEdit = account.role !== null && account.role !== "SUBSCRIBER";
+  const mediaText = useMediaMessages();
   const { data, error, isValidating, mutate } = useSWR(
     canEdit
       ? (["/api/admin/dashboard", account.id, account.role] as const)
@@ -181,6 +190,14 @@ export default function DashboardScreen({
                 Create {label}
               </LinkIconButton>
             ))}
+            <LinkIconButton
+              href="/admin/media"
+              aria-label={mediaText.library}
+              icon={FaImages}
+              variant="outline"
+            >
+              {mediaText.library}
+            </LinkIconButton>
           </div>
         )
       }

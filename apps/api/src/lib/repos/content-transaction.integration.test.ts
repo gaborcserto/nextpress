@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
+import { MediaBrowseSchema } from "@nextpress/shared/media";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -39,8 +40,127 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     await db.$executeRaw`DROP TRIGGER IF EXISTS phase1_fail_links ON "PageOnTaxonomy"`;
     await db.$executeRaw`DROP FUNCTION IF EXISTS phase1_fail_links()`;
     await db.page.deleteMany({ where: { slug: { startsWith: slug } } });
+    await db.media.deleteMany({ where: { id: { startsWith: slug } } });
     await db.taxonomy.deleteMany({ where: { slug: { startsWith: slug } } });
     await db.$disconnect();
+  });
+
+  it("serializes gallery assignment against asset deletion", async () => {
+    const { deleteMedia, MediaReferencedError } =
+      await import("@/lib/services/media.server");
+    const { MediaSelectionError } = await import("./pageRepo");
+
+    const asset = await db.media.create({
+      data: {
+        id: `${slug}-race-asset`,
+        url: `/media/${slug}-race-asset`,
+        mime: "image/png",
+      },
+    });
+
+    const page = await db.page.create({
+      data: {
+        type: "PAGE",
+        layout: "GALLERY",
+        title: "Gallery race",
+        slug: `${slug}-gallery-race`,
+        content: "",
+      },
+    });
+
+    const [assignment, deletion] = await Promise.allSettled([
+      update(
+        page.id,
+        { expectedVersion: 0, galleryIds: [asset.id] },
+        "PAGE",
+        actor,
+      ),
+      deleteMedia(asset.id, actor),
+    ]);
+
+    const references = await db.pageMedia.findMany({
+      where: { pageId: page.id },
+    });
+
+    const retained = await db.media.findUnique({ where: { id: asset.id } });
+
+    if (assignment.status === "fulfilled") {
+      expect(deletion).toMatchObject({
+        status: "rejected",
+        reason: expect.any(MediaReferencedError),
+      });
+      expect(references).toMatchObject([{ mediaId: asset.id, sort: 0 }]);
+      expect(retained).not.toBeNull();
+    } else {
+      expect(assignment.reason).toBeInstanceOf(MediaSelectionError);
+      expect(deletion.status).toBe("fulfilled");
+      expect(references).toEqual([]);
+      expect(retained).toBeNull();
+    }
+  });
+
+  it("scopes media browsing and metadata writes to the owning author with stable pagination", async () => {
+    const { browseMedia, editMedia } =
+      await import("@/lib/services/media-library.server");
+    const owner = await db.user.create({ data: { name: "Media test owner" } });
+    const author = { id: owner.id, role: "AUTHOR" as const };
+    const created = new Date("2025-01-01T00:00:00Z");
+    const assets = Array.from({ length: 25 }, (_, index) => {
+      const number = String(index).padStart(2, "0");
+
+      return {
+        id: `${slug}-browse-${number}`,
+        url: `/media/${slug}-browse-${number}`,
+        filename: `Árvíz ${number}.jpg`,
+        mime: "image/png",
+        originalMime: "image/jpeg",
+        uploadedById: owner.id,
+        createdAt: created,
+      };
+    });
+    const hidden = { ...assets[0], id: `${slug}-hidden`, uploadedById: null };
+    await db.media.createMany({ data: [...assets, hidden] });
+
+    try {
+      const filters = {
+        q: "Árvíz",
+        mime: "image/jpeg",
+        sort: "createdAt",
+        direction: "desc",
+      };
+      const first = await browseMedia(MediaBrowseSchema.parse(filters), author);
+
+      const last = await browseMedia(
+        MediaBrowseSchema.parse({ ...filters, page: 2 }),
+        author,
+      );
+      expect(first.items.map(({ id }) => id)).toEqual(
+        assets.slice(0, 24).map(({ id }) => id),
+      );
+      expect(first.hasMore).toBe(true);
+      expect(last).toMatchObject({
+        items: [{ id: assets[24].id }],
+        hasMore: false,
+      });
+
+      const metadata = {
+        alt: "",
+        caption: "Őszi kép",
+        description: "Kísérleti leírás",
+      };
+      await expect(editMedia(hidden.id, metadata, author)).rejects.toThrow();
+      await editMedia(assets[0].id, metadata, author);
+      const matches = await browseMedia(
+        MediaBrowseSchema.parse({ q: "Őszi" }),
+        author,
+      );
+      expect(matches.items).toMatchObject([{ ...metadata, id: assets[0].id }]);
+    } finally {
+      await db.media.deleteMany({
+        where: { id: { in: [...assets, hidden].map(({ id }) => id) } },
+      });
+      await db.user.delete({ where: { id: owner.id } });
+    }
   });
   it("excludes drafts, missing dates and future schedules from anonymous endpoints", async () => {
     const { GET: contentIndex } =
@@ -387,6 +507,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
             authorId: user.id,
           },
           [],
+          { id: user.id, role: "ADMIN" },
         );
         expect(page.publishedAt).toBeNull();
         await update(
@@ -494,7 +615,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
       input.authorId = user.id;
 
       try {
-        const page = await create(input, [tag.id]);
+        const page = await create(input, [tag.id], actor);
         expect(
           ContentRecordSchema.safeParse(JSON.parse(JSON.stringify(page)))
             .success,
@@ -522,7 +643,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
           ),
         ).rejects.toThrow("Invalid tag IDs");
         await expect(
-          create({ ...input, slug: `${slug}-invalid` }, ["missing"]),
+          create({ ...input, slug: `${slug}-invalid` }, ["missing"], actor),
         ).rejects.toThrow("Invalid tag IDs");
         await db.$executeRaw`CREATE FUNCTION phase1_fail_links() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''injected link failure''; END'`;
         await db.$executeRaw`CREATE TRIGGER phase1_fail_links BEFORE INSERT ON "PageOnTaxonomy" FOR EACH ROW EXECUTE FUNCTION phase1_fail_links()`;
@@ -538,7 +659,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
             ),
           ).rejects.toThrow();
           await expect(
-            create({ ...input, slug: `${slug}-failed` }, [tag.id]),
+            create({ ...input, slug: `${slug}-failed` }, [tag.id], actor),
           ).rejects.toThrow();
         } finally {
           await db.$executeRaw`DROP TRIGGER phase1_fail_links ON "PageOnTaxonomy"`;
@@ -556,7 +677,7 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
         expect(
           await db.pageOnTaxonomy.findMany({ where: { pageId: page.id } }),
         ).toEqual([{ pageId: page.id, taxonomyId: category.id }]);
-        await expect(create(input, [tag.id])).rejects.toThrow(
+        await expect(create(input, [tag.id], actor)).rejects.toThrow(
           "Slug already exists",
         );
         await update(

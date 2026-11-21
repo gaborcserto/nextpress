@@ -8,7 +8,8 @@ import {
   DocumentListingItems,
   PageDocumentView,
 } from "@/components/PageDocumentView";
-import { GalleryEmpty } from "@/components/public-content/GalleryEmpty";
+import { MediaGallery } from "@/components/public-content/MediaGallery";
+import { PostCover } from "@/components/public-content/PostCover";
 import { RichContent } from "@/components/RichContent";
 import { UiText } from "@/lib/i18n/client";
 import { BlogArchive } from "@/templates/blog/BlogArchive";
@@ -16,6 +17,7 @@ import { BlogPage } from "@/templates/blog/BlogPage";
 
 import { getPreviewDocumentListing, getPreviewPosts } from "./actions";
 
+import type { EditorImage } from "@nextpress/shared/media";
 import type { LivePreviewSnapshot } from "@nextpress/shared/revisions";
 import type { ReactNode } from "react";
 
@@ -130,6 +132,7 @@ function PreviewPostsPage({
       hasMore={batch?.hasMore ?? false}
       previewNavigation={navigation}
     >
+      <PostCover title={snapshot.title} cover={previewCover(snapshot.cover)} />
       <RichContent content={snapshot.content} />
       {children}
       {result?.page !== page && (
@@ -154,15 +157,7 @@ export function PreviewPageContent({
   appearance: PreviewAppearance;
 }) {
   const type = resolvePageType(snapshot.layout);
-  const raw = snapshot.pageDocument;
-  const document = useMemo(() => (raw ? readPageDocument(raw) : null), [raw]);
-  const blocks = document?.supported && (
-    <PageDocumentView
-      key={raw}
-      document={document.document}
-      Listing={PreviewDocumentListing}
-    />
-  );
+  const blocks = <PreviewDocumentBlocks raw={snapshot.pageDocument} />;
 
   if (type === "posts") {
     return (
@@ -177,9 +172,33 @@ export function PreviewPageContent({
   }
 
   return (
-    <BlogPage content={snapshot}>
+    <BlogPage content={{ ...snapshot, cover: previewCover(snapshot.cover) }}>
       {blocks}
-      {type === "gallery" && <GalleryEmpty />}
+      {type === "gallery" && <MediaGallery images={snapshot.gallery} />}
     </BlogPage>
   );
+}
+
+export function previewCover(cover?: EditorImage | null) {
+  return cover
+    ? {
+        url: `/media/${cover.id}`,
+        alt: cover.alt ?? "",
+        ...(cover.alt === "" ? { decorative: true as const } : {}),
+        width: cover.width ?? 1200,
+        height: cover.height ?? 800,
+      }
+    : null;
+}
+
+export function PreviewDocumentBlocks({ raw }: { raw: string | null }) {
+  const document = useMemo(() => (raw ? readPageDocument(raw) : null), [raw]);
+
+  return document?.supported ? (
+    <PageDocumentView
+      key={raw}
+      document={document.document}
+      Listing={PreviewDocumentListing}
+    />
+  ) : null;
 }

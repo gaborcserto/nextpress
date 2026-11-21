@@ -1,17 +1,7 @@
 import type { Descendant } from "slate";
 
-import type { MediaValue, UploadFn } from "@/lib/content/contracts";
-
 export type PostIntroFieldsProps = {
   disabled?: boolean;
   excerpt: Descendant[];
   onExcerptChangeAction: (value: Descendant[]) => void;
-
-  cover: MediaValue | null;
-  onCoverChangeAction: (value: MediaValue | null) => void;
-
-  /** Alt text is read/written directly from cover.alt */
-  onCoverAltChangeAction: (alt: string) => void;
-
-  uploaderAction?: UploadFn;
 };

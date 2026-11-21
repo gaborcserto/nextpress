@@ -29,6 +29,8 @@ import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
+import { DocumentImageField } from "../Media/DocumentImageField";
+import { CoverMediaField, GalleryMediaField } from "../Media/EditorMediaFields";
 import {
   PrivateDraftRecovery,
   PrivateDraftStatus,
@@ -318,6 +320,29 @@ export default function PageForm({
                 </FormGrid12>
               </Section>
 
+              <div className="grid gap-4">
+                <CoverMediaField
+                  value={form.cover}
+                  onChange={(media) => setField("cover", media)}
+                  readOnly={Boolean(privateEditing)}
+                  disabled={submitting}
+                />
+                {form.type === pageLayouts.gallery && (
+                  <GalleryMediaField
+                    value={form.gallery ?? []}
+                    onChange={(media) => setField("gallery", media)}
+                    readOnly={Boolean(privateEditing)}
+                    disabled={submitting}
+                  />
+                )}
+              </div>
+              {!privateEditing && form.pageDocument !== undefined && (
+                <DocumentImageField
+                  value={form.pageDocument}
+                  onChange={(document) => setField("pageDocument", document)}
+                  disabled={submitting}
+                />
+              )}
               {form.type === pageLayouts.posts && (
                 <Section
                   title="Posts listing"

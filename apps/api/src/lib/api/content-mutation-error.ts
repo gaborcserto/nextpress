@@ -2,6 +2,7 @@
   ContentForbiddenError,
   ContentNotFoundError,
 } from "@/lib/auth/content-access";
+import { MediaSelectionError } from "@/lib/repos/pageRepo";
 import { TaxonomyScopeError } from "@/lib/repos/tagRepo";
 import {
   PageConflictError,
@@ -23,6 +24,10 @@ export function contentMutationError(
   }
 
   if (operation !== "delete") {
+    if (error instanceof MediaSelectionError) {
+      return bad("One or more selected media assets are unavailable");
+    }
+
     if (error instanceof TaxonomyScopeError) {
       return bad(error.message);
     }

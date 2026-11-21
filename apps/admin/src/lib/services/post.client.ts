@@ -41,6 +41,9 @@ function postContentFields(
     title: values.title,
     excerpt: slateToString(values.excerpt),
     content: slateToString(values.content),
+    coverId:
+      values.cover === undefined ? undefined : (values.cover?.id ?? null),
+    pageDocument: values.pageDocument ?? undefined,
     tagIds,
     ...(values.publishedAt !== undefined
       ? { publishedAt: values.publishedAt }

@@ -35,6 +35,11 @@ import {
 } from "@nextpress/shared/content";
 import {
   MediaMetadataSchema,
+  MediaAssetSchema,
+  MediaBrowseSchema,
+  MediaCollectionSchema,
+  MediaDetailsSchema,
+  MediaEditSchema,
   MediaUploadSchema,
 } from "@nextpress/shared/media";
 import {
@@ -118,6 +123,10 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   RevisionList: schema(RevisionListSchema),
   RevisionRecord: schema(RevisionRecordSchema),
   MediaMetadata: schema(MediaMetadataSchema),
+  MediaAsset: schema(MediaAssetSchema),
+  MediaCollection: schema(MediaCollectionSchema),
+  MediaDetails: schema(MediaDetailsSchema),
+  MediaEdit: schema(MediaEditSchema),
   PublicContentIndex: schema(PublicContentIndexSchema),
   Health: object({ status: { type: "string", enum: ["ok"] } }),
   Error: schema(ApiErrorSchema),
@@ -303,12 +312,50 @@ const paths: OpenAPIV3.PathsObject = {
       "uploadMedia",
       "Media",
       "Upload validated PNG or JPEG",
-      ref("MediaMetadata"),
+      ref("MediaAsset"),
       [400, ...mutationCodes, 409, 500],
-      "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Signature and full decoder validation; normalized to PNG. No client paths or filenames accepted. ADMIN/EDITOR/AUTHOR only.",
+      "JSON base64 upload, maximum 2 MiB decoded and 16 million pixels. Validated, auto-oriented and normalized to PNG without source metadata. Optional original filename is stored as display text. ADMIN/EDITOR/AUTHOR only.",
       "protected",
       "MediaUpload",
       201,
+    ),
+  },
+  "/api/media/library": {
+    get: {
+      ...operation(
+        "browseMedia",
+        "Media",
+        "Browse authorized media",
+        ref("MediaCollection"),
+        [400, 401, 403, 500],
+        "Pages contain at most 24 assets. ADMIN/EDITOR all; AUTHOR owned media only.",
+        "protected",
+      ),
+      parameters: Object.entries(MediaBrowseSchema.shape).map(([name, shape]) =>
+        parameter(name, "query", schema(shape), "Media library filter", false),
+      ),
+    },
+  },
+  "/api/media/{id}/metadata": {
+    parameters: [id],
+    get: operation(
+      "mediaDetails",
+      "Media",
+      "Read asset metadata",
+      ref("MediaDetails"),
+      [401, 403, 404, 500],
+      "ADMIN/EDITOR all; AUTHOR owned only. Usage is an aggregate flag available to ADMIN/EDITOR.",
+      "protected",
+    ),
+    patch: operation(
+      "editMedia",
+      "Media",
+      "Edit asset metadata",
+      ref("MediaAsset"),
+      [400, ...mutationCodes, 404, 500],
+      "ADMIN/EDITOR all; AUTHOR owned only. An empty alternative text marks a decorative image.",
+      "protected",
+      "MediaEdit",
     ),
   },
   "/api/media/{id}": {

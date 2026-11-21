@@ -183,7 +183,7 @@ model Page {
 
   // Cover image
   coverId String?
-  cover   Media?  @relation(fields: [coverId], references: [id])
+  cover   Media?  @relation(fields: [coverId], references: [id], onDelete: Restrict)
 
   // Author + publish metadata
   authorId    String?
@@ -249,10 +249,16 @@ model Media {
   width        Int?
   height       Int?
   alt          String?
+  filename     String?
+  originalMime String?
+  size         Int?
+  caption      String?
+  description  String?
   uploadedById String?
   uploadedBy   User?   @relation(fields: [uploadedById], references: [id])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
 
   PageMedia                        PageMedia[]
   Page                             Page[]
@@ -290,7 +296,7 @@ model PageMedia {
   sort    Int    @default(0)
 
   page  Page  @relation(fields: [pageId], references: [id], onDelete: Cascade)
-  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Restrict)
 
   @@id([pageId, mediaId])
 }

@@ -39,7 +39,7 @@ const values = {
   inFooterMenu: false,
 };
 
-const { status: draftStatus, ...content } = values;
+const { status: draftStatus, cover: _cover, ...content } = values;
 const acknowledgement = {
   workingVersion: 12,
   status: draftStatus,

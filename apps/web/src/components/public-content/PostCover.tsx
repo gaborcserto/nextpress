@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { ContentMediaImage } from "./ContentMediaImage";
 import styles from "./post-list.module.css";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
@@ -30,9 +29,9 @@ export function PostCover({
 
   return (
     <div className={card ? styles.cardMedia : styles.articleMedia}>
-      <Image
+      <ContentMediaImage
         src={cover.url}
-        alt={cover.alt || `Cover for ${title}`}
+        alt={cover.decorative ? "" : cover.alt || `Cover for ${title}`}
         width={cover.width}
         height={cover.height}
         sizes={
@@ -41,7 +40,6 @@ export function PostCover({
             : "(max-width: 48rem) 100vw, 768px"
         }
         loading={eager || !card ? "eager" : "lazy"}
-        unoptimized
       />
     </div>
   );

@@ -14,6 +14,7 @@ const EMPTY_INITIAL: PostFormValues = {
   content: EMPTY_SLATE_VALUE,
   tags: [],
   cover: null,
+  pageDocument: null,
   publishedAt: null,
 };
 

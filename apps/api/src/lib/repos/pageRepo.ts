@@ -3,10 +3,16 @@ import {
   ContentLayoutSchema,
   resolvePageType,
 } from "@nextpress/shared/content";
+import {
+  pageMediaIds,
+  readPageDocument,
+  serializePageDocument,
+} from "@nextpress/shared/page-document";
 
 import {
   contentReadWhere,
   contentWriteWhere,
+  isEditor,
   type ContentActor,
 } from "@/lib/auth/content-access";
 import {
@@ -30,6 +36,28 @@ import type { PageCreateInput, PageUpdateInput } from "@/lib/validation";
 
 type PageTypeLiteral = "PAGE" | "POST";
 
+export const editorImageSelect = {
+  id: true,
+  url: true,
+  alt: true,
+  width: true,
+  height: true,
+  filename: true,
+  caption: true,
+} satisfies Prisma.MediaSelect;
+
+export const editorGallerySelect = {
+  orderBy: [{ sort: "asc" }, { mediaId: "asc" }],
+  select: { media: { select: editorImageSelect } },
+} satisfies Prisma.Page$galleryArgs;
+
+const editorMediaInclude = {
+  cover: { select: editorImageSelect },
+  gallery: editorGallerySelect,
+} satisfies Prisma.PageInclude;
+
+export class MediaSelectionError extends Error {}
+
 /**
  * Retrieve a page (or post) by ID or slug.
  * Defaults to PAGE unless a type is explicitly provided.
@@ -51,7 +79,7 @@ export async function getPageById(
   const byId = await prisma.page.findUnique({
     where: { ...contentReadWhere(opts?.actor), id: ref, type: typeFilter },
     include: {
-      cover: { select: { id: true, url: true, alt: true } },
+      ...editorMediaInclude,
       listingTaxonomy: { select: { id: true, name: true, slug: true } },
     },
   });
@@ -68,7 +96,7 @@ export async function getPageById(
       type: typeFilter,
     },
     include: {
-      cover: { select: { id: true, url: true, alt: true } },
+      ...editorMediaInclude,
       listingTaxonomy: { select: { id: true, name: true, slug: true } },
     },
   });
@@ -238,6 +266,10 @@ export async function createPage(
       inFooterMenu: input.inFooterMenu,
       publishedAt: resolvePublicationDate(null, input),
       authorId: input.authorId ?? null,
+      ...(input.coverId !== undefined ? { coverId: input.coverId } : {}),
+      ...(input.pageDocument
+        ? { pageDocument: serializePageDocument(input.pageDocument) }
+        : {}),
     },
   });
 }
@@ -253,7 +285,12 @@ export async function updatePage(
   actor: ContentActor,
   db: Prisma.TransactionClient = prisma,
 ) {
-  const { expectedVersion, ...next } = data;
+  const {
+    expectedVersion,
+    galleryIds: _galleryIds,
+    pageDocument,
+    ...next
+  } = data;
 
   if (typeof data.slug === "string") {
     next.slug = slugify(data.slug);
@@ -274,7 +311,14 @@ export async function updatePage(
       ...contentWriteWhere(actor),
       workingVersion: expectedVersion,
     },
-    data: { ...next, publishedAt, workingVersion: { increment: 1 } },
+    data: {
+      ...next,
+      ...(pageDocument
+        ? { pageDocument: serializePageDocument(pageDocument) }
+        : {}),
+      publishedAt,
+      workingVersion: { increment: 1 },
+    },
   });
 }
 
@@ -296,10 +340,13 @@ export async function deletePage(
 export async function createPageWithTags(
   input: PageCreateInput & { authorId: string },
   tagIds: string[],
+  actor: ContentActor,
 ) {
   return prisma.$transaction(async (tx) => {
+    await validateMediaSelection(tx, input, actor);
     const page = await createPage(input, tx);
     await setTagsForPage(page.id, tagIds, tx);
+    await createGallery(tx, page.id, input.galleryIds);
 
     return page;
   });
@@ -314,7 +361,13 @@ export async function updatePageWithTags(
 ) {
   try {
     return await prisma.$transaction(async (tx) => {
+      await validateMediaSelection(tx, input, actor, id);
       const page = await updatePage(id, input, type, actor, tx);
+
+      if (input.galleryIds !== undefined) {
+        await tx.pageMedia.deleteMany({ where: { pageId: id } });
+        await createGallery(tx, id, input.galleryIds);
+      }
 
       if (tagIds !== undefined) {
         await setTagsForPage(page.id, tagIds, tx);
@@ -333,5 +386,96 @@ export async function updatePageWithTags(
     }
 
     throw error;
+  }
+}
+
+async function validateMediaSelection(
+  tx: Prisma.TransactionClient,
+  selection: Pick<PageUpdateInput, "coverId" | "galleryIds" | "pageDocument">,
+  actor: ContentActor,
+  pageId?: string,
+) {
+  const { coverId, galleryIds, pageDocument } = selection;
+
+  if (
+    coverId === undefined &&
+    galleryIds === undefined &&
+    pageDocument === undefined
+  ) {
+    return;
+  }
+
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(71520261111::bigint)`;
+  const existing = new Set<string>();
+
+  if (!isEditor(actor) && pageId && pageDocument) {
+    const current = await tx.page.findUnique({
+      where: { id: pageId, authorId: actor.id },
+      select: { pageDocument: true },
+    });
+
+    const document = current?.pageDocument
+      ? readPageDocument(current.pageDocument)
+      : null;
+
+    if (document?.supported) {
+      for (const id of pageMediaIds(document.document)) {
+        existing.add(id);
+      }
+    }
+  }
+
+  const documentIds = pageDocument
+    ? pageMediaIds(pageDocument).filter((id) => !existing.has(id))
+    : [];
+  const ids = [
+    ...new Set([
+      ...(coverId ? [coverId] : []),
+      ...(galleryIds ?? []),
+      ...documentIds,
+    ]),
+  ];
+
+  if (!ids.length) {
+    return;
+  }
+
+  const count = await tx.media.count({
+    where: {
+      id: { in: ids },
+      ...(isEditor(actor)
+        ? {}
+        : {
+            OR: [
+              { uploadedById: actor.id },
+              ...(pageId
+                ? [
+                    { Page: { some: { id: pageId, authorId: actor.id } } },
+                    {
+                      PageMedia: {
+                        some: { page: { id: pageId, authorId: actor.id } },
+                      },
+                    },
+                  ]
+                : []),
+            ],
+          }),
+    },
+  });
+
+  if (count !== ids.length) {
+    throw new MediaSelectionError();
+  }
+}
+
+async function createGallery(
+  tx: Prisma.TransactionClient,
+  pageId: string,
+  ids?: string[],
+) {
+  if (ids?.length) {
+    await tx.pageMedia.createMany({
+      data: ids.map((mediaId, sort) => ({ pageId, mediaId, sort })),
+    });
   }
 }

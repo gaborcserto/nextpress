@@ -1,4 +1,6 @@
 import type { ContentLayout } from "@nextpress/shared/content";
+import type { EditorImage } from "@nextpress/shared/media";
+import type { PageDocument } from "@nextpress/shared/page-document";
 import type { Descendant } from "slate";
 
 export type TagValue = {
@@ -15,11 +17,7 @@ export type TagUpdateEntityFn = (
   tagIds: string[],
 ) => Promise<void>;
 
-export type MediaValue = {
-  id: string;
-  url: string;
-  alt?: string | null;
-};
+export type MediaValue = EditorImage;
 
 export type UploadFn = (file: File) => Promise<MediaValue>;
 
@@ -29,6 +27,9 @@ export type PageStatus = "DRAFT" | "PUBLISHED";
 export type ListingKind = "POSTS" | "PRODUCTS" | "EVENTS";
 
 export type PageFormValues = {
+  pageDocument?: PageDocument | null;
+  cover?: MediaValue | null;
+  gallery?: MediaValue[];
   publishedAt?: string | null;
   type: PageType;
   status: PageStatus;
@@ -52,6 +53,7 @@ export type PageFormValues = {
 export type PostStatus = "DRAFT" | "PUBLISHED";
 
 export type PostFormValues = {
+  pageDocument?: PageDocument | null;
   status: PostStatus;
   slug: string;
   title: string;

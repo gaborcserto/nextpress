@@ -1,9 +1,11 @@
 import { readRichContent } from "@nextpress/shared/content";
+import { readPageDocument } from "@nextpress/shared/page-document";
 
 import { ok, bad, notfound, internalError } from "@/lib/api";
 import { contentMutationError } from "@/lib/api/content-mutation-error";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
+import { isEditor } from "@/lib/auth/content-access";
 import { getPageById, getTagsForPage } from "@/lib/repos";
 import {
   deletePageService,
@@ -19,7 +21,12 @@ type RouteParams = { id: string };
 function mapPageToFormValues(
   page: NonNullable<Awaited<ReturnType<typeof getPageById>>>,
   tags: Awaited<ReturnType<typeof getTagsForPage>>,
+  editable: boolean,
 ): EditorialPage {
+  const document = page.pageDocument
+    ? readPageDocument(page.pageDocument)
+    : null;
+
   return {
     workingVersion: page.workingVersion,
     type: page.layout,
@@ -27,6 +34,17 @@ function mapPageToFormValues(
     publishedAt: page.publishedAt?.toISOString() ?? null,
     slug: page.slug,
     title: page.title,
+    pageDocument: document?.supported
+      ? document.document
+      : document === null
+        ? null
+        : undefined,
+    ...(editable
+      ? {
+          cover: page.cover,
+          gallery: page.gallery.map(({ media }) => media),
+        }
+      : {}),
     content: readRichContent(page.content).blocks,
     tags: tags.map((t) => ({
       id: t.id,
@@ -66,7 +84,12 @@ async function get(_req: Request, { params }: GetContext) {
     }
 
     const tags = await getTagsForPage(page.id);
-    const item = mapPageToFormValues(page, tags);
+
+    const editable =
+      isEditor(actor) ||
+      (actor?.role === "AUTHOR" && page.authorId === actor.id);
+
+    const item = mapPageToFormValues(page, tags, editable);
 
     return ok({ item });
   } catch (error) {

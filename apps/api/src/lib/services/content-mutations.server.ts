@@ -57,6 +57,7 @@ export async function createContentService(
   }
 
   await validateListingFilter(kind, parsed.layout, parsed.listingTaxonomyId);
+  validateGallery(kind, parsed.layout, parsed.galleryIds);
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
 
@@ -68,6 +69,7 @@ export async function createContentService(
         authorId: actor.id,
       },
       tagIds,
+      actor,
     ),
   );
 
@@ -104,6 +106,7 @@ export async function updateContentService(
     parsed.layout ?? current.layout,
     parsed.listingTaxonomyId,
   );
+  validateGallery(kind, parsed.layout ?? current.layout, parsed.galleryIds);
 
   if (parsed.tagIds) {
     await validateTagIds(parsed.tagIds);
@@ -116,4 +119,22 @@ export async function updateContentService(
   );
 
   return updated;
+}
+
+function validateGallery(
+  kind: "PAGE" | "POST",
+  layout: string | undefined,
+  galleryIds?: string[],
+) {
+  if (
+    galleryIds !== undefined &&
+    (kind !== "PAGE" || layout !== pageLayouts.gallery)
+  ) {
+    throw new PageValidationError([
+      {
+        path: "galleryIds",
+        message: "Only Gallery pages can set gallery images",
+      },
+    ]);
+  }
 }

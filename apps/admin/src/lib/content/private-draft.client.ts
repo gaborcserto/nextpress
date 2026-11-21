@@ -88,11 +88,18 @@ function commonValues(draft: WorkingAggregateEnvelope) {
 export function privatePageValues(
   draft: WorkingAggregateEnvelope,
 ): PageFormValues {
-  const { fields } = draft.aggregate.snapshot;
+  const { fields, relationships } = draft.aggregate.snapshot;
 
   return {
     ...commonValues(draft),
     type: fields.layout,
+    cover: relationships.coverId
+      ? { id: relationships.coverId, url: `/media/${relationships.coverId}` }
+      : null,
+    gallery: relationships.gallery.map(({ mediaId: id }) => ({
+      id,
+      url: `/media/${id}`,
+    })),
     parentId: fields.parentId,
     inHeaderMenu: fields.inHeaderMenu,
     inFooterMenu: fields.inFooterMenu,
