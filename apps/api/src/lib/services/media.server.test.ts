@@ -7,7 +7,7 @@ const { db, storage } = vi.hoisted(() => ({
     page: { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
-  storage: { put: vi.fn(), read: vi.fn(), remove: vi.fn() },
+  storage: { put: vi.fn(), read: vi.fn(), stream: vi.fn(), remove: vi.fn() },
 }));
 vi.mock("@nextpress/db/src/client", () => ({ prisma: db }));
 vi.mock("./media-storage.server", () => ({ mediaStorage: storage }));
@@ -71,7 +71,9 @@ describe("secure media boundaries", () => {
     ).rejects.toThrow();
     await listMedia(actor);
     expect(db.media.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { uploadedById: "author" } }),
+      expect.objectContaining({
+        where: { uploadedById: "author", mime: { not: "application/pdf" } },
+      }),
     );
   });
 
@@ -137,6 +139,52 @@ describe("secure media boundaries", () => {
     ]);
     await expect(serveMedia("private")).rejects.toThrow();
     expect(storage.read).not.toHaveBeenCalled();
+  });
+
+  it("serves Unicode PDF attachments only while publicly referenced", async () => {
+    db.media.findUnique.mockResolvedValue({
+      key: "report.pdf",
+      filename: "Árvíztűrő.pdf",
+      mime: "application/pdf",
+      size: 2,
+      uploadedById: actor.id,
+    });
+    db.page.findMany
+      .mockResolvedValueOnce([
+        {
+          pageDocument: JSON.stringify({
+            version: 1,
+            blocks: [
+              {
+                id: "download",
+                type: "document",
+                version: 1,
+                props: {
+                  documentId: "report",
+                  label: "Report",
+                  description: "",
+                },
+              },
+            ],
+          }),
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    storage.stream.mockImplementation(() => new Response("ok").body);
+
+    const response = await serveMedia("report");
+
+    expect(response.headers.get("Content-Type")).toBe("application/pdf");
+    expect(response.headers.get("Content-Disposition")).toBe(
+      "attachment; filename=\"document.pdf\"; filename*=UTF-8''%C3%81rv%C3%ADzt%C5%B1r%C5%91.pdf",
+    );
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.text()).toBe("ok");
+    await expect(serveMedia("report")).rejects.toBeInstanceOf(
+      ContentNotFoundError,
+    );
+    const authorized = await serveMedia("report", actor);
+    expect(await authorized.text()).toBe("ok");
   });
 
   it("removes the stored object when metadata persistence fails", async () => {

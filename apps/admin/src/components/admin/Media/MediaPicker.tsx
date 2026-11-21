@@ -10,16 +10,24 @@ import { useMediaMessages } from "./messages";
 
 import type { MediaAsset } from "@nextpress/shared/media";
 
+export function DocumentPicker(
+  props: Omit<Parameters<typeof MediaPicker>[0], "documents">,
+) {
+  return <MediaPicker {...props} documents />;
+}
+
 export function MediaPicker({
   onCancel,
   onConfirm,
   limit = 1,
+  documents = false,
 }: {
   limit?: number;
+  documents?: boolean;
   onCancel: () => void;
   onConfirm: (assets: MediaAsset[]) => void;
 }) {
-  const text = useMediaMessages();
+  const text = useMediaMessages(documents);
   const [query, setQuery] = useState(initialMediaQuery);
   const [selected, setSelected] = useState<MediaAsset[]>([]);
 
@@ -44,6 +52,8 @@ export function MediaPicker({
     >
       <MediaBrowser
         query={query}
+        documents={documents}
+        view={documents ? "list" : "grid"}
         onQuery={setQuery}
         onAsset={toggle}
         selected={selected.map(({ id }) => id)}

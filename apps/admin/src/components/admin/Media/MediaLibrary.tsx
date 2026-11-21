@@ -15,13 +15,15 @@ import { initialMediaQuery, MediaBrowser } from "./MediaBrowser";
 import { MediaDetails } from "./MediaDetails";
 import { useMediaMessages } from "./messages";
 
-export function MediaLibrary() {
+export function MediaLibrary({ documents = false }: { documents?: boolean }) {
   const params = useSearchParams();
   const { mutate } = useSWRConfig();
-  const text = useMediaMessages();
+  const text = useMediaMessages(documents);
   const [notice, setNotice] = useState("");
   const { view, asset, ...filters } = Object.fromEntries(params);
-  const parsed = MediaBrowseSchema.safeParse(filters);
+  const parsed = MediaBrowseSchema.safeParse(
+    documents ? { ...filters, mime: undefined } : filters,
+  );
   const query = parsed.success ? parsed.data : initialMediaQuery;
   const assetId = MediaIdSchema.safeParse(asset);
 
@@ -36,7 +38,7 @@ export function MediaLibrary() {
       next.set("q", query.q);
     }
 
-    if (query.mime) {
+    if (query.mime && !documents) {
       next.set("mime", query.mime);
     }
 
@@ -53,7 +55,9 @@ export function MediaLibrary() {
 
   function refresh() {
     void mutate(
-      (key) => typeof key === "string" && key.startsWith("/api/media/library?"),
+      (key) =>
+        typeof key === "string" &&
+        key.startsWith(documents ? "/api/documents?" : "/api/media/library?"),
     );
   }
 
@@ -62,15 +66,17 @@ export function MediaLibrary() {
       {notice && <p role="status">{notice}</p>}
       <MediaBrowser
         library
+        documents={documents}
         query={query}
         onQuery={(next) => setLocation(next, view)}
-        view={view === "list" ? "list" : "grid"}
-        onView={(next) => setLocation(query, next)}
+        view={documents || view === "list" ? "list" : "grid"}
+        onView={documents ? undefined : (next) => setLocation(query, next)}
         onAsset={(asset) => setLocation(query, view, asset.id)}
       />
       {assetId.success && (
         <MediaDetails
           id={assetId.data}
+          documents={documents}
           onClose={() => setLocation(query, view)}
           onChange={refresh}
           onDelete={() => {

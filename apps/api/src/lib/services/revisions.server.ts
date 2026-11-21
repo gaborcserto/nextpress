@@ -1,7 +1,9 @@
 import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
+import { documentMime } from "@nextpress/shared/media";
 import {
+  pageDocumentIds,
   pageMediaIds,
   readPageDocument,
   serializePageDocument,
@@ -99,12 +101,31 @@ export async function saveRevision(
     const mediaCount = await tx.media.count({
       where: {
         id: { in: mediaIds },
+        mime: { not: documentMime },
         ...(actor.role === "AUTHOR" ? { uploadedById: actor.id } : {}),
       },
     });
 
     if (mediaCount !== mediaIds.length) {
       throw new ContentNotFoundError();
+    }
+
+    const documentIds = parsed.pageDocument
+      ? pageDocumentIds(parsed.pageDocument)
+      : [];
+
+    if (documentIds.length) {
+      const documentCount = await tx.media.count({
+        where: {
+          id: { in: documentIds },
+          mime: documentMime,
+          ...(actor.role === "AUTHOR" ? { uploadedById: actor.id } : {}),
+        },
+      });
+
+      if (documentCount !== documentIds.length) {
+        throw new ContentNotFoundError();
+      }
     }
 
     const changed = await tx.page.updateMany({

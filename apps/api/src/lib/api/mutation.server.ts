@@ -63,7 +63,10 @@ export async function readBoundedMutationRequest(
 /** Custom cookie-authenticated routes must check this before session lookup. */
 export function requireTrustedMutation(
   req: Request,
-  { bodyReadPending = false }: { bodyReadPending?: boolean } = {},
+  {
+    bodyReadPending = false,
+    contentType: expectedContentType = "application/json",
+  }: { bodyReadPending?: boolean; contentType?: string } = {},
 ): Response | null {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     return null;
@@ -85,10 +88,10 @@ export function requireTrustedMutation(
 
   if (
     needsJSON &&
-    contentType?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json"
+    contentType?.split(";", 1)[0]?.trim().toLowerCase() !== expectedContentType
   ) {
     return NextResponse.json(
-      { error: "Content-Type must be application/json" },
+      { error: `Content-Type must be ${expectedContentType}` },
       { status: 415 },
     );
   }

@@ -9,12 +9,12 @@ import { useState } from "react";
 
 import { Button } from "@/ui/primitives";
 
-import { MediaPicker } from "./MediaPicker";
+import { DocumentPicker, MediaPicker } from "./MediaPicker";
 import { useMediaMessages } from "./messages";
 
-import type { EditorImage } from "@nextpress/shared/media";
+import type { MediaAsset } from "@nextpress/shared/media";
 
-type ImageBlock = Extract<PageBlock, { type: "hero" | "image" }>;
+type AssetBlock = Extract<PageBlock, { type: "hero" | "image" | "document" }>;
 
 export function DocumentImageField({
   value,
@@ -26,14 +26,22 @@ export function DocumentImageField({
   disabled?: boolean;
 }) {
   const text = useMediaMessages();
-  const [target, setTarget] = useState<ImageBlock | "new" | null>(null);
+  const documents = useMediaMessages(true);
+  const [target, setTarget] = useState<
+    AssetBlock | "new-image" | "new-document" | null
+  >(null);
   const [error, setError] = useState(false);
   const blocks = value?.blocks ?? [];
-  const images = blocks
+  const assets = blocks
     .flatMap((block) =>
       block.type === "columns" ? block.regions.flat() : [block],
     )
-    .filter((block) => block.type === "image" || block.type === "hero");
+    .filter(
+      (block) =>
+        block.type === "image" ||
+        block.type === "hero" ||
+        block.type === "document",
+    );
 
   function update(next: PageBlock[]) {
     const result = PageDocumentSchema.safeParse({ version: 1, blocks: next });
@@ -44,7 +52,7 @@ export function DocumentImageField({
     }
   }
 
-  function changeBlock(id: string, replacement?: ImageBlock) {
+  function changeBlock(id: string, replacement?: AssetBlock) {
     update(
       blocks.flatMap<PageBlock>((block) => {
         if (block.id === id) {
@@ -73,12 +81,35 @@ export function DocumentImageField({
     );
   }
 
-  function choose([asset]: EditorImage[]) {
+  function choose([asset]: MediaAsset[]) {
     if (!asset || !target) {
       return;
     }
 
-    if (target === "new") {
+    if (
+      target === "new-document" ||
+      (typeof target !== "string" && target.type === "document")
+    ) {
+      const block: Extract<AssetBlock, { type: "document" }> = {
+        id: target === "new-document" ? crypto.randomUUID() : target.id,
+        type: "document",
+        version: 1,
+        props: {
+          documentId: asset.id,
+          label: asset.caption || asset.filename || "PDF",
+          description: asset.description ?? "",
+        },
+      };
+
+      if (target === "new-document") {
+        update([...blocks, block]);
+      } else {
+        changeBlock(target.id, {
+          ...block,
+          props: { ...target.props, documentId: asset.id },
+        });
+      }
+    } else if (target === "new-image") {
       update([
         ...blocks,
         {
@@ -103,8 +134,8 @@ export function DocumentImageField({
     setTarget(null);
   }
 
-  function remove(block: ImageBlock) {
-    if (block.type === "image") {
+  function remove(block: AssetBlock) {
+    if (block.type !== "hero") {
       changeBlock(block.id);
     } else {
       changeBlock(block.id, {
@@ -117,17 +148,25 @@ export function DocumentImageField({
     }
   }
 
+  const Picker =
+    target === "new-document" ||
+    (target && typeof target !== "string" && target.type === "document")
+      ? DocumentPicker
+      : MediaPicker;
+
   return (
     <fieldset className="mt-4 min-w-0 space-y-2">
-      <legend className="font-semibold">{text.contentImages}</legend>
-      {images.length > 0 && (
+      <legend className="font-semibold">{text.contentAssets}</legend>
+      {assets.length > 0 && (
         <ul className="grid gap-2">
-          {images.map((block) => (
+          {assets.map((block) => (
             <li key={block.id} className="grid gap-2">
               <span className="wrap-anywhere">
                 {block.type === "hero"
                   ? block.props.title
-                  : block.props.mediaId}
+                  : block.type === "document"
+                    ? "PDF"
+                    : block.props.mediaId}
               </span>
               {block.type === "image" && (
                 <label className="grid gap-1">
@@ -149,6 +188,46 @@ export function DocumentImageField({
                   />
                 </label>
               )}
+              {block.type === "document" && (
+                <>
+                  <label className="grid gap-1">
+                    {documents.caption}
+                    <input
+                      className="input w-full"
+                      value={block.props.label}
+                      maxLength={500}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        changeBlock(block.id, {
+                          ...block,
+                          props: {
+                            ...block.props,
+                            label: event.currentTarget.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    {documents.description}
+                    <textarea
+                      className="textarea w-full"
+                      value={block.props.description}
+                      maxLength={2000}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        changeBlock(block.id, {
+                          ...block,
+                          props: {
+                            ...block.props,
+                            description: event.currentTarget.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </>
+              )}
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -157,9 +236,9 @@ export function DocumentImageField({
                   disabled={disabled}
                   onClick={() => setTarget(block)}
                 >
-                  {text.choose}
+                  {block.type === "document" ? documents.choose : text.choose}
                 </Button>
-                {block.props.mediaId && (
+                {(block.type === "document" || block.props.mediaId) && (
                   <Button
                     type="button"
                     size="sm"
@@ -179,14 +258,20 @@ export function DocumentImageField({
         type="button"
         variant="outline"
         disabled={disabled || blocks.length >= 100}
-        onClick={() => setTarget("new")}
+        onClick={() => setTarget("new-image")}
       >
         {text.addContentImage}
       </Button>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={disabled || blocks.length >= 100}
+        onClick={() => setTarget("new-document")}
+      >
+        {documents.addContentDocument}
+      </Button>
       {error && <p role="alert">{text.documentLimit}</p>}
-      {target && (
-        <MediaPicker onCancel={() => setTarget(null)} onConfirm={choose} />
-      )}
+      {target && <Picker onCancel={() => setTarget(null)} onConfirm={choose} />}
     </fieldset>
   );
 }

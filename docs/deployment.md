@@ -9,6 +9,7 @@ This guide states requirements and gaps; it does not certify a production deploy
 - Better Auth requires a secret and trusted application origins.
 - Public Web reads API projections; it does not need database credentials.
 - API health/diagnostic routes and request logging exist, but do not constitute complete orchestration probes or monitoring.
+- PDF uploads require patched qpdf 12.4.2 or a compatible later release on the API process PATH. Provision the reverse proxy for the documented body limit. See the [PDF delivery decision](decisions/003-pdf-document-assets.md).
 - Media uses an API-owned local directory. Set `MEDIA_STORAGE_ROOT` to a private, writable location and keep its contents with PostgreSQL backups. Public delivery is qualified per published content reference. See the [storage and delivery decision](decisions/002-media-storage-and-delivery.md).
 
 ## Required production configuration

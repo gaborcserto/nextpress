@@ -34,6 +34,9 @@ import {
   RichDocumentSchema,
 } from "@nextpress/shared/content";
 import {
+  DocumentBrowseSchema,
+  DocumentFilenameSchema,
+  documentMime,
   MediaMetadataSchema,
   MediaAssetSchema,
   MediaBrowseSchema,
@@ -298,6 +301,57 @@ const paths: OpenAPIV3.PathsObject = {
       ),
     },
   },
+  "/api/documents": {
+    get: {
+      ...operation(
+        "browseDocuments",
+        "Media",
+        "Browse PDF documents",
+        ref("MediaCollection"),
+        [400, 401, 403, 500],
+        "ADMIN/EDITOR all; AUTHOR owned only.",
+        "protected",
+      ),
+      parameters: Object.entries(DocumentBrowseSchema.shape).map(
+        ([name, shape]) =>
+          parameter(
+            name,
+            "query",
+            schema(shape),
+            "Document library filter",
+            false,
+          ),
+      ),
+    },
+    post: {
+      ...operation(
+        "uploadDocument",
+        "Media",
+        "Upload a PDF document",
+        ref("MediaAsset"),
+        [400, 401, 403, 415, 429, 500],
+        "Maximum 10 MiB. ADMIN/EDITOR/AUTHOR only.",
+        "protected",
+        undefined,
+        201,
+      ),
+      parameters: [
+        parameter(
+          "filename",
+          "query",
+          schema(DocumentFilenameSchema),
+          "Original PDF filename",
+          true,
+        ),
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          [documentMime]: { schema: { type: "string", format: "binary" } },
+        },
+      },
+    },
+  },
   "/api/media": {
     get: operation(
       "listMedia",
@@ -366,7 +420,7 @@ const paths: OpenAPIV3.PathsObject = {
       "Serve authorized or published referenced media",
       { type: "string", format: "binary" },
       [404, 500],
-      "Private media requires an editor/admin or owning author session. No-store.",
+      "Private media requires an editor/admin or owning author session. PDF documents are delivered as attachments to authorized sessions. No-store.",
       "optional",
     ),
     delete: operation(

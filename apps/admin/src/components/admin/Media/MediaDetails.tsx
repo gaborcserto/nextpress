@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  documentMime,
   MediaAssetSchema,
   MediaDetailsSchema,
   MediaEditSchema,
@@ -32,28 +33,33 @@ export function MediaDetails({
   onClose,
   onChange,
   onDelete,
+  documents = false,
 }: {
   id: string;
+  documents?: boolean;
   onClose: () => void;
   onChange: () => void;
   onDelete: () => void;
 }) {
-  const text = useMediaMessages();
+  const text = useMediaMessages(documents);
   const endpoint = `/api/media/${id}/metadata`;
   const { data, error } = useSWR(endpoint, fetchDetails, {
     shouldRetryOnError: false,
     revalidateOnFocus: false,
   });
 
+  const wrongKind = data && (data.mime === documentMime) !== documents;
+
   return (
     <MediaDialog title={text.details} onClose={onClose}>
-      {error && <p role="alert">{text.loadError}</p>}
+      {(error || wrongKind) && <p role="alert">{text.loadError}</p>}
       {!data && !error && <p role="status">{text.loading}</p>}
-      {data && (
+      {data && !wrongKind && (
         <MetadataForm
           key={id}
           asset={data}
           endpoint={endpoint}
+          documents={documents}
           onChange={onChange}
           onDelete={onDelete}
         />
@@ -64,16 +70,18 @@ export function MediaDetails({
 
 function MetadataForm({
   asset: initial,
+  documents,
   endpoint,
   onChange,
   onDelete,
 }: {
   asset: Asset;
+  documents: boolean;
   endpoint: string;
   onChange: () => void;
   onDelete: () => void;
 }) {
-  const text = useMediaMessages();
+  const text = useMediaMessages(documents);
   const [asset, setAsset] = useState(initial);
   const [decorative, setDecorative] = useState(initial.alt === "");
   const [showGif, setShowGif] = useState(false);
@@ -87,7 +95,7 @@ function MetadataForm({
   async function save(form: FormData) {
     const alt = String(form.get("alt") ?? "").trim();
     const changes = MediaEditSchema.safeParse({
-      alt: decorative ? "" : alt || null,
+      alt: documents ? null : decorative ? "" : alt || null,
       caption: form.get("caption"),
       description: form.get("description"),
     });
@@ -108,7 +116,7 @@ function MetadataForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(changes.data),
       });
-      setAsset({ ...MediaAssetSchema.parse(response), inUse: asset.inUse });
+      setAsset({ ...asset, ...MediaAssetSchema.parse(response) });
       setNotice(text.saved);
       onChange();
     } catch {
@@ -157,7 +165,13 @@ function MetadataForm({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <section className="min-w-0 space-y-3">
-        <MediaThumbnail asset={asset} showGif={showGif} />
+        {documents ? (
+          <a className="link link-primary" href={`/api/media/${asset.id}`}>
+            {text.download}
+          </a>
+        ) : (
+          <MediaThumbnail asset={asset} showGif={showGif} />
+        )}
         {asset.mime === "image/gif" && (
           <Button
             type="button"
@@ -171,7 +185,7 @@ function MetadataForm({
           {[
             [text.id, asset.id, true],
             [text.filename, asset.filename],
-            [text.imageType, text.image],
+            [text.imageType, documents ? "PDF" : text.image],
             [text.format, asset.originalMime],
             [text.mime, asset.mime],
             [
@@ -192,6 +206,17 @@ function MetadataForm({
               asset.updatedAt ? time.format(new Date(asset.updatedAt)) : null,
             ],
             [text.url, asset.url, true],
+            ...(documents
+              ? [
+                  [text.owner, asset.uploadedById],
+                  [
+                    text.availability,
+                    asset.publiclyAvailable
+                      ? text.publicDocument
+                      : text.protectedDocument,
+                  ],
+                ]
+              : []),
             [
               text.usage,
               asset.inUse === null
@@ -228,25 +253,29 @@ function MetadataForm({
           void save(new FormData(event.currentTarget));
         }}
       >
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="checkbox"
-            checked={decorative}
-            onChange={(event) => setDecorative(event.currentTarget.checked)}
-          />
-          {text.decorative}
-        </label>
-        <label className="grid gap-1">
-          {text.alt}
-          <input
-            name="alt"
-            className="input w-full"
-            maxLength={500}
-            defaultValue={asset.alt ?? ""}
-            disabled={decorative || saving}
-          />
-        </label>
+        {!documents && (
+          <>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={decorative}
+                onChange={(event) => setDecorative(event.currentTarget.checked)}
+              />
+              {text.decorative}
+            </label>
+            <label className="grid gap-1">
+              {text.alt}
+              <input
+                name="alt"
+                className="input w-full"
+                maxLength={500}
+                defaultValue={asset.alt ?? ""}
+                disabled={decorative || saving}
+              />
+            </label>
+          </>
+        )}
         <label className="grid gap-1">
           {text.caption}
           <textarea

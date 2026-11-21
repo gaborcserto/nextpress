@@ -2,6 +2,12 @@ import { useSyncExternalStore } from "react";
 
 const en = {
   library: "Media Library",
+  documents: "Document Library",
+  download: "Download PDF",
+  owner: "Owner ID",
+  availability: "Availability",
+  publicDocument: "Public download",
+  protectedDocument: "Protected download",
   choose: "Choose image",
   chooseMany: "Choose images",
   selected: "Selected",
@@ -78,7 +84,8 @@ const en = {
   forbidden: "You do not have permission to manage media.",
   image: "Image",
   imageType: "Media type",
-  contentImages: "Content images",
+  contentAssets: "Content assets",
+  addContentDocument: "Add PDF document",
   addContentImage: "Add content image",
   documentLimit: "The page document exceeds its size or block limit.",
 };
@@ -86,6 +93,12 @@ const en = {
 type Messages = typeof en;
 const hu: Messages = {
   library: "Médiatár",
+  documents: "Dokumentumtár",
+  download: "PDF letöltése",
+  owner: "Tulajdonos azonosítója",
+  availability: "Hozzáférés",
+  publicDocument: "Nyilvános letöltés",
+  protectedDocument: "Védett letöltés",
   choose: "Kép kiválasztása",
   chooseMany: "Képek kiválasztása",
   selected: "Kiválasztva",
@@ -163,7 +176,8 @@ const hu: Messages = {
   forbidden: "Nincs jogosultsága a média kezeléséhez.",
   image: "Kép",
   imageType: "Médiatípus",
-  contentImages: "Tartalmi képek",
+  contentAssets: "Tartalmi média és dokumentumok",
+  addContentDocument: "PDF-dokumentum hozzáadása",
   addContentImage: "Tartalmi kép hozzáadása",
   documentLimit: "A dokumentum túllépi a méret- vagy blokkszámkorlátot.",
 };
@@ -178,6 +192,46 @@ function browserMessages() {
   return navigator.language.toLowerCase().startsWith("hu") ? hu : en;
 }
 
-export function useMediaMessages() {
-  return useSyncExternalStore(subscribe, browserMessages, () => en);
+export function useMediaMessages(documents = false) {
+  const media = useSyncExternalStore(subscribe, browserMessages, () => en);
+
+  if (!documents) {
+    return media;
+  }
+
+  const overrides =
+    media === hu
+      ? {
+          choose: "PDF kiválasztása",
+          chooseMany: "PDF-fájlok kiválasztása",
+          upload: "PDF-fájlok feltöltése",
+          uploadHint:
+            "Válasszon vagy húzzon ide legfeljebb 12 PDF-fájlt. A fájlonkénti mérethatár 10 MiB.",
+          invalidFile: "Válasszon legfeljebb 10 MiB méretű PDF-fájlt.",
+          search: "Keresés a dokumentumtárban",
+          details: "Dokumentum részletei",
+          caption: "Megjelenített cím",
+          id: "Dokumentumazonosító",
+          url: "Dokumentumhivatkozás",
+          imageType: "Dokumentumtípus",
+          loading: "Dokumentumok betöltése…",
+          loadError: "A dokumentumok betöltése sikertelen.",
+        }
+      : {
+          choose: "Choose PDF",
+          chooseMany: "Choose PDFs",
+          upload: "Upload PDFs",
+          uploadHint: "Choose or drop up to 12 PDF files, up to 10 MiB each.",
+          invalidFile: "Choose a PDF up to 10 MiB.",
+          search: "Search documents",
+          details: "Document details",
+          caption: "Display title",
+          id: "Document ID",
+          url: "Document reference",
+          imageType: "Document type",
+          loading: "Loading documents…",
+          loadError: "Unable to load documents.",
+        };
+
+  return { ...media, ...overrides, library: media.documents };
 }

@@ -340,6 +340,7 @@ export function withAuth<
     auth: Authed,
   ) => Promise<Response> | Response,
   mutationLimit?: MutationLimit,
+  streamingContentType?: string,
 ) {
   return withRequestLogging(
     "protected",
@@ -348,6 +349,7 @@ export function withAuth<
       // Validate its actual body after the bounded read, retaining the Origin gate.
       const rejection = requireTrustedMutation(req, {
         bodyReadPending: req.method === "DELETE",
+        contentType: streamingContentType,
       });
 
       if (rejection) {
@@ -374,6 +376,10 @@ export function withAuth<
         if (throttled) {
           return throttled;
         }
+      }
+
+      if (streamingContentType) {
+        return handler(req, { params }, { session, roleName: role });
       }
 
       const bounded = await readBoundedMutationRequest(req);

@@ -41,10 +41,12 @@ function Block({
   block,
   Listing,
   gifMediaIds,
+  documentOrigin,
 }: {
   block: PageBlock;
   Listing: ListingComponent;
   gifMediaIds?: readonly string[];
+  documentOrigin?: string;
 }) {
   switch (block.type) {
     case "rich-text":
@@ -65,6 +67,19 @@ function Block({
             />
           )}
         </section>
+      );
+    case "document":
+      return (
+        <div className={styles.download}>
+          <a
+            href={`${documentOrigin ?? ""}${documentOrigin ? "/api" : ""}/media/${block.props.documentId}`}
+            target={documentOrigin ? "_blank" : undefined}
+            rel={documentOrigin ? "noopener" : undefined}
+          >
+            {block.props.label || "PDF"} <small>(PDF)</small>
+          </a>
+          {block.props.description && <p>{block.props.description}</p>}
+        </div>
       );
     case "image":
       return (
@@ -101,6 +116,7 @@ function Block({
                   block={child}
                   Listing={Listing}
                   gifMediaIds={gifMediaIds}
+                  documentOrigin={documentOrigin}
                 />
               ))}
             </section>
@@ -116,8 +132,10 @@ export function PageDocumentView({
   document,
   Listing,
   gifMediaIds,
+  documentOrigin,
 }: {
   document: Document;
+  documentOrigin?: string;
   Listing: ListingComponent;
   gifMediaIds?: readonly string[];
 }) {
@@ -129,6 +147,7 @@ export function PageDocumentView({
           block={block}
           Listing={Listing}
           gifMediaIds={gifMediaIds}
+          documentOrigin={documentOrigin}
         />
       ))}
     </div>

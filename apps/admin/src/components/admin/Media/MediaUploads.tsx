@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  documentMime,
+  DocumentFilenameSchema,
+  maxDocumentUploadBytes,
   maxMediaUploadBytes,
   MediaAssetSchema,
   MediaInputMimeSchema,
@@ -26,7 +29,18 @@ type Upload = {
 };
 const batchLimit = 12;
 
-async function upload(file: File) {
+async function upload(file: File, documents: boolean) {
+  if (documents) {
+    const query = new URLSearchParams({ filename: file.name });
+    const response = await jsonFetcher<unknown>(`/api/documents?${query}`, {
+      method: "POST",
+      headers: { "Content-Type": documentMime },
+      body: file,
+    });
+
+    return MediaAssetSchema.parse(response);
+  }
+
   const input = await file.arrayBuffer();
   const bytes = new Uint8Array(input);
   const chunks: string[] = [];
@@ -49,8 +63,14 @@ async function upload(file: File) {
   return MediaAssetSchema.parse(response);
 }
 
-export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
-  const text = useMediaMessages();
+export function MediaUploads({
+  onUploaded,
+  documents = false,
+}: {
+  onUploaded: () => void;
+  documents?: boolean;
+}) {
+  const text = useMediaMessages(documents);
   const inputId = useId();
   const sequence = useRef(0);
   const busy = useRef(false);
@@ -90,8 +110,12 @@ export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
         }
 
         if (
-          item.file.size > maxMediaUploadBytes ||
-          !MediaInputMimeSchema.safeParse(item.file.type).success
+          documents
+            ? item.file.size > maxDocumentUploadBytes ||
+              item.file.type !== documentMime ||
+              !DocumentFilenameSchema.safeParse(item.file.name).success
+            : item.file.size > maxMediaUploadBytes ||
+              !MediaInputMimeSchema.safeParse(item.file.type).success
         ) {
           setStatus(item.id, "invalidFile");
           continue;
@@ -100,7 +124,7 @@ export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
         setStatus(item.id, "uploading");
 
         try {
-          await upload(item.file);
+          await upload(item.file, documents);
           uploaded = true;
           setStatus(item.id, "uploaded");
         } catch (error) {
@@ -163,7 +187,11 @@ export function MediaUploads({ onUploaded }: { onUploaded: () => void }) {
         id={inputId}
         type="file"
         multiple
-        accept={MediaInputMimeSchema.options.join(",")}
+        accept={
+          documents
+            ? ".pdf,application/pdf"
+            : MediaInputMimeSchema.options.join(",")
+        }
         aria-describedby={inputId + "-hint"}
         disabled={running}
         className="file-input w-full max-w-sm"

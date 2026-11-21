@@ -3,7 +3,9 @@ import {
   ContentLayoutSchema,
   resolvePageType,
 } from "@nextpress/shared/content";
+import { documentMime } from "@nextpress/shared/media";
 import {
+  pageDocumentIds,
   pageMediaIds,
   readPageDocument,
   serializePageDocument,
@@ -408,6 +410,7 @@ async function validateMediaSelection(
 
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(71520261111::bigint)`;
   const existing = new Set<string>();
+  const existingDocuments = new Set<string>();
 
   if (!isEditor(actor) && pageId && pageDocument) {
     const current = await tx.page.findUnique({
@@ -420,6 +423,10 @@ async function validateMediaSelection(
       : null;
 
     if (document?.supported) {
+      for (const id of pageDocumentIds(document.document)) {
+        existingDocuments.add(id);
+      }
+
       for (const id of pageMediaIds(document.document)) {
         existing.add(id);
       }
@@ -437,6 +444,24 @@ async function validateMediaSelection(
     ]),
   ];
 
+  const pdfIds = pageDocument
+    ? pageDocumentIds(pageDocument).filter((id) => !existingDocuments.has(id))
+    : [];
+
+  if (pdfIds.length) {
+    const count = await tx.media.count({
+      where: {
+        id: { in: pdfIds },
+        mime: documentMime,
+        ...(isEditor(actor) ? {} : { uploadedById: actor.id }),
+      },
+    });
+
+    if (count !== pdfIds.length) {
+      throw new MediaSelectionError();
+    }
+  }
+
   if (!ids.length) {
     return;
   }
@@ -444,6 +469,7 @@ async function validateMediaSelection(
   const count = await tx.media.count({
     where: {
       id: { in: ids },
+      mime: { not: documentMime },
       ...(isEditor(actor)
         ? {}
         : {

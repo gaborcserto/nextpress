@@ -150,14 +150,21 @@ function PreviewPostsPage({
 }
 
 export function PreviewPageContent({
+  adminOrigin,
   snapshot,
   appearance,
 }: {
+  adminOrigin: string;
   snapshot: LivePreviewSnapshot;
   appearance: PreviewAppearance;
 }) {
   const type = resolvePageType(snapshot.layout);
-  const blocks = <PreviewDocumentBlocks raw={snapshot.pageDocument} />;
+  const blocks = (
+    <PreviewDocumentBlocks
+      raw={snapshot.pageDocument}
+      adminOrigin={adminOrigin}
+    />
+  );
 
   if (type === "posts") {
     return (
@@ -191,7 +198,13 @@ export function previewCover(cover?: EditorImage | null) {
     : null;
 }
 
-export function PreviewDocumentBlocks({ raw }: { raw: string | null }) {
+export function PreviewDocumentBlocks({
+  raw,
+  adminOrigin,
+}: {
+  raw: string | null;
+  adminOrigin: string;
+}) {
   const document = useMemo(() => (raw ? readPageDocument(raw) : null), [raw]);
 
   return document?.supported ? (
@@ -199,6 +212,7 @@ export function PreviewDocumentBlocks({ raw }: { raw: string | null }) {
       key={raw}
       document={document.document}
       Listing={PreviewDocumentListing}
+      documentOrigin={adminOrigin}
     />
   ) : null;
 }

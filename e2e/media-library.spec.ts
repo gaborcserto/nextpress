@@ -465,7 +465,7 @@ test("replaces and removes a post cover independently of a structured image", as
     .click();
   await picker.getByRole("button", { name: "Use selection" }).click();
   await page
-    .getByRole("group", { name: "Content images" })
+    .getByRole("group", { name: "Content assets" })
     .getByRole("textbox", { name: "Alternative text" })
     .fill("Context-specific red shape");
   await save.click();

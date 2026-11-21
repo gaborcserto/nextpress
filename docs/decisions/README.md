@@ -39,3 +39,5 @@ Do not invent historical rationale or dates. Existing architecture is summarized
 | Templates                                                       | Public template registry and presets in Web; appearance is separate from page/content structure.  |
 
 Add a numbered ADR when a new choice needs durable context. A decision rationale or date belongs in a record only when verified from evidence.
+
+- [ADR-003: PDF documents use the existing asset store](003-pdf-document-assets.md)

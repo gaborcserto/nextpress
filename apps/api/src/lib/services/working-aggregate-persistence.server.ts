@@ -2,6 +2,8 @@ import "server-only";
 
 import { pageLayouts } from "@nextpress/shared/content";
 import { canonicalEditorialJson } from "@nextpress/shared/editorial-contracts";
+import { documentMime } from "@nextpress/shared/media";
+import { pageDocumentIds } from "@nextpress/shared/page-document";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 
@@ -509,15 +511,35 @@ export async function saveWorkingAggregate(
           aggregate.snapshot,
         );
 
+        const previousDocument = current.aggregate.snapshot.fields.pageDocument;
+        const retainedDocuments = new Set(
+          previousDocument ? pageDocumentIds(previousDocument) : [],
+        );
+        const restrictNewDocuments =
+          actor.role === "AUTHOR" && command.operation === undefined;
+
         // Stable table/id order. Retained foreign keys also protect references after commit.
         for (const id of [
           ...new Set(edges.media.map((edge) => edge.mediaId)),
         ].sort()) {
           const found = await tx.$queryRaw<
-            unknown[]
-          >`SELECT id FROM "Media" WHERE id = ${id} FOR KEY SHARE NOWAIT`;
+            { mime: string; uploadedById: string | null }[]
+          >`SELECT mime, "uploadedById" FROM "Media" WHERE id = ${id} FOR KEY SHARE NOWAIT`;
+          const asset = found[0];
 
-          if (found.length !== 1) {
+          if (
+            !asset ||
+            (restrictNewDocuments &&
+              asset.mime === documentMime &&
+              asset.uploadedById !== actor.id &&
+              !retainedDocuments.has(id)) ||
+            edges.media.some(
+              (edge) =>
+                edge.mediaId === id &&
+                edge.path.endsWith(".documentId") !==
+                  (asset.mime === documentMime),
+            )
+          ) {
             throw new WorkingAggregateConflictError("REFERENCE_CONFLICT");
           }
         }

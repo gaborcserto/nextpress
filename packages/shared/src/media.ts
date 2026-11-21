@@ -45,6 +45,8 @@ export const MediaInputMimeSchema = z.enum([
   "image/gif",
 ]);
 export type MediaInputMime = z.infer<typeof MediaInputMimeSchema>;
+export const documentMime = "application/pdf";
+export const maxDocumentUploadBytes = 10 * 1024 * 1024;
 export const maxStoredMediaBytes = 8_388_608;
 export const maxMediaUploadBytes = 2_097_152;
 
@@ -76,6 +78,8 @@ export const MediaAssetSchema = MediaMetadataSchema.extend({
 
 export const MediaDetailsSchema = MediaAssetSchema.extend({
   inUse: z.boolean().nullable(),
+  uploadedById: z.string().nullable().optional(),
+  publiclyAvailable: z.boolean().optional(),
 });
 
 export const MediaBrowseSchema = z.strictObject({
@@ -87,6 +91,19 @@ export const MediaBrowseSchema = z.strictObject({
   direction: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().min(1).max(100_000).default(1),
 });
+
+export const DocumentBrowseSchema = MediaBrowseSchema.omit({ mime: true });
+
+export const DocumentFilenameSchema = z
+  .string()
+  .trim()
+  .min(5)
+  .max(255)
+  .refine(
+    (value) =>
+      value.toLowerCase().endsWith(".pdf") &&
+      !/[<>:"/\\|?*\p{Cc}\p{Cf}\p{Cs}]/u.test(value),
+  );
 
 export const MediaCollectionSchema = z.object({
   items: z.array(MediaAssetSchema),

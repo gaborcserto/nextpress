@@ -1,6 +1,11 @@
 import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
+import { documentMime } from "@nextpress/shared/media";
+import {
+  pageDocumentIds,
+  readPageDocument,
+} from "@nextpress/shared/page-document";
 
 import {
   contentWriteWhere,
@@ -8,6 +13,7 @@ import {
   isEditor,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { publicPublicationWhere } from "@/lib/public/eligibility";
 import { escapeListSearch } from "@/lib/validation/list-query";
 
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
@@ -35,10 +41,17 @@ export function mediaWriteWhere(actor: ContentActor) {
   return isEditor(actor) ? {} : { uploadedById: actor.id };
 }
 
-export async function browseMedia(query: MediaBrowse, actor: ContentActor) {
+export async function browseMedia(
+  query: MediaBrowse,
+  actor: ContentActor,
+  kind: "image" | "document" = "image",
+) {
   const { page, q, sort, direction, mime } = query;
   const pageSize = 24;
-  const where: Prisma.MediaWhereInput = mediaWriteWhere(actor);
+  const where: Prisma.MediaWhereInput = {
+    ...mediaWriteWhere(actor),
+    mime: kind === "document" ? documentMime : { not: documentMime },
+  };
 
   if (mime) {
     where.AND = [
@@ -106,19 +119,42 @@ export async function isMediaReferenced(
   return Boolean(pages || revisions || retainedMedia);
 }
 
+export async function isPdfPublic(id: string) {
+  const candidates = await prisma.page.findMany({
+    where: {
+      ...publicPublicationWhere(new Date()),
+      pageDocument: { contains: JSON.stringify(id) },
+    },
+    select: { pageDocument: true },
+  });
+
+  return candidates.some(({ pageDocument }) => {
+    const parsed = pageDocument ? readPageDocument(pageDocument) : null;
+
+    return parsed?.supported && pageDocumentIds(parsed.document).includes(id);
+  });
+}
+
 export async function mediaDetails(id: string, actor: ContentActor) {
   const item = await prisma.media.findUnique({
     where: { id, ...mediaWriteWhere(actor) },
-    select: libraryMetadata,
+    select: { ...libraryMetadata, uploadedById: true },
   });
 
   if (!item) {
     throw new ContentNotFoundError();
   }
 
+  const { uploadedById, ...metadata } = item;
+  const [inUse, publiclyAvailable] = await Promise.all([
+    isEditor(actor) ? isMediaReferenced(id, prisma) : null,
+    item.mime === documentMime ? isPdfPublic(id) : undefined,
+  ]);
+
   return {
-    ...item,
-    inUse: isEditor(actor) ? await isMediaReferenced(id, prisma) : null,
+    ...metadata,
+    inUse,
+    ...(item.mime === documentMime ? { uploadedById, publiclyAvailable } : {}),
   };
 }
 

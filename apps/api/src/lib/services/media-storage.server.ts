@@ -2,9 +2,10 @@ import "server-only";
 
 import { mkdir, open, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
 
 function storagePath(key: string) {
-  if (!/^[a-f0-9-]{36}\.(?:png|jpg|webp|avif|gif)$/.test(key)) {
+  if (!/^[a-f0-9-]{36}\.(?:png|jpg|webp|avif|gif|pdf)$/.test(key)) {
     throw new Error("Invalid storage key");
   }
 
@@ -48,6 +49,14 @@ export const mediaStorage = {
   },
   read(key: string) {
     return readFile(/* turbopackIgnore: true */ storagePath(key));
+  },
+  async stream(key: string) {
+    const file = await open(/* turbopackIgnore: true */ storagePath(key), "r");
+
+    // Node and lib.dom declare different types for the same WHATWG stream.
+    return Readable.toWeb(
+      file.createReadStream(),
+    ) as ReadableStream<Uint8Array>;
   },
   remove(key: string) {
     return unlink(storagePath(key));

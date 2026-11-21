@@ -5,6 +5,7 @@ import {
   FaCog,
   FaCopy,
   FaHome,
+  FaFilePdf,
   FaImages,
   FaTags,
   FaThumbtack,
@@ -47,6 +48,11 @@ export default function Sidebar({
       ? [
           ...publishingItems,
           { href: "/admin/media", label: mediaText.library, icon: FaImages },
+          {
+            href: "/admin/documents",
+            label: mediaText.documents,
+            icon: FaFilePdf,
+          },
         ]
       : publishingItems;
   const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";

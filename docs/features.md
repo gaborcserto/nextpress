@@ -69,3 +69,7 @@ GIF playback is opt-in in media details, public content, and protected previews,
 ## Proposed optional AI
 
 All items remain **Proposed**: article summaries, title suggestions, SEO recommendations, tag recommendations, related articles, semantic search, and AI-assisted website building. No AI feature is represented as implemented.
+
+### Document Library
+
+The Admin Document Library supports PDF browsing, per-file upload status, metadata editing and authorized attachment downloads. Post and Page editors can select a PDF and set the label and description for its structured download block. The public site requires a current published reference, while the Admin endpoint can serve protected documents to editors and owning authors. Referenced documents are protected from deletion. See the [PDF storage and delivery decision](decisions/003-pdf-document-assets.md) for limits, preview behavior and deployment requirements.

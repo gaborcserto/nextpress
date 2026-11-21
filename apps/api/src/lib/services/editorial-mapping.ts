@@ -106,6 +106,13 @@ export function mapEditorialReferenceEdges(
       block.props.mediaId
     ) {
       addMedia(block.props.mediaId, "DOCUMENT", `${path}.props.mediaId`, 0);
+    } else if (block.type === "document") {
+      addMedia(
+        block.props.documentId,
+        "DOCUMENT",
+        `${path}.props.documentId`,
+        0,
+      );
     } else if (block.type === "content-listing" && block.props.taxonomyId) {
       listingIds.add(block.props.taxonomyId);
     }

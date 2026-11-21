@@ -9,6 +9,7 @@ import {
   FaArrowRight,
   FaCalendarAlt,
   FaClock,
+  FaFilePdf,
   FaImages,
   FaPlus,
 } from "react-icons/fa";
@@ -197,6 +198,14 @@ export default function DashboardScreen({
               variant="outline"
             >
               {mediaText.library}
+            </LinkIconButton>
+            <LinkIconButton
+              href="/admin/documents"
+              aria-label={mediaText.documents}
+              icon={FaFilePdf}
+              variant="outline"
+            >
+              {mediaText.documents}
             </LinkIconButton>
           </div>
         )

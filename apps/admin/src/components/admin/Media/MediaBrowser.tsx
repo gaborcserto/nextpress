@@ -8,6 +8,7 @@ import {
   type MediaBrowse,
 } from "@nextpress/shared/media";
 import Image from "next/image";
+import { FaFilePdf } from "react-icons/fa";
 import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
@@ -73,6 +74,7 @@ type BrowserProps = {
   onAsset: (asset: MediaAsset) => void;
   selected?: readonly string[];
   library?: boolean;
+  documents?: boolean;
 };
 
 async function fetchCollection(url: string) {
@@ -89,8 +91,9 @@ export function MediaBrowser({
   onAsset,
   selected,
   library,
+  documents = false,
 }: BrowserProps) {
-  const text = useMediaMessages();
+  const text = useMediaMessages(documents);
   const params = new URLSearchParams({
     page: String(query.page),
     sort: query.sort,
@@ -106,14 +109,14 @@ export function MediaBrowser({
   }
 
   const { data, error, mutate } = useSWR(
-    `/api/media/library?${params}`,
+    `${documents ? "/api/documents" : "/api/media/library"}?${params}`,
     fetchCollection,
     { shouldRetryOnError: false },
   );
 
   return (
     <div className="grid gap-4">
-      <MediaUploads onUploaded={() => void mutate()} />
+      <MediaUploads documents={documents} onUploaded={() => void mutate()} />
       <form
         key={params.toString()}
         className="flex flex-wrap items-end gap-2"
@@ -139,21 +142,23 @@ export function MediaBrowser({
             className="input w-full"
           />
         </label>
-        <label className="grid gap-1 text-sm">
-          {text.format}
-          <select
-            name="mime"
-            defaultValue={query.mime ?? ""}
-            className="select"
-          >
-            <option value="">{text.any}</option>
-            {MediaInputMimeSchema.options.map((mime) => (
-              <option key={mime} value={mime}>
-                {mime.slice(6).toUpperCase()}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!documents && (
+          <label className="grid gap-1 text-sm">
+            {text.format}
+            <select
+              name="mime"
+              defaultValue={query.mime ?? ""}
+              className="select"
+            >
+              <option value="">{text.any}</option>
+              {MediaInputMimeSchema.options.map((mime) => (
+                <option key={mime} value={mime}>
+                  {mime.slice(6).toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="grid gap-1 text-sm">
           {text.sort}
           <select name="sort" defaultValue={query.sort} className="select">
@@ -233,15 +238,30 @@ export function MediaBrowser({
                         : "grid gap-2"
                     }
                   >
-                    <MediaThumbnail asset={{ ...asset, alt: "" }} />
+                    {documents ? (
+                      <FaFilePdf aria-hidden="true" />
+                    ) : (
+                      <MediaThumbnail asset={{ ...asset, alt: "" }} />
+                    )}
                     <span className="wrap-anywhere">
-                      {name}
+                      {documents ? asset.caption || name : name}
+                      {documents && asset.caption && (
+                        <small className="block">{name}</small>
+                      )}
                       {view === "list" && (
                         <small className="block text-(--text-muted)">
                           {asset.originalMime ?? asset.mime} ·{" "}
                           {asset.size === null
                             ? text.unknown
                             : `${Math.ceil(asset.size / 1024)} KiB`}
+                        </small>
+                      )}
+                      {documents && (
+                        <small className="block text-(--text-muted)">
+                          {text.createdAt}{" "}
+                          {new Date(asset.createdAt).toLocaleDateString()}
+                          {asset.updatedAt &&
+                            ` · ${text.updatedAt} ${new Date(asset.updatedAt).toLocaleDateString()}`}
                         </small>
                       )}
                       {active && (

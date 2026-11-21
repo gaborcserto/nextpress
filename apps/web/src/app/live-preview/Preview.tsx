@@ -84,7 +84,11 @@ export default function Preview({ adminOrigin, appearance }: PreviewProps) {
   return (
     <PreviewMediaContext.Provider value={loadMedia}>
       {kind === "pages" ? (
-        <PreviewPageContent snapshot={snapshot} appearance={appearance} />
+        <PreviewPageContent
+          adminOrigin={adminOrigin}
+          snapshot={snapshot}
+          appearance={appearance}
+        />
       ) : (
         <ContentArticle
           kind="posts"
@@ -104,7 +108,10 @@ export default function Preview({ adminOrigin, appearance }: PreviewProps) {
             </>
           }
         >
-          <PreviewDocumentBlocks raw={snapshot.pageDocument} />
+          <PreviewDocumentBlocks
+            adminOrigin={adminOrigin}
+            raw={snapshot.pageDocument}
+          />
         </ContentArticle>
       )}
     </PreviewMediaContext.Provider>

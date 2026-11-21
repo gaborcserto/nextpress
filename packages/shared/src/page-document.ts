@@ -43,6 +43,15 @@ export const PageLeafBlockSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     ...identity,
+    type: z.literal("document"),
+    props: z.strictObject({
+      documentId: reference,
+      label: z.string().max(500),
+      description: z.string().max(2000),
+    }),
+  }),
+  z.strictObject({
+    ...identity,
     type: z.literal("image"),
     props: z.strictObject({ mediaId: reference, alt: label }),
   }),
@@ -114,12 +123,27 @@ export function pageMediaIds(document: PageDocument): string[] {
   ];
 }
 
+export function pageDocumentIds(document: PageDocument): string[] {
+  const blocks = document.blocks.flatMap((block) =>
+    block.type === "columns" ? block.regions.flat() : [block],
+  );
+
+  return [
+    ...new Set(
+      blocks.flatMap((block) =>
+        block.type === "document" ? [block.props.documentId] : [],
+      ),
+    ),
+  ];
+}
+
 export const PAGE_DOCUMENT_CAPABILITIES = {
   documentVersion: 1,
   blocks: {
     "rich-text": 1,
     hero: 1,
     image: 1,
+    document: 1,
     "call-to-action": 1,
     columns: 1,
     "content-listing": 1,

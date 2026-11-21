@@ -1,4 +1,4 @@
-import { MediaInputMimeSchema } from "@nextpress/shared/media";
+import { documentMime, MediaInputMimeSchema } from "@nextpress/shared/media";
 import {
   renderRequestId,
   requestIdHeader,
@@ -54,11 +54,16 @@ export async function GET(
       });
     }
 
+    const disposition = response.headers.get("Content-Disposition");
+    const pdf =
+      response.headers.get("Content-Type") === documentMime &&
+      disposition?.startsWith("attachment;");
+
     const mime = MediaInputMimeSchema.safeParse(
       response.headers.get("Content-Type"),
     );
 
-    if (!mime.success) {
+    if (!mime.success && !pdf) {
       await response.body?.cancel();
 
       return new Response(null, {
@@ -69,7 +74,13 @@ export async function GET(
 
     return new Response(response.body, {
       headers: {
-        "Content-Type": mime.data,
+        "Content-Type": mime.data ?? documentMime,
+        ...(pdf && disposition
+          ? {
+              "Content-Disposition": disposition,
+              "Content-Security-Policy": "sandbox; default-src 'none'",
+            }
+          : {}),
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
         [requestIdHeader]: requestId,

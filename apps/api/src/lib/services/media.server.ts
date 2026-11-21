@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
 import {
+  documentMime,
   maxMediaUploadBytes,
   maxStoredMediaBytes,
   MediaInputMimeSchema,
@@ -32,6 +33,7 @@ import {
   mediaWriteWhere,
   libraryMetadata,
   isMediaReferenced,
+  isPdfPublic,
 } from "./media-library.server";
 import { mediaStorage } from "./media-storage.server";
 
@@ -75,7 +77,7 @@ export async function listMedia(actor: ContentActor) {
   contentWriteWhere(actor);
 
   return prisma.media.findMany({
-    where: isEditor(actor) ? {} : { uploadedById: actor.id },
+    where: { ...mediaWriteWhere(actor), mime: { not: documentMime } },
     select: metadata,
     take: 100,
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
@@ -120,11 +122,32 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
     throw new MediaValidationError();
   }
 
-  const key = `${randomUUID()}.${normalized.extension}`;
+  return storeMedia(normalized.data, normalized.extension, parsed.mime, actor, {
+    filename: parsed.filename,
+    alt: parsed.alt,
+    width: normalized.width,
+    height: normalized.height,
+  });
+}
+
+export async function storeMedia(
+  bytes: Buffer,
+  extension: string,
+  mime: string,
+  actor: ContentActor,
+  details: {
+    filename?: string;
+    alt?: string | null;
+    width?: number;
+    height?: number;
+    caption?: string;
+  },
+) {
+  const key = `${randomUUID()}.${extension}`;
   const id = randomUUID();
 
   try {
-    await mediaStorage.put(key, normalized.data);
+    await mediaStorage.put(key, bytes);
   } catch (error) {
     if (error instanceof AggregateError) {
       logCleanupFailure();
@@ -139,13 +162,14 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
         id,
         key,
         url: `/media/${id}`,
-        mime: parsed.mime,
-        filename: parsed.filename,
-        originalMime: parsed.mime,
-        size: normalized.data.length,
-        alt: parsed.alt,
-        width: normalized.width,
-        height: normalized.height,
+        mime,
+        filename: details.filename,
+        originalMime: mime,
+        size: bytes.length,
+        alt: details.alt,
+        width: details.width,
+        height: details.height,
+        caption: details.caption,
         uploadedById: actor.id,
       },
       select: libraryMetadata,
@@ -174,7 +198,11 @@ export async function uploadMedia(input: unknown, actor: ContentActor) {
 export async function serveMedia(id: string, actor?: ContentActor) {
   const media = await prisma.media.findUnique({ where: { id } });
 
-  if (!media?.key || !MediaInputMimeSchema.safeParse(media.mime).success) {
+  if (
+    !media?.key ||
+    (media.mime !== documentMime &&
+      !MediaInputMimeSchema.safeParse(media.mime).success)
+  ) {
     throw new ContentNotFoundError();
   }
 
@@ -182,6 +210,42 @@ export async function serveMedia(id: string, actor?: ContentActor) {
     actor &&
     (isEditor(actor) ||
       (actor.role === "AUTHOR" && media.uploadedById === actor.id));
+
+  if (media.mime === documentMime) {
+    if (!canManage && !(await isPdfPublic(id))) {
+      throw new ContentNotFoundError();
+    }
+
+    const filename = encodeURIComponent(
+      media.filename ?? "document.pdf",
+    ).replace(
+      /['()*]/g,
+      (character) => `%${character.charCodeAt(0).toString(16)}`,
+    );
+
+    try {
+      const body = await mediaStorage.stream(media.key);
+
+      return new Response(body, {
+        headers: {
+          "Content-Type": documentMime,
+          "Content-Disposition": `attachment; filename="document.pdf"; filename*=UTF-8''${filename}`,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": "private, no-store",
+          "Content-Security-Policy": "sandbox; default-src 'none'",
+          ...(media.size === null
+            ? {}
+            : { "Content-Length": String(media.size) }),
+        },
+      });
+    } catch (error) {
+      if (missingFile(error)) {
+        throw new ContentNotFoundError();
+      }
+
+      throw error;
+    }
+  }
 
   if (!canManage) {
     const published = await prisma.page.findMany({

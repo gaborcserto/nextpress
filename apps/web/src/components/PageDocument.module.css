@@ -29,3 +29,15 @@
 .document li + li {
   margin-block-start: 0.75rem;
 }
+
+.download {
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  padding: 0.75rem 1rem;
+  overflow-wrap: anywhere;
+}
+
+.download a {
+  font-weight: 600;
+  text-decoration: underline;
+}
