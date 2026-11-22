@@ -12,7 +12,7 @@ export default function Section({
   const wrap =
     variant === "plain"
       ? "rounded-none bg-transparent border-none shadow-none px-0"
-      : "bg-base-100 border border-base-300 rounded-[var(--radius-surface)]";
+      : "admin-surface";
 
   return (
     <section className={[wrap, className].filter(Boolean).join(" ")}>
@@ -20,7 +20,7 @@ export default function Section({
         className={
           variant === "plain"
             ? "mb-3.5"
-            : "px-4 sm:px-6 pt-4 pb-3 border-b border-base-300"
+            : "px-4 sm:px-6 pt-4 pb-3 border-b border-(--surface-border)"
         }
       >
         <h2 className="text-lg leading-snug font-semibold wrap-anywhere">

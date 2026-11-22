@@ -14,7 +14,7 @@ export function DataListSurface({
   return (
     <div
       className={
-        "w-full overflow-x-auto rounded-(--radius-surface) border border-(--surface-border) bg-base-100" +
+        "admin-surface w-full overflow-x-auto" +
         (reserveSpace ? " admin-discovery-results" : "")
       }
       role={label ? "region" : undefined}
@@ -24,7 +24,7 @@ export function DataListSurface({
       {pendingLabel ? (
         <>
           <span role="status" className="sr-only">
-            Loading {pendingLabel}?
+            Loading {pendingLabel}…
           </span>
           <div inert aria-busy="true" className="opacity-50">
             {children}

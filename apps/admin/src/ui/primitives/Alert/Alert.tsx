@@ -7,7 +7,7 @@ import {
   FaInfoCircle,
 } from "react-icons/fa";
 
-import type { AlertProps } from "@/ui/primitives/Alert/Alert.types";
+import type { AlertProps } from "./Alert.types";
 
 export default function Alert({
   message,
@@ -18,8 +18,6 @@ export default function Alert({
   if (!message) {
     return null;
   }
-
-  const variantClass = `alert alert-${status}`;
 
   const defaultIcon =
     status === "success" ? (
@@ -35,10 +33,11 @@ export default function Alert({
   return (
     <div
       role={status === "error" || status === "warning" ? "alert" : "status"}
-      className={`${variantClass} mb-3 ${className}`}
+      className={`admin-alert mb-3 ${className}`}
+      data-status={status}
     >
       <span aria-hidden="true">{icon || defaultIcon}</span>
-      {message}
+      <span>{message}</span>
     </div>
   );
 }

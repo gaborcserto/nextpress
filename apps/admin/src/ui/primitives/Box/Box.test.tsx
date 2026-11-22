@@ -7,6 +7,6 @@ describe("Box", () => {
   it("renders its content in a surface", () => {
     render(<Box>Settings</Box>);
 
-    expect(screen.getByText("Settings")).toHaveClass("bg-base-100");
+    expect(screen.getByText("Settings")).toHaveClass("admin-surface");
   });
 });

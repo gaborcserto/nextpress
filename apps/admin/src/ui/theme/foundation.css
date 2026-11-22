@@ -70,6 +70,113 @@
   }
 }
 
+/* Shared Admin surfaces and feedback use the same roles as overlays and fields. */
+.admin-surface {
+  min-inline-size: 0;
+  border: var(--border-width) solid var(--surface-border);
+  border-radius: var(--radius-surface);
+  background: var(--surface-bg);
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  max-inline-size: 100%;
+  min-block-size: 1.5rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-tight);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--text-help-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.admin-alert {
+  --feedback-color: var(--accent-text);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--surface-border);
+  border-inline-start: var(--focus-width) solid var(--feedback-color);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--feedback-color) 7%, var(--surface-bg));
+  color: var(--text-primary);
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-leading);
+  overflow-wrap: anywhere;
+}
+
+.admin-alert[data-status="error"] {
+  --feedback-color: var(--danger-text);
+}
+
+.admin-alert[data-status="warning"] {
+  --feedback-color: var(--status-warning-text);
+}
+
+.admin-alert[data-status="success"] {
+  --feedback-color: var(--status-success-text);
+}
+
+.admin-alert > [aria-hidden="true"] {
+  align-self: start;
+  margin-block-start: 0.1875rem;
+  color: var(--feedback-color);
+}
+
+.admin-button {
+  position: relative;
+  block-size: auto;
+  max-inline-size: 100%;
+}
+
+.admin-button:not(
+  .btn-square,
+  .btn-circle,
+  .btn-xs,
+  .btn-sm,
+  .btn-lg,
+  .btn-xl
+) {
+  padding-inline: min(var(--space-control-inline), 4vi);
+}
+
+.admin-button:not(.btn-xs, .btn-sm, .btn-lg, .btn-xl) {
+  min-block-size: var(--control-min-height);
+}
+
+/* A busy action keeps its label and layout while the operation status updates. */
+.admin-button[aria-busy="true"]::after {
+  position: absolute;
+  inset: auto var(--space-2) var(--space-1);
+  block-size: var(--focus-width);
+  border-radius: var(--radius-tight);
+  background: currentColor;
+  content: "";
+}
+
+@media (pointer: coarse) {
+  .admin-icon-button {
+    min-inline-size: var(--target-touch);
+    min-block-size: var(--target-touch);
+  }
+}
+
+.admin-choice-label {
+  min-block-size: var(--target-min);
+  overflow-wrap: anywhere;
+}
+
+@media (pointer: coarse) {
+  .admin-choice-label {
+    min-block-size: var(--target-touch);
+  }
+}
+
 .form-control {
   min-inline-size: 0;
 }

@@ -22,7 +22,7 @@ export default function Checkbox({
     <label
       htmlFor={inputId}
       className={cx(
-        "cursor-pointer flex items-center gap-2",
+        "admin-choice-label cursor-pointer flex items-center gap-2",
         disabled && "opacity-60 cursor-not-allowed",
         className,
       )}
@@ -30,10 +30,9 @@ export default function Checkbox({
       <input
         id={inputId}
         type="checkbox"
-        className="checkbox"
+        className="checkbox shrink-0"
         checked={checked}
         disabled={disabled}
-        aria-checked={checked}
         onChange={(e) => onChangeAction?.(e.target.checked)}
       />
       {label && <span>{label}</span>}

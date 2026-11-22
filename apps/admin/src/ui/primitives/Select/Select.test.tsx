@@ -69,3 +69,25 @@ it("supports controlled values and associates the active validation message", ()
   expect(select).toHaveAttribute("aria-invalid", "true");
   expect(select).toHaveAccessibleDescription("Status is unavailable.");
 });
+
+it("keeps field instructions available when a validation error is shown", () => {
+  render(
+    <>
+      <p id="status-context">Controls public visibility.</p>
+      <Select
+        label="Status"
+        required
+        hint="Choose a publication state."
+        error="Select a status."
+        aria-describedby="status-context"
+        options={options}
+      />
+    </>,
+  );
+  const select = screen.getByRole("combobox", { name: "Status" });
+  expect(select).toBeRequired();
+  expect(select).toHaveAccessibleDescription(
+    "Controls public visibility. Choose a publication state. Select a status.",
+  );
+  expect(screen.getByRole("alert")).toHaveTextContent("Select a status.");
+});

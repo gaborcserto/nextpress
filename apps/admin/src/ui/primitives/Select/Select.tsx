@@ -3,6 +3,8 @@
 import { useId, type ChangeEvent } from "react";
 import { FiChevronDown } from "react-icons/fi";
 
+import { FieldFeedback, FieldLabel, fieldDescription } from "../FieldFeedback";
+
 import type { SelectProps } from "./Select.types";
 
 /** Join classNames like in `Input` component */
@@ -24,16 +26,19 @@ export default function Select({
   onChangeAction,
   disabled,
   placeholder,
+  "aria-describedby": externalDescription,
+  "aria-invalid": invalid,
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id || generatedId;
 
   const widthCls = fullWidth ? "w-full" : "";
-  const describedBy = error
-    ? `${selectId}-error`
-    : hint
-      ? `${selectId}-hint`
-      : undefined;
+  const describedBy = fieldDescription({
+    id: selectId,
+    hint,
+    error,
+    describedBy: externalDescription,
+  });
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChangeAction?.(e.target.value);
@@ -41,16 +46,12 @@ export default function Select({
 
   return (
     <div className="form-control">
-      {label && (
-        <label htmlFor={selectId} className="label">
-          <span className="label-text">{label}</span>
-        </label>
-      )}
+      <FieldLabel id={selectId} label={label} required={required} />
 
       <div className={cx("admin-select-trigger", widthCls)}>
         <select
           id={selectId}
-          aria-invalid={!!error}
+          aria-invalid={error ? true : invalid}
           aria-describedby={describedBy}
           disabled={disabled}
           className={cx("select", className)}
@@ -79,21 +80,7 @@ export default function Select({
         <FiChevronDown className="admin-select-chevron" aria-hidden="true" />
       </div>
 
-      {hint && !error && (
-        <span id={`${selectId}-hint`} className="label-text-alt">
-          {hint}
-        </span>
-      )}
-
-      {error && (
-        <span
-          id={`${selectId}-error`}
-          className="label-text-alt text-error"
-          role="alert"
-        >
-          {error}
-        </span>
-      )}
+      <FieldFeedback id={selectId} hint={hint} error={error} />
     </div>
   );
 }

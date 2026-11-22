@@ -28,7 +28,7 @@ export type ToggleProps = Omit<
   /** Optional label rendered above (like Input). */
   label?: string;
 
-  /** Optional hint shown under the control (if no error). */
+  /** Optional hint shown under the control. */
   hint?: string;
 
   /** Optional error shown under the control. */

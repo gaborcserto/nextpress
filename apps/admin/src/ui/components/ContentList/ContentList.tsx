@@ -25,6 +25,7 @@ import {
   ConfirmDialog,
   useConfirmDialog,
 } from "@/ui/primitives";
+import { Badge } from "@/ui/primitives/Badge";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import ContentListPagination from "./ContentListPagination";
@@ -187,13 +188,12 @@ export default function ContentList({
                       </td>
 
                       <td role="cell">
-                        <span
-                          className="badge badge-soft"
+                        <Badge
                           data-content-status={item.status}
                           title="Publication status reflects the API response time and updates when this list refreshes."
                         >
                           {publicationLabels[item.publicationState]}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td role="cell" className="text-sm">

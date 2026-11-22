@@ -23,6 +23,7 @@ import {
 } from "@/lib/settings/admin-date-time";
 import { DataListLoading } from "@/ui/components/DataList";
 import { Alert, Button, LinkIconButton } from "@/ui/primitives";
+import { Badge } from "@/ui/primitives/Badge";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { useMediaMessages } from "../Media/messages";
@@ -100,7 +101,10 @@ function ContentPanel({ kind, items }: ContentPanelProps) {
           <span className="admin-collection-icon">
             <Icon aria-hidden="true" />
           </span>
-          <h2 id={`dashboard-${kind}`} className="font-semibold">
+          <h2
+            id={`dashboard-${kind}`}
+            className="min-w-0 font-semibold wrap-anywhere"
+          >
             {scheduled
               ? hu
                 ? "Ütemezett közzététel"
@@ -141,9 +145,7 @@ function ContentPanel({ kind, items }: ContentPanelProps) {
                           : "Publishes"}{" "}
                       <AdminTimestamp value={timestamp} />
                     </span>
-                    <span className="badge badge-soft mt-2">
-                      {publicationLabels[state]}
-                    </span>
+                    <Badge className="mt-2">{publicationLabels[state]}</Badge>
                   </div>
                   <FaArrowRight aria-hidden="true" />
                 </Link>

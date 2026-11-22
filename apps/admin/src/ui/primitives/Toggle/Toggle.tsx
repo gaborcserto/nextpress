@@ -1,8 +1,8 @@
 "use client";
 
-import { useToggle } from "./Toggle.hook";
+import { useId } from "react";
 
-import type { ReactNode } from "react";
+import { FieldFeedback, FieldLabel, fieldDescription } from "../FieldFeedback";
 
 import type { ToggleProps } from "./Toggle.types";
 
@@ -57,13 +57,13 @@ export default function Toggle(props: ToggleProps) {
     ...inputProps
   } = props;
 
-  const { inputId, describedBy, handleChange } = useToggle({
-    id: props.id,
-    checked,
-    defaultChecked,
+  const generatedId = useId();
+  const inputId = inputProps.id ?? generatedId;
+  const describedBy = fieldDescription({
+    id: inputId,
     hint,
     error,
-    onChangeAction,
+    describedBy: inputProps["aria-describedby"],
   });
 
   const baseCls = variant === "checkbox" ? "checkbox" : "toggle";
@@ -75,35 +75,13 @@ export default function Toggle(props: ToggleProps) {
     className,
   );
 
-  const below: ReactNode = error ? (
-    <span
-      id={`${inputId}-error`}
-      className="label-text-alt text-error"
-      role="alert"
-    >
-      {error}
-    </span>
-  ) : hint ? (
-    <span id={`${inputId}-hint`} className="label-text-alt">
-      {hint}
-    </span>
-  ) : null;
-
-  // We render:
-  // - optional label above
-  // - a row containing input + inlineLabel (clickable)
-  // - hint/error below
   return (
     <div className="form-control">
-      {label && (
-        <label className="label" htmlFor={inputId}>
-          <span className="label-text">{label}</span>
-        </label>
-      )}
+      <FieldLabel id={inputId} label={label} required={inputProps.required} />
 
       <label
         className={cx(
-          "label cursor-pointer justify-start gap-3",
+          "label admin-choice-label cursor-pointer justify-start gap-3",
           disabled && "opacity-60",
         )}
       >
@@ -117,15 +95,15 @@ export default function Toggle(props: ToggleProps) {
             typeof checked === "boolean" ? undefined : defaultChecked
           }
           disabled={disabled}
-          aria-invalid={!!error}
+          aria-invalid={error ? true : inputProps["aria-invalid"]}
           aria-describedby={describedBy}
-          onChange={handleChange}
+          onChange={(event) => onChangeAction?.(event.target.checked, event)}
         />
 
         {inlineLabel ? <span className="label-text">{inlineLabel}</span> : null}
       </label>
 
-      {below}
+      <FieldFeedback id={inputId} hint={hint} error={error} />
     </div>
   );
 }

@@ -31,15 +31,9 @@ async function selectTheme(page: Page, mode: "Light" | "Dark" | "System") {
 }
 
 async function screenshot(page: Page, name: string) {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-      }),
-  );
-
   await page.screenshot({
     path: `${screenshotDirectory}/${name}.png`,
+    animations: "disabled",
     style: "nextjs-portal { display: none; }",
   });
 }
@@ -183,6 +177,29 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
       () => (document.documentElement.style.fontSize = "200%"),
     );
     await expectNoPageOverflow(page);
+
+    if (path === "") {
+      const quickActions = page.getByRole("group", { name: "Quick actions" });
+
+      const overflowingActions = await quickActions
+        .getByRole("link")
+        .evaluateAll((links) =>
+          links.flatMap((link) => {
+            const labelRange = document.createRange();
+            labelRange.selectNodeContents(link);
+
+            const label = labelRange.getBoundingClientRect();
+            const action = link.getBoundingClientRect();
+
+            return label.top < action.top || label.bottom > action.bottom
+              ? [link.textContent]
+              : [];
+          }),
+        );
+      expect(overflowingActions).toEqual([]);
+      await screenshot(page, "dashboard-dark-320-text-200");
+    }
+
     await page.evaluate(() =>
       document.documentElement.style.removeProperty("font-size"),
     );
@@ -326,6 +343,10 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await expect(account).toBeFocused();
   await account.click();
   await page.locator("main").click({ position: { x: 4, y: 4 } });
+  await expect(menu).toBeHidden();
+  await account.press("Enter");
+  await expect(menu.getByRole("menuitem", { name: "Profile" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(menu).toBeHidden();
 
   const theme = page.getByRole("button", { name: /^Theme:/ });

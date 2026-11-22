@@ -9,11 +9,7 @@ import type { BoxProps } from "./Box.types";
 export default function Box({ children, className, bare, ...rest }: BoxProps) {
   return (
     <div
-      className={[
-        !bare &&
-          "bg-base-100 border border-base-300 rounded-[var(--radius-surface)] p-4 sm:p-6",
-        className,
-      ]
+      className={[!bare && "admin-surface p-4 sm:p-6", className]
         .filter(Boolean)
         .join(" ")}
       {...rest}

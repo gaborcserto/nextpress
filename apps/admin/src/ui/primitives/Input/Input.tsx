@@ -2,6 +2,7 @@
 
 import { FaEye, FaEyeSlash, FaTimes } from "react-icons/fa";
 
+import { FieldFeedback, FieldLabel, fieldDescription } from "../FieldFeedback";
 import { useInput } from "./Input.hook";
 
 import type { InputProps } from "./Input.types";
@@ -70,6 +71,7 @@ function Input(props: InputProps) {
 
   const baseInputClasses = cx(
     "input",
+    "max-w-full",
     sizeCls,
     colorCls,
     variantCls,
@@ -92,25 +94,23 @@ function Input(props: InputProps) {
 
   const inputClasses = cx(baseInputClasses, paddingStartCls, paddingEndCls);
 
-  const messageId = error
-    ? `${inputId}-error`
-    : hint
-      ? `${inputId}-hint`
-      : undefined;
-  const describedBy =
-    cx(inputProps["aria-describedby"], messageId) || undefined;
+  const describedBy = fieldDescription({
+    id: inputId,
+    hint,
+    error,
+    describedBy: inputProps["aria-describedby"],
+  });
 
   return (
     <div className="form-control w-full relative">
-      {label && (
-        <label htmlFor={inputId} className="label">
-          <span className="label-text">{label}</span>
-        </label>
-      )}
+      <FieldLabel id={inputId} label={label} required={inputProps.required} />
 
       <div className="relative">
         {hasLeftIcon && (
-          <span className="absolute start-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
+          <span
+            aria-hidden="true"
+            className="absolute start-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none"
+          >
             {leftIcon}
           </span>
         )}
@@ -156,27 +156,16 @@ function Input(props: InputProps) {
         )}
 
         {showRightIcon && (
-          <span className="absolute end-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none">
+          <span
+            aria-hidden="true"
+            className="absolute end-3 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none"
+          >
             {rightIcon}
           </span>
         )}
       </div>
 
-      {hint && !error && (
-        <span id={`${inputId}-hint`} className="label-text-alt">
-          {hint}
-        </span>
-      )}
-
-      {error && (
-        <span
-          id={`${inputId}-error`}
-          className="label-text-alt text-error"
-          role="alert"
-        >
-          {error}
-        </span>
-      )}
+      <FieldFeedback id={inputId} hint={hint} error={error} />
     </div>
   );
 }

@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useId, useLayoutEffect, useRef } from "react";
 import { FaCheck, FaTimes, FaTrash } from "react-icons/fa";
 
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
+import { Alert } from "@/ui/primitives/Alert";
 import { Button } from "@/ui/primitives/Buttons";
 
 import type { ConfirmDialogProps } from "./ConfirmDialog.types";
@@ -90,11 +91,7 @@ export function ConfirmDialog({
               {children}
             </div>
           )}
-          {error && (
-            <p role="alert" className="mt-3 text-error">
-              {error}
-            </p>
-          )}
+          {error && <Alert message={error} status="error" className="mt-3" />}
           {loading && (
             <p role="status" className="mt-3">
               Please wait…

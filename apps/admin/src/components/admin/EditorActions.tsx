@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import Link from "next/link";
 import { useContext } from "react";
 import { createPortal } from "react-dom";
 import { FaCalendarAlt, FaClock, FaSave, FaTimes } from "react-icons/fa";
@@ -9,7 +8,8 @@ import {
   publicationLabels,
   savedPublicationState,
 } from "@/lib/content/publication-status";
-import { Button } from "@/ui/primitives";
+import { Badge } from "@/ui/primitives/Badge";
+import { Button, LinkButton } from "@/ui/primitives/Buttons";
 import { EditorHeaderContext } from "@/ui/shell/EditorHeaderContext";
 
 import type { ReactNode } from "react";
@@ -59,10 +59,10 @@ export function EditorActions({
       <div className="admin-action-controls">
         <div className="admin-editor-buttons">
           {revisionsHref && (
-            <Link className="btn btn-ghost" href={revisionsHref}>
+            <LinkButton variant="ghost" href={revisionsHref}>
               <FaClock aria-hidden="true" />
               <span className="min-w-0">Working revisions</span>
-            </Link>
+            </LinkButton>
           )}
           {preview}
           {privateDraft && (
@@ -89,12 +89,9 @@ export function EditorActions({
         </div>
       </div>
       <div className="admin-action-status">
-        <span
-          className="badge badge-soft"
-          data-content-status={publication.status}
-        >
+        <Badge data-content-status={publication.status}>
           {publicationLabels[savedPublicationState(publication)]}
-        </span>
+        </Badge>
         <span role="status">
           {privateDraft ? privateSaveStatus(privateDraft) : saveStatus}
         </span>

@@ -1,5 +1,7 @@
 "use client";
 
+import type { ComponentPropsWithoutRef } from "react";
+
 type OptionValue = string | number;
 
 type SelectOption = {
@@ -8,7 +10,10 @@ type SelectOption = {
   disabled?: boolean;
 };
 
-export type SelectProps = {
+export type SelectProps = Pick<
+  ComponentPropsWithoutRef<"select">,
+  "aria-describedby" | "aria-invalid"
+> & {
   label?: string;
   hint?: string;
   error?: string;

@@ -2,16 +2,12 @@
 
 import Link from "next/link";
 
-import type { ReactNode } from "react";
-
 import type {
   BaseProps,
   ButtonProps,
   IconButtonProps,
-  IconProps,
   LinkButtonProps,
   LinkIconButtonProps,
-  Size,
 } from "./Buttons.types";
 
 const cx = (...xs: Array<string | false | undefined>) =>
@@ -41,7 +37,7 @@ function buildClasses({
   BaseProps,
   "variant" | "color" | "size" | "fullWidth" | "wide" | "active" | "className"
 >) {
-  const base = "btn";
+  const base = "btn admin-button";
 
   const sizeCls =
     size === "xs"
@@ -86,16 +82,6 @@ function buildClasses({
   );
 }
 
-function spinnerSize(size?: Size) {
-  return size === "xs"
-    ? "loading-xs"
-    : size === "sm"
-      ? "loading-sm"
-      : size === "lg" || size === "xl"
-        ? "loading-lg"
-        : "loading-md";
-}
-
 function BaseButton({
   children,
   className,
@@ -107,7 +93,7 @@ function BaseButton({
   wide,
   active,
   ...domProps
-}: BaseProps & Partial<IconProps>) {
+}: BaseProps) {
   const { disabled: disabledProp, type: typeProp, ...restDomProps } = domProps;
   const isDisabled = !!disabledProp || !!loading;
 
@@ -121,21 +107,6 @@ function BaseButton({
     className,
   });
 
-  const content = (
-    <span className="inline-flex items-center gap-2">
-      {loading && (
-        <>
-          <span
-            className={cx("loading loading-spinner", spinnerSize(size))}
-            aria-hidden="true"
-          />
-          <span className="sr-only">Loading</span>
-        </>
-      )}
-      {children}
-    </span>
-  );
-
   return (
     <button
       type={typeProp ?? "button"}
@@ -145,7 +116,9 @@ function BaseButton({
       disabled={isDisabled}
       {...restDomProps}
     >
-      {content}
+      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
+        {children}
+      </span>
     </button>
   );
 }
@@ -187,41 +160,35 @@ export function IconButton({
   const shapeCls =
     shape === "circle" ? "btn-circle" : shape === "square" ? "btn-square" : "";
 
-  let content: ReactNode;
-
-  if (loading || children) {
-    content = (
-      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
-        {loading ? (
-          <span
-            className="loading loading-spinner shrink-0"
-            style={{ inlineSize: iconSize, blockSize: iconSize }}
-            aria-hidden="true"
-          />
-        ) : (
-          Icon && <Icon size={iconSize} aria-hidden="true" />
-        )}
-        {children && <span>{children}</span>}
-        {RightIcon && <RightIcon size={iconSize} aria-hidden="true" />}
-      </span>
-    );
-  } else if (Icon) {
-    content = <Icon size={iconSize} aria-hidden="true" />;
-  } else {
-    content = null;
-  }
+  const content = (
+    <>
+      {loading && Icon ? (
+        <span
+          className="loading loading-spinner shrink-0"
+          style={{ inlineSize: iconSize, blockSize: iconSize }}
+          aria-hidden="true"
+        />
+      ) : (
+        Icon && <Icon size={iconSize} aria-hidden="true" />
+      )}
+      {children && <span>{children}</span>}
+      {RightIcon && <RightIcon size={iconSize} aria-hidden="true" />}
+    </>
+  );
 
   return (
     <button
       type={typeProp ?? "button"}
-      className={cx(classes, shapeCls)}
+      className={cx(classes, "admin-icon-button", shapeCls)}
       aria-busy={!!loading}
       aria-pressed={typeof active === "boolean" ? active : undefined}
       aria-label={ariaLabel}
       disabled={isDisabled}
       {...restDomProps}
     >
-      {content}
+      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
+        {content}
+      </span>
     </button>
   );
 }
@@ -263,6 +230,7 @@ export function LinkButton({
     <Link
       href={href}
       className={classes}
+      aria-busy={loading || undefined}
       aria-disabled={isDisabled || undefined}
       tabIndex={isDisabled ? -1 : tabIndex}
       onClick={(e) => {
@@ -277,18 +245,7 @@ export function LinkButton({
       }}
       {...anchorProps}
     >
-      <span className="inline-flex items-center gap-2">
-        {loading && (
-          <>
-            <span
-              className={cx("loading loading-spinner", spinnerSize(size))}
-              aria-hidden="true"
-            />
-            <span className="sr-only">Loading</span>
-          </>
-        )}
-        {children}
-      </span>
+      <span className="inline-flex items-center gap-2">{children}</span>
     </Link>
   );
 }
@@ -330,38 +287,12 @@ export function LinkIconButton({
     ),
   });
 
-  let content: ReactNode;
-
-  if (loading) {
-    content = (
-      <span className="inline-flex items-center gap-2">
-        <span
-          className={cx("loading loading-spinner", spinnerSize(size))}
-          aria-hidden="true"
-        />
-        <span className="sr-only">Loading</span>
-        {children ? <span>{children}</span> : null}
-      </span>
-    );
-  } else if (children) {
-    content = (
-      <span className="inline-flex items-center gap-2">
-        {Icon && <Icon size={iconSize} />}
-        <span>{children}</span>
-        {RightIcon && <RightIcon size={iconSize} />}
-      </span>
-    );
-  } else if (Icon) {
-    content = <Icon size={iconSize} />;
-  } else {
-    content = null;
-  }
-
   return (
     <Link
       href={href}
-      className={classes}
+      className={cx(classes, "admin-icon-button")}
       aria-label={ariaLabel}
+      aria-busy={loading || undefined}
       aria-disabled={isDisabled || undefined}
       tabIndex={isDisabled ? -1 : tabIndex}
       onClick={(e) => {
@@ -376,7 +307,11 @@ export function LinkIconButton({
       }}
       {...anchorProps}
     >
-      {content}
+      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
+        {Icon && <Icon size={iconSize} aria-hidden="true" />}
+        {children && <span>{children}</span>}
+        {RightIcon && <RightIcon size={iconSize} aria-hidden="true" />}
+      </span>
     </Link>
   );
 }
