@@ -189,7 +189,7 @@
   padding: clamp(1rem, 2vw, 1.75rem);
   background: var(--blog-card-background);
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: 0;
 }
 :global([data-style-preset="modern"]) .entry:nth-child(even) {
   background: var(--blog-card-alternate);
@@ -337,8 +337,42 @@
 }
 
 :global([data-style-preset="modern"] [data-blog-home-lead]) .entry {
-  padding: clamp(1.5rem, 3vw, 2.5rem);
-  background: var(--blog-card-background);
+  padding: 0;
+  background: transparent;
+}
+
+:global([data-style-preset="modern"] [data-blog-home-lead]) .cardMedia {
+  aspect-ratio: 16 / 9;
+  margin-block-end: 1.75rem;
+}
+
+:global([data-style-preset="modern"] [data-blog-home-lead]) .summary {
+  max-inline-size: 48ch;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+}
+
+:global([data-style-preset="modern"] [data-blog-archive-list]) .entry {
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border-inline-start: 3px solid var(--color-border);
+}
+
+:global([data-style-preset="modern"] [data-blog-archive-list])
+  .entry:has(.cardMedia) {
+  border-inline-start-color: var(--blog-marker-warm);
+}
+
+:global([data-style-preset="modern"] [data-blog-archive-list]) .cardMedia {
+  aspect-ratio: 3 / 2;
+}
+
+:global([data-style-preset="modern"] [data-blog-archive-list])
+  .entry
+  article:not(:has(.cardMedia)) {
+  padding-block: clamp(0.5rem, 1.5vw, 1.25rem);
+}
+
+:global([data-style-preset="modern"] [data-blog-archive-list]) .title {
+  max-inline-size: 28ch;
 }
 
 :global([data-style-preset="modern"] [data-blog-home-support]) .list {

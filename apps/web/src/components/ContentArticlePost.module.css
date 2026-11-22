@@ -51,3 +51,24 @@
 :global([data-style-preset="classic"]) .content {
   max-inline-size: none;
 }
+
+:global([data-style-preset="modern"]) .article {
+  max-inline-size: min(100%, 48rem);
+  margin-block-start: clamp(2rem, 5vw, 4rem);
+}
+
+:global([data-style-preset="modern"]) .header {
+  padding-block-end: clamp(2rem, 5vw, 3.5rem);
+  margin-block-end: clamp(2rem, 5vw, 3rem);
+}
+
+:global([data-style-preset="modern"]) .header h1 {
+  max-inline-size: 18ch;
+  font-size: clamp(2.25rem, 6vw, var(--blog-article-title-size));
+  line-height: 1.02;
+}
+
+:global([data-style-preset="modern"]) .content {
+  font-size: clamp(1.0625rem, 1.25vw, var(--blog-prose-size));
+  line-height: 1.8;
+}
