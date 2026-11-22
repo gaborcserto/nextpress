@@ -5,8 +5,8 @@
 .trigger {
   display: grid;
   place-items: center;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
+  inline-size: var(--target-touch);
+  block-size: var(--target-touch);
   border: 0;
   padding: 0;
   background: transparent;
@@ -23,7 +23,7 @@
 }
 .trigger:focus-visible,
 .field:focus-within {
-  outline: 1px solid var(--color-focus-ring);
+  outline: var(--focus-width-control) solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 .field {
@@ -35,7 +35,7 @@
   align-items: center;
   gap: 0.625rem;
   inline-size: min(22rem, 55vi);
-  min-block-size: 2.75rem;
+  min-block-size: var(--target-touch);
   padding-inline: 0.75rem;
   color: var(--color-text);
   background: var(--blog-header-background);
@@ -45,9 +45,9 @@
   opacity: 0;
   visibility: hidden;
   transition:
-    clip-path 240ms ease,
-    opacity 240ms ease,
-    visibility 0s 240ms;
+    clip-path var(--duration-panel) var(--easing-panel),
+    opacity var(--duration-panel) var(--easing-panel),
+    visibility 0s var(--duration-panel);
 }
 .search[data-open="true"] .field {
   clip-path: inset(-4px -4px -8rem -4px);
@@ -58,14 +58,14 @@
 .field input {
   min-inline-size: 0;
   inline-size: 100%;
-  min-block-size: 2.75rem;
+  min-block-size: var(--target-touch);
   padding: 0;
   border: 0;
   outline: none;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
 }
 .field input::-webkit-search-cancel-button {
   display: none;
@@ -98,7 +98,7 @@
   color: var(--color-link-hover);
 }
 .clear:focus-visible {
-  outline: 1px solid var(--color-focus-ring);
+  outline: var(--focus-width-control) solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 .clear svg {
@@ -119,7 +119,7 @@
     position: relative;
     box-sizing: border-box;
     inline-size: 100%;
-    min-block-size: 2.75rem;
+    min-block-size: var(--target-touch);
     padding-inline: 0.625rem;
     visibility: visible;
     opacity: 1;

@@ -9,7 +9,7 @@
   --blog-prose-leading: 1.8;
   --blog-summary-size: 1.25rem;
   --blog-summary-leading: 1.7;
-  --blog-footer-padding: 3rem;
+  --blog-footer-padding: var(--space-12);
   --blog-header-background: light-dark(
     #faf9f6,
     color-mix(in srgb, var(--color-page) 94%, white)
@@ -31,8 +31,8 @@
   --color-link: light-dark(#754227, #e1bda2);
   --color-link-hover: light-dark(#492c1d, #f7d9c2);
   --color-focus-ring: light-dark(#754227, #e1bda2);
-  --font-heading: Georgia, "Times New Roman", serif;
-  --blog-prose-font: Georgia, "Times New Roman", serif;
+  --font-heading: var(--font-family-editorial);
+  --blog-prose-font: var(--font-family-editorial);
   --content-width: 64rem;
   --blog-display-weight: 400;
   --blog-display-tracking: -0.045em;
@@ -75,10 +75,10 @@
   --blog-article-title-size: clamp(2rem, 4.5vw, 3.25rem);
   --blog-card-title-size: clamp(1.25rem, 2.5vw, 1.5rem);
   --blog-reading-width: 40rem;
-  --blog-prose-font: Georgia, "Times New Roman", serif;
+  --blog-prose-font: var(--font-family-editorial);
   --blog-prose-leading: 1.85;
   --blog-section-spacing: clamp(3rem, 7vw, 5.5rem);
-  --blog-footer-padding: 2rem;
+  --blog-footer-padding: var(--space-8);
   --blog-card-padding: 2.25rem;
 }
 

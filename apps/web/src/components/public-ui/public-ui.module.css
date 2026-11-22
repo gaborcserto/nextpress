@@ -12,7 +12,7 @@
 
 .action {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: var(--target-touch);
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
@@ -36,9 +36,10 @@
   background: var(--color-action-hover);
   color: var(--color-text-on-action);
 }
+
 .action:focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 3px;
+  outline: var(--focus-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 .actionButton:disabled {

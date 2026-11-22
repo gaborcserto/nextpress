@@ -4,8 +4,8 @@
 .trigger {
   display: grid;
   place-items: center;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
+  inline-size: var(--target-touch);
+  block-size: var(--target-touch);
   padding: 0;
 }
 
@@ -22,8 +22,8 @@
 }
 .desktop button:focus-visible,
 .mobile button:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus-width-control) solid var(--color-focus-ring);
+  outline-offset: var(--focus-offset-control);
 }
 .desktop svg,
 .mobile svg {
@@ -43,7 +43,7 @@
   padding: 0.375rem;
   border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
   border-radius: 3px;
-  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-text));
+  background: var(--color-surface-elevated);
   box-shadow: none;
   opacity: 0;
   transform-origin: top right;
@@ -51,10 +51,10 @@
   visibility: hidden;
   pointer-events: none;
   transition:
-    opacity 240ms ease,
-    transform 240ms ease,
-    box-shadow 240ms ease,
-    visibility 0s linear 240ms;
+    opacity var(--duration-panel) var(--easing-panel),
+    transform var(--duration-panel) var(--easing-panel),
+    box-shadow var(--duration-panel) var(--easing-panel),
+    visibility 0s linear var(--duration-panel);
 }
 
 .menu[data-open="true"] {
@@ -70,14 +70,14 @@
   align-items: center;
   gap: 0.625rem;
   inline-size: 100%;
-  min-block-size: 2.75rem;
+  min-block-size: var(--target-touch);
   padding: 0.5rem 0.625rem;
   text-align: start;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 .menu button:is(:hover, :focus-visible) {
   color: var(--color-link-hover);
-  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  background: var(--color-control-hover);
 }
 
 .menu button[aria-checked="true"] {
@@ -105,8 +105,8 @@
   min-inline-size: 0;
 }
 .mobile legend {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
   padding: 0;
   margin-block-end: 0.25rem;
 }
@@ -124,9 +124,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  min-block-size: 2.75rem;
+  min-block-size: var(--target-touch);
   padding: 0.25rem 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 .mobile button[aria-pressed="true"] {
   text-decoration: underline;
@@ -152,7 +152,7 @@
     gap: 0.5rem;
   }
   .mobile button {
-    min-block-size: 2.75rem;
+    min-block-size: var(--target-touch);
     padding-inline: 0.125rem;
   }
 }

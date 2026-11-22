@@ -1,7 +1,18 @@
 :root {
   color-scheme: light dark;
 
+  /* Palette anchors shared with the daisyUI theme adapter. */
+  --palette-white: oklch(100% 0 0);
+  --palette-ink: oklch(21% 0.006 285.885);
+  --palette-slate-surface: oklch(25.33% 0.016 252.42);
+  --palette-slate-text: oklch(97.807% 0.029 256.847);
+  --palette-blue-light: oklch(53% 0.169 248.814);
+  --palette-blue-dark: oklch(0.658 0.169 248.814);
+
   --surface-bg: var(--color-base-100);
+  --surface-elevated: var(--surface-bg);
+  --text-primary: var(--color-base-content);
+  --text-secondary: light-dark(#39475b, #d1dae6);
   --surface-border: light-dark(#dedfe3, #3b4250);
   --surface-rail: light-dark(#f4f5f7, #1b2028);
   --text-muted: light-dark(#4b5563, #b2bdca);
@@ -10,9 +21,11 @@
   --accent-solid: var(--color-primary);
   --accent-soft: light-dark(#e9f1fc, #283953);
   --control-icon: var(--text-muted);
-  --control-icon-hover: var(--color-base-content);
-  --field-border: light-dark(#cbd2dc, #566171);
-  --control-border: light-dark(#aeb8c5, #737f90);
+  --control-icon-hover: var(--text-primary);
+  --control-border: light-dark(#687487, #8795a8);
+  --field-border: var(--control-border);
+  --field-border-hover: light-dark(#526073, #b4c0cf);
+  --surface-hover: color-mix(in srgb, var(--accent-soft), transparent 45%);
   --overlay-backdrop: rgb(17 24 39 / 55%);
   --status-success-text: light-dark(#24543a, #a9d9b6);
   --status-warning-text: light-dark(#6c4b12, #f5d89b);
@@ -20,7 +33,17 @@
   --font-admin: var(--font-sans);
   --text-ui-size: 0.875rem;
   --text-ui-leading: 1.25rem;
-  --space-control-inline: 1rem;
+  --text-help-size: 0.8125rem;
+  --font-weight-semibold: 600;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-control-inline: var(--space-4);
+  --control-min-height: 2.5rem;
+  --border-width: 1px;
+  --radius-tight: 0.25rem;
   --radius-surface: 0.75rem;
   --radius-control: 0.5rem;
   --shadow-control-picker: 0 4px 14px rgb(10 16 30 / 14%);
@@ -32,7 +55,9 @@
   --target-touch: 44px;
   --motion-fast: 150ms;
   --motion-spinner: 750ms;
-  --layout-auth-gutter: 1rem;
+  --motion-reduced: 0.01ms;
+  --easing-standard: ease;
+  --layout-auth-gutter: var(--space-4);
   --layout-auth-max-width: 25rem;
   --admin-topbar-height: 3.75rem;
   --workspace-wide: 112rem;

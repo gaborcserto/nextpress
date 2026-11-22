@@ -1,4 +1,5 @@
 :root {
+  --font-family-editorial: Georgia, "Times New Roman", serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
@@ -26,7 +27,15 @@
   --section-spacing: clamp(3rem, 8vw, 6rem);
 
   --border-width: 1px;
+  --focus-width: 3px;
+  --focus-offset: 3px;
+  --focus-width-control: 2px;
+  --focus-offset-control: 2px;
+  --target-touch: 2.75rem;
   --duration-short: 150ms;
+  --duration-panel: 240ms;
+  --duration-reduced: 0.01ms;
+  --easing-panel: ease;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -95,8 +104,8 @@ textarea {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 3px;
+  outline: var(--focus-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 ::selection {
@@ -112,10 +121,10 @@ textarea {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: var(--duration-reduced) !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: var(--duration-reduced) !important;
   }
 }
 .visually-hidden {
