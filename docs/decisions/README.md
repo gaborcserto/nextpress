@@ -42,3 +42,4 @@ Add a numbered ADR when a new choice needs durable context. A decision rationale
 
 - [ADR-003: PDF documents use the existing asset store](003-pdf-document-assets.md)
 - [ADR-004: Page paths and navigation menus](004-navigation-and-page-hierarchy.md)
+- [ADR-006: Design system foundations and application ownership](006-design-system-foundations.md)
