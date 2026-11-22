@@ -1,3 +1,4 @@
+import { MediaAssetSchema } from "@nextpress/shared/media";
 import { OAUTH_PROVIDERS } from "@nextpress/shared/oauth-providers";
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
@@ -8,6 +9,10 @@ import type { Page } from "@playwright/test";
 const origin = "http://localhost:49200";
 const headers = { origin: "http://localhost:49201" };
 let articleSlug = "";
+const coverPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAIAAADwyuo0AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEklEQVQImWP4z8AARwjWfwYGAG+qB/l/O6VpAAAAAElFTkSuQmCC",
+  "base64",
+);
 
 async function openPrimaryNavigation(page: Page) {
   const toggle = page.getByRole("button", {
@@ -46,6 +51,17 @@ test.beforeAll(async ({ request }) => {
   expect(login.status()).toBe(200);
   const fixtureId = randomUUID();
   articleSlug = `responsive-archive-${fixtureId}-0`;
+  const uploaded = await request.post("http://localhost:49201/api/media", {
+    headers,
+    data: {
+      filename: "public-layout-cover.png",
+      data: coverPng.toString("base64"),
+      mime: "image/png",
+      alt: "Responsive layout cover",
+    },
+  });
+  expect(uploaded.status()).toBe(201);
+  const cover = MediaAssetSchema.parse(await uploaded.json());
 
   for (let index = 0; index < 6; index++) {
     const created = await request.post("http://localhost:49201/api/post", {
@@ -56,6 +72,7 @@ test.beforeAll(async ({ request }) => {
         title: `Responsive archive fixture ${index}: publication layout and navigation`,
         slug: `responsive-archive-${fixtureId}-${index}`,
         tagIds: [],
+        ...(index === 0 || index === 5 ? { coverId: cover.id } : {}),
       },
     });
     expect(created.status()).toBe(201);
@@ -127,6 +144,46 @@ for (const preset of ["classic", "modern", "minimal"] as const) {
         expect((await page.goto(`${origin}${path}`))?.status()).toBe(200);
         await page.evaluate(() => document.fonts.ready);
         await expect(page.getByRole("main")).toBeVisible();
+        const coverImage = page
+          .getByRole("img", {
+            name: "Responsive layout cover",
+          })
+          .first();
+
+        if (await coverImage.count()) {
+          await expect(coverImage).toBeVisible();
+          await expect
+            .poll(() =>
+              coverImage.evaluate(
+                (image: HTMLImageElement) => image.naturalWidth,
+              ),
+            )
+            .toBeGreaterThan(0);
+          const imageGeometry = await coverImage.evaluate((image) => {
+            const bounds = image.getBoundingClientRect();
+
+            return {
+              width: bounds.width,
+              height: bounds.height,
+              ratio: bounds.width / bounds.height,
+              naturalWidth:
+                image instanceof HTMLImageElement ? image.naturalWidth : 0,
+              naturalHeight:
+                image instanceof HTMLImageElement ? image.naturalHeight : 0,
+              objectFit: getComputedStyle(image).objectFit,
+            };
+          });
+          expect(imageGeometry.width).toBeGreaterThan(0);
+          expect(imageGeometry.height).toBeGreaterThan(0);
+          expect(imageGeometry.naturalWidth).toBe(4);
+          expect(imageGeometry.naturalHeight).toBe(2);
+          expect(imageGeometry.ratio).toBeGreaterThan(1.3);
+          expect(imageGeometry.ratio).toBeLessThanOrEqual(2.1);
+
+          if (route !== "article" && preset !== "classic") {
+            expect(imageGeometry.objectFit).toBe("cover");
+          }
+        }
 
         const dimensions = await page.evaluate(() => ({
           document: document.documentElement.scrollWidth,
