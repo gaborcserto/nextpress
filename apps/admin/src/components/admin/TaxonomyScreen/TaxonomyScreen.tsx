@@ -2,6 +2,7 @@
 
 import { TaxonomyListSchema } from "@nextpress/shared/api-contracts";
 import { slugify } from "@nextpress/shared/slugify";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
 
@@ -23,6 +24,7 @@ import ListFilters, {
 import RecordId from "@/ui/components/DataList/RecordId";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
+  Alert,
   Button,
   IconButton,
   ConfirmDialog,
@@ -36,15 +38,12 @@ import { showToast } from "@/ui/utils";
 
 type ConfirmPayload = { id: string; name: string; usedCount: number };
 
+const taxonomyTypes = [
+  { value: "TAG", label: "Tags" },
+  { value: "CATEGORY", label: "Categories" },
+] as const;
+
 const fields = [
-  {
-    name: "type",
-    label: "Taxonomy",
-    options: [
-      { value: "TAG", label: "Tags" },
-      { value: "CATEGORY", label: "Categories" },
-    ],
-  },
   { name: "q", label: "Search", placeholder: "Name or slug" },
   {
     name: "sort",
@@ -153,6 +152,7 @@ export default function TaxonomyScreen() {
   return (
     <AdminPageLayout
       title="Taxonomy"
+      description="Browse categories and manage tags used to organize posts."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={reload} disabled={loading}>
@@ -172,16 +172,44 @@ export default function TaxonomyScreen() {
         </div>
       }
     >
-      <ListFilters query={query} fields={fields} />
+      <nav className="admin-taxonomy-tabs" aria-label="Taxonomy sections">
+        {taxonomyTypes.map(({ value, label }) => {
+          const active = label === heading;
+          const params = new URLSearchParams(query.values);
+          params.set("type", value);
+          params.delete("page");
+
+          return (
+            <Link
+              key={value}
+              href={`/admin/taxonomy?${params}`}
+              aria-current={active ? "page" : undefined}
+              scroll={false}
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      <ListFilters query={query} fields={fields}>
+        <input
+          type="hidden"
+          name="type"
+          value={isCategory ? "CATEGORY" : "TAG"}
+        />
+      </ListFilters>
       {loading && !items.length ? (
         <DataListLoading reserveSpace label={listLabel} />
       ) : loadError ? (
-        <div role="alert" className="text-sm text-error">
-          {loadError instanceof ApiRequestError &&
-          (loadError.status === 401 || loadError.status === 403)
-            ? "Sign in with an authorized admin account and try again."
-            : "Unable to load " + listLabel + ". Please try again."}
-        </div>
+        <Alert
+          status="error"
+          message={
+            loadError instanceof ApiRequestError &&
+            (loadError.status === 401 || loadError.status === 403)
+              ? "Sign in with an authorized admin account and try again."
+              : "Unable to load " + listLabel + ". Please try again."
+          }
+        />
       ) : (
         <DataListSurface
           reserveSpace
@@ -212,7 +240,7 @@ export default function TaxonomyScreen() {
                       role="cell"
                       className="admin-table-identity font-semibold"
                     >
-                      {tag.name}
+                      <span>{tag.name}</span>
                       <RecordId id={tag.id} />
                     </td>
                     <td role="cell">
@@ -234,7 +262,7 @@ export default function TaxonomyScreen() {
                             icon={FaTrash}
                             size="sm"
                             color="error"
-                            variant="soft"
+                            variant="ghost"
                             loading={deletingId === tag.id}
                             disabled={Boolean(deletingId)}
                             aria-label={`Delete tag ${tag.name}`}
@@ -297,11 +325,7 @@ export default function TaxonomyScreen() {
                 <Input id="tag-slug" fullWidth value={slug} readOnly />
               </Field>
             </FormGrid12>
-            {error && (
-              <p role="alert" className="mt-3 text-sm text-error">
-                {error}
-              </p>
-            )}
+            <Alert status="error" message={error} className="mt-3" />
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button variant="ghost" onClick={closeCreateDialog}>
                 Cancel

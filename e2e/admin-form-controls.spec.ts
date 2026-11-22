@@ -109,6 +109,28 @@ test("Admin form controls use the browser picker and reflow at large text sizes"
   await expect(listing).toBeFocused();
   await expect(listing).toHaveValue("PAGINATION");
 
+  await page.getByRole("tab", { name: "General" }).click();
+  const dateFormat = page.getByRole("combobox", { name: "Date format" });
+  await dateFormat.scrollIntoViewIfNeeded();
+  await dateFormat.press("Space");
+  await expect(page.locator("select:open")).toHaveCount(1);
+  await expectNoOverflow(page);
+  const dateOption = dateFormat.locator("option").first();
+  const dateBounds = await dateOption.boundingBox();
+  const viewport = page.viewportSize();
+  expect(dateBounds?.x).toBeGreaterThanOrEqual(0);
+  expect((dateBounds?.x ?? 0) + (dateBounds?.width ?? 0)).toBeLessThanOrEqual(
+    320,
+  );
+  expect(dateBounds?.y).toBeGreaterThanOrEqual(0);
+  expect((dateBounds?.y ?? 0) + (dateBounds?.height ?? 0)).toBeLessThanOrEqual(
+    viewport?.height ?? 0,
+  );
+  await capture(page, "date-format-dark-320-large-text");
+  await page.keyboard.press("Escape");
+  await expect(dateFormat).toBeFocused();
+  await page.getByRole("tab", { name: "Publishing" }).click();
+
   const compactHeight = await listing.evaluate((field) => field.clientHeight);
   await listing.selectOption("LOAD_MORE");
   expect(await listing.evaluate((field) => field.clientHeight)).toBe(

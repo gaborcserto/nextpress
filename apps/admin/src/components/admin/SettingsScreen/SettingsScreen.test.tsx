@@ -22,6 +22,7 @@ function mockLoadedSettings(overrides: Partial<SettingsScreenState> = {}) {
   useSettingsScreen.mockReturnValue({
     form: normalizeSettingsForm(undefined, "SUBSCRIBER"),
     savedDateTime: DEFAULT_SITE_DATE_TIME,
+    dirty: false,
     setForm: vi.fn(),
     loaded: true,
     loadError: null,
@@ -82,7 +83,15 @@ describe("SettingsScreen", () => {
     expect(
       await screen.findByRole("button", { name: "Save site settings" }),
     ).toBeEnabled();
-    expect(screen.getByLabelText("Site name")).toHaveValue("NextPress");
+    const siteName = screen.getByLabelText("Site name");
+    expect(siteName).toHaveValue("NextPress");
+    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
+
+    fireEvent.change(siteName, { target: { value: "Edited name" } });
+    expect(screen.getByText("Unsaved site settings")).toBeVisible();
+
+    fireEvent.change(siteName, { target: { value: "NextPress" } });
+    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
   });
 
   it("keeps legacy Appearance links in the General tab", () => {
@@ -169,6 +178,7 @@ describe("SettingsScreen", () => {
     fireEvent.click(provider);
     const secret = screen.getByLabelText("github new secret");
     expect(secret).toHaveValue("");
+    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
 
     fireEvent.change(secret, { target: { value: "replacement" } });
     fireEvent.click(provider);
@@ -190,6 +200,7 @@ describe("SettingsScreen", () => {
     });
 
     expect(secret).toHaveValue("");
+    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
     expect(save).toHaveBeenCalledTimes(2);
   });
 

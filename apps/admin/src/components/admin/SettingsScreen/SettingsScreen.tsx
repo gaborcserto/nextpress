@@ -6,7 +6,7 @@ import {
   SiteDateTimeSchema,
 } from "@nextpress/shared/site-date-time";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 import { FaSave } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
@@ -23,6 +23,7 @@ import {
   Select,
   Toggle,
 } from "@/ui/primitives";
+import { Badge } from "@/ui/primitives/Badge";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 import { showToast } from "@/ui/utils";
 
@@ -91,6 +92,7 @@ export default function SettingsScreen({
   const router = useRouter();
   const activeSection = useSettingsSection();
   const credentialForm = useRef<HTMLFormElement>(null);
+  const [credentialsDirty, setCredentialsDirty] = useState(false);
   const {
     form,
     setForm,
@@ -101,6 +103,7 @@ export default function SettingsScreen({
     loaded,
     loadError,
     savedDateTime,
+    dirty,
     retry,
   } = useSettingsScreen("SUBSCRIBER");
   const dateTime = form.dateTime ?? DEFAULT_SITE_DATE_TIME;
@@ -151,6 +154,19 @@ export default function SettingsScreen({
       window.removeEventListener("popstate", scrollToLegacyAppearance);
     };
   }, [activeSection, loaded]);
+
+  function updateCredentialsDirty(event: FormEvent<HTMLFormElement>) {
+    if (
+      event.target instanceof HTMLInputElement &&
+      event.target.type === "password"
+    ) {
+      const updates = readCredentialUpdates(
+        event.currentTarget,
+        form.oauthProviders.map(({ provider }) => provider),
+      );
+      setCredentialsDirty(Object.keys(updates).length > 0);
+    }
+  }
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -205,6 +221,16 @@ export default function SettingsScreen({
         }
       }
 
+      const formElement = credentialForm.current;
+
+      if (formElement) {
+        const remaining = readCredentialUpdates(
+          formElement,
+          form.oauthProviders.map(({ provider }) => provider),
+        );
+        setCredentialsDirty(Object.keys(remaining).length > 0);
+      }
+
       router.refresh();
       showToast("Settings saved.", "success");
     }
@@ -256,6 +282,7 @@ export default function SettingsScreen({
             id="admin-settings-form"
             ref={credentialForm}
             noValidate
+            onChange={updateCredentialsDirty}
             onSubmit={(event) => void saveSettings(event)}
             className="space-y-6"
           >
@@ -493,9 +520,15 @@ export default function SettingsScreen({
                                     ? "Configured"
                                     : "Credentials required"}
                                 </span>
-                                <span className="badge badge-soft">
+                                <Badge
+                                  className={
+                                    provider.enabled
+                                      ? undefined
+                                      : "admin-badge-muted"
+                                  }
+                                >
                                   {provider.enabled ? "Enabled" : "Disabled"}
-                                </span>
+                                </Badge>
                               </span>
                               <FiChevronDown aria-hidden="true" />
                             </summary>
@@ -528,18 +561,13 @@ export default function SettingsScreen({
                                   )
                                 }
                               />
-                              <div className="form-control w-full">
-                                <label
-                                  className="label"
-                                  htmlFor={`oauth-${provider.provider}-secret`}
-                                >
-                                  <span className="label-text">
-                                    {provider.provider} new secret
-                                  </span>
-                                </label>
+                              <Field
+                                label={`${provider.provider} new secret`}
+                                htmlFor={`oauth-${provider.provider}-secret`}
+                              >
                                 <input
                                   id={`oauth-${provider.provider}-secret`}
-                                  className="input w-full"
+                                  className="input w-full max-w-full"
                                   type="password"
                                   maxLength={10000}
                                   name={`clientSecret:${provider.provider}`}
@@ -550,7 +578,7 @@ export default function SettingsScreen({
                                       : "Required"
                                   }
                                 />
-                              </div>
+                              </Field>
                             </fieldset>
                           </details>
                         );
@@ -564,6 +592,16 @@ export default function SettingsScreen({
                 </Section>
               </SettingsPanel>
               <div className="admin-settings-save">
+                <p
+                  role="status"
+                  className="text-sm font-medium text-(--text-muted)"
+                >
+                  {saving
+                    ? "Saving site settings..."
+                    : dirty || credentialsDirty
+                      ? "Unsaved site settings"
+                      : ""}
+                </p>
                 <p
                   id="settings-save-scope"
                   className="text-sm text-(--text-muted)"

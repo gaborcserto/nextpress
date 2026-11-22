@@ -4,7 +4,7 @@
 }
 .fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   gap: 0.5rem;
   min-width: 0;
 }
@@ -13,14 +13,14 @@
   min-width: 0;
 }
 .field input {
-  padding-inline-end: 3rem;
+  padding-inline-end: calc(var(--target-touch) + 0.25rem);
 }
 .iconButton {
   position: absolute;
   inset-block: 0.125rem;
   inset-inline-end: 0.125rem;
-  width: 2.5rem;
-  min-height: 2.5rem;
+  width: var(--target-touch);
+  min-height: var(--target-touch);
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
@@ -30,7 +30,7 @@
   color: var(--control-icon);
 }
 .field :global(input) {
-  padding-inline-end: 3rem;
+  padding-inline-end: calc(var(--target-touch) + 0.25rem);
 }
 .header button,
 .grid button {
@@ -70,8 +70,8 @@
 .iconControl {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--target-touch);
+  min-height: var(--target-touch);
   padding: 0;
   border: 0;
   border-radius: var(--radius-control);
@@ -103,7 +103,7 @@
   box-sizing: border-box;
   width: min(20rem, calc(100vw - 1rem));
   max-width: calc(100vw - 1rem);
-  padding: 0.75rem;
+  padding: min(var(--space-3), 3vi);
   overflow: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--surface-border);
@@ -118,14 +118,15 @@
 }
 .header {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 2.5rem;
+  grid-template-columns: var(--target-touch) minmax(0, 1fr) var(--target-touch);
+  overflow-wrap: anywhere;
   align-items: center;
   gap: 0.5rem;
   text-align: center;
 }
 .header button {
-  width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--target-touch);
+  min-height: var(--target-touch);
   padding: 0;
   border: 0;
   background: transparent !important;
@@ -134,8 +135,8 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.25rem;
-  margin-block: 0.75rem;
+  gap: min(var(--space-1), 0.65vi);
+  margin-block: var(--space-3);
   text-align: center;
 }
 .weekday {
@@ -144,15 +145,17 @@
   min-height: 2rem;
   place-items: center;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: min(0.75rem, 5.7vi);
 }
 .grid button {
   display: grid;
   min-width: 0;
-  min-height: 2.5rem;
+  min-height: var(--target-touch);
   place-items: center;
-  padding: 0.25rem;
+  padding: 0;
   border-color: transparent;
+  font-size: var(--text-ui-size);
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
@@ -169,15 +172,19 @@
 }
 .dialog footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem;
   border-top: 1px solid var(--surface-border);
   padding-top: 0.5rem;
 }
+.dialog footer :global(.btn-ghost) {
+  color: var(--color-base-content);
+}
 .dialog button:focus-visible,
 .iconButton:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--focus-color);
+  outline-offset: var(--focus-offset);
 }
 @media (max-width: 30rem) {
   .fields {
@@ -196,6 +203,7 @@
 .timeHeader {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
@@ -234,8 +242,8 @@
   font-size: 1rem;
 }
 .stepper button {
-  width: 2.75rem;
-  min-height: 2.75rem;
+  width: var(--target-touch);
+  min-height: var(--target-touch);
   border: 0;
   background: transparent;
   color: var(--color-base-content);
@@ -255,8 +263,8 @@
 }
 .stepper button:focus-visible,
 .stepper input:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--focus-color);
+  outline-offset: var(--focus-offset);
 }
 .error {
   grid-column: 1 / -1;

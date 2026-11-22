@@ -1,4 +1,4 @@
-@layer components {
+﻿@layer components {
   .btn,
   .input,
   .select,
@@ -297,6 +297,109 @@ form.admin-list-toolbar {
   overflow-wrap: anywhere;
 }
 
+.admin-responsive-table thead {
+  background: var(--surface-rail);
+  color: var(--text-muted);
+}
+
+.admin-responsive-table :is(th, td) {
+  border-color: var(--surface-border);
+}
+
+.admin-content-table tbody th {
+  inline-size: 32%;
+  min-inline-size: 0;
+  font-weight: normal;
+}
+
+.admin-record-date,
+.admin-publication-timing {
+  font-size: var(--text-help-size);
+  color: var(--text-muted);
+}
+
+.admin-publication-timing:not(:empty) {
+  margin-block-start: var(--space-1);
+}
+
+.admin-badge-muted {
+  background: var(--surface-rail);
+  color: var(--text-muted);
+}
+
+.admin-taxonomy-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-block-end: var(--border-width) solid var(--surface-border);
+}
+
+.admin-taxonomy-tabs a {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--target-touch);
+  padding-inline: var(--space-3);
+  border-block-end: 2px solid transparent;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-taxonomy-tabs a:is(:hover, [aria-current]) {
+  color: var(--accent-text);
+}
+
+.admin-taxonomy-tabs [aria-current] {
+  border-block-end-color: currentColor;
+}
+
+.admin-dashboard-actions {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 11rem), max-content)
+  );
+  align-items: start;
+  gap: var(--space-2);
+}
+
+.admin-dashboard-actions .btn {
+  inline-size: 100%;
+}
+
+.admin-dashboard-actions > div {
+  grid-column: 1 / -1;
+}
+
+.admin-dashboard-actions > div .btn {
+  inline-size: auto;
+}
+
+.admin-dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, max(8rem, 40%)), 1fr)
+  );
+  gap: var(--space-2);
+}
+
+@media (width >= 40rem) {
+  .admin-dashboard-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 80rem) {
+  .admin-dashboard-metrics {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.admin-overview-list .admin-dashboard-timing time {
+  display: inline;
+  margin-block-start: 0;
+}
+
 .admin-table-identity {
   min-inline-size: min(16rem, 100%);
 }
@@ -519,9 +622,9 @@ html:has(.admin-settings-workspace) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.5rem 1rem;
+  gap: var(--space-1) var(--space-3);
   min-inline-size: 0;
-  padding: 0.5rem 0.625rem;
+  padding: var(--space-1) var(--space-2);
 }
 
 .admin-action-controls,
@@ -622,12 +725,6 @@ html:has(.admin-settings-workspace) {
   }
 }
 
-@media (width >= 48rem) and (height >= 37rem) {
-  html:has(.admin-action-layout) {
-    scroll-padding-block-start: calc(var(--admin-topbar-height) + 1rem);
-  }
-}
-
 @container (width <= 48rem) {
   .admin-action-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -637,7 +734,10 @@ html:has(.admin-settings-workspace) {
   .admin-action-controls {
     grid-column: 1;
     grid-row: 1;
-    justify-content: flex-end;
+  }
+
+  .admin-action-controls:has(.admin-editor-buttons) {
+    justify-content: start;
   }
 
   .admin-action-status {
@@ -664,7 +764,11 @@ html:has(.admin-settings-workspace) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.125rem 0.375rem;
-    padding: 0.375rem 0.625rem;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .admin-responsive-table thead tr:not(:has(.admin-sort-header)) {
+    padding: 0;
   }
 
   .admin-responsive-table thead th {
@@ -688,14 +792,27 @@ html:has(.admin-settings-workspace) {
     padding: 0.875rem;
   }
 
-  .admin-responsive-table tbody td {
+  .admin-responsive-table tbody :is(th, td) {
     display: block;
     padding: 0;
     border: 0;
   }
 
   .admin-responsive-table tbody tr + tr {
-    border-block-start: 1px solid var(--surface-border);
+    border-block-start: var(--border-width) solid var(--surface-border);
+  }
+
+  .admin-content-table tbody th {
+    inline-size: auto;
+  }
+
+  .admin-content-table tbody td:has(.admin-publication-timing) {
+    grid-column: 1 / -1;
+  }
+
+  .admin-content-table .admin-table-actions {
+    border-block-start: var(--border-width) solid var(--surface-border);
+    padding-block-start: var(--space-2);
   }
 
   .admin-responsive-table .admin-table-identity,

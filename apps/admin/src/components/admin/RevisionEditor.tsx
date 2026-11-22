@@ -6,7 +6,6 @@ import {
   RevisionListSchema,
   RevisionRecordSchema,
 } from "@nextpress/shared/revisions";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FaArrowLeft,
@@ -20,6 +19,7 @@ import {
 
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import { Button, Field, Input, Section, Select } from "@/ui/primitives";
+import { LinkButton } from "@/ui/primitives/Buttons";
 import { AdminPageLayout } from "@/ui/shell";
 
 import LivePreview from "./LivePreview";
@@ -232,10 +232,10 @@ export default function RevisionEditor({
       title="Working revisions"
       description="Manage the working copy and saved snapshots for this document."
       actions={
-        <Link href={`/admin/${kind}/${pageId}`} className="btn btn-ghost">
+        <LinkButton href={`/admin/${kind}/${pageId}`} variant="ghost">
           <FaArrowLeft aria-hidden="true" />
           Back to editor
-        </Link>
+        </LinkButton>
       }
     >
       <p role="status" className="text-sm text-(--text-muted) empty:hidden">

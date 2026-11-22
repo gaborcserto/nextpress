@@ -113,7 +113,10 @@ export function DateTimeSettings({
         />
       </div>
       {validZone && (
-        <p aria-live="polite">
+        <p
+          aria-live="polite"
+          className="mt-4 rounded-(--radius-control) bg-(--surface-rail) p-3 text-sm wrap-anywhere"
+        >
           {hu ? "Előnézet" : "Preview"}{" "}
           <time dateTime={example}>
             {formatSiteDateTime(example, value, locale)}
@@ -121,7 +124,7 @@ export function DateTimeSettings({
         </p>
       )}
       {dirty && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <span role="status">
             {hu
               ? "Nem mentett dátum- és időbeállítások"

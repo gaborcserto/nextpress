@@ -211,7 +211,12 @@ function PublicationDatePickerFields({
       const below = viewportHeight - triggerRect.bottom - gap;
       const above = triggerRect.top - gap;
       const openBelow = below >= Math.min(dialogRect.height, above);
-      const availableHeight = Math.max(160, openBelow ? below : above);
+      const besideTrigger = openBelow ? below : above;
+      const overlayTrigger = besideTrigger < 160;
+      const availableHeight = overlayTrigger
+        ? viewportHeight - gap * 2
+        : besideTrigger;
+
       const left = Math.min(
         Math.max(gap, triggerRect.right - width),
         viewportWidth - width - gap,
@@ -226,7 +231,7 @@ function PublicationDatePickerFields({
           );
 
       dialog.style.left = `${left}px`;
-      dialog.style.top = `${top}px`;
+      dialog.style.top = `${overlayTrigger ? gap : top}px`;
       dialog.style.maxHeight = `${availableHeight}px`;
 
       if (nextMode === "calendar") {

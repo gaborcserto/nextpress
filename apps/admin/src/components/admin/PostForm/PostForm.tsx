@@ -273,18 +273,22 @@ export default function PostForm({
                 title="Intro"
                 desc="Short lead text and an optional cover image."
               >
-                <PostIntroFields
-                  key={privateDraft?.contentKey ?? 0}
-                  disabled={submitting}
-                  excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
-                  onExcerptChangeAction={(value) => setField("excerpt", value)}
-                />
-                <CoverMediaField
-                  value={form.cover}
-                  onChange={(media) => setField("cover", media)}
-                  readOnly={Boolean(privateEditing)}
-                  disabled={submitting}
-                />
+                <div className="grid gap-4">
+                  <PostIntroFields
+                    key={privateDraft?.contentKey ?? 0}
+                    disabled={submitting}
+                    excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
+                    onExcerptChangeAction={(value) =>
+                      setField("excerpt", value)
+                    }
+                  />
+                  <CoverMediaField
+                    value={form.cover}
+                    onChange={(media) => setField("cover", media)}
+                    readOnly={Boolean(privateEditing)}
+                    disabled={submitting}
+                  />
+                </div>
               </Section>
 
               <Section title="Content">

@@ -31,6 +31,7 @@ import {
   Select,
   useConfirmDialog,
 } from "@/ui/primitives";
+import { Badge } from "@/ui/primitives/Badge";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { useUsersScreen } from "./UsersScreen.hooks";
@@ -43,21 +44,6 @@ type RoleOption = { value: RoleName; label: string };
 const ROLE_OPTIONS: RoleOption[] = ROLES.map((r) => ({ value: r, label: r }));
 
 type ConfirmPayload = { id: string; title: string };
-
-function roleBadgeClass(role: RoleName | null | undefined) {
-  switch (role) {
-    case "ADMIN":
-      return "badge badge-error";
-    case "EDITOR":
-      return "badge badge-info";
-    case "AUTHOR":
-      return "badge badge-success";
-    case "SUBSCRIBER":
-      return "badge badge-neutral";
-    default:
-      return "badge";
-  }
-}
 
 export default function UsersScreen() {
   const {
@@ -194,7 +180,12 @@ export default function UsersScreen() {
                         </div>
                       </td>
 
-                      <td role="cell">
+                      <td
+                        role="cell"
+                        className={
+                          isEditing ? "admin-table-actions" : undefined
+                        }
+                      >
                         {isEditing ? (
                           <form
                             id={`edit-user-role-${u.id}`}
@@ -214,7 +205,15 @@ export default function UsersScreen() {
                             />
                           </form>
                         ) : (
-                          <span className={roleBadgeClass(role)}>{role}</span>
+                          <>
+                            <span
+                              className="admin-cell-label"
+                              aria-hidden="true"
+                            >
+                              Role
+                            </span>
+                            <Badge>{role}</Badge>
+                          </>
                         )}
                       </td>
 
@@ -222,7 +221,13 @@ export default function UsersScreen() {
                         <span className="admin-cell-label" aria-hidden="true">
                           Verified
                         </span>
-                        {u.emailVerified ? "Yes" : "No"}
+                        <Badge
+                          className={
+                            u.emailVerified ? undefined : "admin-badge-muted"
+                          }
+                        >
+                          {u.emailVerified ? "Verified" : "Unverified"}
+                        </Badge>
                       </td>
 
                       <td role="cell">

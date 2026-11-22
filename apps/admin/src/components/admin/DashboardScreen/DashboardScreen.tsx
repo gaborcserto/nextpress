@@ -59,13 +59,19 @@ function ContentStatistics({ summary }: { summary: DashboardSummary }) {
   const number = new Intl.NumberFormat();
 
   return (
-    <section aria-labelledby="dashboard-statistics">
+    <section
+      className="admin-surface p-4 sm:p-5"
+      aria-labelledby="dashboard-statistics"
+    >
       <h2 id="dashboard-statistics" className="mb-3 text-lg font-semibold">
         Content statistics
       </h2>
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+      <dl className="admin-dashboard-metrics">
         {metrics.map(([label, value]) => (
-          <div key={label} className="admin-collection p-3 sm:p-4">
+          <div
+            key={label}
+            className="rounded-(--radius-control) bg-(--surface-rail) p-3 sm:p-4"
+          >
             <dt className="wrap-anywhere text-sm text-(--text-muted)">
               {label}
             </dt>
@@ -135,17 +141,19 @@ function ContentPanel({ kind, items }: ContentPanelProps) {
                       {collection.label}
                       {recent && item.authorName && ` · ${item.authorName}`}
                     </p>
-                    <span>
-                      {recent
-                        ? hu
-                          ? "Módosítva"
-                          : "Updated"
-                        : hu
-                          ? "Közzététel"
-                          : "Publishes"}{" "}
-                      <AdminTimestamp value={timestamp} />
-                    </span>
-                    <Badge className="mt-2">{publicationLabels[state]}</Badge>
+                    <div className="admin-dashboard-timing mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="text-(--text-muted)">
+                        {recent
+                          ? hu
+                            ? "Módosítva"
+                            : "Updated"
+                          : hu
+                            ? "Közzététel"
+                            : "Publishes"}{" "}
+                        <AdminTimestamp value={timestamp} />
+                      </span>
+                      <Badge>{publicationLabels[state]}</Badge>
+                    </div>
                   </div>
                   <FaArrowRight aria-hidden="true" />
                 </Link>
@@ -186,29 +194,30 @@ export default function DashboardScreen({
           )}
         </>
       }
-      actions={
-        canEdit && (
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Quick actions"
-          >
-            {collections.map(({ segment, label }) => (
-              <LinkIconButton
-                key={segment}
-                href={`/admin/${segment}/new`}
-                aria-label={`Create ${label}`}
-                icon={FaPlus}
-                variant="outline"
-              >
-                Create {label}
-              </LinkIconButton>
-            ))}
+    >
+      {canEdit && (
+        <div
+          className="admin-dashboard-actions"
+          role="group"
+          aria-label="Quick actions"
+        >
+          {collections.map(({ segment, label }) => (
+            <LinkIconButton
+              key={segment}
+              href={`/admin/${segment}/new`}
+              aria-label={`Create ${label}`}
+              icon={FaPlus}
+              color="primary"
+            >
+              Create {label}
+            </LinkIconButton>
+          ))}
+          <div className="flex min-w-0 flex-wrap gap-2">
             <LinkIconButton
               href="/admin/media"
               aria-label={mediaText.library}
               icon={FaImages}
-              variant="outline"
+              variant="ghost"
             >
               {mediaText.library}
             </LinkIconButton>
@@ -216,14 +225,13 @@ export default function DashboardScreen({
               href="/admin/documents"
               aria-label={mediaText.documents}
               icon={FaFilePdf}
-              variant="outline"
+              variant="ghost"
             >
               {mediaText.documents}
             </LinkIconButton>
           </div>
-        )
-      }
-    >
+        </div>
+      )}
       <nav className="flex flex-wrap gap-4" aria-label="Content collections">
         {collections.map(({ segment, label }) => (
           <Link
@@ -243,7 +251,7 @@ export default function DashboardScreen({
         </p>
       )}
       {canEdit && error && (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid justify-items-start gap-3">
           <Alert
             status="error"
             message="Unable to load the editorial dashboard."

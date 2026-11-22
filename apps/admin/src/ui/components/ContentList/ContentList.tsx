@@ -7,7 +7,6 @@ import useSWR from "swr";
 
 import { jsonFetcher } from "@/lib/api";
 import { publicationLabels } from "@/lib/content/publication-status";
-import { useAdminDateLocale } from "@/lib/settings/admin-date-time";
 import {
   DataListEmptyRow,
   DataListLoading,
@@ -59,7 +58,6 @@ export default function ContentList({
   const { data: account } = useSWR("/api/discovery/session", async (url) =>
     SessionDiscoverySchema.parse(await jsonFetcher<unknown>(url)),
   );
-  const hu = useAdminDateLocale() === "hu";
   const role = account?.user?.role;
   const canDelete = role === "ADMIN" || role === "EDITOR";
   const confirm = useConfirmDialog<ConfirmPayload>();
@@ -153,7 +151,7 @@ export default function ContentList({
             pendingLabel={isLoading ? heading.toLowerCase() : undefined}
           >
             <table
-              className="table admin-responsive-table w-full"
+              className="table admin-responsive-table admin-content-table w-full"
               role="table"
               aria-label={heading}
             >
@@ -161,8 +159,8 @@ export default function ContentList({
                 <tr role="row">
                   <th scope="col">Title</th>
                   <th scope="col">Status</th>
-                  <th scope="col">Publication dates</th>
-                  <th scope="col">Record dates</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Last modified</th>
                   <th role="columnheader" scope="col" className="text-right">
                     Actions
                   </th>
@@ -173,7 +171,11 @@ export default function ContentList({
                 {items.length ? (
                   items.map((item) => (
                     <tr key={item.id} role="row">
-                      <td role="cell" className="admin-table-identity">
+                      <th
+                        scope="row"
+                        role="rowheader"
+                        className="admin-table-identity"
+                      >
                         <Link
                           href={editHrefAction(item.id)}
                           className="font-semibold"
@@ -182,41 +184,48 @@ export default function ContentList({
                         </Link>
                         <div className="text-sm text-(--text-muted)">
                           /{item.slug}
-                          {item.typeLabel && <span> ? {item.typeLabel}</span>}
+                          {item.typeLabel && (
+                            <span> &middot; {item.typeLabel}</span>
+                          )}
                         </div>
                         <RecordId id={item.id} />
-                      </td>
+                      </th>
 
                       <td role="cell">
+                        <span className="admin-cell-label" aria-hidden="true">
+                          Status
+                        </span>
                         <Badge
                           data-content-status={item.status}
                           title="Publication status reflects the API response time and updates when this list refreshes."
                         >
                           {publicationLabels[item.publicationState]}
                         </Badge>
+                        <div className="admin-publication-timing">
+                          {item.publicationState === "PUBLISHED" && (
+                            <div>
+                              <ListDate value={item.publishedAt} />
+                            </div>
+                          )}
+                          {item.scheduledAt && (
+                            <div>
+                              <ListDate value={item.scheduledAt} />
+                            </div>
+                          )}
+                        </div>
                       </td>
 
-                      <td role="cell" className="text-sm">
-                        {item.publicationState === "PUBLISHED" && (
-                          <div>
-                            Published <ListDate value={item.publishedAt} />
-                          </div>
-                        )}
-                        {item.scheduledAt && (
-                          <div>
-                            {hu ? "Ütemezve" : "Scheduled"}{" "}
-                            <ListDate value={item.scheduledAt} />
-                          </div>
-                        )}
+                      <td role="cell" className="admin-record-date">
+                        <span className="admin-cell-label" aria-hidden="true">
+                          Created
+                        </span>
+                        <ListDate value={item.createdAt} />
                       </td>
-
-                      <td role="cell" className="text-sm text-(--text-muted)">
-                        <div>
-                          Created <ListDate value={item.createdAt} />
-                        </div>
-                        <div>
-                          Modified <ListDate value={item.updatedAt} />
-                        </div>
+                      <td role="cell" className="admin-record-date">
+                        <span className="admin-cell-label" aria-hidden="true">
+                          Last modified
+                        </span>
+                        <ListDate value={item.updatedAt} />
                       </td>
 
                       <td
@@ -239,7 +248,7 @@ export default function ContentList({
                               icon={FaTrash}
                               size="sm"
                               color="error"
-                              variant="soft"
+                              variant="ghost"
                               loading={deletingId === item.id}
                               disabled={Boolean(deletingId)}
                               aria-label={`Delete ${item.title}`}

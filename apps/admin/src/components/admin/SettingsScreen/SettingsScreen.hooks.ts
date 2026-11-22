@@ -38,7 +38,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
     normalizeSettingsForm(undefined, fallbackRole),
   );
 
-  const [savedDateTime, setSavedDateTime] = useState(DEFAULT_SITE_DATE_TIME);
+  const [savedForm, setSavedForm] = useState<SettingsFormValues | null>(null);
 
   const load = useCallback(() => {
     request.current?.abort();
@@ -58,8 +58,9 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
         setLoadError(null);
 
         if (!loadedRef.current) {
-          setForm(normalizeSettingsForm(data, loadContext.fallbackRole));
-          setSavedDateTime(data.dateTime ?? DEFAULT_SITE_DATE_TIME);
+          const initial = normalizeSettingsForm(data, loadContext.fallbackRole);
+          setForm(initial);
+          setSavedForm(initial);
           loadedRef.current = true;
           setLoaded(true);
         }
@@ -110,15 +111,16 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
           saved.oauthProviders.map((status) => [status.provider, status]),
         );
 
-        setForm((current) => ({
+        const withProviderStatuses = (current: SettingsFormValues) => ({
           ...current,
           oauthProviders: current.oauthProviders.map((provider) => ({
             ...provider,
             ...statusByProvider.get(provider.provider),
           })),
-        }));
+        });
 
-        setSavedDateTime(form.dateTime ?? DEFAULT_SITE_DATE_TIME);
+        setForm(withProviderStatuses);
+        setSavedForm(withProviderStatuses(form));
 
         return true;
       } catch {
@@ -137,7 +139,9 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
 
   return {
     form,
-    savedDateTime,
+    savedDateTime: savedForm?.dateTime ?? DEFAULT_SITE_DATE_TIME,
+    dirty:
+      savedForm !== null && JSON.stringify(savedForm) !== JSON.stringify(form),
     setForm,
     loaded,
     loadError: loading ? null : loadError,

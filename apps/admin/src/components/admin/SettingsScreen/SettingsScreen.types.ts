@@ -16,6 +16,7 @@ export type {
 export type SettingsScreenState = {
   form: SettingsFormValues;
   savedDateTime: SiteDateTime;
+  dirty: boolean;
   setForm: Dispatch<SetStateAction<SettingsFormValues>>;
   loaded: boolean;
   loadError: string | null;

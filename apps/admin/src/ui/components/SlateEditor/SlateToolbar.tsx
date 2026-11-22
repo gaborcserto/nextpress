@@ -77,7 +77,7 @@ export default function SlateToolbar({
   const activeAlign = getActiveAlign(editor);
 
   return (
-    <div className="border-b border-base-300 bg-base-100 p-2 rounded-t-md">
+    <div className="border-b border-(--surface-border) bg-(--surface-rail) p-2 rounded-t-(--radius-control)">
       <div className="flex flex-wrap items-center gap-2">
         {/* MARKS */}
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">

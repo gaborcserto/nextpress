@@ -39,12 +39,24 @@ async function screenshot(page: Page, name: string) {
 }
 
 async function expectNoPageOverflow(page: Page) {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - window.innerWidth,
-  );
+  const { overflow, elements } = await page.evaluate(() => {
+    const overflow = document.documentElement.scrollWidth - window.innerWidth;
+    const elements =
+      overflow > 1
+        ? Array.from(document.querySelectorAll(".admin-workspace *"))
+            .filter(
+              (element) =>
+                element.getBoundingClientRect().right > window.innerWidth + 1,
+            )
+            .slice(0, 8)
+            .map((element) => element.id || element.tagName)
+        : [];
+
+    return { overflow, elements };
+  });
   expect(
     overflow,
-    `Unexpected page overflow at ${page.url()} with width ${page.viewportSize()?.width}`,
+    `Unexpected page overflow at ${page.url()} with width ${page.viewportSize()?.width}. Outside viewport: ${elements.join(", ")}`,
   ).toBeLessThanOrEqual(1);
 }
 
@@ -181,7 +193,7 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     if (path === "") {
       const topbar = page.getByRole("banner");
       const currentCrumb = topbar.getByText("Dashboard", { exact: true });
-      await expect(topbar).toHaveCSS("position", "relative");
+      await expect(topbar).toHaveCSS("position", "sticky");
 
       const visibleText = await currentCrumb.evaluate((crumb) => ({
         height: crumb.clientHeight,
@@ -189,7 +201,9 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
       }));
       expect(visibleText.height).toBe(visibleText.fullHeight);
 
-      const quickActions = page.getByRole("group", { name: "Quick actions" });
+      const quickActions = page
+        .getByRole("main")
+        .getByRole("group", { name: "Quick actions" });
 
       const overflowingActions = await quickActions
         .getByRole("link")

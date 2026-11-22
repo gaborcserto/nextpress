@@ -172,7 +172,15 @@ describe.each([
       renderList();
 
       const row = await screen.findByRole("row", { name: /Example/ });
-      expect(within(row).getByRole("cell", { name: label })).toBeVisible();
+      expect(within(row).getByText(label, { exact: true })).toBeVisible();
+      expect(
+        screen.getByRole("columnheader", { name: "Created" }),
+      ).toBeVisible();
+      expect(
+        screen.getByRole("columnheader", {
+          name: "Last modified",
+        }),
+      ).toBeVisible();
       const times = Array.from(
         row.querySelectorAll("time"),
         (time) => time.dateTime,

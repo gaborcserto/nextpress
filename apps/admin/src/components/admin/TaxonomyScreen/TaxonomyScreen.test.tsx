@@ -64,7 +64,7 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
   const deleteButton = await screen.findByRole("button", {
     name: "Delete tag Many",
   });
-  expect(deleteButton).toHaveClass("btn-error", "btn-soft");
+  expect(deleteButton).toHaveClass("btn-error", "btn-ghost");
   const rows = screen.getAllByRole("row").slice(1);
   expect(rows).toHaveLength(3);
 
@@ -108,6 +108,13 @@ it("loads categories and submits search and usage sorting through the URL", asyn
     screen.queryByRole("button", { name: "Create tag" }),
   ).not.toBeInTheDocument();
   expect(fetch.mock.calls[0]?.[0]).toBe("/api/admin/tags?page=2&type=CATEGORY");
+  expect(
+    screen.getByRole("link", { name: "Categories", current: "page" }),
+  ).toBeVisible();
+  expect(screen.getByRole("link", { name: "Tags" })).toHaveAttribute(
+    "href",
+    "/admin/taxonomy?type=TAG",
+  );
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
     target: { value: "News" },

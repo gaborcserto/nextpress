@@ -4,6 +4,8 @@ import { Fragment, useId } from "react";
 
 import { Button, Input, Select } from "@/ui/primitives";
 
+import type { ReactNode } from "react";
+
 import type { ContentListQuery } from "@/lib/content/useContentList";
 
 type FilterField = {
@@ -16,6 +18,7 @@ type FilterField = {
 type ListFiltersProps = {
   query: ContentListQuery;
   fields: FilterField[];
+  children?: ReactNode;
 };
 
 export const sortDirectionField = {
@@ -28,7 +31,11 @@ export const sortDirectionField = {
   ],
 };
 
-export default function ListFilters({ query, fields }: ListFiltersProps) {
+export default function ListFilters({
+  query,
+  fields,
+  children,
+}: ListFiltersProps) {
   const prefix = useId();
   const filterKey = JSON.stringify(
     fields.map(({ name }) => query.values.get(name)),
@@ -42,6 +49,7 @@ export default function ListFilters({ query, fields }: ListFiltersProps) {
         query.onApplyAction(new FormData(event.currentTarget));
       }}
     >
+      {children}
       <Fragment key={filterKey}>
         {fields.map(({ name, label, options, placeholder }) => {
           const id = prefix + name;

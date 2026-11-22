@@ -52,10 +52,13 @@ export default function ProfileScreen() {
         ) : undefined
       }
     >
-      <Section title="Account">
+      <Section
+        title="Account"
+        desc="Update the display name shown in the Admin."
+      >
         {user ? (
           <div className="admin-profile-layout">
-            <div className="space-y-3 wrap-anywhere">
+            <div className="grid justify-items-start gap-3 rounded-(--radius-control) bg-(--surface-rail) p-4 wrap-anywhere">
               <UserAvatar
                 name={user.name}
                 image={user.image}
@@ -136,7 +139,7 @@ function DisplayNameForm({
   return (
     <form
       id="admin-profile-form"
-      className="min-w-0 space-y-3"
+      className="min-w-0 space-y-4"
       onSubmit={(event) => void saveProfile(event)}
     >
       <Input
@@ -153,7 +156,9 @@ function DisplayNameForm({
         value={name}
       />
       <Alert status="error" message={saveError} />
-      <p role="status">{saved ? "Profile saved." : ""}</p>
+      <p role="status" className="text-sm text-(--status-success-text)">
+        {saved ? "Profile saved." : ""}
+      </p>
     </form>
   );
 }

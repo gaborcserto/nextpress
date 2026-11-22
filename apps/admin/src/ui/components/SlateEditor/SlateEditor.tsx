@@ -173,7 +173,7 @@ export default function SlateEditor({
   };
 
   return (
-    <div className="border border-base-300 rounded-md bg-base-100">
+    <div className={styles.editor}>
       <Slate
         editor={editor}
         initialValue={safeValue}

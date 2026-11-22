@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const widths = [320, 375, 768, 1024, 1440, 1920];
+const widths = [320, 390, 768, 1024, 1440, 1920];
 const screenshotDirectory = ".notes/admin-redesign/screenshots-admin0342";
 
 async function signIn(page: Page) {
@@ -85,7 +85,33 @@ test("Posts and Pages share aligned responsive layouts and link to menu settings
         expect(header.right).toBeCloseTo(workspace.right, 0);
 
         if (screen.name.endsWith("-list")) {
-          await expect(page.getByRole("table")).toBeVisible();
+          const records = page.getByRole("table", { name: screen.heading });
+          await expect(records).toBeVisible();
+          await expect(
+            records.getByRole("columnheader", { name: "Created", exact: true }),
+          ).toBeAttached();
+          await expect(
+            records.getByRole("columnheader", {
+              name: "Last modified",
+              exact: true,
+            }),
+          ).toBeAttached();
+
+          if (width === 390) {
+            const record = records.getByRole("row").nth(1);
+            const identity = record.getByRole("rowheader");
+            await identity.getByText("ID", { exact: true }).press("Enter");
+            await expect(
+              identity.getByRole("textbox", { name: "Record ID" }),
+            ).toHaveCSS("font-family", /mono/i);
+            await expect(
+              record.getByText("Last modified", { exact: true }),
+            ).toBeVisible();
+            await expect(
+              page.getByRole("combobox", { name: "Sort by" }),
+            ).toBeVisible();
+          }
+
           const toolbar = await getBounds(
             page,
             ".admin-page > .admin-list-toolbar",
@@ -120,9 +146,10 @@ test("Posts and Pages share aligned responsive layouts and link to menu settings
           measuredWidths[`${width}-${screen.name}`] = workspace;
         }
 
-        if ([320, 1440, 1920].includes(width)) {
+        if ([390, 768, 1440].includes(width)) {
           await page.screenshot({
             path: `${screenshotDirectory}/${theme.toLowerCase()}-${width}-${screen.name}.png`,
+            animations: "disabled",
             style: "nextjs-portal { display: none; }",
           });
         }
@@ -165,6 +192,39 @@ test("Posts and Pages share aligned responsive layouts and link to menu settings
   await page.screenshot({
     path: `${screenshotDirectory}/dark-320-pages-editor-200-percent.png`,
     fullPage: true,
+    animations: "disabled",
   });
   await expectNoOverflow(page);
+
+  await page.setViewportSize({ width: 320, height: 370 });
+  const openCalendar = page.getByRole("button", { name: "Open calendar" });
+  await openCalendar.click();
+  const calendar = page.getByRole("dialog");
+  await expect(calendar).toBeVisible();
+  const dayLabelsFit = await calendar
+    .getByRole("group", { name: "Choose day" })
+    .getByRole("button")
+    .evaluateAll((days) =>
+      days.every((day) => {
+        const label = document.createRange();
+        label.selectNodeContents(day);
+
+        return label.getBoundingClientRect().width <= day.clientWidth;
+      }),
+    );
+  expect(dayLabelsFit).toBe(true);
+
+  const bounds = await calendar.boundingBox();
+  expect(bounds?.x).toBeGreaterThanOrEqual(0);
+  expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(320);
+  expect(bounds?.y).toBeGreaterThanOrEqual(0);
+  expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(370);
+  await calendar.getByRole("button", { name: "Previous month" }).focus();
+  await page.screenshot({
+    path: `${screenshotDirectory}/dark-320-calendar-200-percent.png`,
+    animations: "disabled",
+    style: "nextjs-portal { display: none; }",
+  });
+  await page.keyboard.press("Escape");
+  await expect(openCalendar).toBeFocused();
 });
