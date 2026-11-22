@@ -283,6 +283,48 @@
   font-size: 1.0625rem;
 }
 
+:global([data-style-preset="classic"]) .entry {
+  padding-block: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+:global([data-style-preset="classic"]) .cardMedia {
+  max-inline-size: 54rem;
+  margin-inline: auto;
+}
+
+:global([data-style-preset="classic"]) .cardMedia img {
+  max-block-size: 34rem;
+  object-fit: cover;
+}
+
+:global([data-style-preset="minimal"]) .entry {
+  padding-block: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+:global([data-style-preset="minimal"]) .entry:has(.cardMedia) {
+  border-inline-start: 2px solid var(--color-border);
+  padding-inline-start: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+:global([data-style-preset="minimal"]) .cardMedia img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+:global([data-style-preset="minimal"] [data-blog-home-lead]) .entry {
+  border: 0;
+  padding: 0;
+}
+
+:global([data-style-preset="minimal"] [data-blog-home-lead]) .title {
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  line-height: 1.08;
+}
+
+:global([data-style-preset="minimal"] [data-blog-archive-list]) .list {
+  max-inline-size: 52rem;
+}
+
 /* The front-page regions are intentionally distinct from archive batches. */
 :global([data-blog-home-lead]) .title,
 :global([data-blog-home-lead]) .compact h3 {
