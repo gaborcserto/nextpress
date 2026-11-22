@@ -82,7 +82,7 @@ test.beforeAll(async ({ request }) => {
   expect(settings.status()).toBe(200);
 });
 
-for (const width of [320, 393, 768, 1440]) {
+for (const width of [320, 390, 768, 1440]) {
   test(`public archive layout, resources and navigation at ${width}px`, async ({
     page,
   }, testInfo) => {

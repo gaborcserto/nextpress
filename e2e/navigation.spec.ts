@@ -13,7 +13,7 @@ const headers = {
 test("publishes nested Page links through the managed header", async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   const hydrationErrors: string[] = [];
   page.on("pageerror", (error) => {
     if (/hydration|did not match/i.test(error.message)) {
@@ -248,9 +248,30 @@ test("publishes nested Page links through the managed header", async ({
       page.getByRole("heading", { name: child.title }),
     ).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", "hu");
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-style-preset",
+      preset,
+    );
     await expect(
       page.getByRole("navigation", { name: "Oldalsáv" }),
     ).toHaveCount(preset === "minimal" ? 1 : 0);
+
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const documentWidth = await page.evaluate(
+        () => document.documentElement.scrollWidth,
+      );
+      expect(documentWidth, `${preset} Page at ${width}px`).toBeLessThanOrEqual(
+        width,
+      );
+
+      if (width === 390 || width === 1440) {
+        await page.screenshot({
+          path: testInfo.outputPath(`${preset}-hu-page-${width}.png`),
+          style: "nextjs-portal { display: none; }",
+        });
+      }
+    }
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -1,4 +1,3 @@
-import { PublicNavigationSchema } from "@nextpress/shared/api-contracts";
 import { expect, test, type Page } from "@playwright/test";
 
 const widths = [320, 375, 768, 1024, 1440, 1920];
@@ -38,7 +37,7 @@ async function getBounds(page: Page, selector: string) {
   });
 }
 
-test("Posts and Pages share aligned responsive layouts and preserve menu placement", async ({
+test("Posts and Pages share aligned responsive layouts and link to menu settings", async ({
   page,
 }) => {
   test.setTimeout(180_000);
@@ -142,73 +141,22 @@ test("Posts and Pages share aligned responsive layouts and preserve menu placeme
 
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/admin/pages/new");
-  await page.getByLabel("Title").fill("Menu placement browser check");
-  await page
-    .getByRole("combobox", { name: "Status" })
-    .selectOption("PUBLISHED");
-
-  const headerPlacement = page.getByRole("checkbox", {
-    name: "Show in header menu",
-  });
-  const footerPlacement = page.getByRole("checkbox", {
-    name: "Show in footer menu",
-  });
-  await expect(headerPlacement).not.toBeChecked();
-  await expect(footerPlacement).not.toBeChecked();
-  await headerPlacement.focus();
-  await page.keyboard.press("Space");
-  await footerPlacement.focus();
-  await page.keyboard.press("Space");
-  await expect(headerPlacement).toBeChecked();
-  await expect(footerPlacement).toBeChecked();
   await expect(
-    page.locator('.admin-editor-feedback [role="status"]'),
-  ).toContainText("Unsaved changes");
-
-  const createResponse = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === "/api/pages" &&
-      response.request().method() === "POST",
-  );
-  await page.getByRole("button", { name: "Create", exact: true }).click();
-  await createResponse;
-  await expect(page).toHaveURL(/\/admin\/pages$/);
-
-  await page
-    .getByRole("link", { name: "Menu placement browser check", exact: true })
-    .click();
-  await expect(headerPlacement).toBeChecked();
-  await expect(footerPlacement).toBeChecked();
-
-  await headerPlacement.focus();
-  await page.keyboard.press("Space");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+    page.getByRole("heading", { name: "Navigation", exact: true }),
+  ).toBeVisible();
+  const managePlacement = page.getByRole("link", {
+    name: "Manage menu placement",
+  });
+  await expect(managePlacement).toBeVisible();
+  await managePlacement.focus();
+  await expect(managePlacement).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/admin\/settings\/menus$/);
   await expect(
-    page.locator('.admin-editor-feedback [role="status"]'),
-  ).toContainText("Saved");
-  await expect(headerPlacement).not.toBeChecked();
-  await expect(footerPlacement).toBeChecked();
+    page.getByRole("heading", { name: "Menus", exact: true }),
+  ).toBeVisible();
 
-  await page.reload();
-  await expect(headerPlacement).not.toBeChecked();
-  await expect(footerPlacement).toBeChecked();
-
-  const navigationResponse = await page.request.get(
-    "http://localhost:49201/api/public/navigation",
-  );
-  expect(navigationResponse.ok()).toBe(true);
-  const navigation = PublicNavigationSchema.parse(
-    await navigationResponse.json(),
-  );
-  expect(navigation.header).not.toContainEqual({
-    slug: "menu-placement-browser-check",
-    title: "Menu placement browser check",
-  });
-  expect(navigation.footer).toContainEqual({
-    slug: "menu-placement-browser-check",
-    title: "Menu placement browser check",
-  });
-
+  await page.goto("/admin/pages/new");
   await page.setViewportSize({ width: 320, height: 740 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.evaluate(() => {

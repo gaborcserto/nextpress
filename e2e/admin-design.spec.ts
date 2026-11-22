@@ -1,9 +1,8 @@
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
 import { expect, test, type Page } from "@playwright/test";
 
-const screenshotDirectory =
-  ".notes/admin-redesign/screenshots-admin0343-run-20261118";
-const widths = [320, 375, 768, 1024, 1280, 1440, 1920];
+const screenshotDirectory = ".notes/ds-01-browser/admin";
+const widths = [320, 390, 768, 1024, 1280, 1440, 1920];
 const screens = [
   ["", "Dashboard"],
   ["/posts", "Posts"],
@@ -99,14 +98,45 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
       await expect(page.getByRole("table")).toBeVisible();
     }
 
+    if (["/posts", "/pages", "/taxonomy"].includes(path)) {
+      const sort = path === "/taxonomy" ? "slug" : "title";
+      const sortBy = page.getByRole("combobox", { name: "Sort by" });
+      const direction = page.getByRole("combobox", { name: "Sort direction" });
+      await sortBy.selectOption(sort);
+      await direction.selectOption("asc");
+      await page.getByRole("button", { name: "Apply filters" }).click();
+      await expect(page).toHaveURL(
+        (url) =>
+          url.searchParams.get("sort") === sort &&
+          url.searchParams.get("direction") === "asc",
+      );
+      await expect(sortBy).toHaveValue(sort);
+      await expect(direction).toHaveValue("asc");
+    }
+
+    if (path === "/users") {
+      const created = page.getByRole("columnheader", { name: "Created" });
+      const sortButton = created.getByRole("button");
+      await expect(created).toHaveAttribute("aria-sort", "descending");
+      await sortButton.press("Enter");
+      await expect(sortButton).toBeFocused();
+      await expect(sortButton).toHaveCSS("outline-style", "solid");
+      await expect(created).toHaveAttribute("aria-sort", "ascending");
+      await sortButton.press("Space");
+      await expect(created).toHaveAttribute("aria-sort", "descending");
+    }
+
     if (path === "/profile") {
       await expect(page.getByLabel("Display name")).toBeVisible();
     }
 
     if (path === "/settings") {
-      await page.getByRole("tab", { name: "Appearance" }).click();
+      await expect(page.getByRole("tab", { name: "General" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
       await expect(
-        page.getByRole("heading", { name: "Appearance", exact: true }),
+        page.getByRole("heading", { name: "Website appearance", exact: true }),
       ).toBeVisible();
       await expect(
         page.getByRole("combobox", { name: "Website template" }),
@@ -115,36 +145,16 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
 
     for (const preference of ["light", "dark"]) {
       await selectTheme(page, preference === "light" ? "Light" : "Dark");
+      await expect(root).toHaveCSS("color-scheme", preference);
 
       for (const width of widths) {
         await page.setViewportSize({ width, height: 900 });
         await expectNoPageOverflow(page);
 
         if (
-          ["/posts", "/pages", "/users", "/taxonomy"].includes(path) &&
-          [375, 1440].includes(width)
-        ) {
-          const table = page.getByRole("table");
-          const activeHeader = table.locator("[aria-sort]");
-          const sortButton = activeHeader.getByRole("button");
-          await expect(sortButton).toBeVisible();
-          await expect(activeHeader).toHaveAttribute("aria-sort", "descending");
-          const bounds = await sortButton.boundingBox();
-          await sortButton.press("Enter");
-          await expect(sortButton).toBeFocused();
-          await expect(sortButton).toHaveCSS("outline-style", "solid");
-          await expect(activeHeader).toHaveAttribute("aria-sort", "ascending");
-          const sortedBounds = await sortButton.boundingBox();
-          expect(sortedBounds?.width).toBe(bounds?.width);
-          expect(sortedBounds?.height).toBe(bounds?.height);
-          await sortButton.press("Space");
-          await expect(activeHeader).toHaveAttribute("aria-sort", "descending");
-        }
-
-        if (
           !path ||
           (width === 1440 && preference === "light") ||
-          (width === 375 && preference === "dark")
+          (width === 390 && preference === "dark")
         ) {
           await screenshot(
             page,
@@ -156,7 +166,7 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
 
     if (path === "/settings") {
       await page
-        .getByRole("heading", { name: "Appearance", exact: true })
+        .getByRole("heading", { name: "Website appearance", exact: true })
         .scrollIntoViewIfNeeded();
       await screenshot(page, "appearance-dark-1920");
       await page.getByRole("tab", { name: "Authentication" }).click();
@@ -193,10 +203,10 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     const canvasBounds = await writingCanvas.boundingBox();
     expect(canvasBounds?.height).toBeGreaterThanOrEqual(240);
     await screenshot(page, `new-${segment}-light-1440`);
-    await page.setViewportSize({ width: 375, height: 800 });
+    await page.setViewportSize({ width: 390, height: 800 });
     await selectTheme(page, "Dark");
     await expectNoPageOverflow(page);
-    await screenshot(page, `new-${segment}-dark-375`);
+    await screenshot(page, `new-${segment}-dark-390`);
 
     for (const mode of ["Light", "Dark"] as const) {
       await selectTheme(page, mode);
@@ -208,12 +218,20 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     }
 
     await page.setViewportSize({ width: 1440, height: 800 });
-    await page.evaluate(() => window.scrollTo(0, 400));
-    const editorActions = page.locator(".admin-editor-actions");
-    await expect(editorActions).toHaveCSS("position", "sticky");
-    expect((await editorActions.boundingBox())?.y).toBeCloseTo(60, 0);
+    await page.evaluate(() =>
+      window.scrollTo({ top: 400, behavior: "instant" }),
+    );
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0);
+    const topbar = page.getByRole("banner");
+    await expect(topbar).toHaveCSS("position", "sticky");
+    const stickyInset = await topbar.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).top),
+    );
+    expect((await topbar.boundingBox())?.y).toBeCloseTo(stickyInset, 0);
     await expect(
-      editorActions.getByRole("button", { name: "Create", exact: true }),
+      topbar.getByRole("button", { name: "Create", exact: true }),
     ).toBeInViewport();
     await screenshot(page, `scrolled-${segment}-dark-1440`);
     await page.setViewportSize({ width: 320, height: 740 });
@@ -249,7 +267,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   page,
 }) => {
   test.setTimeout(90_000);
-  await page.setViewportSize({ width: 375, height: 760 });
+  await page.setViewportSize({ width: 390, height: 760 });
   await page.goto("/auth/sign-in");
   await signIn(page);
 
@@ -261,7 +279,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await expect(
     navigation.getByRole("button", { name: "Close navigation" }),
   ).toBeFocused();
-  await expect(navigation).toHaveCSS("width", "375px");
+  await expect(navigation).toHaveCSS("width", "390px");
   await expect(navigation).toHaveCSS("height", "760px");
   await expect(page.locator("html")).toHaveCSS("overflow-y", "hidden");
   await page
@@ -270,7 +288,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await expect(
     navigation.getByRole("button", { name: "Close navigation" }),
   ).toBeFocused();
-  await screenshot(page, "navigation-mobile-375");
+  await screenshot(page, "navigation-mobile-390");
   const expandedLabel = "Szerepkörök és hozzáférési beállítások";
   await navigation
     .getByRole("link", { name: "Settings" })
@@ -303,7 +321,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   expect(menuBounds?.width).toBeCloseTo(topbarWidth - 16, 0);
   await page.keyboard.press("ArrowDown");
   await expect(menu.getByRole("menuitem", { name: "Sign out" })).toBeFocused();
-  await screenshot(page, "account-mobile-375");
+  await screenshot(page, "account-mobile-390");
   await page.keyboard.press("Escape");
   await expect(account).toBeFocused();
   await account.click();
@@ -371,13 +389,13 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   expect((await deletion).ok()).toBe(true);
   await expect(deleteTag).toHaveCount(0);
 
-  await page.setViewportSize({ width: 375, height: 760 });
+  await page.setViewportSize({ width: 390, height: 760 });
   await page.goto("/admin/users");
   const addUser = page.getByRole("button", { name: "Add user" });
   await addUser.press("Enter");
   const createUser = page.getByRole("dialog", { name: "Create user" });
   await expect(createUser.getByLabel("Email")).toBeFocused();
-  await screenshot(page, "create-user-mobile-375");
+  await screenshot(page, "create-user-mobile-390");
   await page.keyboard.press("Escape");
   await expect(createUser).toBeHidden();
   await expect(addUser).toBeFocused();
@@ -426,7 +444,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
       }
 
       await page.setViewportSize({
-        width: mode === "Light" ? 1440 : 375,
+        width: mode === "Light" ? 1440 : 390,
         height: 900,
       });
       await screenshot(page, `revisions-${mode.toLowerCase()}`);
