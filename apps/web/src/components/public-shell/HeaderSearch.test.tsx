@@ -50,6 +50,7 @@ it("dismisses outside and on focus leaving the control", () => {
   fireEvent.click(trigger);
   fireEvent.pointerDown(document.body);
   expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
   fireEvent.click(trigger);
   fireEvent.blur(screen.getByRole("searchbox"), {
     relatedTarget: document.body,

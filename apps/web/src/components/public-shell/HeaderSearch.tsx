@@ -39,6 +39,7 @@ export function HeaderSearch() {
         !container.current?.contains(event.target)
       ) {
         setOpen(false);
+        trigger.current?.focus();
       }
     }
 
