@@ -20,12 +20,10 @@ export function AdminPageLayout({
   return (
     <div className="admin-page" data-workspace={workspace}>
       <header className="admin-page-header">
-        <div className="min-w-0 space-y-1">
-          <h1 className="admin-page-title">{title}</h1>
-          {description && (
-            <div className="admin-page-description">{description}</div>
-          )}
-        </div>
+        <h1 className="admin-page-title">{title}</h1>
+        {description && (
+          <div className="admin-page-description">{description}</div>
+        )}
       </header>
       {actions && <AdminHeaderActions>{actions}</AdminHeaderActions>}
       {children}

@@ -36,7 +36,7 @@ describe("Breadcrumbs", () => {
     expect(screen.getByText(label)).toHaveAttribute("aria-current", "page");
   });
 
-  it("keeps the full detail title available when the displayed breadcrumb is truncated", async () => {
+  it("keeps the full detail title available on the current breadcrumb", async () => {
     const title =
       "A long article title that remains available on narrow mobile screens";
     usePathname.mockReturnValue("/admin/posts/dev-seed-post-long-form");

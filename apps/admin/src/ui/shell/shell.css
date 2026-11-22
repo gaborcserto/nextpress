@@ -1,5 +1,7 @@
 ﻿html:has(.admin-shell) {
-  scroll-padding-block-start: 5rem;
+  scroll-padding-block-start: calc(
+    var(--admin-topbar-size, var(--admin-topbar-height)) + var(--space-6)
+  );
 }
 
 .admin-shell {
@@ -23,15 +25,14 @@
 
 .admin-topbar {
   position: sticky;
-  inset-block-start: 0.75rem;
+  inset-block-start: var(--space-3);
   z-index: 20;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: clamp(0.25rem, 0.8vw, 0.625rem);
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
   min-block-size: var(--admin-topbar-height);
-  width: calc(100% - 2 * var(--layout-page-gutter));
-  min-height: var(--admin-topbar-height);
+  inline-size: calc(100% - 2 * var(--layout-page-gutter));
   margin-inline: auto;
   padding: 0.375rem 0.75rem;
   border: 1px solid transparent;
@@ -42,10 +43,27 @@
     border-color var(--motion-fast);
 }
 
+html:has(.admin-topbar[data-tall]) {
+  scroll-padding-block-start: var(--space-2);
+}
+
+.admin-topbar[data-tall] {
+  position: relative;
+  inset-block-start: auto;
+}
+
+.admin-topbar-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
 .admin-topbar[data-scrolled="true"] {
   border-color: var(--surface-border);
   background: var(--surface-bg);
-  box-shadow: 0 0.25rem 1rem rgb(17 24 39 / 9%);
+  box-shadow: var(--shadow-control-picker);
 }
 
 .admin-header-actions-slot:empty {
@@ -53,7 +71,6 @@
 }
 
 .admin-header-actions-slot:not(:empty) {
-  flex-basis: 100%;
   min-inline-size: 0;
   border-block-start: 1px solid var(--surface-border);
   container-type: inline-size;
@@ -76,14 +93,21 @@
 }
 
 .admin-nav-trigger,
-.admin-account-trigger {
-  min-inline-size: var(--target-touch);
-  min-block-size: var(--target-touch);
+.admin-account-trigger,
+.admin-theme-trigger {
+  flex: none;
+  inline-size: var(--target-touch);
+  block-size: var(--target-touch);
+  padding: 0;
+}
+
+.admin-account-trigger .admin-avatar {
+  inline-size: calc(var(--target-touch) - 8px);
+  block-size: calc(var(--target-touch) - 8px);
+  font-size: min(0.75rem, 16px);
 }
 
 .admin-theme-trigger {
-  inline-size: var(--target-touch);
-  min-block-size: var(--target-touch);
   color: var(--text-muted);
 }
 
@@ -93,12 +117,29 @@
   color: var(--color-base-content);
 }
 
-.admin-topbar .admin-dropdown:has(.admin-theme-trigger) {
+.admin-topbar-controls {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.admin-topbar .admin-theme-trigger {
+  background: transparent;
+  border-color: transparent;
+}
+
+.admin-topbar .admin-theme-trigger:is(:hover, [aria-expanded="true"]) {
+  background: var(--surface-rail);
+}
+
+.admin-topbar .admin-dropdown:has(.admin-theme-trigger) > .admin-dropdown-menu {
+  inset-inline: auto 0;
 }
 
 .admin-breadcrumbs {
-  flex: 1;
+  flex: 1 1 0;
   min-inline-size: 0;
   font-size: var(--text-ui-size);
   color: var(--text-muted);
@@ -106,18 +147,22 @@
 
 .admin-breadcrumbs ol {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--space-1) var(--space-2);
 }
 
 .admin-breadcrumbs li {
   display: flex;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: var(--space-2);
   min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
 }
 
 .admin-breadcrumbs li:not(:first-child)::before {
-  content: "/";
+  content: "/" / "";
   color: var(--text-muted);
 }
 
@@ -131,13 +176,14 @@
 }
 
 .admin-sidebar {
-  min-block-size: 100%;
+  block-size: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .admin-sidebar-heading {
-  min-block-size: 4rem;
+  flex: none;
+  min-block-size: var(--admin-topbar-height);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -153,11 +199,16 @@
 
 .admin-sidebar-nav {
   display: grid;
-  gap: 1.125rem;
-  padding: 0.875rem 0.75rem;
+  align-content: start;
+  gap: var(--space-4);
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3);
 }
 
 .admin-sidebar-footer {
+  flex: none;
   margin-block-start: auto;
   padding: 0.75rem;
   border-block-start: 1px solid var(--surface-border);
@@ -165,13 +216,13 @@
 
 .admin-nav-group {
   display: grid;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 
 .admin-nav-label {
-  margin: 0 0.625rem 0.375rem;
+  margin: 0 var(--space-2) var(--space-2);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-help-size);
   font-weight: 650;
   letter-spacing: 0.055em;
   text-transform: uppercase;
@@ -182,7 +233,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: var(--space-3);
   inline-size: 100%;
   min-block-size: var(--target-touch);
   padding: 0.5rem 0.625rem;
@@ -198,23 +249,20 @@
 }
 
 .admin-nav-link:hover {
-  background: var(--surface-rail);
+  background: var(--surface-hover);
   color: var(--color-base-content);
 }
 
 .admin-nav-link[aria-current] {
   background: var(--accent-soft);
   color: var(--accent-text);
-}
-
-.admin-nav-link[aria-current] {
   font-weight: 700;
 }
 
 .admin-nav-link[aria-current]::before {
   content: "";
   position: absolute;
-  inset: 0.5rem auto 0.5rem 0;
+  inset-block: var(--space-2);
   inset-inline-start: 0;
   inline-size: 3px;
   border-radius: 2px;
@@ -231,15 +279,14 @@
   inset: 0;
   margin: 0;
   box-sizing: border-box;
-  inline-size: 100vw;
+  inline-size: 100%;
   block-size: 100dvh;
   max-inline-size: none;
   max-block-size: none;
-  overflow: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
     env(safe-area-inset-bottom) env(safe-area-inset-left);
-  background: var(--surface-rail);
+  background: var(--surface-bg);
   color: var(--color-base-content);
 }
 
@@ -255,7 +302,7 @@
 }
 
 .admin-account-menu {
-  inline-size: min(20rem, calc(100vw - 2rem));
+  inline-size: min(18rem, calc(100vw - 2 * var(--layout-page-gutter)));
 }
 
 .admin-page {
@@ -279,12 +326,8 @@
 }
 
 .admin-page-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
-  column-gap: 1rem;
-  row-gap: 0.75rem;
+  display: grid;
+  gap: var(--space-2);
   min-inline-size: 0;
 }
 
@@ -296,7 +339,6 @@
 
 .admin-page-description {
   max-inline-size: 65ch;
-  margin-block-start: 0.5rem;
   line-height: 1.5;
   color: var(--text-muted);
   overflow-wrap: anywhere;
@@ -393,21 +435,31 @@
 
 @media (width < 40rem) {
   .admin-topbar {
-    flex-wrap: wrap;
+    padding-inline: min(var(--space-2), 8px);
   }
 
-  .admin-topbar .admin-dropdown:has(.admin-account-menu) {
+  .admin-topbar-row {
+    gap: var(--space-1);
+  }
+
+  .admin-topbar .admin-dropdown:has(.admin-account-menu, .admin-theme-trigger) {
     position: static;
   }
 
-  .admin-topbar .admin-dropdown .admin-account-menu {
-    inset-block-start: calc(100% + 0.25rem);
-    inset-inline: 0.5rem;
+  .admin-topbar .admin-dropdown .admin-account-menu,
+  .admin-topbar
+    .admin-dropdown:has(.admin-theme-trigger)
+    > .admin-dropdown-menu {
+    inset-block-start: calc(100% + var(--space-1));
+    inset-inline: env(safe-area-inset-left) env(safe-area-inset-right);
     inline-size: auto;
   }
 
-  .admin-breadcrumbs {
-    overflow-wrap: anywhere;
+  .admin-breadcrumbs [aria-current="page"] {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
   }
 
   .admin-breadcrumbs li:not(:last-child) {
@@ -423,17 +475,25 @@
   }
 }
 
-@media (width >= 64rem) {
+@media (height < 25rem) {
   html:has(.admin-shell) {
-    scroll-padding-block-start: 5rem;
+    scroll-padding-block-start: var(--space-2);
   }
 
+  .admin-topbar {
+    position: relative;
+    inset-block-start: auto;
+  }
+}
+
+@media (width >= 64rem) {
   .admin-shell {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
   .admin-rail {
     display: block;
+    align-self: start;
     position: sticky;
     inset-block-start: 0.75rem;
     block-size: calc(100dvh - 1.5rem);
@@ -441,9 +501,7 @@
     margin: 0.75rem 0 0.75rem 0.75rem;
     background: var(--surface-bg);
     border: 1px solid var(--surface-border);
-    border-radius: 1rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    border-radius: var(--radius-surface);
   }
 
   .admin-rail[data-collapsed="true"] {
@@ -451,11 +509,11 @@
   }
 
   .admin-rail .admin-nav-link {
-    min-block-size: 2.5rem;
+    min-block-size: var(--control-min-height);
   }
 
   .admin-rail .admin-sidebar-nav {
-    padding-inline: 0.5rem;
+    padding-inline: var(--space-2);
   }
 
   .admin-topbar .admin-nav-trigger {

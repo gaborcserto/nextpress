@@ -70,9 +70,15 @@ describe("AppShell mobile navigation", () => {
     },
   );
 
-  it("closes at the desktop breakpoint and focuses the rail", () => {
+  it("focuses the most specific current link at the desktop breakpoint", () => {
+    pathname.mockReturnValue("/admin/settings/menus");
     render(<AppShell role="ADMIN">Page</AppShell>);
-    const { trigger } = openNavigation();
+    const { trigger, dialog } = openNavigation();
+    const navigation = within(dialog).getByRole("navigation");
+
+    expect(
+      within(navigation).getByRole("link", { current: "page" }),
+    ).toHaveTextContent("Menus");
 
     act(() => {
       desktop = true;
@@ -81,7 +87,7 @@ describe("AppShell mobile navigation", () => {
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(trigger).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Menus" })).toHaveFocus();
   });
 
   it("closes on navigation and stays closed when going back", () => {

@@ -2,7 +2,7 @@ import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
 import { expect, test, type Page } from "@playwright/test";
 
 const screenshotDirectory = ".notes/ds-01-browser/admin";
-const widths = [320, 390, 768, 1024, 1280, 1440, 1920];
+const widths = [320, 390, 768, 1023, 1024, 1280, 1440, 1920];
 const screens = [
   ["", "Dashboard"],
   ["/posts", "Posts"],
@@ -179,6 +179,16 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     await expectNoPageOverflow(page);
 
     if (path === "") {
+      const topbar = page.getByRole("banner");
+      const currentCrumb = topbar.getByText("Dashboard", { exact: true });
+      await expect(topbar).toHaveCSS("position", "relative");
+
+      const visibleText = await currentCrumb.evaluate((crumb) => ({
+        height: crumb.clientHeight,
+        fullHeight: crumb.scrollHeight,
+      }));
+      expect(visibleText.height).toBe(visibleText.fullHeight);
+
       const quickActions = page.getByRole("group", { name: "Quick actions" });
 
       const overflowingActions = await quickActions
@@ -305,7 +315,6 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await expect(
     navigation.getByRole("button", { name: "Close navigation" }),
   ).toBeFocused();
-  await screenshot(page, "navigation-mobile-390");
   const expandedLabel = "Szerepkörök és hozzáférési beállítások";
   await navigation
     .getByRole("link", { name: "Settings" })
@@ -321,9 +330,32 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 
+  await screenshot(page, "navigation-mobile-390");
   await page.keyboard.press("Escape");
   await expect(navigation).toBeHidden();
   await expect(navigationTrigger).toBeFocused();
+
+  await selectTheme(page, "Dark");
+  await page.setViewportSize({ width: 320, height: 300 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  await navigationTrigger.press("Enter");
+  const menus = navigation.getByRole("link", { name: "Menus", exact: true });
+  await menus.focus();
+  await expect(menus).toBeInViewport();
+  await expect(menus).toHaveCSS("outline-style", "solid");
+  await expect(
+    navigation.getByRole("button", { name: "Close navigation" }),
+  ).toBeInViewport();
+  await expectNoPageOverflow(page);
+  await screenshot(page, "navigation-dark-short-320-text-200");
+  await page.keyboard.press("Escape");
+  await expect(navigationTrigger).toBeFocused();
+  await page.evaluate(() =>
+    document.documentElement.style.removeProperty("font-size"),
+  );
+  await page.setViewportSize({ width: 390, height: 760 });
 
   const account = page.getByRole("button", { name: "Open user menu" });
   await account.focus();
@@ -365,6 +397,7 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
   await page.keyboard.press("Escape");
   await expect(themeMenu).toBeHidden();
   await expect(theme).toBeFocused();
+  await selectTheme(page, "Light");
 
   await page.goto("/admin/taxonomy");
   await page.setViewportSize({ width: 320, height: 300 });

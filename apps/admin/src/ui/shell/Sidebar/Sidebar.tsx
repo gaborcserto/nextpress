@@ -65,6 +65,16 @@ export default function Sidebar({
         ]
       : [{ label: "Publishing", items: editorialItems }];
 
+  const activeHref = groups
+    .flatMap(({ items }) => items)
+    .reduce<string | undefined>((active, { href }) => {
+      const matches =
+        pathname === href ||
+        (href !== "/admin" && pathname.startsWith(href + "/"));
+
+      return matches && href.length > (active?.length ?? 0) ? href : active;
+    }, undefined);
+
   return (
     <div className="admin-sidebar" data-collapsed={collapsed}>
       <div className="admin-sidebar-heading">
@@ -84,23 +94,22 @@ export default function Sidebar({
       </div>
       <nav aria-label="Admin navigation" className="admin-sidebar-nav">
         {groups.map(({ label, items }) => (
-          <div key={label} className="admin-nav-group">
+          <div key={label} className="admin-nav-section">
             <p className={collapsed ? "sr-only" : "admin-nav-label"}>{label}</p>
-            {items.map(({ href, label: itemLabel, icon }) => (
-              <div key={href}>
-                <NavItem
-                  href={href}
-                  label={itemLabel}
-                  IconAction={icon}
-                  active={
-                    pathname === href ||
-                    (href !== "/admin" && pathname.startsWith(href + "/"))
-                  }
-                  collapsed={collapsed}
-                  onClickAction={onItemClickAction}
-                />
-              </div>
-            ))}
+            <ul aria-label={label} className="admin-nav-group">
+              {items.map(({ href, label: itemLabel, icon }) => (
+                <li key={href}>
+                  <NavItem
+                    href={href}
+                    label={itemLabel}
+                    IconAction={icon}
+                    active={href === activeHref}
+                    collapsed={collapsed}
+                    onClickAction={onItemClickAction}
+                  />
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </nav>

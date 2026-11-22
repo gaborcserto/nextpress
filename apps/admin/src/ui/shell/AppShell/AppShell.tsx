@@ -81,9 +81,11 @@ export default function AppShell({
     if (navigationOpen) {
       dialogRef.current?.querySelector("button")?.focus();
     } else if (previousNavigationOpen.current && isDesktop) {
-      desktopNavRef.current
-        ?.querySelector<HTMLElement>('[aria-current="page"], nav a')
-        ?.focus();
+      const rail = desktopNavRef.current;
+      const destination =
+        rail?.querySelector<HTMLElement>('[aria-current="page"]') ??
+        rail?.querySelector<HTMLElement>("nav a");
+      destination?.focus();
     }
 
     previousNavigationOpen.current = navigationOpen;

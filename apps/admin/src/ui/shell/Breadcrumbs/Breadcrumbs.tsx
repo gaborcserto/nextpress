@@ -83,9 +83,7 @@ export default function Breadcrumbs() {
       <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
         <ol>
           <li>
-            <Link href="/admin" className="truncate">
-              Dashboard
-            </Link>
+            <Link href="/admin">Dashboard</Link>
           </li>
         </ol>
       </nav>
@@ -96,15 +94,13 @@ export default function Breadcrumbs() {
     <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
       <ol>
         {items.map(({ href, label, isLast }) => (
-          <li key={href} className="max-w-[28ch]">
+          <li key={href}>
             {isLast ? (
-              <span aria-current="page" title={label} className="truncate">
+              <span aria-current="page" title={label}>
                 {label}
               </span>
             ) : (
-              <Link href={href} className="truncate">
-                {label}
-              </Link>
+              <Link href={href}>{label}</Link>
             )}
           </li>
         ))}
