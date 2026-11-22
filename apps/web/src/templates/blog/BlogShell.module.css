@@ -112,10 +112,19 @@
 }
 
 .footer p {
+  min-inline-size: 0;
+  max-inline-size: 100%;
   margin: 0;
   font-family: var(--font-heading);
   font-size: 1.5rem;
   letter-spacing: -0.035em;
+}
+
+.footer p > span {
+  display: block;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .footer a {
@@ -142,7 +151,7 @@
   }
 
   .headerContent:has([data-mobile="true"]) {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 
   .siteIdentity,
@@ -150,6 +159,13 @@
     font-size: 1.5rem;
     overflow: hidden;
     white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .siteIdentity > span {
+    display: block;
+    max-inline-size: 100%;
+    overflow: hidden;
     text-overflow: ellipsis;
   }
 

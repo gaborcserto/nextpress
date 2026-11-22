@@ -7,6 +7,7 @@ import type { Page } from "@playwright/test";
 
 const origin = "http://localhost:49200";
 const headers = { origin: "http://localhost:49201" };
+let articleSlug = "";
 
 async function openPrimaryNavigation(page: Page) {
   const toggle = page.getByRole("button", {
@@ -44,6 +45,7 @@ test.beforeAll(async ({ request }) => {
   );
   expect(login.status()).toBe(200);
   const fixtureId = randomUUID();
+  articleSlug = `responsive-archive-${fixtureId}-0`;
 
   for (let index = 0; index < 6; index++) {
     const created = await request.post("http://localhost:49201/api/post", {
@@ -81,6 +83,122 @@ test.beforeAll(async ({ request }) => {
   );
   expect(settings.status()).toBe(200);
 });
+
+for (const preset of ["classic", "modern", "minimal"] as const) {
+  test(`${preset} routes reflow at supported widths with settled navigation`, async ({
+    page,
+  }, testInfo) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await page.goto("http://localhost:49201/auth/sign-in");
+    await page
+      .getByLabel("Email", { exact: true })
+      .fill("admin@example.invalid");
+    await page
+      .getByLabel("Password", { exact: true })
+      .fill("Disposable browser passphrase 2026");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
+
+    const appearance = await page.request.put(
+      "http://localhost:49201/api/admin/settings/appearance",
+      {
+        headers: { ...headers, "content-type": "application/json" },
+        data: {
+          websiteTemplate: "blog",
+          stylePreset: preset,
+          colorMode: "light",
+        },
+      },
+    );
+    expect(appearance.status()).toBe(200);
+
+    for (const route of ["home", "archive", "article"] as const) {
+      const path =
+        route === "home"
+          ? "/en/"
+          : route === "archive"
+            ? "/en/posts"
+            : `/en/posts/${articleSlug}`;
+
+      for (const width of [320, 390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 });
+        expect((await page.goto(`${origin}${path}`))?.status()).toBe(200);
+        await page.evaluate(() => document.fonts.ready);
+        await expect(page.getByRole("main")).toBeVisible();
+
+        const dimensions = await page.evaluate(() => ({
+          document: document.documentElement.scrollWidth,
+          viewport: window.innerWidth,
+        }));
+        expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
+
+        await page.locator("html").evaluate((html) => {
+          html.style.fontSize = "200%";
+        });
+        const resizedGeometry = await page.evaluate(() => ({
+          document: document.documentElement.scrollWidth,
+          viewport: window.innerWidth,
+          overflowing: Array.from(document.body.querySelectorAll("*"))
+            .filter((element) => {
+              const bounds = element.getBoundingClientRect();
+
+              return bounds.right > window.innerWidth + 1;
+            })
+            .slice(0, 5)
+            .map((element) => ({
+              tag: element.tagName,
+              className: element.getAttribute("class"),
+              text: element.textContent?.trim().slice(0, 40),
+              width: Math.round(element.getBoundingClientRect().width),
+              right: Math.round(element.getBoundingClientRect().right),
+            })),
+        }));
+        console.log(JSON.stringify({ preset, route, width, resizedGeometry }));
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+          .toBeLessThanOrEqual(width);
+        await page.locator("html").evaluate((html) => {
+          html.style.fontSize = "";
+        });
+
+        if (width < 896) {
+          const toggle = page.getByRole("button", { name: /navigation/i });
+
+          await toggle.click();
+          await expect(toggle).toHaveAttribute("aria-expanded", "true");
+          await page.waitForTimeout(250);
+
+          if (width === 390) {
+            await page.screenshot({
+              path: testInfo.outputPath(`${route}-390-open.png`),
+              fullPage: true,
+            });
+          }
+
+          await page.keyboard.press("Escape");
+          await expect(toggle).toHaveAttribute("aria-expanded", "false");
+          await expect(toggle).toBeFocused();
+          await page.waitForTimeout(250);
+        }
+
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+
+        if (width === 390 || width === 1440) {
+          await page.screenshot({
+            path: testInfo.outputPath(`${route}-${width}-closed.png`),
+            fullPage: true,
+          });
+        }
+      }
+    }
+
+    expect(pageErrors).toEqual([]);
+  });
+}
 
 for (const width of [320, 390, 768, 1440]) {
   test(`public archive layout, resources and navigation at ${width}px`, async ({
