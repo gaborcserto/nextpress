@@ -15,7 +15,7 @@
 }
 
 .header h1 {
-  margin: 0;
+  margin: 0 0 1rem;
   font-size: clamp(1.875rem, 4.5vw, var(--blog-article-title-size));
   font-weight: var(--blog-display-weight, 600);
   line-height: 1.08;
