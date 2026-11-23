@@ -77,22 +77,22 @@ export default function Sidebar({
 
   return (
     <div className="admin-sidebar" data-collapsed={collapsed}>
-      <div className="admin-sidebar-heading">
-        <span className="admin-wordmark" aria-label="NextPress">
-          {collapsed ? "NP" : "NextPress"}
-        </span>
-        {onCloseAction && (
-          <button
-            type="button"
-            aria-label="Close navigation"
-            className="btn btn-ghost btn-square admin-nav-trigger"
-            onClick={onCloseAction}
-          >
-            <FaTimes size={18} aria-hidden="true" />
-          </button>
-        )}
-      </div>
       <nav aria-label="Admin navigation" className="admin-sidebar-nav">
+        <div className="admin-sidebar-heading">
+          <span className="admin-wordmark" aria-label="NextPress">
+            {collapsed ? "NP" : "NextPress"}
+          </span>
+          {onCloseAction && (
+            <button
+              type="button"
+              aria-label="Close navigation"
+              className="btn btn-ghost btn-square admin-nav-trigger"
+              onClick={onCloseAction}
+            >
+              <FaTimes size={18} aria-hidden="true" />
+            </button>
+          )}
+        </div>
         {groups.map(({ label, items }) => (
           <div key={label} className="admin-nav-section">
             <p className={collapsed ? "sr-only" : "admin-nav-label"}>{label}</p>
