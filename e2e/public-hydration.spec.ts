@@ -1,6 +1,6 @@
 ﻿import { expect, test } from "@playwright/test";
 
-import type { Page, Response } from "@playwright/test";
+import type { Page, Response, TestInfo } from "@playwright/test";
 
 test.use({ baseURL: "http://localhost:49200" });
 
@@ -9,15 +9,62 @@ function recordHydrationErrors(page: Page) {
 
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if (
-      message.type() === "error" &&
-      /hydrat|server rendered|didn't match/i.test(message.text())
-    ) {
+    if (message.type() === "error") {
       errors.push(message.text());
     }
   });
+  page.on("requestfailed", (request) => {
+    const url = new URL(request.url());
+    errors.push(
+      `Request failed: ${url.pathname} (${request.failure()?.errorText})`,
+    );
+  });
 
   return errors;
+}
+
+async function openLanguageMenu(page: Page, name: string) {
+  const trigger = page.getByRole("button", { name, exact: true });
+  let readinessAttempts = 0;
+
+  await expect
+    .poll(async () => {
+      readinessAttempts += 1;
+
+      if ((await trigger.getAttribute("aria-expanded")) === "true") {
+        return true;
+      }
+
+      await trigger.press("ArrowDown");
+
+      return (await trigger.getAttribute("aria-expanded")) === "true";
+    })
+    .toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+  const menu = page.getByRole("menu", { name });
+  await expect(menu).toBeVisible();
+  const selectedOption = menu.locator(
+    '[role="menuitemradio"][aria-checked="true"]',
+  );
+  await expect(selectedOption).toBeFocused();
+
+  const renderedState = await menu.evaluate((element) => {
+    const style = getComputedStyle(element);
+
+    return {
+      display: style.display,
+      visibility: style.visibility,
+      ariaHidden: element.getAttribute("aria-hidden"),
+      activeOption: document.activeElement?.textContent?.trim() ?? "",
+    };
+  });
+
+  return { menu, readinessAttempts, renderedState };
 }
 
 async function expectServerMenu(response: Response | null) {
@@ -31,12 +78,16 @@ async function expectServerMenu(response: Response | null) {
 }
 
 for (const locale of ["en", "hu"] as const) {
-  test(`SSR language menu stays consistent through ${locale} language changes and history`, async ({
+  test(`@cross-browser SSR language menu stays consistent through ${locale} language changes and history`, async ({
     page,
     context,
-  }) => {
+  }, testInfo: TestInfo) => {
     const destination = locale === "en" ? "hu" : "en";
     const errors = recordHydrationErrors(page);
+    const navigationPaths: string[] = [];
+    page.on("framenavigated", (frame) => {
+      navigationPaths.push(new URL(frame.url()).pathname);
+    });
     await context.addCookies([
       { name: "np-locale", value: destination, url: "http://localhost:49200" },
       {
@@ -49,17 +100,19 @@ for (const locale of ["en", "hu"] as const) {
     await expectServerMenu(await page.goto(`/${locale}/posts`));
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
     await expectServerMenu(await page.reload());
-    const trigger = page.getByRole("button", {
-      name: locale === "en" ? "Language" : "Nyelv",
-      exact: true,
-    });
+    const menuName = locale === "en" ? "Language" : "Nyelv";
+
+    const { menu, readinessAttempts, renderedState } = await openLanguageMenu(
+      page,
+      menuName,
+    );
+
     const response = page.waitForResponse(
       (result) =>
         result.request().isNavigationRequest() &&
         new URL(result.url()).pathname === `/${destination}/posts`,
     );
-    await trigger.click();
-    await page
+    await menu
       .getByRole("menuitemradio", {
         name: destination === "hu" ? "Magyar" : "English",
         exact: true,
@@ -72,7 +125,22 @@ for (const locale of ["en", "hu"] as const) {
     await page.goForward();
     await expect(page.locator("html")).toHaveAttribute("lang", destination);
     await expectServerMenu(await page.reload());
+    console.log(
+      "Public language-menu diagnostics",
+      JSON.stringify({
+        locale,
+        readinessAttempts,
+        errors,
+        navigationPaths,
+        expandedAfterOpen: true,
+        renderedState,
+      }),
+    );
     expect(errors).toEqual([]);
+    await testInfo.attach("public-language-menu-diagnostics", {
+      body: JSON.stringify({ errors, navigationPaths }, null, 2),
+      contentType: "application/json",
+    });
   });
 }
 

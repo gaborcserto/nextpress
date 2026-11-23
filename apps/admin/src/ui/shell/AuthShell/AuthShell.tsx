@@ -33,7 +33,11 @@ export function AuthShell({
       </header>
       <main className="admin-auth-content">
         {asForm ? (
-          <form className="admin-auth-panel" onSubmit={onSubmitAction}>
+          <form
+            className="admin-auth-panel"
+            method="post"
+            onSubmit={onSubmitAction}
+          >
             {inner}
           </form>
         ) : (

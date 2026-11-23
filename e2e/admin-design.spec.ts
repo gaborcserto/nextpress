@@ -1,5 +1,5 @@
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
 const screenshotDirectory = ".notes/ds-01-browser/admin";
 const widths = [320, 390, 768, 1023, 1024, 1280, 1440, 1920];
@@ -14,6 +14,25 @@ const screens = [
 ];
 
 async function signIn(page: Page) {
+  const themeTrigger = page.getByRole("button", { name: /^Theme:/ });
+  let readinessAttempts = 0;
+
+  await expect
+    .poll(async () => {
+      readinessAttempts += 1;
+
+      if ((await themeTrigger.getAttribute("aria-expanded")) === "true") {
+        return true;
+      }
+
+      await themeTrigger.press("ArrowDown");
+
+      return (await themeTrigger.getAttribute("aria-expanded")) === "true";
+    })
+    .toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(themeTrigger).toHaveAttribute("aria-expanded", "false");
+
   await page.getByLabel("Email", { exact: true }).fill("admin@example.invalid");
   await page
     .getByLabel("Password", { exact: true })
@@ -23,7 +42,61 @@ async function signIn(page: Page) {
   await expect(
     page.getByRole("status").filter({ hasText: /Welcome,/ }),
   ).toBeVisible();
+
+  return readinessAttempts;
 }
+
+test("@cross-browser sign-in keeps credentials out of navigation URLs", async ({
+  page,
+}, testInfo: TestInfo) => {
+  const diagnostics: Array<Record<string, string | string[]>> = [];
+
+  page.on("framenavigated", (frame) => {
+    const url = new URL(frame.url());
+
+    diagnostics.push({
+      event: "navigation",
+      pathname: url.pathname,
+      queryKeys: [...url.searchParams.keys()],
+    });
+  });
+  page.on("pageerror", (error) => {
+    diagnostics.push({ event: "pageerror", message: error.message });
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      diagnostics.push({ event: "console-error", message: message.text() });
+    }
+  });
+  page.on("requestfailed", (request) => {
+    diagnostics.push({
+      event: "request-failed",
+      pathname: new URL(request.url()).pathname,
+      failure: request.failure()?.errorText ?? "unknown",
+    });
+  });
+
+  await page.goto("/auth/sign-in");
+  const readinessAttempts = await signIn(page);
+  await expect(page).toHaveURL(/\/admin$/);
+  console.log(
+    "Cross-browser sign-in diagnostics",
+    JSON.stringify({ readinessAttempts, navigation: diagnostics }),
+  );
+  await testInfo.attach("cross-browser-sign-in-diagnostics", {
+    body: JSON.stringify(
+      { readinessAttempts, navigation: diagnostics },
+      null,
+      2,
+    ),
+    contentType: "application/json",
+  });
+  expect(
+    diagnostics
+      .filter((event) => event.event === "navigation")
+      .every((event) => event.queryKeys?.length === 0),
+  ).toBe(true);
+});
 
 async function selectTheme(page: Page, mode: "Light" | "Dark" | "System") {
   await page.getByRole("button", { name: /^Theme:/ }).click();

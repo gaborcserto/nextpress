@@ -27,6 +27,16 @@ describe("SignInForm", () => {
     window.localStorage.clear();
   });
 
+  it("uses a POST native fallback so credentials cannot enter a query string", () => {
+    render(<SignInForm providers={[]} />);
+
+    const form = screen
+      .getByRole("button", { name: "Sign in" })
+      .closest("form");
+
+    expect(form).toHaveAttribute("method", "post");
+  });
+
   it("starts with empty credentials and reports validation beside each field", () => {
     render(<SignInForm providers={[]} />);
 

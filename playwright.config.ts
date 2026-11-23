@@ -19,6 +19,19 @@ export default defineConfig({
   workers: 1,
   timeout: 60_000,
   use: { baseURL: "http://localhost:49201", trace: "retain-on-failure" },
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "firefox",
+      grep: /@cross-browser/,
+      use: { browserName: "firefox" },
+    },
+    {
+      name: "webkit",
+      grep: /@cross-browser/,
+      use: { browserName: "webkit" },
+    },
+  ],
   webServer: ["api", "admin", "web"].map((app, index) => ({
     command:
       app === "web" && productionArtifact

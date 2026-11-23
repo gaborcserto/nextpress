@@ -57,11 +57,13 @@ function run(command, args, options = {}) {
   }
 }
 
-// Install the browser revision required by the current Playwright package.
+// Install every browser used by the configured Playwright projects.
 run(process.execPath, [
   "node_modules/@playwright/test/cli.js",
   "install",
   "chromium",
+  "firefox",
+  "webkit",
 ]);
 
 let container;
