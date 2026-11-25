@@ -21,6 +21,8 @@ Admin-specific: keep admin UI organized with the existing `src/components`, `src
 
 The database package owns `packages/db/prisma/schema.prisma`, migrations, seed logic, and the Prisma client. Do not edit generated output. Do not change the schema or migrations unless the task explicitly requires a database change and includes the appropriate Prisma workflow.
 
+For local editorial database migrations, Prisma CLI reads the dedicated ignored `packages/db/.env.migrator` configuration; keep the API runtime URL in `apps/api/.env` on `nextpress_dev_api`. Verify runtime and migration targets separately with `npm run db:target` and `npm run db:migration-target` before deployment. Never grant the runtime role access to `_prisma_migrations` or deploy as the local provisioner. See `docs/development.md` for credential setup and recovery.
+
 ## Documentation placement
 
 - `.notes/`: internal audits, security assessments, investigations, research, migration plans, temporary reports, and development notes.
@@ -46,6 +48,7 @@ Before implementing:
 4. Follow an existing good pattern when it fits; if the pattern is unsafe, obsolete, incorrectly typed, or inconsistent, fix the underlying issue rather than copying it.
 
 Prefer a small, direct change with readable control flow. Avoid speculative refactors and cross-package coupling.
+Existing staged or unstaged changes are expected context, not a blocker. Build on them incrementally; never reset, restore, stash, or overwrite existing work. Stop only when a concrete technical blocker prevents safe progress.
 Preserve existing behavior unless the task intentionally changes it, and make that behavior change explicit in tests and the final report.
 
 ## TypeScript and data flow
@@ -76,6 +79,46 @@ Across both applications, use semantic HTML and the existing primitives in the o
 Admin-specific: prefer the existing admin UI primitives. Do not treat them as public-frontend defaults or move them into `packages/shared` without demonstrated cross-application use. For public-frontend work, derive rendering, caching, performance, and metadata/SEO decisions from its current Next.js implementation and the task requirements, not from admin conventions.
 
 The shared ESLint configuration includes Next.js Core Web Vitals and React accessibility checks. Treat those checks as a baseline, not as a substitute for reviewing the user flow.
+
+## Audit and investigation policy
+
+Comprehensive audits are not part of the default development workflow. Perform comprehensive or cross-project audits only when:
+
+- The user explicitly requests an audit.
+- Auditing is the primary objective of the assigned task.
+- A significant architectural, security, data integrity, or systemic quality risk makes an audit necessary.
+- A complex cross-cutting change cannot be implemented safely without broader investigation.
+
+For routine feature development, bug fixes, UI refinements, component improvements, and maintenance:
+
+- Inspect only the relevant implementation, dependencies, contracts, and tests.
+- Prefer targeted investigation followed by implementation.
+- Do not perform repository-wide inventories or audits by default.
+- Do not repeatedly investigate previously established findings.
+- Reuse existing documentation, implementation reports, and verified results when they remain applicable.
+- Do not create unnecessary audit reports, inventories, or intermediate documentation.
+- Do not turn implementation tasks into analysis-only tasks.
+- Do not repeatedly reload unrelated skills, documentation, or source files.
+- Use relevant project skills selectively.
+- Expand the investigation only when concrete evidence justifies it.
+- Keep debugging bounded and avoid repetitive investigation loops.
+
+Targeted code inspection, security checks, dependency analysis, and verification necessary for safe implementation remain expected. This policy does not reduce code quality, security requirements, or automated test coverage.
+
+When a broader audit becomes necessary, define its scope and justification before proceeding. The user's explicit instructions take precedence.
+
+## Visual regression and browser verification
+
+- Visual regression testing is not part of the default development workflow. Perform it only when explicitly requested, when the task is a UI/UX, design system, accessibility, or visual audit, when UI/UX changes are complex, when a significant design change or redesign is introduced, or when shared design system components or tokens have broad visual impact.
+- For routine bug fixes, minor UI adjustments, styling changes, backend changes, and regular feature development, do not automatically launch visual regression suites, cross-browser verification, or comprehensive screenshot, viewport, theme, or accessibility matrices. Prefer targeted unit, component, and integration tests; run targeted functional browser tests only when needed for affected behavior. Functional E2E testing is distinct from visual regression testing.
+- Do not initiate comprehensive visual regression solely because a development task or phase is being completed. Preserve existing automated test coverage; this policy limits unnecessary execution, not test quality or coverage. Explicit user verification requirements take precedence.
+- When visual regression is justified, define the affected scope first, avoid repeating the same matrix, wait for readiness and hydration before client-side interactions, use bounded timeouts and retries, distinguish application defects from automation failures, and report unresolved blockers instead of entering unbounded retry loops. Do not modify working application code to compensate for unreliable automation.
+- Verify visual changes in the hydrated, rendered application. Source inspection, computed CSS assumptions, unit tests, and successful builds do not by themselves establish visual correctness.
+- Choose a focused browser matrix that covers the changed screens, responsive breakpoints, themes, locales, and interactions. Reuse recent successful browser evidence when relevant code and environment inputs have not changed; do not repeat a comprehensive matrix without a concrete reason.
+- Wait for hydration and relevant transitions to settle before assertions or screenshots. Check actual geometry, overflow, focus, and interaction behavior where those are part of the change.
+- Save requested visual evidence under the existing `.notes/admin-redesign/` structure. Keep screenshots and notes local unless the task explicitly requests tracked documentation.
+- Use the existing guarded browser/E2E runners for database-backed flows. Preserve unrelated containers, networks, volumes, manifests, and databases. On interruption, inspect active processes and exact run ownership; only clean resources created by that exact run after verifying their ownership.
+- Report the screens, viewports, themes, locales, and interactions actually verified, link to evidence paths, and identify incomplete coverage. Never describe untested states as verified.
 
 ## Code quality
 
@@ -122,7 +165,8 @@ Run commands from the repository root unless a workspace is intentionally target
 - `npm run coverage`: run those suites with V8 coverage.
 - `npm run format:changed`: format changed source/config/style files; never falls back to full writes.
 - `npm run format:check:changed`: check those files without writing.
-- `npm run check:changed`: check formatting then affected lint/typecheck/tests; accepts `-- --base <ref>` for branch scope and `-- --full` for full workspace checks.
+- `npm run check:changed`: repository-level verification over the union of staged, unstaged and untracked paths; it may select full workspace checks when any path is unrecognized. Use for an intentional aggregate working-tree/release check, not automatically for each development task.
+- `npm run check:changed -- --format --files path...` and `npm run check:changed -- --format-check --files path...`: format or check only explicit task-owned paths when unrelated changes exist.
 - `npm run typecheck`: run TypeScript checks for supported workspaces through Turbo.
 - `npm run prisma:generate`: generate Prisma artifacts through Turbo.
 - `npm run prisma:migrate`: run the database migration workflow through Turbo; use only when a migration is required.
@@ -138,7 +182,7 @@ Environment templates are `apps/api/.env.example`, `apps/web/.env.example`, `app
 Before completing work:
 
 - Review the final diff and confirm only intended files changed.
-- Run the narrowest relevant tests, lint, typecheck, build, validation, or flow check available for the change; report anything not run and why.
+- Run task-scoped formatting and the narrowest relevant tests, lint, typecheck, build, validation, or flow check available for the change; report anything not run and why. Do not let unrelated staged or unstaged paths expand routine development verification.
 - Verify every documented command, path, environment template, and package boundary against the repository.
 - Check for duplicated or contradictory agent instructions.
 - Confirm no secrets, generated artifacts, unrelated application behavior, schema changes, migrations, tests, CI, Husky, or dependency upgrades were added unless explicitly requested.
@@ -148,7 +192,11 @@ Before completing work:
 
 ## Verification efficiency
 
-- During implementation, prefer focused tests and affected-workspace checks. Avoid unnecessary full builds, repeated installs, database initialization, and coverage runs; reuse successful results while relevant inputs remain unchanged.
-- Before committing, run applicable mandatory checks, `npm run check:changed`, relevant integration/security/browser checks, and `git diff --check`.
+- Keep development verification task-scoped. Format explicit task-owned paths when unrelated changes exist, then run the owning workspace lint and focused tests/typecheck required by the change. For CSS-only changes, run the relevant formatter and owning workspace lint; use a targeted rendered-browser check only when needed to establish the changed layout. Do not automatically run Playwright E2E, full visual regression, cross-browser audits, or full workspace verification for minor styling changes.
+- `npm run check:changed` intentionally examines staged, unstaged, and untracked paths together. Run it only when aggregate working-tree verification is intended and its scope is appropriate; do not use it as the default task gate when unrelated staged or unstaged paths would broaden verification. Explicit `--files` is supported for formatter modes only.
+- Pre-commit verification is separate: Husky and lint-staged validate the staged snapshot, including staged formatting, ESLint, readability and affected unit tests, while preserving unstaged edits. Do not bypass or weaken these checks. Do not run hook checks against the user's real index just to test them; use disposable fixtures.
+- Full workspace and release verification remains required when explicitly requested, when the release/CI workflow requires it, or when a risk or root-level change makes it applicable. CI change detection and its conservative full-validation fallback remain unchanged.
+- During implementation, avoid unnecessary full builds, repeated installs, database initialization, and coverage runs; reuse successful results while relevant inputs remain unchanged.
+- Before committing, run applicable mandatory staged-snapshot checks, relevant integration/security/browser checks, and `git diff --check`. Use aggregate `npm run check:changed` only when its combined local-change scope is intended.
 - Reproduce failures with the smallest relevant command. Separate code regressions from environment or resource failures; after two unsuccessful targeted repair attempts, reassess the cause instead of repeating the same command. Do not raise timeouts or memory limits without evidence.
 - Never weaken tests, authorization, or security requirements. Do not bypass Husky or any required check.

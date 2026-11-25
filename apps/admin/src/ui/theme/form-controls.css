@@ -1,12 +1,36 @@
 /* Keep native form semantics while sharing the Admin field treatment. */
-:is(.input, .select, .textarea) {
+:is(.input, .select, .textarea, .file-input) {
   --field-edge: var(--field-border);
   --field-focus: var(--focus-color);
+  box-sizing: border-box;
+  border-width: var(--border-width);
   border-color: var(--field-edge);
+  background-color: var(--field-background);
+  color: var(--text-primary);
+  font-size: var(--text-ui-size);
+  line-height: var(--text-ui-leading);
   box-shadow: none;
 }
 
-:is(.input, .select, .textarea):not(
+:is(.input, .select, .file-input):not(
+  .input-xs,
+  .input-sm,
+  .input-lg,
+  .input-xl,
+  .select-xs,
+  .select-sm,
+  .admin-multivalue-control
+) {
+  block-size: var(--control-min-height);
+  min-block-size: var(--control-min-height);
+}
+
+:is(.input, .select)::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+:is(.input, .select, .textarea, .file-input):not(
     :disabled,
     [readonly],
     :has(> input:disabled)
@@ -14,26 +38,27 @@
   border-color: var(--field-edge-hover, var(--field-border-hover));
 }
 
-:is(.input, .select, .textarea)[aria-invalid="true"] {
+:is(.input, .select, .textarea, .file-input)[aria-invalid="true"] {
   --field-edge: var(--danger-text);
   --field-edge-hover: var(--danger-text);
   --field-focus: var(--danger-text);
 }
 
 :is(.input, .textarea)[readonly],
-:is(.input, .select, .textarea):disabled,
+:is(.input, .select, .textarea, .file-input):disabled,
 .input:has(> input:disabled) {
-  background-color: var(--surface-rail);
+  background-color: var(--field-background-readonly);
 }
 
 :is(.input, .select, .textarea):disabled,
 .input:has(> input:disabled) {
-  border-color: var(--surface-border);
+  --field-edge: var(--field-border-disabled);
+  background-color: var(--field-background-disabled);
   color: var(--text-muted);
   cursor: not-allowed;
 }
 
-:is(.input, .select, .textarea):focus,
+:is(.input, .select, .textarea, .file-input):focus,
 .input:has(> input:focus),
 :is(.select:open) {
   border-color: var(--field-focus);
@@ -42,12 +67,174 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--field-focus) 16%, transparent);
 }
 
+:is(.input, .select, .textarea, .file-input):focus-visible,
+.input:has(> input:focus-visible) {
+  outline: none;
+}
+
+/* Native fields outside the shared controls still use the semantic border. */
+:where(
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="hidden"],
+    [type="button"],
+    [type="submit"],
+    [type="reset"],
+    [type="image"],
+    [type="range"],
+    [type="color"]
+  ),
+  select,
+  textarea
+):not(.input, .select, .textarea, .file-input) {
+  border-color: var(--field-border);
+}
+
+:where(
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="hidden"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="image"],
+      [type="range"],
+      [type="color"]
+    ),
+    select,
+    textarea
+  ):not(.input, .select, .textarea, .file-input):hover:not(
+    :disabled,
+    [readonly]
+  ) {
+  border-color: var(--field-border-hover);
+}
+
+:where(
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="hidden"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="image"],
+      [type="range"],
+      [type="color"]
+    ),
+    select,
+    textarea
+  ):not(.input, .select, .textarea, .file-input)[aria-invalid="true"] {
+  border-color: var(--field-border-invalid);
+}
+
+:where(
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="hidden"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="image"],
+      [type="range"],
+      [type="color"]
+    ),
+    select,
+    textarea
+  ):not(.input, .select, .textarea, .file-input):disabled {
+  border-color: var(--field-border-disabled);
+}
+
+:where(
+    input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="hidden"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="image"],
+      [type="range"],
+      [type="color"]
+    ),
+    select,
+    textarea
+  ):not(.input, .select, .textarea, .file-input):focus {
+  border-color: var(--focus-color);
+}
+
 .input > input:focus-visible {
   outline: none;
 }
 
+.admin-multivalue-control {
+  block-size: auto;
+  min-block-size: var(--control-min-height);
+}
+
 input.input:autofill {
   border-color: var(--field-edge);
+}
+
+.admin-toggle.toggle {
+  --admin-toggle-track: var(--field-border);
+  --input-color: var(--palette-white);
+  border-color: transparent;
+  color: var(--palette-white);
+  background-color: var(--admin-toggle-track);
+  transition:
+    background-color var(--motion-fast) var(--easing-standard),
+    color var(--motion-fast) var(--easing-standard),
+    grid-template-columns var(--motion-fast) var(--easing-standard);
+}
+
+.admin-toggle.toggle::before {
+  background-color: var(--palette-white);
+}
+
+.admin-toggle.toggle:checked {
+  --input-color: var(--palette-white);
+  --admin-toggle-track: var(--accent-solid);
+  background-color: var(--admin-toggle-track);
+}
+
+.admin-toggle.toggle-primary:checked {
+  --admin-toggle-track: var(--color-primary);
+}
+
+.admin-toggle.toggle-secondary:checked {
+  --admin-toggle-track: var(--color-secondary);
+}
+
+.admin-toggle.toggle-accent:checked {
+  --admin-toggle-track: var(--color-accent);
+}
+
+.admin-toggle.toggle-neutral:checked {
+  --admin-toggle-track: var(--color-neutral);
+}
+
+.admin-toggle.toggle-info:checked {
+  --admin-toggle-track: var(--color-info);
+}
+
+.admin-toggle.toggle-success:checked {
+  --admin-toggle-track: var(--color-success);
+}
+
+.admin-toggle.toggle-warning:checked {
+  --admin-toggle-track: var(--color-warning);
+}
+
+.admin-toggle.toggle-error:checked {
+  --admin-toggle-track: var(--color-error);
+}
+
+.admin-toggle.toggle-sm {
+  --size: 1.375rem;
 }
 
 input.input:autofill:focus {
@@ -208,8 +395,18 @@ input.input:autofill:focus {
 }
 
 @media (pointer: coarse) {
-  :is(.input, .select):not(.input-xs, .input-sm, .select-xs, .select-sm),
+  :is(.input, .select, .file-input):not(
+    .input-xs,
+    .input-sm,
+    .select-xs,
+    .select-sm
+  ),
   .select option {
+    block-size: var(--target-touch);
+    min-block-size: var(--target-touch);
+  }
+
+  .admin-multivalue-control {
     min-block-size: var(--target-touch);
   }
 }

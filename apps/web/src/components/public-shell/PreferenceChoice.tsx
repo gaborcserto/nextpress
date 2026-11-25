@@ -155,6 +155,7 @@ export function PreferenceChoice({
               <button
                 key={optionValue}
                 type="button"
+                className={styles.menuItem}
                 role="menuitemradio"
                 aria-checked={value === optionValue}
                 tabIndex={-1}

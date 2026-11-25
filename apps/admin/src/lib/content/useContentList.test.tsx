@@ -156,6 +156,21 @@ describe("content list URL pagination", () => {
     expect(result.current.query.values.get("status")).toBe("DRAFT");
   });
 
+  it("preserves header sorting when list filters are applied", async () => {
+    navigation.query = "view=compact&sort=title&direction=desc";
+    const { result } = setup();
+    await waitFor(() => expect(result.current.pagination.busy).toBe(false));
+
+    const filters = new FormData();
+    filters.set("status", "SCHEDULED");
+    act(() => result.current.query.onApplyAction(filters));
+
+    expect(navigation.push).toHaveBeenCalledWith(
+      "/admin/posts?view=compact&sort=title&direction=desc&status=SCHEDULED",
+      { scroll: false },
+    );
+  });
+
   it("loads a later deep link and enforces boundaries", async () => {
     navigation.query = "page=3";
     const { result } = setup();

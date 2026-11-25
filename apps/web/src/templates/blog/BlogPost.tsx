@@ -4,6 +4,7 @@ import { ContentArticle } from "@/components/ContentArticle";
 import styles from "@/components/ContentArticlePost.module.css";
 import { PostCover } from "@/components/public-content/PostCover";
 import { PostMetadata } from "@/components/public-content/PostMetadata";
+import { RichContent } from "@/components/RichContent";
 import { UiNav, UiText } from "@/lib/i18n/client";
 
 import { BlogEditorialLink } from "./BlogEditorialLink";
@@ -37,7 +38,9 @@ export function BlogPost({
       intro={
         <>
           <PostMetadata publishedAt={post.publishedAt} author={post.author} />
-          {post.summary ? (
+          {post.intro ? (
+            <RichContent content={post.intro} className={styles.summary} />
+          ) : post.summary ? (
             <p className={styles.summary}>{post.summary}</p>
           ) : null}
           {coverAlreadyAuthored ? null : (

@@ -6,6 +6,7 @@ import {
   maxMenuItems,
   NavigationHrefSchema,
 } from "@nextpress/shared/api-contracts";
+import { pageLayouts } from "@nextpress/shared/content";
 
 import { publishedPagePaths } from "@/lib/repos/page-hierarchy";
 
@@ -38,7 +39,13 @@ export async function getPublicMenus() {
       const [content, taxonomies] = await Promise.all([
         tx.page.findMany({
           where: { id: { in: ids("content") }, ...publicPublicationWhere(now) },
-          select: { id: true, title: true, slug: true, type: true },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            type: true,
+            layout: true,
+          },
         }),
         tx.taxonomy.findMany({
           where: {
@@ -51,14 +58,22 @@ export async function getPublicMenus() {
 
       const paths = await publishedPagePaths(
         tx,
-        content.filter((row) => row.type === "PAGE").map(({ id }) => id),
+        content
+          .filter(
+            (row) => row.type === "PAGE" && row.layout !== pageLayouts.posts,
+          )
+          .map(({ id }) => id),
         now,
       );
       const destinations = new Map<string, { href: string; label: string }>();
 
       for (const row of content) {
         const href =
-          row.type === "POST" ? `/posts/${row.slug}` : paths.get(row.id);
+          row.type === "POST"
+            ? `/posts/${row.slug}`
+            : row.layout === pageLayouts.posts
+              ? "/posts"
+              : paths.get(row.id);
 
         if (href) {
           destinations.set(`content:${row.id}`, { href, label: row.title });
@@ -92,7 +107,7 @@ export async function getPublicMenus() {
           }
 
           for (const item of menu.items) {
-            if (item.parentId !== parentId) {
+            if (item.parentId !== parentId || item.visible === false) {
               continue;
             }
 

@@ -7,10 +7,15 @@ import {
   maxMediaUploadBytes,
   MediaAssetSchema,
   MediaInputMimeSchema,
+  type MediaAsset,
 } from "@nextpress/shared/media";
 import { useEffect, useId, useRef, useState } from "react";
+import { BsFileEarmark, BsFileEarmarkPdf } from "react-icons/bs";
+import { FaCloudUploadAlt } from "react-icons/fa";
+import { FaFileCirclePlus } from "react-icons/fa6";
 
 import { ApiRequestError, jsonFetcher } from "@/lib/api";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import { Button } from "@/ui/primitives";
 
 import { useMediaMessages } from "./messages";
@@ -28,6 +33,72 @@ type Upload = {
     | "cancelled";
 };
 const batchLimit = 12;
+
+function UploadThumbnail({ file }: { file: File }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canPreview =
+    typeof createImageBitmap === "function" &&
+    file.size <= maxMediaUploadBytes &&
+    MediaInputMimeSchema.safeParse(file.type).success;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+
+    if (!canvas) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void createImageBitmap(file)
+      .then((bitmap) => {
+        try {
+          if (!cancelled) {
+            const size = Math.min(bitmap.width, bitmap.height);
+            canvas
+              .getContext("2d")
+              ?.drawImage(
+                bitmap,
+                (bitmap.width - size) / 2,
+                (bitmap.height - size) / 2,
+                size,
+                size,
+                0,
+                0,
+                canvas.width,
+                canvas.height,
+              );
+          }
+        } finally {
+          bitmap.close();
+        }
+      })
+      .catch(() => {
+        canvas.hidden = true;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [file, canPreview]);
+
+  const Icon = file.type === documentMime ? BsFileEarmarkPdf : BsFileEarmark;
+
+  return (
+    <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-md bg-base-200">
+      <Icon aria-hidden className="size-5" />
+      {canPreview && (
+        <canvas
+          ref={canvasRef}
+          aria-hidden
+          width={88}
+          height={88}
+          className="absolute inset-0 size-full"
+        />
+      )}
+    </span>
+  );
+}
 
 async function upload(file: File, documents: boolean) {
   if (documents) {
@@ -66,18 +137,44 @@ async function upload(file: File, documents: boolean) {
 export function MediaUploads({
   onUploaded,
   documents = false,
+  all = false,
+  multiple = true,
 }: {
-  onUploaded: () => void;
+  onUploaded: (assets: MediaAsset[], complete: boolean) => void;
   documents?: boolean;
+  all?: boolean;
+  multiple?: boolean;
 }) {
   const text = useMediaMessages(documents);
+  const locale = useAdminLocale();
+  const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const title = all ? text.uploadAssets : text.upload;
+  const limit = multiple ? batchLimit : 1;
+  const imageTypes = MediaInputMimeSchema.options.join(",");
+  const accept = documents
+    ? documentMime
+    : [imageTypes, ...(all ? [documentMime] : [])].join(",");
+
+  const imageFormats = MediaInputMimeSchema.options
+    .map((mime) => mime.split("/")[1].toUpperCase())
+    .join(", ");
+  const imageLimit = `${imageFormats} · ${number.format(maxMediaUploadBytes / 1024 ** 2)} MiB`;
+  const documentLimit = `PDF · ${number.format(maxDocumentUploadBytes / 1024 ** 2)} MiB`;
+  const formats = documents
+    ? documentLimit
+    : all
+      ? `${imageLimit} / ${documentLimit}`
+      : imageLimit;
+
   const sequence = useRef(0);
   const busy = useRef(false);
   const stop = useRef(false);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [running, setRunning] = useState(false);
   const [tooMany, setTooMany] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(
     () => () => {
@@ -94,7 +191,7 @@ export function MediaUploads({
     busy.current = true;
     stop.current = false;
     setRunning(true);
-    let uploaded = false;
+    const uploaded: MediaAsset[] = [];
 
     function setStatus(id: number, status: Upload["status"]) {
       setUploads((previous) =>
@@ -109,8 +206,11 @@ export function MediaUploads({
           continue;
         }
 
+        const isDocument =
+          documents || (all && item.file.type === documentMime);
+
         if (
-          documents
+          isDocument
             ? item.file.size > maxDocumentUploadBytes ||
               item.file.type !== documentMime ||
               !DocumentFilenameSchema.safeParse(item.file.name).success
@@ -124,8 +224,7 @@ export function MediaUploads({
         setStatus(item.id, "uploading");
 
         try {
-          await upload(item.file, documents);
-          uploaded = true;
+          uploaded.push(await upload(item.file, isDocument));
           setStatus(item.id, "uploaded");
         } catch (error) {
           const unsupportedAnimation =
@@ -142,8 +241,8 @@ export function MediaUploads({
       busy.current = false;
       setRunning(false);
 
-      if (uploaded) {
-        onUploaded();
+      if (uploaded.length) {
+        onUploaded(uploaded, uploaded.length === batch.length);
       }
     }
   }
@@ -153,9 +252,9 @@ export function MediaUploads({
       return;
     }
 
-    setTooMany(files.length > batchLimit);
+    setTooMany(files.length > limit);
 
-    if (files.length > batchLimit) {
+    if (files.length > limit) {
       return;
     }
 
@@ -170,31 +269,72 @@ export function MediaUploads({
 
   return (
     <section
-      className="grid gap-2 rounded-lg border border-dashed border-base-300 p-3"
+      className={`block w-full min-w-0 rounded-(--radius-surface) border border-dashed p-4 text-center transition-colors sm:p-6 ${dragging ? "border-primary bg-primary/10" : "border-(--field-border) bg-(--surface-rail)"}`}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (
+          !(event.relatedTarget instanceof Node) ||
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          setDragging(false);
+        }
+      }}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault();
+        setDragging(false);
         select(event.dataTransfer.files);
       }}
     >
-      <label htmlFor={inputId} className="font-semibold">
-        {text.upload}
-      </label>
-      <p id={inputId + "-hint"} className="text-sm text-(--text-muted)">
-        {text.uploadHint}
-      </p>
+      <div className="grid min-w-0 justify-items-center gap-2">
+        <span className="grid size-12 place-items-center rounded-full bg-base-200 text-primary">
+          <FaCloudUploadAlt aria-hidden className="size-6" />
+        </span>
+        <p className="font-semibold text-base">
+          {multiple ? text.dropFiles : text.singleUploadHint}
+        </p>
+        <p
+          id={inputId + "-hint"}
+          className="text-sm wrap-anywhere text-(--text-muted)"
+        >
+          {formats}
+        </p>
+        <button
+          type="button"
+          className="group inline-flex min-h-11 items-center justify-center rounded-sm px-2 font-semibold text-(--accent-text) transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color) disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+          disabled={running}
+          aria-describedby={inputId + "-hint"}
+          onClick={() => inputRef.current?.click()}
+        >
+          <span className="inline-flex items-center gap-2 border-b border-transparent transition-colors group-hover:border-current group-focus-visible:border-current motion-reduce:transition-none">
+            <FaFileCirclePlus aria-hidden="true" className="size-4 shrink-0" />
+            {multiple ? text.browseFiles : text.browseFile}
+          </span>
+        </button>
+      </div>
+      {running && (
+        <progress
+          className="progress progress-primary mt-4 block w-full"
+          aria-label={text.uploading}
+          max={uploads.length}
+          value={
+            uploads.filter(
+              ({ status }) => status !== "queued" && status !== "uploading",
+            ).length
+          }
+        />
+      )}
       <input
-        id={inputId}
+        ref={inputRef}
         type="file"
-        multiple
-        accept={
-          documents
-            ? ".pdf,application/pdf"
-            : MediaInputMimeSchema.options.join(",")
-        }
-        aria-describedby={inputId + "-hint"}
+        aria-label={title}
+        multiple={multiple}
+        accept={accept}
         disabled={running}
-        className="file-input w-full max-w-sm"
+        hidden
         onChange={(event) => {
           if (event.currentTarget.files) {
             select(event.currentTarget.files);
@@ -203,14 +343,29 @@ export function MediaUploads({
         }}
       />
       {uploads.length > 0 && (
-        <ul className="grid gap-1 text-sm" aria-live="polite">
+        <ul
+          className="mt-4 grid w-full min-w-0 gap-2 text-sm"
+          aria-live="polite"
+        >
           {uploads.map((item) => (
             <li
               key={item.id}
-              className="flex flex-wrap items-center gap-x-3 wrap-anywhere"
+              className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-base-300 p-2"
             >
-              <span>{item.file.name}</span>
-              <span>{text[item.status]}</span>
+              <UploadThumbnail file={item.file} />
+              <div className="min-w-0 flex-1 wrap-anywhere">
+                <p className="font-medium">{item.file.name}</p>
+                <p className="text-(--text-muted)">
+                  {number.format(item.file.size / 1024)} KiB ·{" "}
+                  {text[item.status]}
+                </p>
+                {item.status === "uploading" && (
+                  <progress
+                    className="progress progress-primary w-full"
+                    aria-label={`${text.uploading} ${item.file.name}`}
+                  />
+                )}
+              </div>
               {item.status === "failedUpload" && (
                 <Button
                   type="button"
@@ -221,13 +376,27 @@ export function MediaUploads({
                   {text.retry}
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={running}
+                aria-label={`${text.removeUpload} ${item.file.name}`}
+                onClick={() =>
+                  setUploads((current) =>
+                    current.filter(({ id }) => id !== item.id),
+                  )
+                }
+              >
+                {text.removeUpload}
+              </Button>
             </li>
           ))}
         </ul>
       )}
       {tooMany && (
-        <p role="alert" className="text-error">
-          {text.tooMany}
+        <p role="alert" className="mt-3 w-full text-error">
+          {multiple ? text.tooMany : text.oneFile}
         </p>
       )}
       {running && uploads.some(({ status }) => status === "queued") && (

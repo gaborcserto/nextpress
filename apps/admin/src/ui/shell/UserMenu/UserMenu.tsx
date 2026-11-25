@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
-import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { FaCircleUser, FaRightFromBracket } from "react-icons/fa6";
 
 import { signOut } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components/UserAvatar";
@@ -61,7 +61,7 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
 
         <DropdownItem
           itemKey="profile"
-          startIcon={<FaUserCircle />}
+          startIcon={<FaCircleUser />}
           onClick={() => router.push("/admin/profile")}
         >
           Profile
@@ -70,7 +70,7 @@ export default function UserMenu({ name, image, role }: UserMenuProps) {
         <DropdownItem
           itemKey="logout"
           color="danger"
-          startIcon={<FaSignOutAlt />}
+          startIcon={<FaRightFromBracket />}
           onClick={handleSignOut}
         >
           Sign out

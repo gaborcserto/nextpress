@@ -1,0 +1,2 @@
+ALTER TABLE "NavigationItem"
+ADD COLUMN "visible" BOOLEAN NOT NULL DEFAULT true;

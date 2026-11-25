@@ -1,3 +1,26 @@
+export function previewAdminOrigin() {
+  const configured = process.env.PREVIEW_ADMIN_ORIGIN;
+  const candidate =
+    configured ||
+    (process.env.NODE_ENV === "development" ? "http://localhost:49101" : "");
+
+  if (!candidate) {
+    return "";
+  }
+
+  const url = new URL(candidate);
+
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error("Invalid Live Preview Admin origin");
+  }
+
+  return url.origin;
+}
+
 export function webSecurityHeaders(production: boolean) {
   const policy = [
     "default-src 'self'",

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { webSecurityHeaders } from "./headers";
+import { previewAdminOrigin, webSecurityHeaders } from "./headers";
 import nextConfig from "../../../next.config";
 
 describe("public web HTTP security policy", () => {
@@ -25,6 +25,7 @@ describe("public web HTTP security policy", () => {
   });
 
   it("denies preview framing when no admin origin is configured", async () => {
+    vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv("PREVIEW_ADMIN_ORIGIN", "");
     const routes = await nextConfig.headers?.();
     expect(
@@ -33,6 +34,26 @@ describe("public web HTTP security policy", () => {
         ?.headers.find((header) => header.key === "Content-Security-Policy")
         ?.value,
     ).toContain("frame-ancestors 'none'");
+  });
+
+  it("uses only the local Admin origin as the development preview fallback", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("PREVIEW_ADMIN_ORIGIN", "");
+    const routes = await nextConfig.headers?.();
+    const policy = routes
+      ?.find((route) => route.source === "/live-preview")
+      ?.headers.find(
+        (header) => header.key === "Content-Security-Policy",
+      )?.value;
+
+    expect(policy).toContain("frame-ancestors http://localhost:49101");
+    expect(previewAdminOrigin()).toBe("http://localhost:49101");
+  });
+
+  it("uses the configured Admin origin for the preview session handshake", () => {
+    vi.stubEnv("PREVIEW_ADMIN_ORIGIN", "https://admin.example.test/path");
+
+    expect(previewAdminOrigin()).toBe("https://admin.example.test");
   });
 
   it("limits sources to the current static frontend and denies framing", () => {

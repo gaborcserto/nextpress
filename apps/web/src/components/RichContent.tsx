@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
+import { ContentMediaImage } from "@/components/public-content/ContentMediaImage";
 import { parsePublicRichContent } from "@/lib/content/rich-content";
 
 import styles from "./RichContent.module.css";
@@ -12,7 +13,7 @@ import type {
 
 const headings = { 2: "h2", 3: "h3", 4: "h4", 5: "h5", 6: "h6" } as const;
 
-function renderText(leaf: RichText): ReactNode {
+function renderText(leaf: RichText, mediaOrigin?: string): ReactNode {
   let text: ReactNode = leaf.text;
 
   if (leaf.code) {
@@ -35,20 +36,48 @@ function renderText(leaf: RichText): ReactNode {
     text = <s>{text}</s>;
   }
 
-  return text;
+  if (!leaf.href) {
+    return text;
+  }
+
+  const isMediaLink = leaf.href.startsWith("/media/");
+  const href =
+    mediaOrigin && isMediaLink ? `${mediaOrigin}/api${leaf.href}` : leaf.href;
+
+  return (
+    <a
+      href={href}
+      target={mediaOrigin && isMediaLink ? "_blank" : undefined}
+      rel={mediaOrigin && isMediaLink ? "noopener" : undefined}
+    >
+      {text}
+    </a>
+  );
 }
 
-function renderLeaves(leaves: RichText[]): ReactNode {
+function renderLeaves(leaves: RichText[], mediaOrigin?: string): ReactNode {
   return leaves.map((leaf, index) => (
-    <Fragment key={index}>{renderText(leaf)}</Fragment>
+    <Fragment key={index}>{renderText(leaf, mediaOrigin)}</Fragment>
   ));
 }
 
-function renderBlock(block: RichBlock): ReactNode {
+function renderBlock(block: RichBlock, mediaOrigin?: string): ReactNode {
+  if (block.type === "image") {
+    return (
+      <ContentMediaImage
+        src={`/media/${encodeURIComponent(block.mediaId)}`}
+        alt={block.alt}
+        width={block.width ?? 800}
+        height={block.height ?? 600}
+        loading="lazy"
+      />
+    );
+  }
+
   if (block.type === "bulleted-list" || block.type === "numbered-list") {
     const items = block.children.map((item, index) => (
       <li key={index} data-align={item.align}>
-        {renderLeaves(item.children)}
+        {renderLeaves(item.children, mediaOrigin)}
       </li>
     ));
 
@@ -59,7 +88,7 @@ function renderBlock(block: RichBlock): ReactNode {
     );
   }
 
-  const text = renderLeaves(block.children);
+  const text = renderLeaves(block.children, mediaOrigin);
 
   switch (block.type) {
     case "paragraph":
@@ -95,16 +124,18 @@ function renderBlock(block: RichBlock): ReactNode {
 export function RichContent({
   content,
   className,
+  mediaOrigin,
 }: {
   content: RichDocument | string | null;
   className?: string;
+  mediaOrigin?: string;
 }) {
   const document = parsePublicRichContent(content);
 
   return (
     <div className={[styles.prose, className].filter(Boolean).join(" ")}>
       {document.blocks.map((block, index) => (
-        <Fragment key={index}>{renderBlock(block)}</Fragment>
+        <Fragment key={index}>{renderBlock(block, mediaOrigin)}</Fragment>
       ))}
     </div>
   );

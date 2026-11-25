@@ -1,15 +1,21 @@
 "use client";
 
 import { resolvePageType } from "@nextpress/shared/content";
+import useSWR from "swr";
 
-import { PageHierarchy } from "@/components/admin/PageHierarchy/PageHierarchy";
+import { jsonFetcher } from "@/lib/api";
+import { isSystemPage } from "@/lib/content/system-page";
 import { ContentList, type ContentListItem } from "@/ui/components";
 
+import { PagePathRowsSchema, resolvePagePath } from "./page-path";
 import { usePagesList, useDeletePage } from "./PagesListScreen.hooks";
 
 export default function PagesListScreen() {
   const { items, error, isLoading, mutate, pagination, query } = usePagesList();
   const { deletingId, deletePage } = useDeletePage(async () => mutate());
+  const { data: pagePaths } = useSWR("/api/admin/page-hierarchy", async (url) =>
+    PagePathRowsSchema.parse(await jsonFetcher<unknown>(url)),
+  );
 
   const labels = {
     standard: "Standard Page",
@@ -20,9 +26,20 @@ export default function PagesListScreen() {
   const mapped: ContentListItem[] = items.map((p) => ({
     id: p.id,
     title: p.title,
+    authorName: p.authorName,
     typeLabel: labels[resolvePageType(p.layout ?? "STANDARD")],
     slug: p.slug,
+    publicPath:
+      resolvePagePath(p.id, pagePaths ?? []) ??
+      (p.layout === "HOME"
+        ? "/"
+        : p.layout === "POSTS" && p.slug === "posts"
+          ? "/posts"
+          : undefined),
+    systemPage: isSystemPage(p.layout, p.slug),
     status: p.status,
+    canDelete:
+      p.layout !== "HOME" && !(p.layout === "POSTS" && p.slug === "posts"),
     publishedAt: p.publishedAt,
     publicationState: p.publicationState,
     updatedAt: p.updatedAt,
@@ -32,7 +49,6 @@ export default function PagesListScreen() {
 
   return (
     <>
-      <PageHierarchy />
       <ContentList
         heading="Pages"
         createHref="/admin/pages/new"

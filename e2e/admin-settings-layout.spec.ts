@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const tabs = ["General", "Publishing", "Authentication"];
-const viewports = [320, 375, 768, 1024, 1440, 1920];
+const viewports = [320, 390, 768, 1024, 1440, 1920];
 
 test("Settings layout adapts across themes and viewport widths", async ({
   page,
@@ -41,17 +41,57 @@ test("Settings layout adapts across themes and viewport widths", async ({
             page.getByRole("heading", { name: "Website appearance" }),
           ).toBeVisible();
           await expect(
-            page.getByRole("button", { name: "Save site settings" }),
+            page.getByRole("button", { name: "Save changes" }),
           ).toBeVisible();
+          expect(
+            await page.locator("#site-time-zone-options option").count(),
+          ).toBeGreaterThan(1);
+
+          if (width >= 1440) {
+            const layout = page.locator(".admin-settings-general-layout");
+
+            const geometry = await layout.evaluate((element) => {
+              const grid = getComputedStyle(element);
+              const panels = Array.from(element.querySelectorAll("section"));
+              const site = panels[0]?.getBoundingClientRect();
+              const dateTime = panels[1]?.getBoundingClientRect();
+              const appearance = panels[2]?.getBoundingClientRect();
+
+              return {
+                rowGap: Number.parseFloat(grid.rowGap),
+                siteDateTimeGap: (dateTime?.top ?? 0) - (site?.bottom ?? 0),
+                dateTimeAppearanceGap:
+                  (appearance?.top ?? 0) - (dateTime?.bottom ?? 0),
+                panelWidths: panels.map((panel) =>
+                  Math.round(panel.getBoundingClientRect().width),
+                ),
+              };
+            });
+
+            expect(geometry.rowGap).toBeGreaterThanOrEqual(16);
+            expect(geometry.siteDateTimeGap).toBeGreaterThanOrEqual(16);
+            expect(geometry.dateTimeAppearanceGap).toBeGreaterThanOrEqual(16);
+            expect(Math.min(...geometry.panelWidths)).toBeGreaterThan(1_000);
+          }
+        }
+
+        if (label === "Authentication") {
+          const provider = page.locator(".admin-provider").first();
+          const summary = provider.locator("summary");
+          await summary.focus();
+          await page.keyboard.press("Enter");
+          await expect(provider.locator("input[type=password]")).toBeVisible();
+          await page.keyboard.press("Enter");
+          await expect(provider.locator("input[type=password]")).toBeHidden();
         }
 
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(width);
 
-        if (width === 320 || width === 1440) {
+        if (width === 390 || width === 1440) {
           await page.screenshot({
-            path: `.notes/admin-redesign/screenshots-admin0341/${theme}-${width}-${label}.png`,
+            path: `.notes/admin-redesign/screenshots-post-ds-01j/${theme}-${width}-${label}.png`,
             style: "nextjs-portal { display: none; }",
             fullPage: label === "General",
           });
@@ -67,7 +107,7 @@ test("Settings layout adapts across themes and viewport widths", async ({
       if (width >= 1440) {
         await tablist.getByRole("tab", { name: "General" }).click();
         const fields = page.locator(
-          "#settings-general .admin-settings-field-grid > div",
+          "#settings-general > fieldset > .admin-settings-general-layout > section > div > .admin-settings-field-grid > div",
         );
 
         const first = await fields.nth(0).boundingBox();
@@ -80,7 +120,47 @@ test("Settings layout adapts across themes and viewport widths", async ({
     }
   }
 
-  await page.setViewportSize({ width: 320, height: 740 });
+  await page.getByRole("button", { name: "Admin language: English" }).click();
+  await page.getByRole("menuitemradio", { name: "Magyar" }).click();
+  await page.getByRole("tablist").getByRole("tab").nth(0).click();
+  await expect(
+    page.getByRole("heading", { name: "Dátum és idő" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Webhely időzónája")).toBeVisible();
+  await expect(page.getByLabel("Dátumformátum")).toBeVisible();
+  await expect(page.getByLabel("Időformátum")).toBeVisible();
+  await expect(page.getByText("Előnézet", { exact: false })).toBeVisible();
+
+  for (const theme of ["Light", "Dark"]) {
+    await page.getByRole("button", { name: /^Theme:/ }).click();
+    await page.getByRole("menuitemradio", { name: theme, exact: true }).click();
+
+    for (const width of viewports) {
+      await page.setViewportSize({ width, height: 900 });
+
+      for (let index = 0; index < tabs.length; index += 1) {
+        const tab = page.getByRole("tablist").getByRole("tab").nth(index);
+        await tab.click();
+        await expect(tab).toHaveAttribute("aria-selected", "true");
+        await expect(page.getByRole("tabpanel")).toBeVisible();
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(width);
+
+        if (width === 1440) {
+          await page.screenshot({
+            path: `.notes/admin-redesign/screenshots-post-ds-01j/Hungarian-${theme}-${index}.png`,
+            fullPage: index === 0,
+          });
+        }
+      }
+    }
+  }
+
+  await page.getByRole("button", { name: "Admin nyelve: Magyar" }).click();
+  await page.getByRole("menuitemradio", { name: "English" }).click();
+
+  await page.setViewportSize({ width: 390, height: 740 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
@@ -96,13 +176,13 @@ test("Settings layout adapts across themes and viewport widths", async ({
 
   const authenticationTab = page.locator("#settings-authentication-tab");
   await page.screenshot({
-    path: ".notes/admin-redesign/screenshots-admin0341/long-label-200-percent.png",
+    path: ".notes/admin-redesign/screenshots-post-ds-01j/long-label-200-percent.png",
     fullPage: true,
   });
   await authenticationTab.press("Home");
   await expect(tablist.getByRole("tab", { name: "General" })).toBeFocused();
 
-  for (const label of ["Save appearance", "Save site settings"]) {
+  for (const label of ["Save changes"]) {
     const button = page.getByRole("button", { name: label });
     expect(
       await button.evaluate((element) => {

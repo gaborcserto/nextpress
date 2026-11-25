@@ -71,7 +71,7 @@
     visibility: visible;
   }
 
-  .panel[data-indicator="true"] a[aria-current="page"]::after {
+  .panel[data-indicator="true"] a[data-active-route="true"]::after {
     visibility: hidden;
   }
 

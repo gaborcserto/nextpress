@@ -4,7 +4,8 @@
   "navigation": {
     "home": "Home",
     "posts": "Posts",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "openSubmenu": "Open submenu for"
   },
   "posts": {
     "latest": "Latest post",

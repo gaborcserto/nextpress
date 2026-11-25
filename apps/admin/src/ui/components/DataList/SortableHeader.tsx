@@ -1,10 +1,60 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { FaSort, FaSortDown, FaSortUp } from "react-icons/fa";
+import {
+  FaSort,
+  FaSortAmountDownAlt,
+  FaSortAmountUpAlt,
+  FaSortDown,
+  FaSortUp,
+} from "react-icons/fa";
+
+import { Select } from "@/ui/primitives";
 
 type SortDirection = "ascending" | "descending";
 type SortValue = string | number | null;
+
+export function MobileSortControl({
+  label,
+  directionLabel,
+  options,
+  value,
+  direction,
+  onFieldAction,
+  onDirectionAction,
+}: {
+  label: string;
+  directionLabel: string;
+  options: { value: string; label: string }[];
+  value: string;
+  direction: "asc" | "desc";
+  onFieldAction: (column: string) => void;
+  onDirectionAction: () => void;
+}) {
+  return (
+    <div className="admin-mobile-sort" role="group" aria-label={label}>
+      <Select
+        aria-label={label}
+        value={value}
+        options={options}
+        className="select-sm w-full"
+        onChangeAction={onFieldAction}
+      />
+      <button
+        type="button"
+        className="btn size-10 min-h-10 min-w-10 border-0 bg-transparent p-0 text-(--control-icon) shadow-none hover:text-(--control-icon-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+        aria-label={directionLabel}
+        onClick={onDirectionAction}
+      >
+        {direction === "asc" ? (
+          <FaSortAmountUpAlt size={18} aria-hidden="true" />
+        ) : (
+          <FaSortAmountDownAlt size={18} aria-hidden="true" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export function useTableSort<Column extends string>(
   initialColumn: Column,
@@ -87,6 +137,47 @@ export function SortableHeader<Column extends string>({
         type="button"
         className="admin-sort-button"
         onClick={() => sort.toggle(column)}
+      >
+        {children}
+        <Indicator aria-hidden="true" className="size-[1em] shrink-0" />
+      </button>
+    </th>
+  );
+}
+
+export function QuerySortableHeader({
+  column,
+  activeColumn,
+  direction,
+  onSortAction,
+  children,
+}: {
+  column: string;
+  activeColumn: string;
+  direction: "asc" | "desc";
+  onSortAction: (column: string) => void;
+  children: ReactNode;
+}) {
+  const active = activeColumn === column;
+  const Indicator = active
+    ? direction === "asc"
+      ? FaSortUp
+      : FaSortDown
+    : FaSort;
+
+  return (
+    <th
+      role="columnheader"
+      scope="col"
+      aria-sort={
+        active ? (direction === "asc" ? "ascending" : "descending") : "none"
+      }
+      className="admin-sort-header"
+    >
+      <button
+        type="button"
+        className="admin-sort-button"
+        onClick={() => onSortAction(column)}
       >
         {children}
         <Indicator aria-hidden="true" className="size-[1em] shrink-0" />

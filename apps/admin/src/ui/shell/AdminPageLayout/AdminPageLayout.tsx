@@ -33,14 +33,22 @@ export function AdminPageLayout({
 
 type AdminPageColumnsProps = {
   sidebar: ReactNode;
+  content: ReactNode;
   children: ReactNode;
 };
 
-export function AdminPageColumns({ sidebar, children }: AdminPageColumnsProps) {
+export function AdminPageColumns({
+  sidebar,
+  content,
+  children,
+}: AdminPageColumnsProps) {
   return (
     <div className="admin-writing-workspace">
       <div className="admin-writing-layout">
-        <div className="min-w-0 space-y-5">{children}</div>
+        <div className="admin-writing-primary">
+          {children}
+          {content}
+        </div>
         <aside className="min-w-0 space-y-5">{sidebar}</aside>
       </div>
     </div>

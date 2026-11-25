@@ -14,6 +14,7 @@ export function ContentArticle({
   title,
   content,
   children,
+  mediaOrigin,
 }: {
   kind?: "pages" | "posts";
   intro?: ReactNode;
@@ -21,6 +22,7 @@ export function ContentArticle({
   title: string;
   content: RichDocument | string;
   children?: ReactNode;
+  mediaOrigin?: string;
 }) {
   const styles = kind === "posts" ? postStyles : pageStyles;
 
@@ -34,6 +36,7 @@ export function ContentArticle({
         </header>
         <RichContent
           content={content}
+          mediaOrigin={mediaOrigin}
           className={kind === "posts" ? styles.content : undefined}
         />
         {children}

@@ -38,6 +38,10 @@ export const TagIdsSchema = z
 export const TagCreateSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
 });
+export const TagUpdateSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  slug: ContentSlugSchema,
+});
 
 const contentWriteFields = {
   type: z.enum(["PAGE", "POST"]),
@@ -162,7 +166,9 @@ export const ContentListFiltersSchema = z.object({
   status: z
     .enum(["DRAFT", "PUBLISHED", "SCHEDULED", "MISSING_DATE"])
     .optional(),
-  sort: z.enum(["title", "createdAt", "updatedAt", "publishedAt"]).optional(),
+  sort: z
+    .enum(["title", "author", "createdAt", "updatedAt", "publishedAt"])
+    .optional(),
 });
 const taxonomySlug = z.string().trim().min(1).max(200);
 export const PostListFiltersSchema = ContentListFiltersSchema.extend({
@@ -171,6 +177,10 @@ export const PostListFiltersSchema = ContentListFiltersSchema.extend({
 });
 export const PageListFiltersSchema = ContentListFiltersSchema.extend({
   pageType: PageTypeSchema.optional(),
+});
+
+export const HomepageSelectionSchema = z.strictObject({
+  id: z.string().nullable(),
 });
 export const TaxonomyListFiltersSchema = ContentListFiltersSchema.pick({
   q: true,
@@ -200,6 +210,7 @@ export const ContentListSchema = ListPaginationSchema.extend({
       slug: z.string(),
       title: z.string(),
       excerpt: nullableString,
+      authorName: nullableString.optional(),
       createdAt: date.optional(),
       updatedAt: date,
     }),
@@ -225,10 +236,10 @@ export const DashboardSummarySchema = z.object({
         authorName: nullableString,
       }),
     )
-    .max(8),
+    .max(5),
   scheduledContent: z
     .array(dashboardContent.extend({ publishedAt: date }))
-    .max(8),
+    .max(5),
 });
 export type DashboardSummary = z.infer<typeof DashboardSummarySchema>;
 
@@ -306,6 +317,7 @@ export const PublicContentSchema = z.strictObject({
   postsFilter: PublicTaxonomyParamsSchema.optional(),
   pageDocument: PageDocumentSchema.nullable().optional(),
   ...publicSummary,
+  intro: RichDocumentSchema.optional(),
   content: RichDocumentSchema,
   cover: PublicCoverSchema,
 });
@@ -437,6 +449,7 @@ export const NavigationItemSchema = z.strictObject({
   label: z.string().trim().max(160),
   value: z.string().trim().max(2048),
   newTab: z.boolean(),
+  visible: z.boolean().default(true),
 });
 
 export const NavigationMenuInputSchema = z.strictObject({
@@ -465,8 +478,8 @@ export const PublicMenusSchema = z.strictObject({
   sidebar: z.array(PublicMenuItemSchema).max(maxMenuItems),
 });
 
-export type NavigationMenuInput = z.infer<typeof NavigationMenuInputSchema>;
-export type NavigationItemInput = z.infer<typeof NavigationItemSchema>;
+export type NavigationMenuInput = z.input<typeof NavigationMenuInputSchema>;
+export type NavigationItemInput = z.input<typeof NavigationItemSchema>;
 export type PublicMenuItem = z.infer<typeof PublicMenuItemSchema>;
 const existingMenu = z.strictObject({
   id: z.string().min(1).max(128),

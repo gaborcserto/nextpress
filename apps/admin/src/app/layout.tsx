@@ -21,9 +21,10 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const skin = resolveSkin(adminSkinId);
   const theme = normalizeThemeCookie(cookieStore.get("theme")?.value);
+  const locale = cookieStore.get("admin-locale")?.value === "hu" ? "hu" : "en";
 
   return (
-    <html lang="en" data-skin={skin.id} data-theme={theme}>
+    <html lang={locale} data-skin={skin.id} data-theme={theme}>
       <body suppressHydrationWarning>
         <Providers>{children}</Providers>
         <ToastHost />

@@ -675,9 +675,21 @@ describe("appearance-only settings updates", () => {
         label: "Blog",
         defaultPreset: "classic",
         presets: [
-          { id: "classic", label: "Classic" },
-          { id: "modern", label: "Modern" },
-          { id: "minimal", label: "Minimal" },
+          {
+            id: "classic",
+            label: "Classic",
+            navigation: { sidebar: false },
+          },
+          {
+            id: "modern",
+            label: "Modern",
+            navigation: { sidebar: false },
+          },
+          {
+            id: "minimal",
+            label: "Minimal",
+            navigation: { sidebar: true },
+          },
         ],
       },
     ]);

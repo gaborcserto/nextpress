@@ -26,6 +26,8 @@ export function logApiFailure(error: unknown): void {
   }
 
   let code: FailureCode = "unexpected";
+  let prismaCode: string | undefined;
+  let constraint: string | undefined;
 
   if (error instanceof ZodError) {
     code = "contract";
@@ -41,10 +43,32 @@ export function logApiFailure(error: unknown): void {
     code = "database";
   }
 
+  if (typeof error === "object" && error !== null) {
+    const metadata = "meta" in error ? error.meta : undefined;
+
+    if (typeof error === "object" && "code" in error) {
+      prismaCode = typeof error.code === "string" ? error.code : undefined;
+    }
+
+    if (
+      typeof metadata === "object" &&
+      metadata !== null &&
+      "constraint" in metadata
+    ) {
+      constraint =
+        typeof metadata.constraint === "string"
+          ? metadata.constraint
+          : undefined;
+    }
+  }
+
   writeServerLog("api", "api.request.failed", {
     ...context,
     code,
     status: 500,
+    errorClass: error instanceof Error ? error.name : typeof error,
+    prismaCode,
+    constraint,
   });
 }
 

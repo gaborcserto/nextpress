@@ -1,10 +1,25 @@
-import { loadApiEnvironment } from "../src/api-environment";
+import {
+  loadApiEnvironment,
+  loadMigrationEnvironment,
+} from "../src/api-environment";
 import { formatDatabaseTarget, resolveDatabase } from "../src/database-config";
 
 const compose = process.argv.includes("--compose");
-loadApiEnvironment(compose ? true : undefined);
+const migration = process.argv.includes("--migration");
+
+if (migration) {
+  loadMigrationEnvironment();
+} else {
+  loadApiEnvironment(compose ? true : undefined);
+}
+
 const { target } = resolveDatabase(process.env);
-console.info(`Database target: ${formatDatabaseTarget(target)}`);
+const role = migration
+  ? ` (role ${decodeURIComponent(new URL(process.env.DATABASE_URL ?? "").username)})`
+  : "";
+console.info(
+  `${migration ? "Migration" : "Runtime"} database target: ${formatDatabaseTarget(target)}${role}`,
+);
 
 if (
   compose &&

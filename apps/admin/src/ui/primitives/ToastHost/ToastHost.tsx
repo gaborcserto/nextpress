@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  FaCheckCircle,
+  FaExclamationCircle,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaTimesCircle,
+} from "react-icons/fa";
 
 import {
   _subscribeToast,
@@ -11,120 +18,213 @@ import {
 } from "@/ui/utils";
 
 import { FadeTransition } from "../FadeTransition";
-import { POSITIONS, type ActiveToast } from "./ToastHost.types";
+import styles from "./ToastHost.module.css";
+import {
+  POSITIONS,
+  type ActiveToast,
+  type ToastHostConfig,
+} from "./ToastHost.types";
 
-// Map ToastPosition → DaisyUI toast classes
-function getPosClass(position: ToastPosition) {
-  return position === "top-right"
-    ? "toast-top toast-end"
-    : position === "top-left"
-      ? "toast-top toast-start"
-      : position === "bottom-right"
-        ? "toast-bottom toast-end"
-        : "toast-bottom toast-start";
+function getPositionClass(position: ToastPosition) {
+  return styles[`placement-${position}`];
 }
 
-// Map ToastType → DaisyUI alert variants
-function getVariantClass(type: ToastType) {
-  return type === "success"
-    ? "alert-success"
-    : type === "error"
-      ? "alert-error"
-      : type === "warning"
-        ? "alert-warning"
-        : "alert-info";
-}
+const STATUS_ICONS = {
+  success: FaCheckCircle,
+  error: FaTimesCircle,
+  warning: FaExclamationTriangle,
+  info: FaInfoCircle,
+  attention: FaExclamationCircle,
+} satisfies Record<Exclude<ToastType, "loading">, typeof FaInfoCircle>;
 
-export function ToastHost() {
+const DEFAULT_CONFIG: Required<ToastHostConfig> = {
+  placement: "top-center",
+  duration: 4000,
+  maxVisible: 3,
+  gap: 10,
+  offset: 16,
+  dismissible: true,
+  pauseOnHover: true,
+  stackMode: "collapsed",
+};
+
+export function ToastHost(config: ToastHostConfig = {}) {
+  const settings = { ...DEFAULT_CONFIG, ...config };
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    /**
-     * Listen for toast events sent from the showToast util.
-     */
-    const unsubscribe = _subscribeToast((event: ToastEvent) => {
-      if (event.kind === "show") {
-        const { id, msg, desc, type, position, timeout } = event;
+    const timers = new Map<number, number>();
 
-        // Add toast to list
-        setToasts((prev) => [
-          ...prev,
-          { id, msg, desc, type, position, timeout, isIn: true },
-        ]);
+    const dismiss = (id: number) => {
+      setToasts((current) =>
+        current.map((toast) =>
+          toast.id === id ? { ...toast, isIn: false } : toast,
+        ),
+      );
+      const timer = timers.get(id);
 
-        // Start exit animation after timeout
-        window.setTimeout(() => {
-          setToasts((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, isIn: false } : t)),
-          );
-        }, timeout);
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
       }
 
-      // Manual hide
+      timers.delete(id);
+    };
+
+    const unsubscribe = _subscribeToast((event: ToastEvent) => {
       if (event.kind === "hide") {
-        const { id } = event;
-        setToasts((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, isIn: false } : t)),
+        dismiss(event.id);
+
+        return;
+      }
+
+      setToasts((current) => {
+        if (
+          current.some(
+            (toast) =>
+              toast.isIn &&
+              toast.msg === event.msg &&
+              toast.desc === event.desc &&
+              toast.type === event.type,
+          )
+        ) {
+          return current;
+        }
+
+        return [
+          ...current,
+          {
+            id: event.id,
+            msg: event.msg,
+            desc: event.desc,
+            type: event.type,
+            position: event.position ?? settings.placement,
+            timeout: event.timeout || settings.duration,
+            isIn: true,
+          },
+        ];
+      });
+
+      if (event.timeout > 0) {
+        timers.set(
+          event.id,
+          window.setTimeout(() => dismiss(event.id), event.timeout),
         );
       }
     });
 
-    // IMPORTANT:
-    // Wrap unsubscribe so the cleanup returns void, not boolean
     return () => {
       unsubscribe();
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, []);
+  }, [config.placement, settings.duration, settings.placement]);
 
   if (typeof document === "undefined") {
     return null;
   }
 
-  // Group toasts by position so each corner has a single <div class="toast ...">
   const groups: Record<ToastPosition, ActiveToast[]> = {
-    "top-right": [],
-    "top-left": [],
-    "bottom-right": [],
-    "bottom-left": [],
+    "top-start": [],
+    "top-center": [],
+    "top-end": [],
+    "bottom-start": [],
+    "bottom-center": [],
+    "bottom-end": [],
   };
-
-  for (const t of toasts) {
-    groups[t.position].push(t);
-  }
+  toasts.forEach((toast) => groups[toast.position].push(toast));
 
   return createPortal(
     <>
-      {POSITIONS.map((pos) => {
-        const list = groups[pos];
+      {POSITIONS.map((position) => {
+        const group = groups[position].slice(-settings.maxVisible).reverse();
 
-        if (!list.length) {
+        if (!group.length) {
           return null;
         }
 
         return (
-          <div key={pos} className={`toast z-[9999] ${getPosClass(pos)}`}>
-            {list.map((t) => (
+          <div
+            key={position}
+            className={`${styles.viewport} ${getPositionClass(position)}`}
+            data-stack-mode={settings.stackMode}
+            data-placement={position}
+            data-expanded={expanded || settings.stackMode === "expanded"}
+            style={
+              {
+                "--toast-gap": `${settings.gap}px`,
+                "--toast-offset": `${settings.offset}px`,
+              } as React.CSSProperties
+            }
+            onPointerEnter={() => {
+              if (settings.pauseOnHover) {
+                setExpanded(true);
+              }
+            }}
+            onPointerLeave={() => setExpanded(false)}
+            onFocusCapture={() => setExpanded(true)}
+            onBlurCapture={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setExpanded(false);
+              }
+            }}
+          >
+            {group.map((toast) => (
               <FadeTransition
-                key={t.id}
-                in={t.isIn}
-                duration={200}
-                onExitedAction={() => {
-                  // Remove the toast after exit animation finishes
-                  setToasts((prev) => prev.filter((x) => x.id !== t.id));
-                }}
+                key={toast.id}
+                in={toast.isIn}
+                duration={180}
+                onExitedAction={() =>
+                  setToasts((current) =>
+                    current.filter((item) => item.id !== toast.id),
+                  )
+                }
               >
                 <div
-                  className={`alert ${getVariantClass(t.type)}`}
-                  role={t.type === "error" ? "alert" : "status"}
-                  aria-live={t.type === "error" ? "assertive" : "polite"}
+                  className={styles.toast}
+                  data-status={toast.type}
+                  role={toast.type === "error" ? "alert" : "status"}
+                  aria-live={toast.type === "error" ? "assertive" : "polite"}
                   aria-atomic="true"
                 >
-                  <div>
-                    <div className="font-semibold">{t.msg}</div>
-                    {t.desc && (
-                      <div className="text-sm opacity-80 mt-1">{t.desc}</div>
+                  {toast.type === "loading" ? (
+                    <span className={styles.spinner} aria-hidden="true" />
+                  ) : (
+                    <span
+                      className={styles.icon}
+                      data-status={toast.type}
+                      aria-hidden="true"
+                    >
+                      {(() => {
+                        const StatusIcon = STATUS_ICONS[toast.type];
+
+                        return <StatusIcon />;
+                      })()}
+                    </span>
+                  )}
+                  <div className={styles.message}>
+                    <div className={styles.title}>{toast.msg}</div>
+                    {toast.desc && (
+                      <div className={styles.description}>{toast.desc}</div>
                     )}
                   </div>
+                  {settings.dismissible && (
+                    <button
+                      className={styles.close}
+                      type="button"
+                      aria-label="Dismiss notification"
+                      onClick={() =>
+                        setToasts((current) =>
+                          current.map((item) =>
+                            item.id === toast.id
+                              ? { ...item, isIn: false }
+                              : item,
+                          ),
+                        )
+                      }
+                    >
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  )}
                 </div>
               </FadeTransition>
             ))}

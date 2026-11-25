@@ -4,13 +4,32 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
+
 import type { DetailTitle } from "./Breadcrumbs.types";
 
-function toLabel(segment: string, parent?: string) {
+function toLabel(
+  segment: string,
+  parent: string | undefined,
+  locale: "en" | "hu",
+) {
   if (parent === "pages" || parent === "posts") {
-    const contentType = parent === "pages" ? "Page" : "Post";
+    const contentType =
+      parent === "pages"
+        ? locale === "hu"
+          ? "Oldal"
+          : "Page"
+        : locale === "hu"
+          ? "Bejegyzés"
+          : "Post";
     const action =
-      segment === "new" || segment === "create" ? "Create" : "Edit";
+      segment === "new" || segment === "create"
+        ? locale === "hu"
+          ? "Létrehozás"
+          : "Create"
+        : locale === "hu"
+          ? "Szerkesztés"
+          : "Edit";
 
     return `${action} ${contentType}`;
   }
@@ -22,6 +41,7 @@ function toLabel(segment: string, parent?: string) {
 
 export default function Breadcrumbs() {
   const pathname = usePathname();
+  const locale = useAdminLocale();
   const segments = pathname.split("/").filter(Boolean);
 
   const [detailTitle, setDetailTitle] = useState<DetailTitle | null>(null);
@@ -61,29 +81,53 @@ export default function Breadcrumbs() {
     return () => controller.abort();
   }, [detailId, isPostDetail]);
 
-  const items = segments.map((seg, i) => {
+  const items = segments.flatMap((seg, i) => {
     const href = "/" + segments.slice(0, i + 1).join("/");
     const isLast = i === segments.length - 1;
     const prev = segments[i - 1];
 
+    if (pathname === "/admin/settings/menus" && seg === "settings") {
+      return [];
+    }
+
     // Default label from segment
     let label =
-      seg === "admin" ? (isLast ? "Dashboard" : "Admin") : toLabel(seg, prev);
+      seg === "admin"
+        ? isLast
+          ? locale === "hu"
+            ? "Vezérlőpult"
+            : "Dashboard"
+          : "Admin"
+        : toLabel(seg, prev, locale);
 
     // Override with loaded title when it matches the current detail id
     if (detailId && seg === detailId && detailTitle?.id === seg) {
       label = detailTitle.title;
     }
 
-    return { href, label, isLast };
+    if (seg === "media") {
+      label = locale === "hu" ? "Médiatár" : "Media Library";
+    }
+
+    if (seg === "menus") {
+      label = locale === "hu" ? "Menük" : "Menus";
+    }
+
+    return [{ href, label, isLast }];
   });
+
+  if (segments.length === 1 && segments[0] === "admin") {
+    items.unshift({ href: "/admin", label: "Admin", isLast: false });
+  }
 
   if (items.length === 0) {
     return (
       <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
         <ol>
           <li>
-            <Link href="/admin">Dashboard</Link>
+            <Link href="/admin">
+              {locale === "hu" ? "Vezérlőpult" : "Dashboard"}
+            </Link>
           </li>
         </ol>
       </nav>
@@ -94,7 +138,7 @@ export default function Breadcrumbs() {
     <nav aria-label="Breadcrumb" className="admin-breadcrumbs">
       <ol>
         {items.map(({ href, label, isLast }) => (
-          <li key={href}>
+          <li key={`${href}-${label}`}>
             {isLast ? (
               <span aria-current="page" title={label}>
                 {label}

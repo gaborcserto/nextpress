@@ -56,7 +56,7 @@ export function BlogShell({
           {main}
           <aside>
             <UiNav label="accessibility.sidebarNavigation">
-              <MenuTree items={sidebar} />
+              <MenuTree items={sidebar} dropdown />
             </UiNav>
           </aside>
         </div>
@@ -70,7 +70,7 @@ export function BlogShell({
           </p>
           {footer.length > 0 && (
             <UiNav label="accessibility.footerNavigation">
-              <MenuTree items={footer} />
+              <MenuTree items={footer} dropdown />
             </UiNav>
           )}
         </Container>

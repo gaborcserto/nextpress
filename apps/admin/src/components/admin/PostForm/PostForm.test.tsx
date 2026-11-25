@@ -17,7 +17,84 @@ vi.mock("@/ui/components", async (importOriginal) => ({
 }));
 
 describe("PostForm", () => {
-  it("associates status and publication date labels and disables fields during save", () => {
+  it("shows the full record ID below the sidebar panels with a copy control", () => {
+    const recordId = "post-record-123456789";
+    render(
+      <PostForm
+        initial={{
+          title: "Post",
+          slug: "post",
+          status: "DRAFT",
+          excerpt: [],
+          content: [],
+          tags: [],
+          cover: null,
+          publishedAt: null,
+        }}
+        contentId={recordId}
+        onSubmitAction={vi.fn()}
+        loadTagOptionsAction={async () => []}
+        createTagAction={vi.fn()}
+        loadEntityTagsAction={async () => []}
+        updateEntityTagsAction={vi.fn()}
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { name: "Post" });
+    const id = screen.getByText(recordId);
+
+    expect(id.closest("aside")).toBeInTheDocument();
+    expect(id.closest("header")).not.toBeInTheDocument();
+    expect(id).toHaveClass("font-mono");
+    expect(
+      screen.getByRole("button", { name: "Copy document ID" }),
+    ).toBeInTheDocument();
+    expect(heading).toBeInTheDocument();
+  });
+
+  it("opens the shared date and time picker from the Publishing panel", () => {
+    vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(
+      function showModal(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      },
+    );
+    vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(
+      function close(this: HTMLDialogElement) {
+        this.removeAttribute("open");
+        this.dispatchEvent(new Event("close"));
+      },
+    );
+    render(
+      <PostForm
+        initial={{
+          title: "Post",
+          slug: "post",
+          status: "DRAFT",
+          excerpt: [],
+          content: [],
+          tags: [],
+          cover: null,
+          publishedAt: null,
+        }}
+        onSubmitAction={vi.fn()}
+        loadTagOptionsAction={async () => []}
+        createTagAction={vi.fn()}
+        loadEntityTagsAction={async () => []}
+        updateEntityTagsAction={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Open calendar" });
+    expect(trigger).toBeVisible();
+    fireEvent.click(trigger);
+
+    expect(
+      screen.getByRole("button", { name: "Previous month" }),
+    ).toBeVisible();
+    expect(screen.getByLabelText("Hour")).toBeVisible();
+  });
+
+  it("keeps field appearance during save while inert locks form interaction", () => {
     render(
       <PostForm
         initial={{
@@ -38,8 +115,12 @@ describe("PostForm", () => {
         updateEntityTagsAction={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("Status")).toBeDisabled();
-    expect(screen.getByLabelText("Publish date")).toBeDisabled();
+    expect(screen.getByLabelText("Status")).not.toBeDisabled();
+    expect(screen.getByLabelText("Title")).not.toBeDisabled();
+    expect(screen.getByLabelText("Status").closest("fieldset")).toHaveAttribute(
+      "inert",
+    );
+    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
   });
   it("preserves an unedited publication instant and converts local date edits to ISO", () => {
     const submit = vi.fn();
@@ -79,14 +160,13 @@ describe("PostForm", () => {
     expect(submit).toHaveBeenLastCalledWith(
       expect.objectContaining({ publishedAt: original }),
     );
-    fireEvent.change(screen.getByLabelText("Publish date"), {
-      target: { value: "2024-07-01" },
+    const publicationField = screen.getByLabelText(
+      "Publish date and Publish time",
+    );
+    fireEvent.change(publicationField, {
+      target: { value: "2024-07-01 12:00" },
     });
-    fireEvent.blur(screen.getByLabelText("Publish date"));
-    fireEvent.change(screen.getByLabelText("Publish time"), {
-      target: { value: "12:00" },
-    });
-    fireEvent.blur(screen.getByLabelText("Publish time"));
+    fireEvent.blur(publicationField);
     fireEvent.submit(form);
     expect(submit).toHaveBeenLastCalledWith(
       expect.objectContaining({

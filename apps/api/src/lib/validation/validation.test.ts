@@ -6,10 +6,20 @@ import {
   PageUpdateSchema,
   TagCreateSchema,
   TagIdsSchema,
+  TagUpdateSchema,
   parsePagination,
 } from "./index";
 
 describe("content validation", () => {
+  it("requires a safe slug when updating a taxonomy tag", () => {
+    expect(
+      TagUpdateSchema.parse({ name: " Updated name ", slug: "updated-name" }),
+    ).toEqual({ name: "Updated name", slug: "updated-name" });
+    expect(
+      TagUpdateSchema.safeParse({ name: "Name", slug: "../unsafe" }).success,
+    ).toBe(false);
+  });
+
   it.each(Object.values(pageLayouts))(
     "accepts the %s page layout for creation and editing",
     (layout) => {

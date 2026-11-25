@@ -42,7 +42,7 @@ test("uploads static and animated GIFs without autoplay in the library", async (
     .toBuffer();
 
   await page.goto("/admin/media");
-  await page.getByLabel("Upload images").setInputFiles([
+  await page.getByLabel("Upload files").setInputFiles([
     { name: "still.gif", mimeType: "image/gif", buffer: still },
     { name: "moving.gif", mimeType: "image/gif", buffer: animated },
   ]);
@@ -168,7 +168,7 @@ test("uploads media, edits metadata and browses the same assets on desktop and m
   await expect(
     page.getByRole("heading", { name: "Media Library" }),
   ).toBeVisible({ timeout: 30_000 });
-  await page.getByLabel("Upload images").setInputFiles([
+  await page.getByLabel("Upload files").setInputFiles([
     { name: "Árvíztűrő.png", mimeType: "image/png", buffer: png },
     { name: "Disposable.png", mimeType: "image/png", buffer: png },
     {

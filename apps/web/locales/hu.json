@@ -4,7 +4,8 @@
   "navigation": {
     "home": "Főoldal",
     "posts": "Bejegyzések",
-    "backHome": "Vissza a főoldalra"
+    "backHome": "Vissza a főoldalra",
+    "openSubmenu": "Almenü megnyitása ehhez:"
   },
   "posts": {
     "latest": "Legújabb bejegyzés",

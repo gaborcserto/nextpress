@@ -21,6 +21,7 @@ vi.mock("@nextpress/db", () => ({
 import {
   getPublicPageNavigation,
   getPublishedPage,
+  getPublishedHome,
   getPublishedPost,
   getPublishedPosts,
 } from "./content.server";
@@ -68,6 +69,24 @@ beforeEach(() => {
 });
 
 describe("public published content boundary", () => {
+  it("resolves only a published Homepage at the public root", async () => {
+    findFirst.mockResolvedValueOnce(row);
+
+    expect(await getPublishedHome()).toMatchObject({ slug: "published" });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        type: "PAGE",
+        layout: "HOME",
+        status: "PUBLISHED",
+        publishedAt: { not: null, lte: expect.any(Date) },
+      },
+      select: expect.objectContaining({ content: true }),
+    });
+
+    findFirst.mockResolvedValueOnce(null);
+    expect(await getPublishedHome()).toBeNull();
+  });
+
   it("reads only explicitly published pages whose publication time has arrived", async () => {
     findMany.mockResolvedValue([
       { id: row.id, slug: row.slug, parentId: null, layout: "STANDARD" },

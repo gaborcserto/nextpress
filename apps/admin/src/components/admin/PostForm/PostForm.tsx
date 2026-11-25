@@ -11,6 +11,7 @@ import {
 import { useEditorSubmission } from "@/lib/content/useEditorSubmission";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import {
   EMPTY_SLATE_VALUE,
   PostIntroFields,
@@ -21,6 +22,7 @@ import {
 import { FormGrid12, Field, Input, Section, Select } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
+import DocumentId from "../DocumentId";
 import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
 import { DocumentImageField } from "../Media/DocumentImageField";
@@ -53,6 +55,7 @@ export default function PostForm({
   sidebarTitle,
   sidebarSubtitle,
 }: PostFormProps) {
+  const hu = useAdminLocale() === "hu";
   // Generate a missing slug from an existing title.
   const [form, setForm] = useState<PostFormValues>(() => {
     const built = buildInitialForm(initial);
@@ -157,11 +160,33 @@ export default function PostForm({
             />
           )}
         >
-          <fieldset
-            disabled={submitting && !privateEditing}
-            className="contents"
-          >
+          <fieldset inert={submitting && !privateEditing} className="contents">
             <AdminPageColumns
+              content={
+                <Section title="Content">
+                  {!privateEditing && form.pageDocument !== undefined ? (
+                    <DocumentImageField
+                      value={form.pageDocument}
+                      onChange={(document) =>
+                        setField("pageDocument", document)
+                      }
+                      renderEditor={() => (
+                        <SlateEditor
+                          key={privateDraft?.contentKey ?? 0}
+                          value={form.content ?? EMPTY_SLATE_VALUE}
+                          onChangeAction={(val) => setField("content", val)}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <SlateEditor
+                      key={privateDraft?.contentKey ?? 0}
+                      value={form.content ?? EMPTY_SLATE_VALUE}
+                      onChangeAction={(val) => setField("content", val)}
+                    />
+                  )}
+                </Section>
+              }
               sidebar={
                 <>
                   {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
@@ -184,12 +209,7 @@ export default function PostForm({
 
                       <Field
                         label="Publish date"
-                        htmlFor="post-published-at-date"
-                        hint={
-                          privateEditing
-                            ? "Current public date. Use the private draft publication controls to publish or schedule."
-                            : "A future date schedules publication when status is Published. Clear to publish immediately."
-                        }
+                        htmlFor="post-published-at-datetime"
                         span={12}
                       >
                         <PublicationDatePicker
@@ -200,22 +220,8 @@ export default function PostForm({
                         />
                       </Field>
                     </FormGrid12>
-                    {!privateEditing && (
-                      <p className="mt-3 text-sm text-(--text-muted)">
-                        Draft saves stay private. Published content is public
-                        only when its date is due; a future date is scheduled,
-                        and a missing date is not publicly visible. Saving due
-                        Published content updates the live post immediately.
-                        Choose Draft and save to withdraw it. Use Save to
-                        persist changes.
-                      </p>
-                    )}
                   </Section>
-                  <Section title="Tags" desc="Organize your post with tags.">
-                    <p className="text-sm mb-3">
-                      Tag assignments save with the form. Cancel discards
-                      unsaved assignments.
-                    </p>
+                  <Section title="Tags">
                     <TagsField
                       value={form.tags}
                       onChangeAction={(tags) => setField("tags", tags)}
@@ -224,6 +230,7 @@ export default function PostForm({
                       persist={false}
                     />
                   </Section>
+                  {entityId && <DocumentId id={entityId} />}
                 </>
               }
             >
@@ -269,14 +276,10 @@ export default function PostForm({
                 </FormGrid12>
               </Section>
 
-              <Section
-                title="Intro"
-                desc="Short lead text and an optional cover image."
-              >
-                <div className="grid gap-4">
+              <Section title={hu ? "Összefoglaló" : "Summary"}>
+                <div className="w-full min-w-0 space-y-4">
                   <PostIntroFields
                     key={privateDraft?.contentKey ?? 0}
-                    disabled={submitting}
                     excerpt={form.excerpt ?? EMPTY_SLATE_VALUE}
                     onExcerptChangeAction={(value) =>
                       setField("excerpt", value)
@@ -286,25 +289,8 @@ export default function PostForm({
                     value={form.cover}
                     onChange={(media) => setField("cover", media)}
                     readOnly={Boolean(privateEditing)}
-                    disabled={submitting}
                   />
                 </div>
-              </Section>
-
-              <Section title="Content">
-                <SlateEditor
-                  key={privateDraft?.contentKey ?? 0}
-                  readOnly={submitting}
-                  value={form.content ?? EMPTY_SLATE_VALUE}
-                  onChangeAction={(val) => setField("content", val)}
-                />
-                {!privateEditing && form.pageDocument !== undefined && (
-                  <DocumentImageField
-                    value={form.pageDocument}
-                    onChange={(document) => setField("pageDocument", document)}
-                    disabled={submitting}
-                  />
-                )}
               </Section>
             </AdminPageColumns>
           </fieldset>

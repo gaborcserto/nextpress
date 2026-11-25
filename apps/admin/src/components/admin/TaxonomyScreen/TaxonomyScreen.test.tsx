@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { SWRConfig } from "swr";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -87,7 +93,72 @@ it("shows empty taxonomy only after a successful empty response", async () => {
   expect(await screen.findByText("No tags found.")).toBeInTheDocument();
 });
 
-it("loads categories and submits search and usage sorting through the URL", async () => {
+it("edits a tag name and slug in place and refreshes the list", async () => {
+  const fetch = vi
+    .fn()
+    .mockImplementation((input: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        return Promise.resolve(Response.json({ ok: true, data: {} }));
+      }
+
+      return Promise.resolve(
+        listResponse([
+          { id: "tag-id", name: "News", slug: "news", usedCount: 2 },
+        ]),
+      );
+    });
+  vi.stubGlobal("fetch", fetch);
+  renderTaxonomy();
+
+  fireEvent.click(await screen.findByRole("button", { name: "Edit tag News" }));
+  const dialog = screen.getByRole("dialog", { name: "Edit tag" });
+  expect(dialog).toHaveClass("taxonomy-dialog");
+  expect(dialog.firstElementChild).toHaveClass("admin-dialog-header");
+  expect(screen.getByRole("heading", { name: "Edit tag" })).toHaveAttribute(
+    "id",
+    "edit-tag-title",
+  );
+  const closeButton = within(dialog).getByRole("button", {
+    name: "Close dialog",
+  });
+  expect(closeButton.querySelector("svg")).toBeInTheDocument();
+  expect(within(dialog).queryByLabelText("Record ID")).not.toBeInTheDocument();
+  expect(dialog.querySelector("details")).not.toBeInTheDocument();
+
+  fireEvent.click(closeButton);
+  await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+  fireEvent.click(screen.getByRole("button", { name: "Edit tag News" }));
+
+  expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("News");
+  expect(screen.getByRole("textbox", { name: "Slug" })).toHaveValue("news");
+  expect(
+    within(dialog).getByRole("button", { name: "Cancel" }).querySelector("svg"),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog)
+      .getByRole("button", { name: "Save changes" })
+      .querySelector("svg"),
+  ).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+    target: { value: "Latest News" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "Slug" }), {
+    target: { value: "latest-news" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/admin/tags/tag-id",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ name: "Latest News", slug: "latest-news" }),
+      }),
+    ),
+  );
+});
+
+it("loads categories, applies search immediately, and sorts usage from the column header", async () => {
   navigation.query = "type=CATEGORY&page=2";
   const fetch = vi.fn().mockImplementation(() =>
     Response.json({
@@ -104,6 +175,10 @@ it("loads categories and submits search and usage sorting through the URL", asyn
   expect(
     await screen.findByRole("table", { name: "Categories" }),
   ).toHaveTextContent("News");
+  expect(screen.getByRole("columnheader", { name: /Name/ })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
   expect(
     screen.queryByRole("button", { name: "Create tag" }),
   ).not.toBeInTheDocument();
@@ -119,18 +194,89 @@ it("loads categories and submits search and usage sorting through the URL", asyn
   fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
     target: { value: "News" },
   });
-  fireEvent.change(screen.getByLabelText("Sort by"), {
-    target: { value: "usedCount" },
-  });
-  fireEvent.change(screen.getByLabelText("Sort direction"), {
-    target: { value: "desc" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
-
+  fireEvent.click(screen.getByRole("button", { name: "Submit search" }));
   expect(navigation.push).toHaveBeenCalledWith(
-    "/admin/taxonomy?type=CATEGORY&q=News&sort=usedCount&direction=desc",
+    "/admin/taxonomy?type=CATEGORY&q=News",
     { scroll: false },
   );
+
+  fireEvent.click(screen.getByRole("button", { name: "Posts" }));
+
+  expect(navigation.push).toHaveBeenCalledWith(
+    "/admin/taxonomy?type=CATEGORY&sort=usedCount&direction=asc",
+    { scroll: false },
+  );
+});
+
+it("toggles the active taxonomy column direction", async () => {
+  navigation.query = "type=TAG&sort=slug&direction=asc";
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(listResponse([])));
+  renderTaxonomy();
+
+  const slugHeader = await screen.findByRole("columnheader", { name: /Slug/ });
+  expect(slugHeader).toHaveAttribute("aria-sort", "ascending");
+  fireEvent.click(within(slugHeader).getByRole("button", { name: /Slug/ }));
+
+  expect(navigation.push).toHaveBeenCalledWith(
+    "/admin/taxonomy?type=TAG&sort=slug&direction=desc",
+    { scroll: false },
+  );
+});
+
+it("keeps the category form open and displays a duplicate rejection", async () => {
+  navigation.query = "type=CATEGORY";
+  const fetch = vi.fn((_input: string, init?: RequestInit) =>
+    Promise.resolve(
+      init?.method === "POST"
+        ? Response.json(
+            { error: "This taxonomy slug already exists" },
+            { status: 409 },
+          )
+        : listResponse([]),
+    ),
+  );
+  vi.stubGlobal("fetch", fetch);
+  renderTaxonomy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Create category" }));
+  const dialog = screen.getByRole("dialog", { name: "Create category" });
+  expect(dialog).toHaveClass("taxonomy-dialog");
+  expect(dialog.firstElementChild).toHaveClass("admin-dialog-header");
+  expect(
+    screen.getByRole("heading", { name: "Create category" }),
+  ).toHaveAttribute("id", "create-tag-title");
+  expect(
+    within(dialog).getByRole("button", { name: "Close dialog" }),
+  ).toBeVisible();
+  expect(
+    within(dialog).getByRole("button", { name: "Cancel" }).querySelector("svg"),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog)
+      .getByRole("button", { name: "Create category" })
+      .querySelector("svg"),
+  ).toBeInTheDocument();
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Name" }), {
+    target: { value: "Latest News" },
+  });
+  fireEvent.click(
+    within(dialog).getByRole("button", { name: "Create category" }),
+  );
+
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+    "This taxonomy slug already exists",
+  );
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/admin/tags",
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ name: "Latest News", slug: "latest-news" }),
+    }),
+  );
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close dialog" }));
+  await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+  fireEvent.click(screen.getByRole("button", { name: "Create category" }));
+  expect(within(dialog).getByRole("textbox", { name: "Name" })).toHaveValue("");
 });
 
 it.each([401, 403, 500])(

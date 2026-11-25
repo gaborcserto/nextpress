@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+export const PageDestinationSchema = z
+  .string()
+  .max(2048)
+  .refine((value) => {
+    if (/^\/(?!\/)[^\\\s]*$/.test(value)) {
+      return true;
+    }
+
+    try {
+      const url = new URL(value);
+
+      return url.protocol === "https:" && !url.username && !url.password;
+    } catch {
+      return false;
+    }
+  }, "Use a site-relative path or HTTPS URL");
+
 export const ContentSlugSchema = z
   .string()
   .trim()
@@ -52,6 +69,7 @@ export type ContentLayout = z.infer<typeof ContentLayoutSchema>;
 
 export const RichTextSchema = z.strictObject({
   text: z.string(),
+  href: PageDestinationSchema.optional(),
   bold: z.boolean().optional(),
   italic: z.boolean().optional(),
   underline: z.boolean().optional(),
@@ -79,6 +97,14 @@ export const RichListItemSchema = z.strictObject({
   ...blockFields,
 });
 export const RichBlockSchema = z.union([
+  z.strictObject({
+    type: z.literal("image"),
+    mediaId: z.string().min(1).max(200),
+    alt: z.string().max(1000),
+    width: z.number().int().positive().nullable().optional(),
+    height: z.number().int().positive().nullable().optional(),
+    children: z.tuple([z.strictObject({ text: z.literal("") })]),
+  }),
   z.strictObject({ type: z.literal("paragraph"), ...blockFields }),
   z.strictObject({ type: z.literal("heading"), ...blockFields, level }),
   z.strictObject({ type: z.literal("blockquote"), ...blockFields }),
@@ -156,6 +182,7 @@ export function readRichContent(value: string | null): RichDocument {
 
 export function richContentText(document: RichDocument): string {
   return document.blocks
+    .filter((block) => block.type !== "image")
     .map((block) => {
       if (block.type === "bulleted-list" || block.type === "numbered-list") {
         return block.children
@@ -166,6 +193,37 @@ export function richContentText(document: RichDocument): string {
       return block.children.map((leaf) => leaf.text).join("");
     })
     .join("\n");
+}
+
+export function richContentMediaIds(value: string | null): string[] {
+  return readRichContent(value).blocks.flatMap((block) =>
+    block.type === "image" ? [block.mediaId] : [],
+  );
+}
+
+export function richContentDocumentIds(value: string | null): string[] {
+  return readRichContent(value).blocks.flatMap((block) => {
+    const leaves =
+      block.type === "bulleted-list" || block.type === "numbered-list"
+        ? block.children.flatMap((item) => item.children)
+        : block.children;
+
+    return leaves.flatMap((leaf) => {
+      const match = ("href" in leaf ? leaf.href : undefined)?.match(
+        /^\/media\/([^/?#]+)$/,
+      );
+
+      if (!match) {
+        return [];
+      }
+
+      try {
+        return [decodeURIComponent(match[1])];
+      } catch {
+        return [];
+      }
+    });
+  });
 }
 
 /** Public presentation omits corrupt content without relaxing the canonical write contract. */

@@ -127,6 +127,7 @@ export function DropdownTrigger({
   children,
   className,
   ariaLabel,
+  appearance = "default",
 }: DropdownTriggerProps) {
   const { open, setOpen, menuId, triggerRef } = useDropdownContext();
 
@@ -138,7 +139,11 @@ export function DropdownTrigger({
     <button
       ref={triggerRef}
       type="button"
-      className={cx("btn btn-ghost", className)}
+      className={cx(
+        "btn",
+        appearance === "primary" ? "btn-primary" : "btn-ghost",
+        className,
+      )}
       aria-haspopup="menu"
       aria-expanded={open}
       aria-controls={menuId}

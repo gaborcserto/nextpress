@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-import { RichDocumentSchema } from "./content";
+import { PageDestinationSchema, RichDocumentSchema } from "./content";
+
+export { PageDestinationSchema } from "./content";
 
 const reference = z
   .string()
@@ -8,22 +10,6 @@ const reference = z
   .max(128)
   .regex(/^[a-zA-Z0-9_-]+$/);
 const label = z.string().max(500);
-export const PageDestinationSchema = z
-  .string()
-  .max(2048)
-  .refine((value) => {
-    if (/^\/(?!\/)[^\\\s]*$/.test(value)) {
-      return true;
-    }
-
-    try {
-      const url = new URL(value);
-
-      return url.protocol === "https:" && !url.username && !url.password;
-    } catch {
-      return false;
-    }
-  }, "Use a site-relative path or HTTPS URL");
 const identity = { id: reference, version: z.literal(1) };
 
 export const PageLeafBlockSchema = z.discriminatedUnion("type", [

@@ -2,17 +2,26 @@ vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => "en" }));
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getPublishedPosts, getPublicSiteSettings, getNextPostBatch, redirect } =
-  vi.hoisted(() => ({
-    getPublishedPosts: vi.fn(),
-    getPublicSiteSettings: vi.fn(),
-    getNextPostBatch: vi.fn(),
-    redirect: vi.fn((href: string) => {
-      throw new Error(`redirect:${href}`);
-    }),
-  }));
+const {
+  getPagePosts,
+  getPublishedPage,
+  getPublicSiteSettings,
+  getNextPostBatch,
+  redirect,
+} = vi.hoisted(() => ({
+  getPagePosts: vi.fn(),
+  getPublishedPage: vi.fn(),
+  getPublicSiteSettings: vi.fn(),
+  getNextPostBatch: vi.fn(),
+  redirect: vi.fn((href: string) => {
+    throw new Error(`redirect:${href}`);
+  }),
+}));
 
-vi.mock("@/lib/content/public-content.server", () => ({ getPublishedPosts }));
+vi.mock("@/lib/content/public-content.server", () => ({
+  getPagePosts,
+  getPublishedPage,
+}));
 vi.mock("@/lib/settings/public-site-settings.server", () => ({
   getPublicSiteSettings,
 }));
@@ -37,7 +46,8 @@ const post = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: false });
+  getPublishedPage.mockResolvedValue(null);
+  getPagePosts.mockResolvedValue({ posts: [post], hasMore: false });
   getPublicSiteSettings.mockResolvedValue({
     postListingMode: "PAGINATION",
     postsPerPage: 10,
@@ -45,8 +55,26 @@ beforeEach(() => {
 });
 
 describe("Posts archive", () => {
+  it("uses the published Posts page filter before requesting the requested page", async () => {
+    const listing = {
+      slug: "posts",
+      pageType: "posts",
+      postsFilter: { type: "TAG" as const, slug: "next-js" },
+    };
+    getPublishedPage.mockResolvedValue(listing);
+    getPagePosts.mockResolvedValue({ posts: [post], hasMore: true });
+
+    render(await PostsPage({ searchParams: Promise.resolve({ page: "2" }) }));
+
+    expect(getPagePosts).toHaveBeenCalledWith(listing, 10, 10);
+    expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute(
+      "href",
+      "/en/posts",
+    );
+  });
+
   it("renders the first page and a next link when more posts exist", async () => {
-    getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: true });
+    getPagePosts.mockResolvedValue({ posts: [post], hasMore: true });
 
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
@@ -68,11 +96,11 @@ describe("Posts archive", () => {
     expect(
       screen.queryByRole("link", { name: "Previous page" }),
     ).not.toBeInTheDocument();
-    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 0 });
+    expect(getPagePosts).toHaveBeenCalledWith({}, 10, 0);
   });
 
   it("renders both navigation links for a middle page", async () => {
-    getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: true });
+    getPagePosts.mockResolvedValue({ posts: [post], hasMore: true });
 
     render(await PostsPage({ searchParams: Promise.resolve({ page: "2" }) }));
 
@@ -85,7 +113,7 @@ describe("Posts archive", () => {
       "/en/posts?page=3",
     );
     expect(screen.getByText("2")).toHaveAttribute("aria-current", "page");
-    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 10 });
+    expect(getPagePosts).toHaveBeenCalledWith({}, 10, 10);
   });
 
   it("omits next navigation on the final page", async () => {
@@ -108,7 +136,7 @@ describe("Posts archive", () => {
 
     render(await PostsPage({ searchParams: Promise.resolve({ page: "3" }) }));
 
-    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 3, offset: 6 });
+    expect(getPagePosts).toHaveBeenCalledWith({}, 3, 6);
   });
 
   it("selects the Load more enhancement when configured", async () => {
@@ -116,7 +144,7 @@ describe("Posts archive", () => {
       postListingMode: "LOAD_MORE",
       postsPerPage: 2,
     });
-    getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: true });
+    getPagePosts.mockResolvedValue({ posts: [post], hasMore: true });
 
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
@@ -126,11 +154,11 @@ describe("Posts archive", () => {
     expect(screen.getAllByRole("link", { name: "A first story" })).toHaveLength(
       1,
     );
-    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 2, offset: 0 });
+    expect(getPagePosts).toHaveBeenCalledWith({}, 2, 0);
   });
 
   it("renders the initial post once with pagination controls", async () => {
-    getPublishedPosts.mockResolvedValue({ posts: [post], hasMore: true });
+    getPagePosts.mockResolvedValue({ posts: [post], hasMore: true });
 
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
@@ -153,7 +181,7 @@ describe("Posts archive", () => {
     });
     const pageOne = { ...post, slug: "page-one", title: "Page one story" };
     const pageTwo = { ...post, slug: "page-two", title: "Page two story" };
-    getPublishedPosts.mockResolvedValueOnce({
+    getPagePosts.mockResolvedValueOnce({
       posts: [pageTwo],
       hasMore: false,
     });
@@ -168,7 +196,7 @@ describe("Posts archive", () => {
       screen.queryByRole("button", { name: "Load more posts" }),
     ).not.toBeInTheDocument();
 
-    getPublishedPosts.mockResolvedValueOnce({
+    getPagePosts.mockResolvedValueOnce({
       posts: [pageOne],
       hasMore: true,
     });
@@ -187,7 +215,7 @@ describe("Posts archive", () => {
   });
 
   it("shows the intentional empty state for an empty archive", async () => {
-    getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
+    getPagePosts.mockResolvedValue({ posts: [], hasMore: false });
 
     render(await PostsPage({ searchParams: Promise.resolve({}) }));
 
@@ -209,9 +237,9 @@ describe("Posts archive", () => {
     render(
       await PostsPage({ searchParams: Promise.resolve({ page: "nope" }) }),
     );
-    expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 0 });
+    expect(getPagePosts).toHaveBeenCalledWith({}, 10, 0);
 
-    getPublishedPosts.mockResolvedValue({ posts: [], hasMore: false });
+    getPagePosts.mockResolvedValue({ posts: [], hasMore: false });
     await expect(
       PostsPage({ searchParams: Promise.resolve({ page: "9" }) }),
     ).rejects.toThrow("redirect:/en/posts");
@@ -222,7 +250,7 @@ describe("Posts archive", () => {
     "normalizes unsafe page value %s to the first page",
     async (page) => {
       await PostsPage({ searchParams: Promise.resolve({ page }) });
-      expect(getPublishedPosts).toHaveBeenCalledWith({ limit: 10, offset: 0 });
+      expect(getPagePosts).toHaveBeenCalledWith({}, 10, 0);
     },
   );
 });

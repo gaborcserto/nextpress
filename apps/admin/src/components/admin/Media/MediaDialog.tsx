@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
-import { Button } from "@/ui/primitives";
+import { AdminDialogHeader } from "@/ui/primitives/AdminDialogHeader/AdminDialogHeader";
 
 import { useMediaMessages } from "./messages";
 
@@ -27,7 +27,7 @@ export function MediaDialog({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      className="admin-dialog [inline-size:min(52rem,calc(100%_-_2rem))]"
+      className="admin-dialog admin-media-dialog"
       aria-modal="true"
       onCancel={(event) => {
         event.preventDefault();
@@ -37,19 +37,13 @@ export function MediaDialog({
         }
       }}
     >
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 id={titleId} className="text-lg font-semibold">
-          {title}
-        </h2>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={!dismissible}
-          onClick={onClose}
-        >
-          {text.close}
-        </Button>
-      </div>
+      <AdminDialogHeader
+        title={title}
+        titleId={titleId}
+        closeLabel={text.close}
+        disabled={!dismissible}
+        onClose={onClose}
+      />
       {children}
     </dialog>,
     document.body,

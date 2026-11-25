@@ -48,12 +48,9 @@ it("expires the schedule control and refuses confirmation after the selected tim
     const schedule = screen.getByRole("button", {
       name: "Schedule",
     });
-    const date = screen.getByLabelText("Publish date");
-    fireEvent.change(date, { target: { value: "11/18/2026" } });
-    fireEvent.blur(date);
-    const time = screen.getByLabelText("Publish time");
-    fireEvent.change(time, { target: { value: "12:01" } });
-    fireEvent.blur(time);
+    const dateTime = screen.getByLabelText("Publish date and Publish time");
+    fireEvent.change(dateTime, { target: { value: "11/18/2026 12:01" } });
+    fireEvent.blur(dateTime);
     expect(schedule).toBeEnabled();
     fireEvent.click(schedule);
     act(() => vi.advanceTimersByTime(1_000));

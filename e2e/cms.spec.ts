@@ -5,6 +5,39 @@ import { PageDocumentSchema } from "@nextpress/shared/page-document";
 import { RevisionListSchema } from "@nextpress/shared/revisions";
 import { expect, test } from "@playwright/test";
 
+test("post Live Preview keeps unsaved edits through language and fullscreen changes", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("/auth/sign-in");
+  await page.getByLabel("Email", { exact: true }).fill("admin@example.invalid");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Disposable browser passphrase 2026");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
+
+  await page.goto("/admin/posts/legacy-plain-post");
+  const title = page.getByLabel("Title", { exact: true });
+  await title.fill("Unsaved post preview");
+  await page.getByRole("button", { name: "Live Preview", exact: true }).click();
+
+  const frame = page.frameLocator('iframe[title="Public frontend preview"]');
+  const heading = frame.getByRole("heading", { name: "Unsaved post preview" });
+  await expect(heading).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel("Preview language").selectOption("hu");
+  await expect(frame.locator("html")).toHaveAttribute("lang", "hu");
+  await expect(heading).toBeVisible();
+
+  await page.getByRole("button", { name: "Fullscreen preview" }).click();
+  await expect(
+    page.getByRole("button", { name: "Exit fullscreen" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Exit fullscreen" }).click();
+  await page.getByRole("button", { name: "Close Live Preview" }).click();
+  await expect(title).toHaveValue("Unsaved post preview");
+});
+
 test("disposable editorial publication, public rendering and session lifecycle", async ({
   page,
   request,

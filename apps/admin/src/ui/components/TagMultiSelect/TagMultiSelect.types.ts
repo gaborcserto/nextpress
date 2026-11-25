@@ -13,6 +13,7 @@ export type {
 } from "@/lib/content/contracts";
 
 export type TagMultiSelectProps = {
+  className?: string;
   label?: string;
   /** Selected tags */
   value?: TagValue[];

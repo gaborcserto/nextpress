@@ -60,6 +60,22 @@ function json(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 });
 }
 
+function postListFetch(...responses: Response[]) {
+  const pendingResponses = [...responses];
+
+  return vi.fn((input: RequestInfo | URL) => {
+    if (String(input).startsWith("/api/admin/tags?")) {
+      return Promise.resolve(
+        json({ items: [], page: 1, limit: 100, total: 0, pages: 1 }),
+      );
+    }
+
+    return Promise.resolve(
+      pendingResponses.shift() ?? json(list("Unexpected request")),
+    );
+  });
+}
+
 function setup() {
   const cache = new Map();
   const retries: Array<() => void> = [];
@@ -197,10 +213,10 @@ it("retains cached data after invalid revalidation and replaces it after recover
 });
 
 it("shows the posts error and recovers through the Retry control", async () => {
-  const fetch = vi
-    .fn()
-    .mockResolvedValueOnce(json({ items: "invalid" }))
-    .mockResolvedValueOnce(json(list("Updated")));
+  const fetch = postListFetch(
+    json({ items: "invalid" }),
+    json(list("Updated")),
+  );
   vi.stubGlobal("fetch", fetch);
   const { wrapper } = setup();
   render(<PostsListScreen />, { wrapper });
@@ -215,11 +231,11 @@ it("shows the posts error and recovers through the Retry control", async () => {
 });
 
 it("hides retained posts while displaying a revalidation error", async () => {
-  const fetch = vi
-    .fn()
-    .mockResolvedValueOnce(json(list("Original")))
-    .mockResolvedValueOnce(json({ items: "invalid" }))
-    .mockResolvedValueOnce(json(list("Updated")));
+  const fetch = postListFetch(
+    json(list("Original")),
+    json({ items: "invalid" }),
+    json(list("Updated")),
+  );
   vi.stubGlobal("fetch", fetch);
   const { wrapper, cache } = setup();
 

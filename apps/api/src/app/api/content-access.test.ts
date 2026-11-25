@@ -68,7 +68,12 @@ const { prisma, session, configureAuth } = vi.hoisted(() => ({
       findUniqueOrThrow: vi.fn(),
     },
     $queryRaw: vi.fn().mockResolvedValue([]),
-    taxonomy: { findMany: vi.fn(), delete: vi.fn() },
+    taxonomy: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     pageOnTaxonomy: {
       findMany: vi.fn(),
       deleteMany: vi.fn(),
@@ -1260,6 +1265,30 @@ describe("parent and taxonomy access boundaries", () => {
       ).toBe(200);
     },
   );
+
+  it("requires an unreferenced category for explicit Admin category deletion", async () => {
+    role = "EDITOR";
+    prisma.taxonomy.deleteMany.mockResolvedValue({ count: 0 });
+    prisma.taxonomy.findUnique.mockResolvedValue({ id: "category-1" });
+
+    const response = await deleteAdminTag(
+      request("DELETE", undefined, "?type=CATEGORY"),
+      context("category-1"),
+    );
+
+    expect(response.status).toBe(409);
+    expect(prisma.taxonomy.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: "category-1",
+        type: "CATEGORY",
+        pages: { none: {} },
+        Page: { none: {} },
+        back_ContentRevisionTaxonomy_target: { none: {} },
+        privateWorkingReferences: { none: {} },
+      },
+    });
+    expect(prisma.taxonomy.delete).not.toHaveBeenCalled();
+  });
 
   it("denies global tag deletion to authors", async () => {
     role = "AUTHOR";

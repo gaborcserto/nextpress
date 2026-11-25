@@ -1,11 +1,14 @@
 import { defineConfig } from "prisma/config";
 
-import { loadApiEnvironment } from "./src/api-environment";
+import { loadMigrationEnvironment } from "./src/api-environment";
 import { formatDatabaseTarget, resolveDatabase } from "./src/database-config";
 
-loadApiEnvironment();
+loadMigrationEnvironment();
 const { connectionString, target } = resolveDatabase(process.env);
-console.info(`Prisma database target: ${formatDatabaseTarget(target)}`);
+const migrationRole = decodeURIComponent(new URL(connectionString).username);
+console.info(
+  `Prisma migration target: ${formatDatabaseTarget(target)} (role ${migrationRole})`,
+);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

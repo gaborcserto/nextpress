@@ -5,12 +5,9 @@ import {
   formatSiteDateTime,
   type SiteDateTime,
 } from "@nextpress/shared/site-date-time";
-import {
-  createContext,
-  useContext,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
+
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 
 export const AdminDateTimeContext = createContext<SiteDateTime | null>(
   DEFAULT_SITE_DATE_TIME,
@@ -30,24 +27,8 @@ export function AdminDateTimeProvider({
   );
 }
 
-function subscribeToLanguage() {
-  return () => {};
-}
-
-function browserLanguage() {
-  return navigator.language.toLowerCase().startsWith("hu") ? "hu" : "en-US";
-}
-
-function serverLanguage() {
-  return "en-US";
-}
-
 export function useAdminDateLocale() {
-  return useSyncExternalStore(
-    subscribeToLanguage,
-    browserLanguage,
-    serverLanguage,
-  );
+  return useAdminLocale() === "hu" ? "hu" : "en-US";
 }
 
 export function useAdminTimestampFormatter() {

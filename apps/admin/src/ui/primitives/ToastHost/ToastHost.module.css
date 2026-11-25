@@ -1,0 +1,188 @@
+.viewport {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  inline-size: min(26rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: var(--toast-gap, var(--space-2));
+  padding: max(var(--toast-offset, var(--space-4)), env(safe-area-inset-top))
+    max(var(--toast-offset, var(--space-4)), env(safe-area-inset-right))
+    max(var(--toast-offset, var(--space-4)), env(safe-area-inset-bottom))
+    max(var(--toast-offset, var(--space-4)), env(safe-area-inset-left));
+  pointer-events: none;
+  transition:
+    gap 180ms ease,
+    padding 180ms ease;
+}
+
+.placement-top-start {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+.placement-top-center {
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+.placement-top-end {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+.placement-bottom-start {
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  flex-direction: column-reverse;
+}
+.placement-bottom-center {
+  inset-block-end: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  flex-direction: column-reverse;
+}
+.placement-bottom-end {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  flex-direction: column-reverse;
+}
+
+.viewport[data-stack-mode="collapsed"]:not([data-expanded="true"]) {
+  gap: 0;
+}
+.viewport[data-stack-mode="collapsed"]:not([data-expanded="true"])
+  > :not(:first-child) {
+  margin-block-start: calc(-1 * (var(--space-4) + var(--toast-gap)));
+}
+.viewport[data-stack-mode="collapsed"]:not([data-expanded="true"])
+  > :nth-child(2) {
+  transform: scale(0.97);
+}
+.viewport[data-stack-mode="collapsed"]:not([data-expanded="true"])
+  > :nth-child(3) {
+  transform: scale(0.94);
+}
+.viewport[data-stack-mode="collapsed"]:not([data-expanded="true"])
+  > :not(:first-child)
+  .toast {
+  pointer-events: none;
+}
+.viewport[data-stack-mode="collapsed"][data-expanded="true"] {
+  gap: var(--toast-gap);
+}
+.viewport > * {
+  transition:
+    margin 180ms ease,
+    transform 180ms ease;
+}
+.viewport[data-stack-mode="collapsed"][data-expanded="true"] > * {
+  margin-block-start: 0;
+  transform: none;
+}
+.viewport > :nth-child(1) {
+  z-index: 3;
+}
+.viewport > :nth-child(2) {
+  z-index: 2;
+}
+.viewport > :nth-child(3) {
+  z-index: 1;
+}
+
+.toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--surface-border);
+  border-radius: var(--radius-surface);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sticky);
+  overflow-wrap: anywhere;
+  pointer-events: auto;
+}
+
+.icon,
+.spinner {
+  align-self: center;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
+  color: var(--text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+.icon > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.icon[data-status="success"] {
+  color: var(--toast-success);
+}
+.icon[data-status="error"] {
+  color: var(--toast-danger);
+}
+.icon[data-status="warning"] {
+  color: var(--toast-warning);
+}
+.icon[data-status="info"] {
+  color: var(--toast-info);
+}
+.icon[data-status="attention"] {
+  color: var(--toast-attention);
+}
+.spinner {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  border: 2px solid var(--surface-border);
+  border-top-color: var(--accent-text);
+  border-radius: 50%;
+  animation: toast-spin var(--motion-spinner) linear infinite;
+}
+.message {
+  min-inline-size: 0;
+}
+.title {
+  font-size: var(--text-ui-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--text-ui-leading);
+}
+.description {
+  margin-block-start: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-help-size);
+  line-height: var(--text-ui-leading);
+}
+.close {
+  display: grid;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  place-items: center;
+  margin: -0.25rem -0.25rem 0 0;
+  border: 0;
+  border-radius: var(--radius-tight);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.close:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+@keyframes toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport,
+  .viewport > * {
+    transition-duration: 0.01ms;
+  }
+  .spinner {
+    animation-duration: 2s;
+  }
+}

@@ -1,6 +1,10 @@
 import "server-only";
 
-import { DEFAULT_APPEARANCE, normalizeAppearance } from "@nextpress/shared";
+import {
+  APPEARANCE_CATALOG,
+  DEFAULT_APPEARANCE,
+  normalizeAppearance,
+} from "@nextpress/shared";
 
 import { BlogArchive } from "./blog/BlogArchive";
 import { BlogHome } from "./blog/BlogHome";
@@ -11,12 +15,6 @@ import { BlogShell } from "./blog/BlogShell";
 import { BlogTags } from "./blog/BlogTags";
 
 import type { WebsiteTemplate, StylePresetId } from "./types";
-
-const blogNavigation = {
-  classic: { sidebar: false },
-  modern: { sidebar: false },
-  minimal: { sidebar: true },
-} satisfies Record<StylePresetId, { sidebar: boolean }>;
 
 export const websiteTemplates = [
   {
@@ -50,5 +48,13 @@ export function resolveWebsiteTemplate(
     template.presets.find((entry) => entry === appearance.stylePreset) ??
     DEFAULT_APPEARANCE.stylePreset;
 
-  return { ...template, stylePreset, navigation: blogNavigation[stylePreset] };
+  const presetCapability = APPEARANCE_CATALOG.find(
+    (entry) => entry.id === template.id,
+  )?.presets.find((entry) => entry.id === stylePreset);
+
+  return {
+    ...template,
+    stylePreset,
+    navigation: presetCapability?.navigation ?? { sidebar: false },
+  };
 }

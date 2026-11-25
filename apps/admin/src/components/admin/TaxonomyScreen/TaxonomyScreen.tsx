@@ -3,14 +3,22 @@
 import { TaxonomyListSchema } from "@nextpress/shared/api-contracts";
 import { slugify } from "@nextpress/shared/slugify";
 import Link from "next/link";
-import { useRef, useState } from "react";
-import { FaPlus, FaSyncAlt, FaTrash } from "react-icons/fa";
+import { useRef, useState, type FormEvent } from "react";
+import {
+  FaEdit,
+  FaPlus,
+  FaSave,
+  FaSyncAlt,
+  FaTimes,
+  FaTrash,
+} from "react-icons/fa";
 
 import { ApiRequestError, jsonFetcher } from "@/lib/api/client";
 import { useContentList } from "@/lib/content/useContentList";
 import {
   createTagAction,
   deleteTagAdminAction,
+  updateTagAdminAction,
 } from "@/lib/services/tag.client";
 import ContentListPagination from "@/ui/components/ContentList/ContentListPagination";
 import {
@@ -18,10 +26,11 @@ import {
   DataListLoading,
   DataListSurface,
 } from "@/ui/components/DataList";
-import ListFilters, {
-  sortDirectionField,
-} from "@/ui/components/DataList/ListFilters";
-import RecordId from "@/ui/components/DataList/RecordId";
+import ListFilters from "@/ui/components/DataList/ListFilters";
+import {
+  MobileSortControl,
+  QuerySortableHeader,
+} from "@/ui/components/DataList/SortableHeader";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
   Alert,
@@ -33,6 +42,7 @@ import {
   Field,
   Input,
 } from "@/ui/primitives";
+import { AdminDialogHeader } from "@/ui/primitives/AdminDialogHeader/AdminDialogHeader";
 import { AdminPageLayout } from "@/ui/shell";
 import { showToast } from "@/ui/utils";
 
@@ -43,19 +53,7 @@ const taxonomyTypes = [
   { value: "CATEGORY", label: "Categories" },
 ] as const;
 
-const fields = [
-  { name: "q", label: "Search", placeholder: "Name or slug" },
-  {
-    name: "sort",
-    label: "Sort by",
-    options: [
-      { value: "name", label: "Name" },
-      { value: "slug", label: "Slug" },
-      { value: "usedCount", label: "Post count" },
-    ],
-  },
-  sortDirectionField,
-];
+const fields = [{ name: "q", label: "Search", placeholder: "Name or slug" }];
 
 async function fetchTaxonomyList(url: string) {
   return TaxonomyListSchema.parse(await jsonFetcher<unknown>(url));
@@ -77,8 +75,12 @@ export default function TaxonomyScreen() {
     { type: "TAG" },
   );
   const isCategory = query.values.get("type") === "CATEGORY";
+  const sortColumn = query.values.get("sort") ?? "name";
+  const sortDirection = query.values.get("direction") ?? "asc";
   const heading = isCategory ? "Categories" : "Tags";
   const listLabel = heading.toLowerCase();
+  const itemLabel = isCategory ? "category" : "tag";
+  const createLabel = isCategory ? "Create category" : "Create tag";
 
   const [createOpen, setCreateOpen] = useState(false);
   const createDialogRef = useModalDialog(createOpen);
@@ -89,6 +91,13 @@ export default function TaxonomyScreen() {
   const creatingRef = useRef(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingTag, setEditingTag] = useState<
+    (ConfirmPayload & { slug: string }) | null
+  >(null);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const editDialogRef = useModalDialog(Boolean(editingTag));
 
   const confirm = useConfirmDialog<ConfirmPayload>();
 
@@ -107,14 +116,24 @@ export default function TaxonomyScreen() {
     setError(null);
 
     try {
-      await createTagAction(name.trim());
+      if (isCategory) {
+        await jsonFetcher("/api/admin/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), slug }),
+        });
+      } else {
+        await createTagAction(name.trim());
+      }
 
       setName("");
       setCreateOpen(false);
       reload();
-      showToast("Tag created.", "success");
+      showToast(isCategory ? "Category created." : "Tag created.", "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create tag.");
+      setError(
+        e instanceof Error ? e.message : `Failed to create ${itemLabel}.`,
+      );
     } finally {
       creatingRef.current = false;
       setCreating(false);
@@ -125,16 +144,53 @@ export default function TaxonomyScreen() {
     confirm.show({ id: t.id, name: t.name, usedCount: t.usedCount });
   };
 
+  async function saveTagEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingTag || !editName.trim() || !editSlug.trim() || savingEdit) {
+      return;
+    }
+
+    setSavingEdit(true);
+    setError(null);
+
+    try {
+      await updateTagAdminAction(editingTag.id, {
+        name: editName.trim(),
+        slug: slugify(editSlug),
+      });
+      setEditingTag(null);
+      reload();
+      showToast(isCategory ? "Category updated." : "Tag updated.", "success");
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Failed to update tag.",
+      );
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   const onConfirmDelete = () => {
     void confirm.run(async ({ id }) => {
       setDeletingId(id);
 
       try {
-        await deleteTagAdminAction(id);
+        await deleteTagAdminAction(id, isCategory ? "CATEGORY" : "TAG");
         reload();
-        showToast("Tag deleted.", "success");
-      } catch {
-        throw new Error("Unable to delete tag. Please try again.");
+        showToast(isCategory ? "Category deleted." : "Tag deleted.", "success");
+      } catch (error) {
+        if (
+          isCategory &&
+          error instanceof ApiRequestError &&
+          error.status === 409
+        ) {
+          throw new Error(
+            "Remove content references before deleting this category.",
+          );
+        }
+
+        throw new Error(`Unable to delete ${itemLabel}. Please try again.`);
       } finally {
         setDeletingId(null);
       }
@@ -149,26 +205,31 @@ export default function TaxonomyScreen() {
     }
   }
 
+  function closeEditDialog() {
+    if (!savingEdit) {
+      setEditingTag(null);
+      setError(null);
+    }
+  }
+
   return (
     <AdminPageLayout
       title="Taxonomy"
-      description="Browse categories and manage tags used to organize posts."
+      description="Manage categories and tags used to organize content."
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={reload} disabled={loading}>
             <FaSyncAlt aria-hidden="true" />
             Refresh
           </Button>
-          {!isCategory && (
-            <IconButton
-              aria-label="Create tag"
-              icon={FaPlus}
-              color="primary"
-              onClick={() => setCreateOpen(true)}
-            >
-              Create tag
-            </IconButton>
-          )}
+          <IconButton
+            aria-label={createLabel}
+            icon={FaPlus}
+            color="primary"
+            onClick={() => setCreateOpen(true)}
+          >
+            {createLabel}
+          </IconButton>
         </div>
       }
     >
@@ -191,13 +252,6 @@ export default function TaxonomyScreen() {
           );
         })}
       </nav>
-      <ListFilters query={query} fields={fields}>
-        <input
-          type="hidden"
-          name="type"
-          value={isCategory ? "CATEGORY" : "TAG"}
-        />
-      </ListFilters>
       {loading && !items.length ? (
         <DataListLoading reserveSpace label={listLabel} />
       ) : loadError ? (
@@ -215,6 +269,26 @@ export default function TaxonomyScreen() {
           reserveSpace
           pendingLabel={loading ? listLabel : undefined}
         >
+          <ListFilters query={query} fields={fields}>
+            <input
+              type="hidden"
+              name="type"
+              value={isCategory ? "CATEGORY" : "TAG"}
+            />
+          </ListFilters>
+          <MobileSortControl
+            label="Sort by"
+            directionLabel="Change sort direction"
+            options={[
+              { value: "name", label: "Name" },
+              { value: "slug", label: "Slug" },
+              { value: "usedCount", label: "Posts" },
+            ]}
+            value={sortColumn}
+            direction={sortDirection === "desc" ? "desc" : "asc"}
+            onFieldAction={query.onSortFieldAction}
+            onDirectionAction={() => query.onSortAction(sortColumn)}
+          />
           <table
             className="table admin-responsive-table"
             role="table"
@@ -222,14 +296,24 @@ export default function TaxonomyScreen() {
           >
             <thead role="rowgroup">
               <tr role="row">
-                <th scope="col">Name</th>
-                <th scope="col">Slug</th>
-                <th scope="col">Posts</th>
-                {!isCategory && (
-                  <th scope="col" className="text-right">
-                    Actions
-                  </th>
-                )}
+                {(["name", "slug", "usedCount"] as const).map((column) => (
+                  <QuerySortableHeader
+                    key={column}
+                    column={column}
+                    activeColumn={sortColumn}
+                    direction={sortDirection === "desc" ? "desc" : "asc"}
+                    onSortAction={query.onSortAction}
+                  >
+                    {column === "usedCount"
+                      ? "Posts"
+                      : column === "name"
+                        ? "Name"
+                        : "Slug"}
+                  </QuerySortableHeader>
+                ))}
+                <th scope="col" className="text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody role="rowgroup">
@@ -241,7 +325,6 @@ export default function TaxonomyScreen() {
                       className="admin-table-identity font-semibold"
                     >
                       <span>{tag.name}</span>
-                      <RecordId id={tag.id} />
                     </td>
                     <td role="cell">
                       <span aria-hidden="true" className="admin-cell-label">
@@ -255,28 +338,42 @@ export default function TaxonomyScreen() {
                       </span>
                       {tag.usedCount}
                     </td>
-                    {!isCategory && (
-                      <td role="cell" className="admin-table-actions">
-                        <div className="flex justify-end">
-                          <IconButton
-                            icon={FaTrash}
-                            size="sm"
-                            color="error"
-                            variant="ghost"
-                            loading={deletingId === tag.id}
-                            disabled={Boolean(deletingId)}
-                            aria-label={`Delete tag ${tag.name}`}
-                            onClick={() => onAskDelete(tag)}
-                          >
-                            Delete
-                          </IconButton>
-                        </div>
-                      </td>
-                    )}
+                    <td role="cell" className="admin-table-actions">
+                      <div className="flex justify-end">
+                        <IconButton
+                          icon={FaEdit}
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`Edit ${itemLabel} ${tag.name}`}
+                          title={`Edit ${itemLabel} ${tag.name}`}
+                          onClick={() => {
+                            setEditingTag(tag);
+                            setEditName(tag.name);
+                            setEditSlug(tag.slug);
+                            setError(null);
+                          }}
+                        >
+                          Edit
+                        </IconButton>
+                        <IconButton
+                          icon={FaTrash}
+                          size="sm"
+                          color="error"
+                          variant="ghost"
+                          loading={deletingId === tag.id}
+                          disabled={Boolean(deletingId)}
+                          aria-label={`Delete ${itemLabel} ${tag.name}`}
+                          title={`Delete ${itemLabel} ${tag.name}`}
+                          onClick={() => onAskDelete(tag)}
+                        >
+                          Delete
+                        </IconButton>
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
-                <DataListEmptyRow colSpan={isCategory ? 3 : 4}>
+                <DataListEmptyRow colSpan={4}>
                   No {listLabel} found.
                 </DataListEmptyRow>
               )}
@@ -289,16 +386,20 @@ export default function TaxonomyScreen() {
 
       <dialog
         ref={createDialogRef}
-        className="admin-dialog"
+        className="admin-dialog taxonomy-dialog"
         aria-labelledby="create-tag-title"
         onCancel={(event) => {
           event.preventDefault();
           closeCreateDialog();
         }}
       >
-        <h2 id="create-tag-title" className="mb-4 text-lg font-semibold">
-          Create tag
-        </h2>
+        <AdminDialogHeader
+          title={createLabel}
+          titleId="create-tag-title"
+          closeLabel="Close dialog"
+          disabled={creating}
+          onClose={closeCreateDialog}
+        />
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -319,7 +420,7 @@ export default function TaxonomyScreen() {
               <Field
                 label="Slug"
                 htmlFor="tag-slug"
-                hint="Generated from the tag name."
+                hint="Generated from the name."
                 span={12}
               >
                 <Input id="tag-slug" fullWidth value={slug} readOnly />
@@ -328,6 +429,7 @@ export default function TaxonomyScreen() {
             <Alert status="error" message={error} className="mt-3" />
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <Button variant="ghost" onClick={closeCreateDialog}>
+                <FaTimes aria-hidden="true" />
                 Cancel
               </Button>
               <Button
@@ -336,7 +438,66 @@ export default function TaxonomyScreen() {
                 disabled={!canCreate}
                 loading={creating}
               >
-                Create tag
+                <FaSave aria-hidden="true" />
+                {createLabel}
+              </Button>
+            </div>
+          </fieldset>
+        </form>
+      </dialog>
+
+      <dialog
+        ref={editDialogRef}
+        className="admin-dialog taxonomy-dialog"
+        aria-labelledby="edit-tag-title"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeEditDialog();
+        }}
+      >
+        <AdminDialogHeader
+          title={isCategory ? "Edit category" : "Edit tag"}
+          titleId="edit-tag-title"
+          closeLabel="Close dialog"
+          disabled={savingEdit}
+          onClose={closeEditDialog}
+        />
+        <form onSubmit={saveTagEdit}>
+          <fieldset disabled={savingEdit}>
+            <FormGrid12>
+              <Field label="Name" htmlFor="edit-tag-name" span={12}>
+                <Input
+                  id="edit-tag-name"
+                  fullWidth
+                  value={editName}
+                  onChange={(event) => setEditName(event.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Slug" htmlFor="edit-tag-slug" span={12}>
+                <Input
+                  id="edit-tag-slug"
+                  fullWidth
+                  value={editSlug}
+                  onChange={(event) => setEditSlug(slugify(event.target.value))}
+                  required
+                />
+              </Field>
+            </FormGrid12>
+            <Alert status="error" message={error} className="mt-3" />
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" onClick={closeEditDialog}>
+                <FaTimes aria-hidden="true" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                color="primary"
+                disabled={!editName.trim() || !editSlug.trim()}
+                loading={savingEdit}
+              >
+                <FaSave aria-hidden="true" />
+                Save changes
               </Button>
             </div>
           </fieldset>
@@ -346,7 +507,7 @@ export default function TaxonomyScreen() {
       <ConfirmDialog
         open={confirm.open}
         error={confirm.error}
-        title="Delete tag?"
+        title={isCategory ? "Delete category?" : "Delete tag?"}
         confirmLabel="Delete"
         confirmColor="error"
         loading={confirm.pending}
@@ -359,14 +520,20 @@ export default function TaxonomyScreen() {
               You are about to delete{" "}
               <span className="font-medium">{confirm.payload.name}</span>.
             </p>
-            <p className="mt-2">
-              This tag is used by{" "}
-              <span className="font-semibold tabular-nums">
-                {confirm.payload.usedCount}
-              </span>{" "}
-              post(s). Deleting it will remove the tag from all linked pages and
-              posts.
-            </p>
+            {isCategory ? (
+              <p className="mt-2">
+                Categories referenced by content or revisions cannot be deleted.
+              </p>
+            ) : (
+              <p className="mt-2">
+                This tag is used by{" "}
+                <span className="font-semibold tabular-nums">
+                  {confirm.payload.usedCount}
+                </span>{" "}
+                post(s). Deleting it will remove the tag from all linked pages
+                and posts.
+              </p>
+            )}
           </>
         ) : null}
       </ConfirmDialog>

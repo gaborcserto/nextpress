@@ -2,6 +2,7 @@
 # Node / General
 # ───────────────────────────────
 node_modules/
+/apps/api/.b04-disposable.json
 npm-debug.log*
 yarn-error.log
 pnpm-debug.log*
@@ -51,6 +52,7 @@ public/cache/
 # ───────────────────────────────
 .env*
 !.env.example
+!.env.migrator.example
 
 # ───────────────────────────────
 # IntelliJ / VSCode / IDE

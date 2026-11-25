@@ -1,6 +1,7 @@
 "use client";
 
 import { RichBlocksSchema } from "@nextpress/shared/content";
+import Image from "next/image";
 import { useCallback, useId, useMemo, useState } from "react";
 import { createEditor, Editor, Transforms, type Descendant } from "slate";
 import { withHistory } from "slate-history";
@@ -14,7 +15,7 @@ import {
 
 import { EMPTY_SLATE_VALUE } from "./slate.constants";
 import styles from "./SlateEditor.module.css";
-import SlateToolbar from "./SlateToolbar";
+import SlateToolbar, { SlateLinkActions } from "./SlateToolbar";
 
 import type { CSSProperties } from "react";
 
@@ -39,7 +40,7 @@ export default function SlateEditor({
     const { attributes, children, element } = props;
 
     const style: CSSProperties = {
-      textAlign: element.align,
+      textAlign: "align" in element ? element.align : undefined,
     };
 
     switch (element.type) {
@@ -122,6 +123,21 @@ export default function SlateEditor({
             <code>{children}</code>
           </pre>
         );
+      case "image":
+        return (
+          <div {...attributes} contentEditable={false} className="my-4">
+            <Image
+              src={`/media/${element.mediaId}`}
+              alt={element.alt}
+              width={element.width ?? 800}
+              height={element.height ?? 600}
+              unoptimized
+              sizes="100vw"
+              className="max-h-160 max-w-full rounded-(--radius-control) object-contain"
+            />
+            {children}
+          </div>
+        );
       default:
         return (
           <p {...attributes} style={style}>
@@ -160,6 +176,14 @@ export default function SlateEditor({
       );
     }
 
+    if (leaf.href) {
+      return (
+        <a {...attributes} href={leaf.href} className="underline text-primary">
+          {out}
+        </a>
+      );
+    }
+
     return <span {...attributes}>{out}</span>;
   }, []);
 
@@ -182,7 +206,13 @@ export default function SlateEditor({
         <SlateToolbar
           onToggleCodeViewAction={toggleCodeViewAction}
           isCodeView={isCodeView}
-        />
+        >
+          {!isCodeView && !readOnly && (
+            <>
+              <SlateLinkActions />
+            </>
+          )}
+        </SlateToolbar>
 
         {isCodeView ? (
           <div className="p-3">

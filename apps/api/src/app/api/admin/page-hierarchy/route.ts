@@ -68,8 +68,12 @@ export const PUT = withAuth(
           return conflict("Page hierarchy changed. Reload before saving.");
         }
 
-        if (parentId && current.layout === "HOME") {
-          return bad("A Home Page must remain at the root");
+        const protectedSystemPage =
+          current.layout === "HOME" ||
+          (current.layout === "POSTS" && current.slug === "posts");
+
+        if (parentId && protectedSystemPage) {
+          return bad("Protected system pages must remain at the root");
         }
 
         const segments = [current.slug];
@@ -83,11 +87,18 @@ export const PUT = withAuth(
 
           const parent = await tx.page.findFirst({
             where: { id: nextParent, type: "PAGE" },
-            select: { slug: true, parentId: true },
+            select: { slug: true, parentId: true, layout: true },
           });
 
           if (!parent) {
             return bad("Parent Page was not found");
+          }
+
+          if (
+            parent.layout === "HOME" ||
+            (parent.layout === "POSTS" && parent.slug === "posts")
+          ) {
+            return bad("Protected system pages cannot have child pages");
           }
 
           visited.add(nextParent);

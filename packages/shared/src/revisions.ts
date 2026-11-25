@@ -43,6 +43,7 @@ export const RevisionRecordSchema = RevisionSnapshotSchema.extend({
   id: z.string(),
   workingVersion: z.number().int(),
   createdAt: z.string(),
+  authorName: z.string().nullable().optional(),
 });
 const previewSnapshotSchema = RevisionSnapshotSchema.extend({
   publishedAt: z.iso.datetime({ offset: true }).nullable().optional(),
@@ -54,7 +55,7 @@ const previewSnapshotSchema = RevisionSnapshotSchema.extend({
 });
 export const RevisionListSchema = z.object({
   version: z.number().int(),
-  current: previewSnapshotSchema,
+  current: previewSnapshotSchema.extend({ updatedAt: z.string() }),
   revisions: z.array(RevisionRecordSchema),
 });
 

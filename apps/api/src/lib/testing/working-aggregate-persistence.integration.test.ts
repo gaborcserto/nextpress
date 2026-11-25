@@ -65,17 +65,14 @@ describe.skipIf(!url)(
       await db?.$disconnect();
     });
 
-    it("reserves the homepage slot across concurrent writes and releases it on withdrawal", async () => {
+    it("reserves the Homepage slot across concurrent writes regardless of publication status", async () => {
       const records = await Promise.all([seed(), seed()]);
 
-      const publish = (id: string) =>
-        db.page.update({
-          where: { id },
-          data: { layout: "HOME", status: "PUBLISHED" },
-        });
+      const assignHomepage = (id: string) =>
+        db.page.update({ where: { id }, data: { layout: "HOME" } });
 
       const results = await Promise.allSettled(
-        records.map(({ id }) => publish(id)),
+        records.map(({ id }) => assignHomepage(id)),
       );
 
       const selected = await db.page.findMany({
@@ -98,9 +95,7 @@ describe.skipIf(!url)(
         where: { id: active.id },
         data: { status: "DRAFT" },
       });
-      await expect(publish(replacement.id)).resolves.toMatchObject({
-        layout: "HOME",
-      });
+      await expect(assignHomepage(replacement.id)).rejects.toBeDefined();
     });
 
     it.each([

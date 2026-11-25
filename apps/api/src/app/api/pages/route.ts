@@ -1,7 +1,7 @@
 import { prisma } from "@nextpress/db/src/client";
 import { PageListFiltersSchema } from "@nextpress/shared/api-contracts";
 
-import { ok, bad } from "@/lib/api";
+import { ok, bad, forbid } from "@/lib/api";
 import { contentMutationError } from "@/lib/api/content-mutation-error";
 import { withRequestLogging } from "@/lib/api/request-logging.server";
 import { getSessionWithRole, withAuth } from "@/lib/auth/auth-server";
@@ -50,6 +50,23 @@ async function get(req: Request) {
 
   if (url.searchParams.getAll("select").length > 1) {
     return bad("Invalid selector");
+  }
+
+  if (selectMode === "homepage") {
+    if (
+      !actor ||
+      !actor.role ||
+      !["ADMIN", "EDITOR", "AUTHOR"].includes(actor.role)
+    ) {
+      return forbid();
+    }
+
+    const page = await prisma.page.findFirst({
+      where: { type: "PAGE", layout: "HOME" },
+      select: { id: true },
+    });
+
+    return ok({ id: page?.id ?? null });
   }
 
   if (selectMode === "parent") {

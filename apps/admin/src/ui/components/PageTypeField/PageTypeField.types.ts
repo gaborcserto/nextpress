@@ -4,5 +4,6 @@ export type PageTypeFieldProps = {
   id?: string;
   value: PageType;
   onChange: (value: PageType) => void;
+  pageId?: string;
   className?: string;
 };

@@ -13,3 +13,4 @@ export * from "./SkeletonBox";
 export * from "./StickyWrapper";
 export * from "./ToastHost";
 export * from "./Toggle";
+export * from "./Tooltip/Tooltip";

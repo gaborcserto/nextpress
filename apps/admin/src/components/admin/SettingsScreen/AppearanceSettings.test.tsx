@@ -12,31 +12,21 @@ describe("AppearanceSettings", () => {
     jsonFetcher.mockReset();
   });
 
-  it("waits for compatible configuration and saves only the appearance fields", async () => {
+  it("stages appearance edits for the shared settings save", async () => {
     jsonFetcher
       .mockResolvedValueOnce(DEFAULT_APPEARANCE)
-      .mockResolvedValueOnce(APPEARANCE_CATALOG)
-      .mockResolvedValueOnce({ ...DEFAULT_APPEARANCE, stylePreset: "modern" });
-    render(<AppearanceSettings />);
+      .mockResolvedValueOnce(APPEARANCE_CATALOG);
+    const onChangeAction = vi.fn();
+    render(<AppearanceSettings onChangeAction={onChangeAction} />);
 
     const preset = await screen.findByRole("combobox", {
       name: "Style variant",
     });
     expect(preset).toHaveValue("classic");
     fireEvent.change(preset, { target: { value: "modern" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
-
-    expect(await screen.findByText("Appearance saved.")).toHaveAttribute(
-      "role",
-      "status",
-    );
-    expect(jsonFetcher).toHaveBeenLastCalledWith(
-      "/api/admin/settings/appearance",
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...DEFAULT_APPEARANCE, stylePreset: "modern" }),
-      },
+    expect(onChangeAction).toHaveBeenLastCalledWith(
+      { ...DEFAULT_APPEARANCE, stylePreset: "modern" },
+      true,
     );
   });
 
@@ -46,7 +36,7 @@ describe("AppearanceSettings", () => {
       .mockResolvedValueOnce(APPEARANCE_CATALOG)
       .mockResolvedValueOnce(DEFAULT_APPEARANCE)
       .mockResolvedValueOnce(APPEARANCE_CATALOG);
-    render(<AppearanceSettings />);
+    render(<AppearanceSettings onChangeAction={vi.fn()} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load website appearance.",
@@ -63,22 +53,16 @@ describe("AppearanceSettings", () => {
     ).toHaveValue("classic");
   });
 
-  it("announces rejected saves and keeps the proposed variant selected", async () => {
+  it("keeps the proposed variant selected while staging it", async () => {
     jsonFetcher
       .mockResolvedValueOnce(DEFAULT_APPEARANCE)
-      .mockResolvedValueOnce(APPEARANCE_CATALOG)
-      .mockRejectedValueOnce(new Error("Request failed"));
-    render(<AppearanceSettings />);
+      .mockResolvedValueOnce(APPEARANCE_CATALOG);
+    render(<AppearanceSettings onChangeAction={vi.fn()} />);
 
     const preset = await screen.findByRole("combobox", {
       name: "Style variant",
     });
     fireEvent.change(preset, { target: { value: "minimal" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Unable to confirm the appearance change.",
-    );
     expect(preset).toHaveValue("minimal");
   });
 });

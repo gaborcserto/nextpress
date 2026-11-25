@@ -5,7 +5,7 @@ import {
   MAX_PASSWORD_LENGTH,
 } from "@nextpress/shared/auth-policy";
 import { useState, type FormEvent, type SyntheticEvent } from "react";
-import { FaEdit, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
+import { FaEdit, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
 
 import { ROLES } from "@/lib/auth/roles";
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
@@ -15,10 +15,12 @@ import {
   DataListSurface,
 } from "@/ui/components/DataList";
 import {
+  MobileSortControl,
   SortableHeader,
   useTableSort,
   sortableTimestamp,
 } from "@/ui/components/DataList/SortableHeader";
+import { RoleBadge } from "@/ui/components/RoleBadge";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
   ConfirmDialog,
@@ -27,6 +29,7 @@ import {
   Field,
   FormGrid12,
   IconButton,
+  LinkIconButton,
   Input,
   Select,
   useConfirmDialog,
@@ -58,14 +61,6 @@ export default function UsersScreen() {
     createError,
     clearCreateError,
 
-    editingId,
-    editingRole,
-    setEditingRole,
-    savingRoleId,
-    startEdit,
-    cancelEdit,
-    saveRole,
-
     deletingId,
     deleteUser,
   } = useUsersScreen();
@@ -80,6 +75,12 @@ export default function UsersScreen() {
     verified: (user) => Number(user.emailVerified),
     created: (user) => sortableTimestamp(user.createdAt),
   });
+  const [search, setSearch] = useState("");
+  const visibleUsers = sortedUsers.filter((user) =>
+    `${user.name ?? ""} ${user.email ?? ""}`
+      .toLocaleLowerCase()
+      .includes(search.trim().toLocaleLowerCase()),
+  );
   const confirm = useConfirmDialog<ConfirmPayload>();
   const [createOpen, setCreateOpen] = useState(false);
   const createDialogRef = useModalDialog(createOpen);
@@ -136,6 +137,40 @@ export default function UsersScreen() {
         <DataListLoading label="users" />
       ) : (
         <DataListSurface>
+          <form
+            className="admin-list-toolbar"
+            role="search"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <div className="relative w-48 max-w-full">
+              <Input
+                aria-label="Search users"
+                placeholder="Name or email"
+                type="search"
+                size="sm"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                rightIcon={<FaSearch size={14} />}
+                className="w-full"
+              />
+            </div>
+          </form>
+          <MobileSortControl
+            label="Sort by"
+            directionLabel="Change sort direction"
+            options={[
+              { value: "account", label: "Account" },
+              { value: "role", label: "Role" },
+              { value: "verified", label: "Verified" },
+              { value: "created", label: "Created" },
+            ]}
+            value={sort.column}
+            direction={sort.direction === "ascending" ? "asc" : "desc"}
+            onFieldAction={(column) =>
+              sort.toggle(column as typeof sort.column)
+            }
+            onDirectionAction={() => sort.toggle(sort.column)}
+          />
           <table
             className="table admin-responsive-table w-full"
             role="table"
@@ -166,9 +201,8 @@ export default function UsersScreen() {
             </thead>
 
             <tbody role="rowgroup">
-              {users.length ? (
-                sortedUsers.map((u) => {
-                  const isEditing = editingId === u.id;
+              {visibleUsers.length ? (
+                visibleUsers.map((u) => {
                   const role = (u.roleName ?? "SUBSCRIBER") as RoleName;
 
                   return (
@@ -180,41 +214,11 @@ export default function UsersScreen() {
                         </div>
                       </td>
 
-                      <td
-                        role="cell"
-                        className={
-                          isEditing ? "admin-table-actions" : undefined
-                        }
-                      >
-                        {isEditing ? (
-                          <form
-                            id={`edit-user-role-${u.id}`}
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              void saveRole(u.id);
-                            }}
-                          >
-                            <Select
-                              label={`Role for ${u.email ?? u.name ?? "user"}`}
-                              disabled={savingRoleId === u.id}
-                              value={editingRole}
-                              options={ROLE_OPTIONS}
-                              onChangeAction={(value) =>
-                                setEditingRole(value as RoleName)
-                              }
-                            />
-                          </form>
-                        ) : (
-                          <>
-                            <span
-                              className="admin-cell-label"
-                              aria-hidden="true"
-                            >
-                              Role
-                            </span>
-                            <Badge>{role}</Badge>
-                          </>
-                        )}
+                      <td role="cell">
+                        <span className="admin-cell-label" aria-hidden="true">
+                          Role
+                        </span>
+                        <RoleBadge role={role} />
                       </td>
 
                       <td role="cell">
@@ -242,63 +246,30 @@ export default function UsersScreen() {
                         className="admin-table-actions text-right"
                       >
                         <div className="flex flex-wrap justify-end gap-2">
-                          {isEditing ? (
-                            <>
-                              <IconButton
-                                type="submit"
-                                form={`edit-user-role-${u.id}`}
-                                icon={FaSave}
-                                size="sm"
-                                color="primary"
-                                variant="soft"
-                                loading={savingRoleId === u.id}
-                                disabled={savingRoleId === u.id}
-                                aria-label="Save role"
-                              >
-                                Save
-                              </IconButton>
-
-                              <IconButton
-                                type="button"
-                                icon={FaTimes}
-                                size="sm"
-                                variant="soft"
-                                disabled={savingRoleId === u.id}
-                                aria-label="Cancel"
-                                onClick={cancelEdit}
-                              >
-                                Cancel
-                              </IconButton>
-                            </>
-                          ) : (
-                            <>
-                              <IconButton
-                                type="button"
-                                icon={FaEdit}
-                                size="sm"
-                                variant="soft"
-                                aria-label="Edit role"
-                                disabled={Boolean(savingRoleId)}
-                                onClick={() => startEdit(u)}
-                              >
-                                Edit
-                              </IconButton>
-
-                              <IconButton
-                                type="button"
-                                icon={FaTrash}
-                                size="sm"
-                                color="error"
-                                variant="soft"
-                                loading={deletingId === u.id}
-                                disabled={Boolean(deletingId)}
-                                aria-label="Delete user"
-                                onClick={() => askDelete(u)}
-                              >
-                                Delete
-                              </IconButton>
-                            </>
-                          )}
+                          <LinkIconButton
+                            href={`/admin/users/${encodeURIComponent(u.id)}/edit`}
+                            icon={FaEdit}
+                            size="sm"
+                            variant="ghost"
+                            aria-label={`Edit ${u.name ?? u.email ?? "user"}`}
+                            title={`Edit ${u.name ?? u.email ?? "user"}`}
+                          >
+                            Edit
+                          </LinkIconButton>
+                          <IconButton
+                            type="button"
+                            icon={FaTrash}
+                            size="sm"
+                            color="error"
+                            variant="ghost"
+                            loading={deletingId === u.id}
+                            disabled={Boolean(deletingId)}
+                            aria-label="Delete user"
+                            title="Delete user"
+                            onClick={() => askDelete(u)}
+                          >
+                            Delete
+                          </IconButton>
                         </div>
                       </td>
                     </tr>

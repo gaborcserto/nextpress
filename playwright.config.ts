@@ -38,7 +38,7 @@ export default defineConfig({
         ? `node "${path.join(productionArtifact, "apps/web/server.js")}"`
         : `node ../../node_modules/next/dist/bin/next dev --hostname localhost --port ${[49202, 49201, 49200][index]}`,
     cwd: `apps/${app}`,
-    url: `http://localhost:${[49202, 49201, 49200][index]}${app === "api" ? "/api/health" : app === "admin" ? "/auth/sign-in" : ""}`,
+    url: `http://localhost:${[49202, 49201, 49200][index]}${app === "api" ? "/api/health" : app === "admin" ? "/auth/sign-in" : app === "web" ? "/posts" : ""}`,
     env: {
       ...environment,
       HOSTNAME: "localhost",

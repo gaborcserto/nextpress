@@ -224,6 +224,7 @@ export const PUT = withAuth(
             timeZone: body.dateTime?.timeZone,
             dateFormat: body.dateTime?.dateFormat,
             timeFormat: body.dateTime?.timeFormat,
+            ...(body.appearance ?? {}),
           },
           update: {
             siteName: body.siteName.trim(),
@@ -236,6 +237,7 @@ export const PUT = withAuth(
             timeZone: body.dateTime?.timeZone,
             dateFormat: body.dateTime?.dateFormat,
             timeFormat: body.dateTime?.timeFormat,
+            ...(body.appearance ?? {}),
           },
           select: { id: true },
         });

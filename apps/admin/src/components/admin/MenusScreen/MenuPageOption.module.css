@@ -1,0 +1,9 @@
+.pageOption {
+  padding-inline: 0.625rem;
+  border-radius: var(--radius-tight);
+}
+
+.pageOption:hover,
+.pageOption:focus-within {
+  background-color: var(--surface-rail);
+}

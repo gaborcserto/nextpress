@@ -8,6 +8,7 @@ import {
   publicationLabels,
   savedPublicationState,
 } from "@/lib/content/publication-status";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import { Badge } from "@/ui/primitives/Badge";
 import { Button, LinkButton } from "@/ui/primitives/Buttons";
 import { EditorHeaderContext } from "@/ui/shell/EditorHeaderContext";
@@ -53,6 +54,7 @@ export function EditorActions({
   preview,
   onCancelAction,
 }: EditorActionsProps) {
+  const hu = useAdminLocale() === "hu";
   const headerSlot = useContext(EditorHeaderContext);
   const actions = (
     <div className="admin-action-layout">
@@ -80,8 +82,9 @@ export function EditorActions({
             form="admin-content-editor"
             color="primary"
             className="admin-editor-submit"
-            aria-label={submitLabel}
+            aria-label={saving ? (hu ? "Mentés..." : "Saving...") : submitLabel}
             loading={saving}
+            loadingLabel={hu ? "Mentés..." : "Saving..."}
           >
             <FaSave aria-hidden="true" />
             {submitLabel}

@@ -29,33 +29,29 @@ export function MediaDetails({
   onClose,
   onChange,
   onDelete,
-  documents = false,
 }: {
   id: string;
-  documents?: boolean;
   onClose: () => void;
   onChange: () => void;
   onDelete: () => void;
 }) {
-  const text = useMediaMessages(documents);
+  const text = useMediaMessages();
   const endpoint = `/api/media/${id}/metadata`;
   const { data, error } = useSWR(endpoint, fetchDetails, {
     shouldRetryOnError: false,
     revalidateOnFocus: false,
   });
 
-  const wrongKind = data && (data.mime === documentMime) !== documents;
-
   return (
     <MediaDialog title={text.details} onClose={onClose}>
-      {(error || wrongKind) && <p role="alert">{text.loadError}</p>}
+      {error && <p role="alert">{text.loadError}</p>}
       {!data && !error && <p role="status">{text.loading}</p>}
-      {data && !wrongKind && (
+      {data && (
         <MetadataForm
           key={id}
           asset={data}
           endpoint={endpoint}
-          documents={documents}
+          documents={data.mime === documentMime}
           onChange={onChange}
           onDelete={onDelete}
         />

@@ -8,9 +8,23 @@ import type { ReactNode } from "react";
 
 const auth = vi.hoisted(() => ({ role: "ADMIN" }));
 vi.mock("@/lib/api", () => ({
-  jsonFetcher: async () => ({
-    user: { id: "user", name: "User", role: auth.role },
-  }),
+  jsonFetcher: async (url: string) =>
+    url.includes("/api/admin/tags")
+      ? {
+          items: [
+            {
+              id: "taxonomy-id",
+              name: url.includes("CATEGORY") ? "News category" : "News tag",
+              slug: url.includes("CATEGORY") ? "news-category" : "news-tag",
+              usedCount: 1,
+            },
+          ],
+          page: 1,
+          limit: 100,
+          total: 1,
+          pages: 1,
+        }
+      : { user: { id: "user", name: "User", role: auth.role } },
 }));
 
 const props = {
@@ -51,11 +65,101 @@ describe("ContentList", () => {
     ).toBeVisible();
   });
 
+  it("keeps protected system page actions aligned and explains disabled deletion", async () => {
+    renderList(
+      <ContentList
+        {...props}
+        items={[
+          {
+            ...props.items[0],
+            canDelete: false,
+            publicPath: "/",
+            systemPage: true,
+          },
+        ]}
+        onDeleteAction={vi.fn()}
+      />,
+    );
+
+    await screen.findByRole("table", { name: "Pages" });
+    const edit = screen.getByRole("link", { name: "Edit Home" });
+    const remove = screen.getByRole("button", { name: "Delete Home" });
+    const title = screen.getByRole("link", { name: "Home" });
+    const systemPage = screen.getByText("System page");
+    const tooltipTrigger = screen.getByRole("group", {
+      name: "Delete Home unavailable",
+    });
+
+    expect(edit).toBeVisible();
+    expect(remove).toBeDisabled();
+    expect(systemPage).toBeVisible();
+    expect(systemPage.parentElement).toBe(title.parentElement?.parentElement);
+    expect(screen.getByText("/", { selector: ".text-sm" })).toBeVisible();
+
+    fireEvent.focus(tooltipTrigger);
+
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "System pages cannot be deleted.",
+    );
+    expect(tooltipTrigger).toHaveAttribute(
+      "aria-describedby",
+      "system-page-delete-page-1",
+    );
+  });
+
   it.each(["AUTHOR", "SUBSCRIBER"])("hides Delete from %s", async (role) => {
     auth.role = role;
     renderList(<ContentList {...props} onDeleteAction={vi.fn()} />);
     await screen.findByRole("table", { name: "Pages" });
     expect(screen.queryByRole("button", { name: "Delete Home" })).toBeNull();
+  });
+
+  it("shows the default modified ordering and sends header sorting actions", async () => {
+    const onSortAction = vi.fn();
+    renderList(
+      <ContentList
+        {...props}
+        query={{
+          values: new URLSearchParams(),
+          onApplyAction: vi.fn(),
+          onSortAction,
+          onSortFieldAction: vi.fn(),
+        }}
+      />,
+    );
+
+    const modified = await screen.findByRole("columnheader", {
+      name: /Last modified/,
+    });
+    expect(modified).toHaveAttribute("aria-sort", "descending");
+    fireEvent.click(screen.getByRole("button", { name: "Title" }));
+
+    expect(onSortAction).toHaveBeenCalledWith("title");
+  });
+
+  it("loads named taxonomy options and applies selections without losing search", async () => {
+    const onApplyAction = vi.fn();
+    renderList(
+      <ContentList
+        {...props}
+        heading="Posts"
+        query={{
+          values: new URLSearchParams("q=homepage&status=DRAFT"),
+          onApplyAction,
+          onSortAction: vi.fn(),
+          onSortFieldAction: vi.fn(),
+        }}
+      />,
+    );
+
+    const tag = await screen.findByRole("combobox", { name: "Tag" });
+    expect(tag).toHaveTextContent("News tag");
+    fireEvent.change(tag, { target: { value: "news-tag" } });
+
+    const submitted = onApplyAction.mock.calls[0]?.[0] as FormData;
+    expect(submitted.get("q")).toBe("homepage");
+    expect(submitted.get("status")).toBe("DRAFT");
+    expect(submitted.get("tag")).toBe("news-tag");
   });
 
   it("keeps pending and failed deletion in the dialog and allows retry", async () => {
@@ -160,4 +264,22 @@ it("shows a scheduled date separately from record dates and hides a retained dra
   expect(
     screen.getByRole("row", { name: /Live/ }).querySelector("time"),
   ).toHaveAttribute("datetime", retainedDate);
+});
+
+it("shows the persisted author name and a localized missing-author fallback", async () => {
+  renderList(
+    <ContentList
+      {...props}
+      items={[
+        { ...props.items[0], authorName: "Editorial Writer" },
+        { ...props.items[0], id: "legacy", title: "Legacy page" },
+      ]}
+    />,
+  );
+
+  expect(
+    await screen.findByRole("columnheader", { name: "Author" }),
+  ).toBeVisible();
+  expect(screen.getByRole("row", { name: /Editorial Writer/ })).toBeVisible();
+  expect(screen.getByRole("row", { name: /Unassigned/ })).toBeVisible();
 });

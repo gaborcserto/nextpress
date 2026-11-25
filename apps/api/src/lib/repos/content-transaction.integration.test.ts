@@ -812,4 +812,65 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
       }
     },
   );
+
+  it("synchronizes Header Page nesting in the menu save transaction", async () => {
+    const { saveMenu } = await import("./navigation");
+
+    const parent = await db.page.create({
+      data: {
+        type: "PAGE",
+        title: "Header parent",
+        slug: `${slug}-header-parent`,
+        content: "",
+        status: "DRAFT",
+      },
+    });
+
+    const child = await db.page.create({
+      data: {
+        type: "PAGE",
+        title: "Header child",
+        slug: `${slug}-header-child`,
+        content: "",
+        status: "DRAFT",
+      },
+    });
+
+    try {
+      const menu = await saveMenu({
+        name: "Header hierarchy test",
+        locations: ["header"],
+        items: [
+          {
+            id: "parent",
+            parentId: null,
+            kind: "content",
+            label: "",
+            value: parent.id,
+            newTab: false,
+          },
+          {
+            id: "child",
+            parentId: "parent",
+            kind: "content",
+            label: "",
+            value: child.id,
+            newTab: false,
+          },
+        ],
+      });
+
+      expect(
+        await db.page.findUniqueOrThrow({
+          where: { id: child.id },
+          select: { parentId: true },
+        }),
+      ).toEqual({ parentId: parent.id });
+      await db.navigationMenu.delete({ where: { id: menu.id } });
+    } finally {
+      await db.page.deleteMany({
+        where: { id: { in: [parent.id, child.id] } },
+      });
+    }
+  });
 });

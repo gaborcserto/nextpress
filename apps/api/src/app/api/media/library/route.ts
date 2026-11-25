@@ -1,4 +1,4 @@
-import { MediaBrowseSchema } from "@nextpress/shared/media";
+import { MediaLibraryBrowseSchema } from "@nextpress/shared/media";
 
 import { bad, ok, oops } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
@@ -10,7 +10,7 @@ export const GET = withAuth(
   async (request, _ctx, { session }) => {
     const query = parseListFilters(
       new URL(request.url).searchParams,
-      MediaBrowseSchema,
+      MediaLibraryBrowseSchema,
     );
 
     if (!query) {
@@ -18,7 +18,7 @@ export const GET = withAuth(
     }
 
     try {
-      return ok(await browseMedia(query, session.user));
+      return ok(await browseMedia(query, session.user, query.kind));
     } catch (error) {
       return oops(error);
     }

@@ -383,6 +383,7 @@ async function verifyFamily(family: "content" | "security") {
           "--",
           "src/lib/auth/user-administration.integration.test.ts",
           "src/lib/repos/content-transaction.integration.test.ts",
+          "src/app/api/admin/navigation.integration.test.ts",
           "--maxWorkers=1",
           "--testTimeout=30000",
         ]);

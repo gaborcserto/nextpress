@@ -7,8 +7,17 @@ import RevisionEditor from "./RevisionEditor";
 import type { ReactNode } from "react";
 
 vi.mock("@/ui/shell", () => ({
-  AdminPageLayout: ({ children }: { children: ReactNode }) => (
-    <main>{children}</main>
+  AdminPageLayout: ({
+    actions,
+    children,
+  }: {
+    actions?: ReactNode;
+    children: ReactNode;
+  }) => (
+    <main>
+      <header>{actions}</header>
+      {children}
+    </main>
   ),
 }));
 
@@ -25,12 +34,14 @@ const snapshot = {
   excerpt: null,
   layout: "STANDARD",
   pageDocument: null,
+  updatedAt: "2026-11-12T00:00:00Z",
 };
 const latest = {
   ...snapshot,
   id: "latest",
   workingVersion: 2,
   createdAt: "2026-11-12T00:00:00Z",
+  authorName: "Content editor",
 };
 const older = {
   ...latest,
@@ -52,14 +63,26 @@ async function openEditor() {
   render(<RevisionEditor pageId="page-1" />);
 
   await waitFor(() =>
-    expect(screen.getByLabelText("Working title")).toHaveValue("Latest draft"),
+    expect(
+      screen.getByText("Latest draft", { selector: "dd" }),
+    ).toBeInTheDocument(),
   );
-  fireEvent.change(screen.getByLabelText("Saved revision"), {
-    target: { value: "older" },
-  });
+  fireEvent.click(
+    screen.getByRole("radio", {
+      name: "Select revision 1: Older draft",
+    }),
+  );
 }
 
 describe("revision actions", () => {
+  it("renders the working copy and history in matching Admin panels", async () => {
+    await openEditor();
+
+    expect(
+      document.querySelectorAll(".admin-revisions-layout > .admin-surface"),
+    ).toHaveLength(2);
+  });
+
   it("shows a compact empty history state when no snapshots exist", async () => {
     vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockResolvedValueOnce(
@@ -68,23 +91,48 @@ describe("revision actions", () => {
     render(<RevisionEditor pageId="page-1" />);
 
     expect(
-      await screen.findByText("No saved revisions yet."),
+      await screen.findByText("No saved revisions yet"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Saved snapshots will appear here after you save the working copy.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByText("Previous document versions will appear here."),
+    ).toBeVisible();
+    const emptyState = screen
+      .getByText("No saved revisions yet")
+      .closest(".admin-revision-empty-state");
+    expect(emptyState).toHaveClass("admin-revision-empty-state");
+    expect(emptyState?.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     expect(
       screen.getByRole("button", { name: "Save working revision" }),
     ).toBeEnabled();
+    expect(screen.getByText("Current working copy")).toBeInTheDocument();
+    expect(screen.getAllByText("Working version 2")).toHaveLength(2);
+    expect(screen.getByText("Last modified:")).toBeVisible();
+    expect(screen.getByText("Document title")).toBeVisible();
+    expect(screen.getByText("Latest draft", { selector: "dd" })).toBeVisible();
+    expect(screen.queryByLabelText("Working title")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current title")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Publish revision" }),
     ).not.toBeInTheDocument();
   });
 
+  it("does not show the empty state when revision loading fails", async () => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockRejectedValueOnce(new Error("Network failure"));
+    render(<RevisionEditor pageId="page-1" />);
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Unable to load revisions",
+    );
+    expect(
+      screen.queryByText("No saved revisions yet"),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([
-    ["Restore revision", "restore", "Revision restored as a new draft."],
     ["Publish revision", "publish", "Revision published."],
     ["Unpublish content", "unpublish", "Content unpublished."],
   ])(
@@ -116,15 +164,39 @@ describe("revision actions", () => {
     },
   );
 
+  it("restores from the selected saved timeline entry", async () => {
+    await openEditor();
+    fetchMock
+      .mockResolvedValueOnce(Response.json({}))
+      .mockResolvedValueOnce(Response.json(revisions));
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore revision 1" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Revision restored as a new draft.",
+      ),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/pages/page-1/revisions",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          expectedVersion: 2,
+          revisionId: "older",
+          action: "restore",
+        }),
+      }),
+    );
+  });
+
   it("loads the newly saved revision and reports a working save", async () => {
     await openEditor();
-    fireEvent.change(screen.getByLabelText("Working title"), {
-      target: { value: "Saved draft" },
-    });
     const saved = {
       ...older,
       id: "saved",
-      title: "Saved draft",
+      title: "Latest draft",
       workingVersion: 3,
     };
     fetchMock.mockResolvedValueOnce(Response.json({})).mockResolvedValueOnce(
@@ -144,8 +216,9 @@ describe("revision actions", () => {
         "Working revision saved.",
       ),
     );
-    expect(screen.getByLabelText("Working title")).toHaveValue("Saved draft");
-    expect(screen.getByLabelText("Saved revision")).toHaveValue("saved");
+    expect(
+      screen.getByRole("radio", { name: "Select revision 3: Latest draft" }),
+    ).toBeChecked();
 
     const body = fetchMock.mock.calls[1]?.[1]?.body;
 
@@ -155,18 +228,15 @@ describe("revision actions", () => {
 
     expect(JSON.parse(body)).toMatchObject({
       expectedVersion: 2,
-      title: "Saved draft",
-      content: older.content,
-      slug: older.slug,
+      title: snapshot.title,
+      content: snapshot.content,
+      slug: snapshot.slug,
       pageDocument: null,
     });
   });
 
-  it("keeps the selected revision and unsaved title after a save conflict", async () => {
+  it("keeps the selected revision and read-only working title after a save conflict", async () => {
     await openEditor();
-    fireEvent.change(screen.getByLabelText("Working title"), {
-      target: { value: "Unsaved title" },
-    });
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 409 }));
 
     fireEvent.click(
@@ -178,8 +248,14 @@ describe("revision actions", () => {
         "Unable to save the working revision: Content changed",
       ),
     );
-    expect(screen.getByLabelText("Working title")).toHaveValue("Unsaved title");
-    expect(screen.getByLabelText("Saved revision")).toHaveValue("older");
+    expect(
+      screen.getByText("Latest draft", { selector: "dd" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("radio", {
+        name: "Select revision 1: Older draft",
+      }),
+    ).toBeChecked();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -187,7 +263,7 @@ describe("revision actions", () => {
     await openEditor();
     fetchMock.mockResolvedValueOnce(Response.json(older));
 
-    fireEvent.click(screen.getByRole("button", { name: "Preview revision" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview revision 1" }));
 
     expect(
       await screen.findByRole("region", { name: "Revision preview" }),
@@ -195,7 +271,12 @@ describe("revision actions", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Revision preview loaded.",
     );
-    expect(screen.getByLabelText("Saved revision")).toHaveValue("older");
+    expect(screen.getAllByText("By Content editor").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("radio", {
+        name: "Select revision 1: Older draft",
+      }),
+    ).toBeChecked();
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/pages/page-1/revisions?revisionId=older",
       { cache: "no-store" },

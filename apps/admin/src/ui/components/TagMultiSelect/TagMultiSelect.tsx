@@ -14,6 +14,7 @@ const cx = (...classes: Array<string | false | undefined>) =>
   classes.filter(Boolean).join(" ");
 
 export function TagMultiSelect({
+  className,
   label,
   value,
   onChangeAction,
@@ -157,7 +158,7 @@ export function TagMultiSelect({
 
   return (
     <div
-      className="form-control w-full"
+      className={cx("form-control w-full min-w-0", className)}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           setOpen(false);
@@ -170,11 +171,11 @@ export function TagMultiSelect({
         </label>
       )}
 
-      <div className="relative">
+      <div className="relative min-w-0">
         <div
           className={cx(
-            "input input-bordered w-full flex items-center gap-2",
-            "min-h-12 px-2 py-1",
+            "input input-bordered admin-multivalue-control w-full flex items-center gap-2",
+            "min-h-(--control-min-height) min-w-0 px-2 py-1",
           )}
           onClick={() => {
             inputRef.current?.focus();
@@ -197,7 +198,7 @@ export function TagMultiSelect({
             className={cx(
               // Make the input comfortable: not full-width, but still responsive.
               "bg-transparent outline-none",
-              "w-full max-w-md",
+              "w-full min-w-0 max-w-md",
             )}
           />
         </div>

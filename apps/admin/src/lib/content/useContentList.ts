@@ -17,6 +17,8 @@ type ListPagination = z.infer<typeof ListPaginationSchema>;
 export type ContentListQuery = {
   values: URLSearchParams;
   onApplyAction: (filters: FormData) => void;
+  onSortAction: (column: string) => void;
+  onSortFieldAction: (column: string) => void;
 };
 export type ContentPagination = {
   page: number;
@@ -150,6 +152,10 @@ export function useContentList<Item = ContentListResponse["items"][number]>(
     const next = new URLSearchParams(query);
 
     for (const key of filterKeys) {
+      if ((key === "sort" || key === "direction") && !filters.has(key)) {
+        continue;
+      }
+
       next.delete(key);
       const value = filters.get(key);
 
@@ -171,8 +177,35 @@ export function useContentList<Item = ContentListResponse["items"][number]>(
     }
   }
 
+  function onSortAction(column: string) {
+    const currentSort =
+      params.get("sort") ?? (endpoint.includes("/tags") ? "name" : "updatedAt");
+    const currentDirection =
+      params.get("direction") ?? (endpoint.includes("/tags") ? "asc" : "desc");
+    const next = new URLSearchParams(query);
+    next.set("sort", column);
+    next.set(
+      "direction",
+      currentSort === column && currentDirection === "asc" ? "desc" : "asc",
+    );
+    next.delete("page");
+    router.push(pathname + "?" + next.toString(), { scroll: false });
+  }
+
+  function onSortFieldAction(column: string) {
+    const next = new URLSearchParams(query);
+    next.set("sort", column);
+    next.delete("page");
+    router.push(pathname + "?" + next.toString(), { scroll: false });
+  }
+
   return {
-    query: { values: request, onApplyAction } satisfies ContentListQuery,
+    query: {
+      values: request,
+      onApplyAction,
+      onSortAction,
+      onSortFieldAction,
+    } satisfies ContentListQuery,
     items: correcting ? [] : (data?.items ?? []),
     error,
     isLoading: isLoading || correcting,

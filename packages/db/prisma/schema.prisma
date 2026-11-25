@@ -24,7 +24,7 @@ enum TaxonomyType {
   TAG
 }
 
-// Layout / template type for PageForm (STANDARD, HOMEPAGE, LISTING, etc.)
+// Layout / template type for PageForm (STANDARD, HOME, and retained legacy values).
 enum PageLayout {
   STANDARD
   HOMEPAGE
@@ -681,6 +681,7 @@ model NavigationItem {
   value    String
   label    String
   newTab   Boolean            @default(false)
+  visible  Boolean            @default(true)
   menu     NavigationMenu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
   parent   NavigationItem?    @relation("NavigationChildren", fields: [menuId, parentId], references: [menuId, id], onDelete: Cascade)
   children NavigationItem[]   @relation("NavigationChildren")

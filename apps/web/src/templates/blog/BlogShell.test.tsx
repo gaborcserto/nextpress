@@ -5,8 +5,23 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/en/",
   useRouter: () => ({ push: vi.fn() }),
 }));
+vi.mock("./MenuTree", () => ({
+  MenuTree: ({ items }: { items: PublicMenuItem[] }) => (
+    <ul>
+      {items.map(({ href, label }, index) => (
+        <li key={index}>
+          <a href={href === "/" ? "/en/" : `/en${href}`}>
+            {label === "/" ? "Home" : label === "/posts" ? "Posts" : label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  ),
+}));
 
 import { BlogShell } from "./BlogShell";
+
+import type { PublicMenuItem } from "@nextpress/shared/api-contracts";
 
 describe("BlogShell", () => {
   it("provides skip navigation to the single main landmark", () => {
@@ -56,6 +71,30 @@ describe("BlogShell", () => {
         },
       ),
     ).toHaveAttribute("href", "/en/");
+  });
+
+  it("does not substitute fallback navigation for an explicitly empty menu", () => {
+    render(
+      <BlogShell
+        siteName="Example Publication"
+        menus={{ header: [], footer: [], sidebar: [] }}
+      >
+        <p>Page content</p>
+      </BlogShell>,
+    );
+
+    expect(
+      within(screen.getByRole("navigation", { name: "Primary" })).queryByRole(
+        "link",
+        { name: "Home" },
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("navigation", { name: "Primary" })).queryByRole(
+        "link",
+        { name: "Posts" },
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps structural links and renders CMS header and footer links in their separate landmarks", () => {

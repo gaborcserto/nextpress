@@ -26,11 +26,12 @@ type DraftResponses = {
 
 const draftEndpoint = "/api/private-drafts/page";
 const unexpectedRequests: string[] = [];
-const { fetchMock, push } = vi.hoisted(() => ({
+const { fetchMock, jsonFetcher, push } = vi.hoisted(() => ({
   fetchMock: vi.fn<typeof import("@/lib/api").apiFetch>(),
+  jsonFetcher: vi.fn(),
   push: vi.fn(),
 }));
-vi.mock("@/lib/api", () => ({ apiFetch: fetchMock }));
+vi.mock("@/lib/api", () => ({ apiFetch: fetchMock, jsonFetcher }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/ui/components/SlateEditor", () => ({
   SlateEditor: () => null,
@@ -40,6 +41,7 @@ vi.mock("@/ui/components/TagsField", () => ({ TagsField: () => null }));
 
 beforeEach(() => {
   fetchMock.mockReset();
+  jsonFetcher.mockResolvedValue({ id: null });
   push.mockReset();
   unexpectedRequests.length = 0;
 });

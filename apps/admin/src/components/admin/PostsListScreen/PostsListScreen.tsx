@@ -11,6 +11,7 @@ export default function PostsListScreen() {
   const mapped: ContentListItem[] = items.map((p) => ({
     id: p.id,
     title: p.title,
+    authorName: p.authorName,
     slug: p.slug,
     status: p.status,
     publishedAt: p.publishedAt,

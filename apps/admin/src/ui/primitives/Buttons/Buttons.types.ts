@@ -17,6 +17,7 @@ export type BaseProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   wide?: boolean;
   active?: boolean;
   loading?: boolean;
+  loadingLabel?: ReactNode;
   className?: string;
 };
 
@@ -30,7 +31,7 @@ export type ButtonProps = Omit<BaseProps, keyof IconProps> & {
   children: ReactNode;
 };
 
-type IconButtonBaseProps = Omit<BaseProps, "aria-label"> & {
+type IconButtonBaseProps = Omit<BaseProps, "aria-label" | "loadingLabel"> & {
   "aria-label": string;
 };
 

@@ -90,6 +90,7 @@ export default function ImageUploader({
       <div
         className={cx(
           "border border-dashed rounded-xl p-4 flex flex-col gap-3 items-center justify-center text-sm cursor-pointer transition-colors",
+          !dragOver && "bg-(--surface-rail)",
           dragOver && "border-primary bg-primary/5",
           uploading && "opacity-70 cursor-progress",
           !uploadAvailable && "opacity-70 cursor-not-allowed",

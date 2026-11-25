@@ -1,0 +1,40 @@
+.panel {
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.item {
+  display: flex;
+  min-block-size: var(--target-touch);
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+}
+
+.item:is(:hover, :focus-visible) {
+  background: var(--color-control-hover);
+  color: var(--color-link-hover);
+}
+
+.item:focus-visible {
+  outline: var(--focus-width-control) solid var(--color-focus-ring);
+  outline-offset: var(--focus-offset-control);
+}
+
+.item[aria-current="page"],
+.item[aria-checked="true"] {
+  font-weight: var(--font-weight-medium);
+}

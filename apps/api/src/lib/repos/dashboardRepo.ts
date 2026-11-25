@@ -12,7 +12,7 @@ import {
 import type { DashboardSummary } from "@nextpress/shared/api-contracts";
 
 const contentSelect = { id: true, type: true, title: true } as const;
-const listLimit = 8;
+const listLimit = 5;
 
 export async function getDashboardSummary(
   actor: ContentActor,

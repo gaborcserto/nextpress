@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
 import { parsePostsPage } from "@/lib/content/post-archive";
-import { getPublishedPosts } from "@/lib/content/public-content.server";
+import {
+  getPagePosts,
+  getPublishedPage,
+} from "@/lib/content/public-content.server";
 import { messages } from "@/lib/i18n/messages";
 import { localizedHref } from "@/lib/i18n/routing";
 import { getLocale } from "@/lib/i18n/server";
@@ -34,12 +37,16 @@ type PostsPageProps = {
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const { page: pageParam } = await searchParams;
   const settings = await getPublicSiteSettings();
+  const listing = await getPublishedPage("posts");
   const page = parsePostsPage(pageParam, settings.postsPerPage);
 
-  const { posts, hasMore } = await getPublishedPosts({
-    limit: settings.postsPerPage,
-    offset: (page - 1) * settings.postsPerPage,
-  });
+  const batch = await getPagePosts(
+    listing?.pageType === "posts" ? listing : {},
+    settings.postsPerPage,
+    (page - 1) * settings.postsPerPage,
+  );
+
+  const { posts, hasMore } = batch ?? { posts: [], hasMore: false };
 
   if (page > 1 && posts.length === 0) {
     redirect(localizedHref("/posts", await getLocale()));
@@ -51,6 +58,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   return (
     <PublicWebsiteShell>
       <Archive
+        pageSlug={listing?.pageType === "posts" ? listing.slug : undefined}
         posts={posts}
         page={page}
         hasMore={hasMore}

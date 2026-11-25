@@ -37,6 +37,7 @@
 }
 
 .summary {
+  max-inline-size: none;
   margin-block: 1.5rem 0;
   color: var(--color-text-muted);
   font-size: var(--blog-summary-size);

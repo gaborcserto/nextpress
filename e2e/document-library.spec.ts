@@ -42,7 +42,11 @@ test("document uploads authorize attachments and revoke them after unpublishing"
     .fill("Disposable browser passphrase 2026");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).not.toHaveURL(/sign-in/);
-  await page.getByRole("link", { name: "Document Library" }).first().click();
+  await page.goto("/admin/documents");
+  await expect(page).toHaveURL(/\/admin\/media\?kind=document/);
+  await expect(
+    page.getByRole("button", { name: "Documents", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 
   const collection = await request.get(`${origin}/api/documents`);
   expect(collection.status()).toBe(401);
@@ -55,7 +59,7 @@ test("document uploads authorize attachments and revoke them after unpublishing"
   for (const width of [320, 390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(
-      page.getByRole("heading", { name: "Document Library" }),
+      page.getByRole("heading", { name: "Media Library" }),
     ).toBeVisible();
     expect(
       await page.locator("body").evaluate((body) => body.scrollWidth),

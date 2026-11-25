@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { setAdminLocale } from "@/lib/i18n/admin-locale";
 import { deferred } from "@/lib/testing/deferred.fixture";
 
 import HierarchyField from "./HierarchyField";
@@ -10,6 +11,7 @@ const fetchMock = vi.fn<typeof fetch>();
 afterEach(() => {
   fetchMock.mockReset();
   vi.unstubAllGlobals();
+  setAdminLocale("en");
 });
 
 function renderField(parentId: string | null = null) {
@@ -87,7 +89,7 @@ describe("HierarchyField", () => {
   });
 
   it("localizes a malformed response failure in Hungarian", async () => {
-    vi.stubGlobal("navigator", { language: "hu-HU" });
+    setAdminLocale("hu");
     fetchMock.mockResolvedValue(Response.json([{ id: "missing-title" }]));
     renderField();
 

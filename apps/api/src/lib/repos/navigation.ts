@@ -24,14 +24,17 @@ export async function listMenus() {
   return rows.map(({ assignments, items, ...menu }) => ({
     ...menu,
     locations: assignments.map(({ location }) => location),
-    items: items.map(({ id, parentId, kind, label, value, newTab }) => ({
-      id,
-      parentId,
-      kind,
-      label,
-      value,
-      newTab,
-    })),
+    items: items.map(
+      ({ id, parentId, kind, label, value, newTab, visible }) => ({
+        id,
+        parentId,
+        kind,
+        label,
+        value,
+        newTab,
+        visible,
+      }),
+    ),
   }));
 }
 
@@ -150,6 +153,7 @@ export async function saveMenu(
     await tx.navigationItem.createMany({
       data: input.items.map((item, position) => ({
         ...item,
+        visible: item.visible ?? true,
         menuId: id,
         position,
       })),

@@ -8,7 +8,7 @@ const {
   getPublicSiteSettings,
 } = vi.hoisted(() => ({
   getPublishedHome: vi.fn().mockResolvedValue(null),
-  getPublishedPosts: vi.fn(),
+  getPublishedPosts: vi.fn().mockResolvedValue({ posts: [], hasMore: false }),
   getPublishedTags: vi.fn().mockResolvedValue({ tags: [], hasMore: false }),
   getPublicSiteSettings: vi.fn(),
 }));
@@ -24,13 +24,18 @@ vi.mock("@/lib/settings/public-site-settings.server", () => ({
 vi.mock("@/components/public-shell/PublicWebsiteShell", () => ({
   PublicWebsiteShell: ({ children }: { children: ReactNode }) => children,
 }));
+vi.mock("@/components/public-content/PublishedPage", () => ({
+  PublishedPage: ({ page }: { page: { title: string } }) => (
+    <h1>{page.title}</h1>
+  ),
+}));
 
 import Home from "./page";
 
 import type { ReactNode } from "react";
 
 describe("Home", () => {
-  it("renders the configured page in place of the default homepage", async () => {
+  it("renders the published CMS homepage instead of the blog feed", async () => {
     getPublicSiteSettings.mockResolvedValueOnce({ siteName: "Field Notes" });
     getPublishedHome.mockResolvedValueOnce({
       title: "Welcome to Field Notes",
@@ -45,10 +50,12 @@ describe("Home", () => {
     expect(
       screen.getByRole("heading", { name: "Welcome to Field Notes" }),
     ).toBeVisible();
-    expect(screen.getByText("Welcome body")).toBeVisible();
+    expect(screen.queryByText("Welcome body")).not.toBeInTheDocument();
+    expect(getPublishedPosts).not.toHaveBeenCalled();
   });
 
   it("renders the configured publication and latest published post summaries", async () => {
+    getPublishedHome.mockResolvedValueOnce(null);
     getPublicSiteSettings.mockResolvedValue({
       siteName: "Field Notes",
       siteDescription: "Stories from the field.",
@@ -102,6 +109,7 @@ describe("Home", () => {
   });
 
   it("renders a useful empty state when there are no published posts", async () => {
+    getPublishedHome.mockResolvedValueOnce(null);
     getPublicSiteSettings.mockResolvedValue({
       siteName: "Field Notes",
       siteDescription: "Stories from the field.",
@@ -117,6 +125,7 @@ describe("Home", () => {
 });
 
 it("requests a bounded shared tag collection and preserves failure behavior", async () => {
+  getPublishedHome.mockResolvedValueOnce(null);
   getPublishedTags.mockRejectedValueOnce(
     new Error("Public tags are temporarily unavailable."),
   );

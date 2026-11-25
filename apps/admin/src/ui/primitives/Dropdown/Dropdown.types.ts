@@ -14,6 +14,7 @@ export type DropdownTriggerProps = {
   children: ReactNode;
   className?: string;
   ariaLabel?: string;
+  appearance?: "default" | "primary";
 };
 
 export type DropdownMenuProps = {

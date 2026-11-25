@@ -494,7 +494,10 @@ it("leaves legacy create/update/tag/revision contracts unchanged", () => {
     RevisionInputSchema.safeParse({ ...legacy, expectedVersion: 0 }).success,
   ).toBe(true);
   expect(
-    RevisionListSchema.safeParse({ version: 0, current: legacy, revisions: [] })
-      .success,
+    RevisionListSchema.safeParse({
+      version: 0,
+      current: { ...legacy, updatedAt: "2026-11-12T00:00:00Z" },
+      revisions: [],
+    }).success,
   ).toBe(true);
 });

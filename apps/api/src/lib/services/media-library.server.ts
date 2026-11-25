@@ -17,7 +17,11 @@ import { publicPublicationWhere } from "@/lib/public/eligibility";
 import { escapeListSearch } from "@/lib/validation/list-query";
 
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
-import type { MediaBrowse, MediaEdit } from "@nextpress/shared/media";
+import type {
+  AssetKind,
+  MediaBrowse,
+  MediaEdit,
+} from "@nextpress/shared/media";
 
 export const libraryMetadata = {
   id: true,
@@ -44,13 +48,14 @@ export function mediaWriteWhere(actor: ContentActor) {
 export async function browseMedia(
   query: MediaBrowse,
   actor: ContentActor,
-  kind: "image" | "document" = "image",
+  kind: AssetKind = "image",
 ) {
   const { page, q, sort, direction, mime } = query;
   const pageSize = 24;
   const where: Prisma.MediaWhereInput = {
     ...mediaWriteWhere(actor),
-    mime: kind === "document" ? documentMime : { not: documentMime },
+    ...(kind === "image" && { mime: { not: documentMime } }),
+    ...(kind === "document" && { mime: documentMime }),
   };
 
   if (mime) {

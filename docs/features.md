@@ -41,9 +41,9 @@ Pages support parent assignment, child listing, sibling order and nested public 
 
 ## Navigation
 
-Use **Menus** under Administration to manage Header, Footer and Sidebar links. Each menu can use Pages, Posts, Categories, Tags, explicit site paths, HTTP(S) links, or group labels. Use the pointer or keyboard to edit menus through **Move up**, **Move down** and **Parent item**. A menu save applies the complete change. Link destinations tied to content IDs follow the current public URL.
+Use **Menus** under Administration to manage Header, Footer and Sidebar links. Each menu can use Pages, Posts, Categories, Tags, explicit site paths, HTTP(S) links, or group labels. Use the pointer or keyboard to edit menus through **Move up**, **Move down** and **Parent item**. Items can be hidden independently; hidden items stay editable, and hiding a parent hides its public subtree. Draft or unavailable Page destinations are labeled in Admin and excluded from public navigation. A menu save applies the complete change. Link destinations tied to content IDs follow the current public URL.
 
-Administrators and editors can open **Page hierarchy** from the Pages list or an existing Page editor. Choose a parent and sibling order to move a Page. Child links and the proposed path appear in the same panel. Web omits links through unpublished ancestors. Sidebar navigation appears only for the Minimal preset when its assigned menu contains public links.
+Administrators and editors can open **Page hierarchy** from the Pages list or an existing Page editor. Choose a parent and sibling order to move a Page. Child links and the proposed path appear in the same panel. Menu hierarchy is independent and does not change Page paths. Web omits links through unpublished ancestors. Sidebar navigation appears only when the active preset supports it and its assigned menu contains public links.
 
 See [Page paths and navigation menus](decisions/004-navigation-and-page-hierarchy.md) for limits, canonical URLs and preview behavior.
 

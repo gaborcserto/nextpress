@@ -2,11 +2,13 @@
 
 import { maxGalleryImages, type EditorImage } from "@nextpress/shared/media";
 import { useState } from "react";
+import { FaImages } from "react-icons/fa";
 
 import { Button } from "@/ui/primitives";
 
 import { MediaThumbnail } from "./MediaBrowser";
 import { MediaPicker } from "./MediaPicker";
+import { MediaUploads } from "./MediaUploads";
 import { useMediaMessages } from "./messages";
 
 export function CoverMediaField({
@@ -24,37 +26,47 @@ export function CoverMediaField({
   const text = useMediaMessages();
 
   return (
-    <fieldset className="min-w-0 space-y-2">
-      <legend className="font-semibold">{text.cover}</legend>
+    <fieldset className="block w-full min-w-0 space-y-2">
+      <legend className="whitespace-nowrap font-semibold">{text.cover}</legend>
       {value && (
-        <div className="max-w-64">
+        <div className="w-full min-w-0">
           <MediaThumbnail asset={value} />
         </div>
       )}
       {!readOnly && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={disabled}
-            onClick={() => setOpen(true)}
-          >
-            {text.choose}
-          </Button>
-          {value && (
+        <div className="block w-full min-w-0 space-y-2">
+          {!disabled && (
+            <MediaUploads
+              multiple={false}
+              onUploaded={([asset]) => onChange(asset)}
+            />
+          )}
+          <div className="flex flex-col items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               disabled={disabled}
-              onClick={() => onChange(null)}
+              onClick={() => setOpen(true)}
             >
-              {text.remove}
+              <FaImages size={16} aria-hidden="true" />
+              {text.choose}
             </Button>
-          )}
+            {value && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={disabled}
+                onClick={() => onChange(null)}
+              >
+                {text.remove}
+              </Button>
+            )}
+          </div>
         </div>
       )}
       {open && (
         <MediaPicker
+          mode="images"
           onCancel={() => setOpen(false)}
           onConfirm={([asset]) => {
             if (asset) {
@@ -178,6 +190,7 @@ export function GalleryMediaField({
       )}
       {open && (
         <MediaPicker
+          mode="images"
           limit={maxGalleryImages - value.length}
           onCancel={() => setOpen(false)}
           onConfirm={add}

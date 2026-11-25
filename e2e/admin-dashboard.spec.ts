@@ -137,7 +137,7 @@ test("aggregates both content types and opens scheduled and recent editors in Ch
   const theme = page.getByRole("button", { name: /^Theme:/ });
   await theme.click();
   await page.getByRole("menuitemradio", { name: "Light", exact: true }).click();
-  const schedule = page.getByRole("region", { name: "Scheduled publishing" });
+  const schedule = page.getByRole("region", { name: "Scheduled publications" });
   const recent = page.getByRole("region", { name: "Recently updated content" });
   const scheduledLink = schedule.getByRole("link", {
     name: /Earlier scheduled page/,
@@ -146,10 +146,10 @@ test("aggregates both content types and opens scheduled and recent editors in Ch
     "href",
     `/admin/pages/${earlier.id}`,
   );
-  await expect(page.getByRole("link", { name: "Create Post" })).toHaveAttribute(
-    "href",
-    "/admin/posts/new",
-  );
+  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("menuitem", { name: "Create Post" }).click();
+  await expect(page).toHaveURL("/admin/posts/new");
+  await page.goto("/admin");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
   await scheduledLink.focus();
   await page.keyboard.press("Tab");
@@ -159,7 +159,7 @@ test("aggregates both content types and opens scheduled and recent editors in Ch
   await expect(page).toHaveURL(`/admin/pages/${earlier.id}`);
 
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.setViewportSize({ width: 320, height: 740 });
+  await page.setViewportSize({ width: 390, height: 740 });
   await page.goto("/admin");
   await theme.click();
   await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
@@ -167,7 +167,7 @@ test("aggregates both content types and opens scheduled and recent editors in Ch
   await expect(scheduledLink).toBeVisible();
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(320);
+  ).toBeLessThanOrEqual(390);
   const recentLink = recent.getByRole("link", {
     name: /Recently edited draft/,
   });

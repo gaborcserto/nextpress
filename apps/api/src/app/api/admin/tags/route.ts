@@ -1,13 +1,40 @@
 import { TaxonomyListFiltersSchema } from "@nextpress/shared/api-contracts";
 
-import { ok, bad, internalError } from "@/lib/api";
+import { ok, bad, conflict, internalError } from "@/lib/api";
 import { withAuth } from "@/lib/auth/auth-server";
 import { listTaxonomyPage } from "@/lib/repos/tagRepo";
-import { listTagsWithUsageService } from "@/lib/services/tag.server";
+import {
+  createCategoryService,
+  listTagsWithUsageService,
+  TaxonomyConflictError,
+  ValidationError,
+} from "@/lib/services/tag.server";
 import { parsePagination } from "@/lib/validation";
 import { parseListFilters } from "@/lib/validation/list-query";
 
 export const runtime = "nodejs";
+
+export const POST = withAuth(
+  ["ADMIN", "EDITOR"],
+  async (request) => {
+    const input: unknown = await request.json().catch(() => null);
+
+    try {
+      return ok(await createCategoryService(input));
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return bad(error.message);
+      }
+
+      if (error instanceof TaxonomyConflictError) {
+        return conflict(error.message);
+      }
+
+      return internalError(error);
+    }
+  },
+  "taxonomy",
+);
 
 export const GET = withAuth(["ADMIN", "EDITOR", "AUTHOR"], async (req) => {
   const params = new URL(req.url).searchParams;

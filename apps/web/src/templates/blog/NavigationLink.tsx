@@ -11,14 +11,19 @@ export function NavigationLink({
   href,
   children,
   newTab,
+  className,
 }: {
   href: string;
   newTab?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   const currentPath = usePathname();
   const pathname = currentPath ? stripLocalePrefix(currentPath) : currentPath;
   const targetPath = stripLocalePrefix(href);
+  const activeRoute =
+    pathname === targetPath ||
+    (targetPath !== "/" && pathname?.startsWith(`${targetPath}/`));
   const current =
     pathname === targetPath ||
     (targetPath === "/posts" && pathname?.startsWith("/posts/"));
@@ -26,9 +31,11 @@ export function NavigationLink({
   return (
     <Link
       href={href}
+      className={className}
       target={newTab ? "_blank" : undefined}
       rel={newTab ? "noopener noreferrer" : undefined}
       aria-current={current ? "page" : undefined}
+      data-active-route={activeRoute ? "true" : undefined}
     >
       {children}
     </Link>

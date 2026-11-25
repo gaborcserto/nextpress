@@ -173,10 +173,15 @@ export async function listPages(
     ...access,
     ...(conditions.length && { AND: conditions }),
   };
-  const order: Prisma.PageOrderByWithRelationInput =
-    sort === "publishedAt"
-      ? { publishedAt: { sort: direction, nulls: "last" } }
-      : { [sort]: direction };
+  let order: Prisma.PageOrderByWithRelationInput;
+
+  if (sort === "publishedAt") {
+    order = { publishedAt: { sort: direction, nulls: "last" } };
+  } else if (sort === "author") {
+    order = { author: { name: direction } };
+  } else {
+    order = { [sort]: direction };
+  }
 
   const [items, total] = await prisma.$transaction(
     async (tx) => {
@@ -194,6 +199,7 @@ export async function listPages(
           slug: true,
           title: true,
           excerpt: true,
+          author: { select: { name: true } },
           createdAt: true,
           updatedAt: true,
         },
@@ -207,8 +213,9 @@ export async function listPages(
   );
 
   return {
-    items: items.map((item) => ({
+    items: items.map(({ author, ...item }) => ({
       ...item,
+      authorName: author?.name ?? null,
       publicationState: editorialPublicationState(
         item.status,
         item.publishedAt,

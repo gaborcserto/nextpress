@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Descendant } from "slate";
 
 export type SlateValue = Descendant[];
@@ -13,4 +14,5 @@ export type SlateEditorProps = {
 export type ToolbarProps = {
   onToggleCodeViewAction: () => void;
   isCodeView: boolean;
+  children?: ReactNode;
 };

@@ -6,6 +6,7 @@ import {
   ContentRecordSchema,
   ContentListSchema,
   DashboardSummarySchema,
+  HomepageSelectionSchema,
   PageListFiltersSchema,
   PostListFiltersSchema,
   TaxonomyListFiltersSchema,
@@ -43,7 +44,7 @@ import {
   documentMime,
   MediaMetadataSchema,
   MediaAssetSchema,
-  MediaBrowseSchema,
+  MediaLibraryBrowseSchema,
   MediaCollectionSchema,
   MediaDetailsSchema,
   MediaEditSchema,
@@ -67,6 +68,7 @@ import {
   PageSchema,
   PageUpdateSchema,
   TagCreateSchema,
+  TagUpdateSchema,
   TagIdsSchema,
 } from "@/lib/validation";
 import {
@@ -162,6 +164,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   Tag: schema(TagSchema),
   TagWithUsage: schema(TagWithUsageSchema),
   TagCreate: schema(TagCreateSchema),
+  TagUpdate: schema(TagUpdateSchema),
   TagLinks: {
     anyOf: [schema(TagIdsSchema), object({ tagIds: schema(TagIdsSchema) })],
     description:
@@ -183,6 +186,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   ParentOptions: array(
     object({ id: string, title: string, parentId: nullableString }),
   ),
+  HomepageSelection: schema(HomepageSelectionSchema),
   PageDetail: schema(z.object({ item: EditorialPageSchema })),
   PostDetail: schema(z.object({ item: EditorialPostSchema })),
   PublicContent: schema(PublicContentSchema),
@@ -409,8 +413,15 @@ const paths: OpenAPIV3.PathsObject = {
         "Pages contain at most 24 assets. ADMIN/EDITOR all; AUTHOR owned media only.",
         "protected",
       ),
-      parameters: Object.entries(MediaBrowseSchema.shape).map(([name, shape]) =>
-        parameter(name, "query", schema(shape), "Media library filter", false),
+      parameters: Object.entries(MediaLibraryBrowseSchema.shape).map(
+        ([name, shape]) =>
+          parameter(
+            name,
+            "query",
+            schema(shape),
+            "Media library filter",
+            false,
+          ),
       ),
     },
   },
@@ -478,7 +489,7 @@ const paths: OpenAPIV3.PathsObject = {
         "List working revisions or preview one",
         { oneOf: [ref("RevisionList"), ref("RevisionRecord")] },
         [401, 403, 404, 500],
-        "Authenticated ADMIN/EDITOR or owning AUTHOR only. Private no-store. The current saved snapshot includes its configured listing tag slug. A historical preview requires explicit revisionId; public delivery is never overridden.",
+        "Authenticated ADMIN/EDITOR or owning AUTHOR only. Private no-store. The current working copy includes its update timestamp; saved revisions include their recorded author name when available. The current snapshot includes its configured listing tag slug. A historical preview requires explicit revisionId; public delivery is never overridden.",
         "protected",
       ),
       parameters: [
@@ -533,7 +544,7 @@ for (const [path, kind, detail] of [
 ]) {
   const pageTypes =
     path === "pages"
-      ? " Use layout STANDARD, HOME, POSTS, or GALLERY for supported page behavior. A published or scheduled HOME reserves the single homepage slot; a competing write returns 409. POSTS accepts listingTaxonomyId for an existing tag; null clears it."
+      ? " Use layout STANDARD, HOME, POSTS, or GALLERY for supported page behavior. HOME is the single site Homepage regardless of publication status; a competing write returns 409. POSTS accepts listingTaxonomyId for an existing tag; null clears it."
       : "";
 
   const list = operation(
@@ -541,9 +552,15 @@ for (const [path, kind, detail] of [
     "Content",
     `List ${path}`,
     path === "pages"
-      ? { anyOf: [ref("ContentList"), ref("ParentOptions")] }
+      ? {
+          anyOf: [
+            ref("ContentList"),
+            ref("ParentOptions"),
+            ref("HomepageSelection"),
+          ],
+        }
       : ref("ContentList"),
-    [400, 500],
+    [400, 403, 500],
     `\${readScope} Search matches title or slug. Sorting defaults to updatedAt descending, with ID as the tie-breaker. Publication status is evaluated at request time.`,
     "optional",
   );
@@ -555,8 +572,8 @@ for (const [path, kind, detail] of [
           parameter(
             "select",
             "query",
-            { ...string, enum: ["parent"] },
-            "Parent options (at most 500), bypasses pagination. Other values or duplicates rejected.",
+            { ...string, enum: ["parent", "homepage"] },
+            "Parent options or the existing Homepage ID; both bypass pagination. Other values or duplicates are rejected.",
           ),
         ]
       : [...pagination, ...listParameters(PostListFiltersSchema.shape)];
@@ -689,6 +706,16 @@ paths["/api/tags/link"] = {
   ),
 };
 paths["/api/admin/tags"] = {
+  post: operation(
+    "createAdminCategory",
+    "Tags",
+    "Create a category with a name and slug",
+    ref("Tag"),
+    [400, ...mutationCodes, 409, 500],
+    "ADMIN or EDITOR. Requires trusted Origin. Slugs are unique across taxonomy records.",
+    "protected",
+    "TagUpdate",
+  ),
   get: {
     ...operation(
       "listTagsWithUsage",
@@ -714,14 +741,34 @@ paths["/api/admin/tags/{id}"] = {
       "Nonempty trimmed tag ID; no route-level length limit.",
     ),
   ],
-  delete: operation(
-    "deleteAdminTag",
+  delete: {
+    ...operation(
+      "deleteAdminTag",
+      "Tags",
+      "Delete a tag or an unreferenced category from administration",
+      ref("DeletedTag"),
+      [400, ...mutationCodes, 404, 409, 500],
+      "ADMIN or EDITOR. Requires trusted Origin.",
+      "protected",
+    ),
+    parameters: [
+      parameter(
+        "type",
+        "query",
+        { type: "string", enum: ["CATEGORY"] },
+        "Omit to delete a tag.",
+      ),
+    ],
+  },
+  patch: operation(
+    "updateAdminTag",
     "Tags",
-    "Delete a tag from administration",
-    ref("DeletedTag"),
-    [400, ...mutationCodes, 404, 409, 500],
-    "ADMIN or EDITOR. Requires trusted Origin.",
+    "Update a tag or category name and slug without changing its content relationships",
+    ref("Tag"),
+    [400, 401, 403, 404, 409, 500],
+    "ADMIN or EDITOR. Requires trusted Origin. Slugs are unique across taxonomy records.",
     "protected",
+    "TagUpdate",
   ),
 };
 paths["/api/admin/users"] = {

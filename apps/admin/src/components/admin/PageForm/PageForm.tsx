@@ -2,7 +2,6 @@
 
 import { pageLayouts } from "@nextpress/shared/content";
 import { slugify } from "@nextpress/shared/slugify";
-import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -13,6 +12,7 @@ import {
 import { useEditorSubmission } from "@/lib/content/useEditorSubmission";
 import { usePrivateDraft } from "@/lib/content/usePrivateDraft";
 import { useUnsavedChanges } from "@/lib/content/useUnsavedChanges";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import {
   EventFields,
   EMPTY_SLATE_VALUE,
@@ -27,11 +27,11 @@ import {
 import { Field, FormGrid12, Input, Select, Section } from "@/ui/primitives";
 import { AdminPageColumns, AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
+import DocumentId from "../DocumentId";
 import { EditorActions } from "../EditorActions";
 import LivePreview from "../LivePreview";
 import { DocumentImageField } from "../Media/DocumentImageField";
 import { CoverMediaField, GalleryMediaField } from "../Media/EditorMediaFields";
-import { PageHierarchy } from "../PageHierarchy/PageHierarchy";
 import {
   PrivateDraftRecovery,
   PrivateDraftStatus,
@@ -61,6 +61,7 @@ export default function PageForm({
   sidebarTitle,
   sidebarSubtitle,
 }: PageFormProps) {
+  const hu = useAdminLocale() === "hu";
   // init state
   const [form, setForm] = useState<PageFormValues>(() => {
     const built = buildInitialForm(initial) as PageFormValues;
@@ -167,11 +168,33 @@ export default function PageForm({
             />
           )}
         >
-          <fieldset
-            disabled={submitting && !privateEditing}
-            className="contents"
-          >
+          <fieldset inert={submitting && !privateEditing} className="contents">
             <AdminPageColumns
+              content={
+                <Section title="Content">
+                  {!privateEditing && form.pageDocument !== undefined ? (
+                    <DocumentImageField
+                      value={form.pageDocument}
+                      onChange={(document) =>
+                        setField("pageDocument", document)
+                      }
+                      renderEditor={() => (
+                        <SlateEditor
+                          key={privateDraft?.contentKey ?? 0}
+                          value={form.content ?? EMPTY_SLATE_VALUE}
+                          onChangeAction={(val) => setField("content", val)}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <SlateEditor
+                      key={privateDraft?.contentKey ?? 0}
+                      value={form.content ?? EMPTY_SLATE_VALUE}
+                      onChangeAction={(val) => setField("content", val)}
+                    />
+                  )}
+                </Section>
+              }
               sidebar={
                 <>
                   {privateDraft && <PrivateDraftStatus draft={privateDraft} />}
@@ -197,12 +220,7 @@ export default function PageForm({
 
                       <Field
                         label="Publish date"
-                        htmlFor="page-published-at-date"
-                        hint={
-                          privateEditing
-                            ? "Current public date. Use the private draft publication controls to publish or schedule."
-                            : "A future date schedules publication when status is Published. Clear to publish immediately."
-                        }
+                        htmlFor="page-published-at-datetime"
                         span={12}
                       >
                         <PublicationDatePicker
@@ -213,22 +231,8 @@ export default function PageForm({
                         />
                       </Field>
                     </FormGrid12>
-                    {!privateEditing && (
-                      <p className="mt-3 text-sm text-(--text-muted)">
-                        Draft saves stay private. Published content is public
-                        only when its date is due; a future date is scheduled,
-                        and a missing date is not publicly visible. Saving due
-                        Published content updates the live page immediately.
-                        Choose Draft and save to withdraw it. Use Save to
-                        persist changes.
-                      </p>
-                    )}
                   </Section>
-                  <Section title="Tags" desc="Categorize page with tags.">
-                    <p className="text-sm mb-3">
-                      Tag assignments save with the form. Cancel discards
-                      unsaved assignments.
-                    </p>
+                  <Section title="Tags">
                     <TagsField
                       value={form.tags}
                       onChangeAction={(tags) => setField("tags", tags)}
@@ -237,15 +241,39 @@ export default function PageForm({
                       persist={false}
                     />
                   </Section>
-
-                  {contentId && (
-                    <PageHierarchy id={contentId} pendingSlug={form.slug} />
+                  {form.type === pageLayouts.posts && (
+                    <Section
+                      title="Posts listing"
+                      desc="Leave the filter empty to display all published posts."
+                    >
+                      <TagMultiSelect
+                        className="min-w-0"
+                        label="Filter by tag"
+                        placeholder="Search existing tags"
+                        value={
+                          form.listingTaxonomyId
+                            ? [
+                                form.listingTag ?? {
+                                  id: form.listingTaxonomyId,
+                                  name: form.listingTaxonomyId,
+                                  slug: form.listingTaxonomyId,
+                                },
+                              ]
+                            : []
+                        }
+                        onChangeAction={(tags) => {
+                          const listingTag = tags.at(-1) ?? null;
+                          setForm((current) => ({
+                            ...current,
+                            listingTag,
+                            listingTaxonomyId: listingTag?.id ?? null,
+                          }));
+                        }}
+                        loadOptionsAction={loadTagOptionsAction}
+                      />
+                    </Section>
                   )}
-                  <Section title="Navigation">
-                    <Link href="/admin/settings/menus" className="underline">
-                      Manage menu placement
-                    </Link>
-                  </Section>
+                  {entityId && <DocumentId id={entityId} />}
                 </>
               }
             >
@@ -289,84 +317,35 @@ export default function PageForm({
                     />
                   </Field>
 
-                  <Field
-                    label="Page type"
-                    htmlFor="page-type"
-                    hint={
-                      form.type === pageLayouts.home
-                        ? "Appears at the site root when published and due. Only one published or scheduled Home page can be assigned."
-                        : undefined
-                    }
-                    span={4}
-                  >
+                  <Field label="Page type" htmlFor="page-type" span={4}>
                     <PageTypeField
                       id="page-type"
                       value={form.type}
+                      pageId={contentId}
                       onChange={(v) => setField("type", v)}
                     />
                   </Field>
                 </FormGrid12>
               </Section>
 
-              <Section title="Intro">
-                <div className="grid gap-4">
-                  <CoverMediaField
-                    value={form.cover}
-                    onChange={(media) => setField("cover", media)}
-                    readOnly={Boolean(privateEditing)}
-                    disabled={submitting}
-                  />
-                  {form.type === pageLayouts.gallery && (
-                    <GalleryMediaField
-                      value={form.gallery ?? []}
-                      onChange={(media) => setField("gallery", media)}
+              {form.type !== pageLayouts.standard && (
+                <Section title={hu ? "Összefoglaló" : "Summary"}>
+                  <div className="w-full min-w-0 space-y-4">
+                    <CoverMediaField
+                      value={form.cover}
+                      onChange={(media) => setField("cover", media)}
                       readOnly={Boolean(privateEditing)}
-                      disabled={submitting}
                     />
-                  )}
-                  {!privateEditing && form.pageDocument !== undefined && (
-                    <DocumentImageField
-                      value={form.pageDocument}
-                      onChange={(document) =>
-                        setField("pageDocument", document)
-                      }
-                      disabled={submitting}
-                    />
-                  )}
-                </div>
-              </Section>
-              {form.type === pageLayouts.posts && (
-                <Section
-                  title="Posts listing"
-                  desc="Leave the filter empty to display all published posts."
-                >
-                  <TagMultiSelect
-                    label="Filter by tag"
-                    placeholder="Search existing tags"
-                    value={
-                      form.listingTaxonomyId
-                        ? [
-                            form.listingTag ?? {
-                              id: form.listingTaxonomyId,
-                              name: form.listingTaxonomyId,
-                              slug: form.listingTaxonomyId,
-                            },
-                          ]
-                        : []
-                    }
-                    onChangeAction={(tags) => {
-                      const listingTag = tags.at(-1) ?? null;
-                      setForm((current) => ({
-                        ...current,
-                        listingTag,
-                        listingTaxonomyId: listingTag?.id ?? null,
-                      }));
-                    }}
-                    loadOptionsAction={loadTagOptionsAction}
-                  />
+                    {form.type === pageLayouts.gallery && (
+                      <GalleryMediaField
+                        value={form.gallery ?? []}
+                        onChange={(media) => setField("gallery", media)}
+                        readOnly={Boolean(privateEditing)}
+                      />
+                    )}
+                  </div>
                 </Section>
               )}
-
               {form.type === "LISTING" && (
                 <Section
                   title="Listing configuration"
@@ -409,15 +388,6 @@ export default function PageForm({
                   </fieldset>
                 </Section>
               )}
-
-              <Section title="Content">
-                <SlateEditor
-                  key={privateDraft?.contentKey ?? 0}
-                  readOnly={submitting}
-                  value={form.content ?? EMPTY_SLATE_VALUE}
-                  onChangeAction={(val) => setField("content", val)}
-                />
-              </Section>
             </AdminPageColumns>
           </fieldset>
         </LivePreview>

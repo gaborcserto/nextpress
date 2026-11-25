@@ -7,9 +7,9 @@ export const APPEARANCE_CATALOG = [
     label: "Blog",
     defaultPreset: "classic",
     presets: [
-      { id: "classic", label: "Classic" },
-      { id: "modern", label: "Modern" },
-      { id: "minimal", label: "Minimal" },
+      { id: "classic", label: "Classic", navigation: { sidebar: false } },
+      { id: "modern", label: "Modern", navigation: { sidebar: false } },
+      { id: "minimal", label: "Minimal", navigation: { sidebar: true } },
     ],
   },
 ] as const;
@@ -18,8 +18,11 @@ const blog = APPEARANCE_CATALOG[0];
 const PresetSchema = z.strictObject({
   id: z.string().min(1),
   label: z.string().min(1),
+  navigation: z.strictObject({ sidebar: z.boolean() }),
 });
-const TemplateSchema = PresetSchema.extend({
+const TemplateSchema = z.strictObject({
+  id: z.string().min(1),
+  label: z.string().min(1),
   defaultPreset: z.string().min(1),
   presets: z.array(PresetSchema).min(1),
 });

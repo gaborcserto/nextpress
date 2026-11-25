@@ -109,7 +109,11 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
         return;
       }
 
-      const active = panel.querySelector('a[aria-current="page"]');
+      const active =
+        panel.querySelector(':scope > ul > li > a[aria-current="page"]') ??
+        panel.querySelector(':scope > a[aria-current="page"]') ??
+        panel.querySelector(':scope > ul > li > a[data-active-route="true"]');
+
       const bounds = panel.getBoundingClientRect();
       const target = active?.getBoundingClientRect();
       panel.dataset.indicator = target ? "true" : "false";
@@ -170,7 +174,9 @@ export function BlogNavigation({ children }: { children: ReactNode }) {
       measure(true);
     });
     observer.observe(panel);
-    panel.querySelectorAll("a").forEach((link) => observer.observe(link));
+    panel.querySelectorAll(":scope > ul > li > a").forEach((link) => {
+      observer.observe(link);
+    });
 
     return () => {
       observer.disconnect();

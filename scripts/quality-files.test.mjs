@@ -906,7 +906,10 @@ test("lint-staged preserves partial unstaged edits and handles paths with spaces
     encoding: "utf8",
   });
   assert.notEqual(failure.status, 0);
-  assert.match(failure.stdout + failure.stderr, /\bcurly\b/);
+  assert.match(
+    stripVTControlCharacters(failure.stdout + failure.stderr),
+    /\bcurly\b/,
+  );
   assert.equal(git("write-tree"), beforeIndex);
   assert.equal(readFileSync(file, "utf8"), beforeWorktree);
   assert.ok(git("show", ":file with spaces.mjs").includes("debugger;"));

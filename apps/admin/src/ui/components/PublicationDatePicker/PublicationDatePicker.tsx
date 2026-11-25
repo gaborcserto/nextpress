@@ -1,15 +1,14 @@
 "use client";
 
-import { useContext, useId, useRef, useState } from "react";
+import { useContext, useEffect, useId, useRef, useState } from "react";
 import {
+  FaArrowLeft,
   FaCalendarAlt,
   FaChevronLeft,
   FaChevronRight,
-  FaClock,
-  FaSortDown,
-  FaSortUp,
 } from "react-icons/fa";
 
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import {
   AdminDateTimeContext,
   useAdminDateLocale,
@@ -24,7 +23,11 @@ import {
 } from "./publication-time";
 import styles from "./PublicationDatePicker.module.css";
 
-type PickerMode = "calendar" | "time" | null;
+import type { SiteDateTime } from "@nextpress/shared/site-date-time";
+
+type PickerMode = "calendar" | null;
+type CalendarView = "day" | "month" | "year";
+type ClockTime = { hours: number; minutes: number };
 
 function localDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(year, month, day, 12));
@@ -34,16 +37,29 @@ function dateKey(date: Date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
-function parseDate(value: string, locale: string) {
+function parseDate(
+  value: string,
+  locale: string,
+  format: SiteDateTime["dateFormat"],
+) {
   const input = value.trim();
   const yearFirst = /^(\d{4})[./-]\s*(\d{1,2})[./-]\s*(\d{1,2})\.?$/.exec(
     input,
   );
   const monthFirst =
     locale === "en-US" && /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(input);
+  const separated = /^([\d]{1,4})[./-]([\d]{1,2})[./-]([\d]{1,4})\.?$/.exec(
+    input,
+  );
   const values =
     yearFirst?.slice(1) ??
-    (monthFirst ? [monthFirst[3], monthFirst[1], monthFirst[2]] : null);
+    (monthFirst
+      ? [monthFirst[3], monthFirst[1], monthFirst[2]]
+      : separated && format === "dmy"
+        ? [separated[3], separated[2], separated[1]]
+        : separated && format === "mdy"
+          ? [separated[3], separated[1], separated[2]]
+          : null);
 
   if (!values) {
     return null;
@@ -65,7 +81,7 @@ function parseDate(value: string, locale: string) {
   return { year, month, day };
 }
 
-function parseTime(value: string) {
+function parseClock(value: string): ClockTime | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
 
   if (!match) {
@@ -78,7 +94,96 @@ function parseTime(value: string) {
   return hours < 24 && minutes < 60 ? { hours, minutes } : null;
 }
 
-function formatDate(date: Date, locale: string) {
+function periodLabel(hour: 9 | 21, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    hour: "numeric",
+    hourCycle: "h12",
+  })
+    .formatToParts(new Date(Date.UTC(2020, 0, 1, hour)))
+    .find(({ type }) => type === "dayPeriod")?.value;
+}
+
+function formatTime(time: ClockTime, locale: string, format: string) {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    hourCycle: format.startsWith("12h") ? "h12" : "h23",
+    hour: format.startsWith("12h") ? "numeric" : "2-digit",
+    minute: "2-digit",
+  }).format(new Date(Date.UTC(2020, 0, 1, time.hours, time.minutes)));
+}
+
+function clockValue(time: ClockTime) {
+  return [
+    String(time.hours).padStart(2, "0"),
+    String(time.minutes).padStart(2, "0"),
+  ].join(":");
+}
+
+function parseTime(value: string, locale: string, format: string) {
+  const input = value.trim();
+  const match = /(\d{1,2}):(\d{2})/.exec(input);
+
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period =
+    `${input.slice(0, match.index)} ${input.slice(match.index + match[0].length)}`
+      .trim()
+      .toLocaleLowerCase(locale);
+
+  if (format.startsWith("12h") && period) {
+    const morning = periodLabel(9, locale)?.toLocaleLowerCase(locale);
+    const evening = periodLabel(21, locale)?.toLocaleLowerCase(locale);
+
+    if (minutes >= 60 || hours < 1 || hours > 12) {
+      return null;
+    }
+
+    if (period === morning) {
+      return { hours: hours % 12, minutes };
+    }
+
+    if (period === evening) {
+      return { hours: (hours % 12) + 12, minutes };
+    }
+
+    return null;
+  }
+
+  return hours < 24 && minutes < 60 ? { hours, minutes } : null;
+}
+
+function formatDate(
+  date: Date,
+  locale: string,
+  format: SiteDateTime["dateFormat"],
+) {
+  const { year, month, day } = {
+    year: String(date.getUTCFullYear()),
+    month: String(date.getUTCMonth() + 1).padStart(2, "0"),
+    day: String(date.getUTCDate()).padStart(2, "0"),
+  };
+
+  if (format === "ymd-dots") {
+    return `${year}.${month}.${day}.`;
+  }
+
+  if (format === "dmy") {
+    return `${day}/${month}/${year}`;
+  }
+
+  if (format === "mdy") {
+    return `${month}/${day}/${year}`;
+  }
+
+  if (format === "iso") {
+    return `${year}-${month}-${day}`;
+  }
+
   return new Intl.DateTimeFormat(locale, {
     timeZone: "UTC",
     year: "numeric",
@@ -106,6 +211,8 @@ function PublicationDatePickerFields({
   value,
   locale,
   timeZone,
+  dateFormat,
+  timeFormat,
   disabled,
   onChange,
   onValidityChange,
@@ -114,6 +221,8 @@ function PublicationDatePickerFields({
   value: string | null;
   locale: string;
   timeZone: string;
+  dateFormat: SiteDateTime["dateFormat"];
+  timeFormat: SiteDateTime["timeFormat"];
   disabled?: boolean;
   onChange: (value: string | null) => void;
   onValidityChange?: (valid: boolean) => void;
@@ -121,10 +230,12 @@ function PublicationDatePickerFields({
   const dialogId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const timeTriggerRef = useRef<HTMLButtonElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const dayRefs = useRef(new Map<string, HTMLButtonElement>());
+  const monthViewButtonRef = useRef<HTMLButtonElement>(null);
+  const yearViewButtonRef = useRef<HTMLButtonElement>(null);
   const parts = toLocalParts(value, timeZone);
-  const text = pickerMessages[locale === "hu" ? "hu" : "en"];
+  const text = pickerMessages[useAdminLocale()];
   const [occurrences, setOccurrences] = useState<
     ReturnType<typeof resolvePublicationTime>
   >([]);
@@ -132,9 +243,17 @@ function PublicationDatePickerFields({
   const timeInput = useRef<HTMLInputElement>(null);
   const [previousValue, setPreviousValue] = useState(value);
   const [dateText, setDateText] = useState(() =>
-    parts ? formatDate(parts.date, locale) : "",
+    parts ? formatDate(parts.date, locale, dateFormat) : "",
   );
-  const [timeText, setTimeText] = useState(() => parts?.time ?? "");
+  const [timeText, setTimeText] = useState(() =>
+    parts?.time
+      ? formatTime(
+          parseClock(parts.time) ?? { hours: 0, minutes: 0 },
+          locale,
+          timeFormat,
+        )
+      : "",
+  );
   const [draftTime, setDraftTime] = useState(() => parts?.time ?? "00:00");
   const [dateError, setDateError] = useState("");
   const [timeError, setTimeError] = useState("");
@@ -143,15 +262,49 @@ function PublicationDatePickerFields({
   const [cursor, setCursor] = useState(
     () => parts?.date ?? todayParts?.date ?? new Date(),
   );
+  const [view, setView] = useState<CalendarView>("day");
+  const [viewHistory, setViewHistory] = useState<
+    { view: CalendarView; focus: "month" | "year" }[]
+  >([]);
+  const focusAfterViewRef = useRef<"month" | "year" | null>(null);
+  const [yearRangeStart, setYearRangeStart] = useState(() => {
+    const year =
+      parts?.date.getUTCFullYear() ??
+      todayParts?.date.getUTCFullYear() ??
+      new Date().getUTCFullYear();
+
+    return Math.floor(year / 12) * 12;
+  });
 
   if (value !== previousValue) {
     setPreviousValue(value);
-    setDateText(parts ? formatDate(parts.date, locale) : "");
-    setTimeText(parts?.time ?? "");
+    setDateText(parts ? formatDate(parts.date, locale, dateFormat) : "");
+    setTimeText(
+      parts?.time
+        ? formatTime(
+            parseClock(parts.time) ?? { hours: 0, minutes: 0 },
+            locale,
+            timeFormat,
+          )
+        : "",
+    );
     setDateError("");
     setTimeError("");
     setOccurrences([]);
   }
+
+  useEffect(() => {
+    if (!focusAfterViewRef.current) {
+      return;
+    }
+
+    const target =
+      focusAfterViewRef.current === "year"
+        ? yearViewButtonRef
+        : monthViewButtonRef;
+    target.current?.focus();
+    focusAfterViewRef.current = null;
+  }, [view]);
 
   const days = Array.from({ length: 42 }, (_, index) => {
     const first = localDate(cursor.getUTCFullYear(), cursor.getUTCMonth(), 1);
@@ -181,11 +334,14 @@ function PublicationDatePickerFields({
     ArrowDown: 7,
   };
   const today = todayParts?.dateKey;
+  const draftDate = parseDate(dateText, locale, dateFormat);
+  const draftDateKey = draftDate
+    ? dateKey(localDate(draftDate.year, draftDate.month - 1, draftDate.day))
+    : null;
 
-  function openPopover(nextMode: Exclude<PickerMode, null>) {
+  function openPopover() {
     const dialog = dialogRef.current;
-    const trigger =
-      nextMode === "calendar" ? triggerRef.current : timeTriggerRef.current;
+    const trigger = triggerRef.current;
 
     if (!dialog || !trigger) {
       return;
@@ -193,13 +349,24 @@ function PublicationDatePickerFields({
 
     const selected = parts?.dateKey || today;
     setCursor(parts?.date ?? todayParts?.date ?? new Date());
-    setMode(nextMode);
+    setMode("calendar");
+    setView("day");
+    setViewHistory([]);
 
-    if (nextMode === "time") {
-      setDraftTime(parts?.time ?? "00:00");
+    const parsedTime = parseTime(timeText, locale, timeFormat);
+    const selectedTime = parsedTime ??
+      parseClock(parts?.time ?? "") ?? { hours: 0, minutes: 0 };
+    setDraftTime(clockValue(selectedTime));
+
+    const mobile =
+      typeof window.matchMedia !== "function" ||
+      window.matchMedia("(max-width: 48rem)").matches;
+
+    if (mobile) {
+      dialog.showModal();
+    } else {
+      dialog.showPopover();
     }
-
-    dialog.showModal();
 
     requestAnimationFrame(() => {
       const triggerRect = trigger.getBoundingClientRect();
@@ -210,9 +377,10 @@ function PublicationDatePickerFields({
       const width = Math.min(dialogRect.width, viewportWidth - gap * 2);
       const below = viewportHeight - triggerRect.bottom - gap;
       const above = triggerRect.top - gap;
-      const openBelow = below >= Math.min(dialogRect.height, above);
+      const openBelow =
+        below >= Math.min(dialogRect.height, 420) || below >= above;
       const besideTrigger = openBelow ? below : above;
-      const overlayTrigger = besideTrigger < 160;
+      const overlayTrigger = mobile || besideTrigger < 160;
       const availableHeight = overlayTrigger
         ? viewportHeight - gap * 2
         : besideTrigger;
@@ -234,20 +402,16 @@ function PublicationDatePickerFields({
       dialog.style.top = `${overlayTrigger ? gap : top}px`;
       dialog.style.maxHeight = `${availableHeight}px`;
 
-      if (nextMode === "calendar") {
-        if (selected) {
-          dayRefs.current.get(selected)?.focus();
-        }
-      } else {
-        dialog.querySelector<HTMLInputElement>("input")?.focus();
+      if (selected) {
+        dayRefs.current.get(selected)?.focus();
       }
     });
   }
 
   function commit(dateValue: string, timeValue: string) {
     onValidityChange?.(false);
-    const date = parseDate(dateValue, locale);
-    const time = parseTime(timeValue);
+    const date = parseDate(dateValue, locale, dateFormat);
+    const time = parseTime(timeValue, locale, timeFormat);
 
     if (!date) {
       setDateError(text.invalidDate);
@@ -264,11 +428,11 @@ function PublicationDatePickerFields({
     }
 
     const day = localDate(date.year, date.month - 1, date.day);
-    const clock = `${String(time.hours).padStart(2, "0")}:${String(time.minutes).padStart(2, "0")}`;
+    const clock = clockValue(time);
     const key = dateKey(day);
 
-    setDateText(formatDate(day, locale));
-    setTimeText(clock);
+    setDateText(formatDate(day, locale, dateFormat));
+    setTimeText(formatTime(time, locale, timeFormat));
     setDateError("");
     dateInput.current?.setCustomValidity("");
 
@@ -315,73 +479,130 @@ function PublicationDatePickerFields({
   }
 
   function closePopover(restoreFocus = true) {
-    dialogRef.current?.close();
+    const dialog = dialogRef.current;
+
+    if (dialog?.matches(":popover-open")) {
+      dialog.hidePopover();
+    } else {
+      dialog?.close();
+    }
+
     setMode(null);
 
     if (restoreFocus) {
-      (mode === "time" ? timeTriggerRef.current : triggerRef.current)?.focus();
+      triggerRef.current?.focus();
     }
   }
 
-  function selectTime(hours: number, minutes: number) {
-    const parsedDate = parseDate(dateText, locale);
-    const date =
-      parts?.date ??
-      (parsedDate
-        ? localDate(parsedDate.year, parsedDate.month - 1, parsedDate.day)
-        : null);
+  function selectCalendarDate(day: Date) {
+    const selectedTime = parseClock(draftTime) ??
+      parseTime(timeText, locale, timeFormat) ??
+      parseClock(parts?.time ?? "") ?? { hours: 0, minutes: 0 };
 
-    if (!date) {
-      setDateError(text.dateFirst);
+    const date = formatDate(day, locale, dateFormat);
+    const time = formatTime(selectedTime, locale, timeFormat);
 
-      return;
+    setCursor(day);
+    commit(date, time);
+  }
+
+  function updateSelectedTime(nextTime: ClockTime) {
+    const value = clockValue(nextTime);
+
+    setDraftTime(value);
+
+    if (parseDate(dateText, locale, dateFormat)) {
+      commit(dateText, formatTime(nextTime, locale, timeFormat));
     }
+  }
 
-    const value = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  function selectToday() {
+    const today = todayParts?.date;
 
-    commit(formatDate(date, locale), value);
-    closePopover(false);
-    timeInput.current?.focus();
+    if (today) {
+      selectCalendarDate(today);
+    }
+  }
+
+  const monthOptions = Array.from({ length: 12 }, (_, month) => ({
+    label: new Intl.DateTimeFormat(locale, {
+      month: "short",
+      timeZone: "UTC",
+    }).format(localDate(2024, month, 1)),
+    value: month,
+  }));
+  const yearOptions = Array.from(
+    { length: 12 },
+    (_, index) => yearRangeStart + index,
+  );
+  const displayedYear = cursor.getUTCFullYear();
+  const displayedMonth = cursor.getUTCMonth();
+
+  function returnFromSelection() {
+    const previous = viewHistory.at(-1);
+    setViewHistory((history) => history.slice(0, -1));
+    setView(previous?.view ?? "day");
+    focusAfterViewRef.current = previous?.focus ?? "month";
   }
 
   return (
     <div className={styles.picker}>
-      <p id={`${id}-zone`}>
-        {text.zone} {timeZone}
-      </p>
-      <div className={styles.fields}>
+      <div className={styles.fields} ref={fieldRef}>
         <div className={styles.field}>
           <Input
-            ref={dateInput}
-            id={`${id}-date`}
+            ref={(element) => {
+              dateInput.current = element;
+              timeInput.current = element;
+            }}
+            id={`${id}-datetime`}
             type="text"
-            inputMode="numeric"
-            maxLength={16}
             autoComplete="off"
-            aria-label={text.date}
-            value={dateText}
-            aria-invalid={Boolean(dateError)}
-            aria-describedby={dateError ? `${id}-date-error` : `${id}-zone`}
+            aria-label={`${text.date} and ${text.time}`}
+            placeholder={`${formatDate(new Date(), locale, dateFormat)} ${formatTime({ hours: 13, minutes: 30 }, locale, timeFormat)}`}
+            value={dateText ? `${dateText} ${timeText}` : ""}
+            aria-invalid={Boolean(dateError || timeError)}
+            aria-describedby={
+              dateError
+                ? `${id}-date-error`
+                : timeError
+                  ? `${id}-time-error`
+                  : `${id}-zone`
+            }
             disabled={disabled}
             fullWidth
             onChange={(event) => {
-              setDateText(event.target.value);
+              const [nextDate = "", ...nextTime] = event.target.value
+                .trim()
+                .split(/\s+/);
+              const nextClock = nextTime.join(" ");
+              setDateText(nextDate);
+              setTimeText(nextClock);
               setDateError("");
+              setTimeError("");
               onValidityChange?.(false);
-              event.currentTarget.setCustomValidity(text.applyDate);
+              event.currentTarget.setCustomValidity("");
               setOccurrences([]);
+
+              if (
+                parseDate(nextDate, locale, dateFormat) &&
+                parseTime(nextClock, locale, timeFormat)
+              ) {
+                commit(nextDate, nextClock);
+              }
             }}
             onBlur={() => {
               if (dateText.trim()) {
-                commit(dateText, timeText || parts?.time || "00:00");
-              } else {
+                commit(dateText, timeText);
+              } else if (!timeText.trim()) {
                 clearDate();
+              } else {
+                commit(dateText, timeText);
               }
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                commit(dateText, timeText || parts?.time || "00:00");
+                commit(dateText, timeText);
               }
             }}
           />
@@ -394,70 +615,21 @@ function PublicationDatePickerFields({
             aria-controls={dialogId}
             disabled={disabled}
             onMouseDown={(event) => event.preventDefault()}
-            onClick={() => openPopover("calendar")}
+            onClick={openPopover}
           >
             <FaCalendarAlt aria-hidden="true" />
           </button>
-          {dateError && (
-            <span id={`${id}-date-error`} className={styles.error} role="alert">
-              {dateError}
-            </span>
-          )}
-        </div>
-        <div className={styles.field}>
-          <Input
-            ref={timeInput}
-            id={`${id}-time`}
-            type="text"
-            inputMode="numeric"
-            maxLength={16}
-            autoComplete="off"
-            aria-label={text.time}
-            placeholder="HH:MM"
-            value={timeText}
-            aria-invalid={Boolean(timeError)}
-            aria-describedby={timeError ? `${id}-time-error` : `${id}-zone`}
-            disabled={disabled}
-            onChange={(event) => {
-              setTimeText(event.target.value);
-              setTimeError("");
-              onValidityChange?.(false);
-              event.currentTarget.setCustomValidity(text.applyTime);
-              setOccurrences([]);
-            }}
-            onBlur={() => {
-              if (dateText || timeText) {
-                commit(dateText, timeText);
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                commit(dateText, timeText);
-              }
-            }}
-          />
-          <button
-            ref={timeTriggerRef}
-            type="button"
-            className={styles.iconButton}
-            aria-label={text.timeSelector}
-            aria-haspopup="dialog"
-            aria-controls={dialogId}
-            disabled={disabled}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => openPopover("time")}
-          >
-            <FaClock aria-hidden="true" />
-          </button>
-          {timeError && (
-            <span id={`${id}-time-error`} className={styles.error} role="alert">
-              {timeError}
-            </span>
-          )}
         </div>
       </div>
-      {occurrences.length > 1 && (
+      <p id={`${id}-zone`} className={styles.zone}>
+        {text.zone} {timeZone}
+      </p>
+      {(dateError || timeError) && !mode && (
+        <p className={styles.error} role="alert">
+          {dateError || timeError}
+        </p>
+      )}
+      {occurrences.length > 1 && !mode && (
         <div role="group" aria-label={text.overlap}>
           {occurrences.map((occurrence, index) => (
             <Button
@@ -479,7 +651,12 @@ function PublicationDatePickerFields({
         ref={dialogRef}
         id={dialogId}
         className={styles.dialog}
-        aria-label={mode === "time" ? text.chooseTime : text.chooseDate}
+        popover="auto"
+        aria-label={text.chooseDate}
+        onCancel={(event) => {
+          event.preventDefault();
+          closePopover();
+        }}
         onClose={() => setMode(null)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -492,237 +669,396 @@ function PublicationDatePickerFields({
           }
         }}
       >
-        {mode === "calendar" ? (
+        <>
           <>
+            {dateError && (
+              <p className={styles.error} role="alert">
+                {dateError}
+              </p>
+            )}
+            {timeError && (
+              <p className={styles.error} role="alert">
+                {timeError}
+              </p>
+            )}
+            {occurrences.length > 1 && (
+              <div role="group" aria-label={text.overlap}>
+                {occurrences.map((occurrence, index) => (
+                  <Button
+                    key={occurrence.instant}
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      clearTimeError();
+                      onValidityChange?.(true);
+                      onChange(occurrence.instant);
+                      closePopover();
+                    }}
+                  >
+                    {index === 0 ? text.first : text.second} (UTC
+                    {occurrence.offset})
+                  </Button>
+                ))}
+              </div>
+            )}
             <header className={styles.header}>
               <button
                 className={styles.iconControl}
                 type="button"
-                aria-label={text.previous}
+                aria-label={
+                  view === "year"
+                    ? text.previousYearRange
+                    : view === "month"
+                      ? text.previousYear
+                      : text.previous
+                }
                 onClick={() =>
-                  setCursor(
-                    localDate(
-                      cursor.getUTCFullYear(),
-                      cursor.getUTCMonth() - 1,
-                      1,
-                    ),
-                  )
+                  view === "year"
+                    ? setYearRangeStart((start) => start - 12)
+                    : setCursor(
+                        localDate(
+                          displayedYear,
+                          displayedMonth + (view === "month" ? -12 : -1),
+                          1,
+                        ),
+                      )
                 }
               >
                 <FaChevronLeft />
               </button>
-              <strong aria-live="polite">{labels.format(cursor)}</strong>
+              <div className={styles.monthYear}>
+                {view === "day" && (
+                  <button
+                    ref={monthViewButtonRef}
+                    type="button"
+                    aria-label={`${text.month}: ${monthOptions[displayedMonth]?.label}`}
+                    onClick={() => {
+                      setViewHistory((history) => [
+                        ...history,
+                        { view, focus: "month" },
+                      ]);
+                      setView("month");
+                    }}
+                  >
+                    {monthOptions[displayedMonth]?.label}
+                  </button>
+                )}
+                <button
+                  ref={yearViewButtonRef}
+                  type="button"
+                  aria-label={text.year}
+                  onClick={() => {
+                    setViewHistory((history) => [
+                      ...history,
+                      { view, focus: "year" },
+                    ]);
+                    setYearRangeStart(Math.floor(displayedYear / 12) * 12);
+                    setView("year");
+                  }}
+                >
+                  {view === "year"
+                    ? `${yearRangeStart}–${yearRangeStart + 11}`
+                    : displayedYear}
+                </button>
+                <span className="sr-only" aria-live="polite">
+                  {labels.format(cursor)}
+                </span>
+              </div>
               <button
                 className={styles.iconControl}
                 type="button"
-                aria-label={text.next}
+                aria-label={
+                  view === "year"
+                    ? text.nextYearRange
+                    : view === "month"
+                      ? text.nextYear
+                      : text.next
+                }
                 onClick={() =>
-                  setCursor(
-                    localDate(
-                      cursor.getUTCFullYear(),
-                      cursor.getUTCMonth() + 1,
-                      1,
-                    ),
-                  )
+                  view === "year"
+                    ? setYearRangeStart((start) => start + 12)
+                    : setCursor(
+                        localDate(
+                          displayedYear,
+                          displayedMonth + (view === "month" ? 12 : 1),
+                          1,
+                        ),
+                      )
                 }
               >
                 <FaChevronRight />
               </button>
             </header>
-            <div
-              className={styles.grid}
-              role="group"
-              aria-label={text.chooseDay}
-            >
-              {weekdayLabels.map((label, index) => (
-                <span
-                  className={styles.weekday}
-                  key={`${label}-${index}`}
-                  aria-hidden="true"
-                >
-                  {label}
-                </span>
-              ))}
-              {days.map((day) => (
-                <button
-                  key={dateKey(day)}
-                  ref={(node) => {
-                    if (node) {
-                      dayRefs.current.set(dateKey(day), node);
-                    } else {
-                      dayRefs.current.delete(dateKey(day));
-                    }
-                  }}
-                  type="button"
-                  data-outside={day.getUTCMonth() !== cursor.getUTCMonth()}
-                  data-today={dateKey(day) === today}
-                  aria-pressed={parts?.dateKey === dateKey(day)}
-                  aria-label={new Intl.DateTimeFormat(locale, {
-                    dateStyle: "full",
-                    timeZone: "UTC",
-                  }).format(day)}
-                  tabIndex={dateKey(day) === (parts?.dateKey || today) ? 0 : -1}
-                  onKeyDown={(event) => {
-                    const delta = daySteps[event.key];
-
-                    if (delta === undefined) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    const next = localDate(
-                      day.getUTCFullYear(),
-                      day.getUTCMonth(),
-                      day.getUTCDate() + delta,
-                    );
-                    setCursor(next);
-                    requestAnimationFrame(() =>
-                      dayRefs.current.get(dateKey(next))?.focus(),
-                    );
-                  }}
-                  onClick={() => {
-                    const nextDate = formatDate(day, locale);
-
-                    commit(nextDate, timeText || parts?.time || "00:00");
-                    closePopover();
-                  }}
-                >
-                  {new Intl.DateTimeFormat(locale, {
-                    day: "numeric",
-                    timeZone: "UTC",
-                  }).format(day)}
-                </button>
-              ))}
-            </div>
-            <footer className={styles.footer}>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                color="neutral"
-                onClick={() => {
-                  clearDate();
-                  closePopover();
-                }}
+            {view === "day" ? (
+              <div
+                className={styles.grid}
+                role="group"
+                aria-label={text.chooseDay}
               >
-                {text.clear}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                color="neutral"
-                onClick={() => closePopover()}
-              >
-                {text.cancel}
-              </Button>
-            </footer>
-          </>
-        ) : (
-          <>
-            <header className={styles.timeHeader}>
-              <strong>{text.selectTime}</strong>
-            </header>
-            <div className={styles.timePicker}>
-              {(["Hour", "Minute"] as const).map((label) => {
-                const hourField = label === "Hour";
-                const fieldLabel = hourField ? text.hour : text.minute;
-                const time = parseTime(draftTime) ?? { hours: 0, minutes: 0 };
-                const current = hourField ? time.hours : time.minutes;
-                const limit = hourField ? 24 : 60;
+                {weekdayLabels.map((label, index) => (
+                  <span
+                    className={styles.weekday}
+                    key={`${label}-${index}`}
+                    aria-hidden="true"
+                  >
+                    {label}
+                  </span>
+                ))}
+                {days.map((day) => (
+                  <button
+                    key={dateKey(day)}
+                    ref={(node) => {
+                      if (node) {
+                        dayRefs.current.set(dateKey(day), node);
+                      } else {
+                        dayRefs.current.delete(dateKey(day));
+                      }
+                    }}
+                    type="button"
+                    data-outside={day.getUTCMonth() !== cursor.getUTCMonth()}
+                    data-today={dateKey(day) === today}
+                    aria-pressed={draftDateKey === dateKey(day)}
+                    aria-label={new Intl.DateTimeFormat(locale, {
+                      dateStyle: "full",
+                      timeZone: "UTC",
+                    }).format(day)}
+                    tabIndex={dateKey(day) === (draftDateKey || today) ? 0 : -1}
+                    onKeyDown={(event) => {
+                      const delta = daySteps[event.key];
 
-                const step = (amount: number) => {
-                  const next = (current + amount + limit) % limit;
-                  const hours = hourField ? next : time.hours;
-                  const minutes = hourField ? time.minutes : next;
-                  setDraftTime(
-                    `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+                      if (delta === undefined) {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      const next = localDate(
+                        day.getUTCFullYear(),
+                        day.getUTCMonth(),
+                        day.getUTCDate() + delta,
+                      );
+                      setCursor(next);
+                      requestAnimationFrame(() =>
+                        dayRefs.current.get(dateKey(next))?.focus(),
+                      );
+                    }}
+                    onClick={() => {
+                      selectCalendarDate(day);
+                    }}
+                  >
+                    {new Intl.DateTimeFormat(locale, {
+                      day: "numeric",
+                      timeZone: "UTC",
+                    }).format(day)}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div
+                className={styles.selectionGrid}
+                role="group"
+                aria-label={view === "month" ? text.month : text.year}
+              >
+                {(view === "month" ? monthOptions : yearOptions).map((item) => {
+                  const label =
+                    typeof item === "number" ? String(item) : item.label;
+                  const selected =
+                    typeof item === "number"
+                      ? item === displayedYear
+                      : item.value === displayedMonth;
+
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-pressed={selected}
+                      tabIndex={selected ? 0 : -1}
+                      onKeyDown={(event) => {
+                        const offsets: Record<string, number> = {
+                          ArrowLeft: -1,
+                          ArrowRight: 1,
+                          ArrowUp: -3,
+                          ArrowDown: 3,
+                        };
+                        const offset = offsets[event.key];
+
+                        if (offset === undefined) {
+                          return;
+                        }
+
+                        const buttons = Array.from(
+                          event.currentTarget.parentElement?.querySelectorAll(
+                            "button",
+                          ) ?? [],
+                        );
+                        const nextIndex =
+                          buttons.indexOf(event.currentTarget) + offset;
+
+                        if (nextIndex >= 0 && nextIndex < buttons.length) {
+                          event.preventDefault();
+                          buttons[nextIndex]?.focus();
+                        }
+                      }}
+                      onClick={() => {
+                        if (typeof item === "number") {
+                          setCursor(localDate(item, displayedMonth, 1));
+                          setView("month");
+                        } else {
+                          setCursor(localDate(displayedYear, item.value, 1));
+                          setView("day");
+                        }
+                      }}
+                    >
+                      {label}
+                    </button>
                   );
-                };
-
-                return (
-                  <div key={label}>
-                    <label htmlFor={`${id}-${label.toLowerCase()}`}>
-                      {fieldLabel}
-                    </label>
-                    <span className={styles.stepper}>
-                      <button
-                        className={styles.iconControl}
-                        type="button"
-                        aria-label={`${text.increase} ${fieldLabel}`}
-                        onClick={() => step(1)}
-                      >
-                        <FaSortUp aria-hidden="true" />
-                      </button>
-                      <input
-                        aria-label={fieldLabel}
-                        id={`${id}-${label.toLowerCase()}`}
-                        type="text"
-                        inputMode="numeric"
-                        value={String(current).padStart(2, "0")}
-                        onChange={(event) => {
-                          if (
-                            /^\d{0,2}$/.test(event.target.value) &&
-                            (event.target.value === "" ||
-                              Number(event.target.value) < limit)
-                          ) {
-                            const next = Number(event.target.value);
-                            const hours = hourField ? next : time.hours;
-                            const minutes = hourField ? time.minutes : next;
-                            setDraftTime(
-                              `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
-                            );
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (
-                            event.key === "ArrowUp" ||
-                            event.key === "ArrowDown"
-                          ) {
-                            event.preventDefault();
-                            step(event.key === "ArrowUp" ? 1 : -1);
-                          }
-                        }}
-                      />
-                      <button
-                        className={styles.iconControl}
-                        type="button"
-                        aria-label={`${text.decrease} ${fieldLabel}`}
-                        onClick={() => step(-1)}
-                      >
-                        <FaSortDown aria-hidden="true" />
-                      </button>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <footer className={styles.footer}>
-              <Button
-                type="button"
-                size="sm"
-                color="primary"
-                onClick={() =>
-                  selectTime(
-                    parseTime(draftTime)?.hours ?? 0,
-                    parseTime(draftTime)?.minutes ?? 0,
-                  )
-                }
-              >
-                {text.apply}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                color="neutral"
-                onClick={() => closePopover()}
-              >
-                {text.cancel}
-              </Button>
-            </footer>
+                })}
+              </div>
+            )}
           </>
-        )}
+          <div className={styles.timeRow}>
+            <>
+              {view === "day" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  color="neutral"
+                  className={`${styles.iconControl} ${styles.todayButton}`}
+                  onClick={selectToday}
+                >
+                  {text.today}
+                </Button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.iconControl}
+                  aria-label={text.back}
+                  title={text.back}
+                  onClick={returnFromSelection}
+                >
+                  <FaArrowLeft aria-hidden="true" />
+                </button>
+              )}
+            </>
+            <div className={styles.timeControls}>
+              <div className={styles.timePicker}>
+                {(["Hour", "Minute"] as const).map((label) => {
+                  const hourField = label === "Hour";
+                  const fieldLabel = hourField ? text.hour : text.minute;
+                  const time = parseTime(draftTime, locale, timeFormat) ?? {
+                    hours: 0,
+                    minutes: 0,
+                  };
+
+                  const twelveHour = timeFormat.startsWith("12h");
+                  const current = hourField
+                    ? twelveHour
+                      ? time.hours % 12 || 12
+                      : time.hours
+                    : time.minutes;
+                  const limit = hourField ? (twelveHour ? 12 : 24) : 60;
+
+                  const step = (amount: number) => {
+                    const next = (current + amount + limit) % limit;
+                    const hours = hourField
+                      ? twelveHour
+                        ? (next % 12) + (time.hours >= 12 ? 12 : 0)
+                        : next
+                      : time.hours;
+                    const minutes = hourField ? time.minutes : next;
+                    updateSelectedTime({ hours, minutes });
+                  };
+
+                  return (
+                    <div key={label}>
+                      <label htmlFor={`${id}-${label.toLowerCase()}`}>
+                        {fieldLabel}
+                      </label>
+                      <span className={styles.stepper}>
+                        <input
+                          aria-label={fieldLabel}
+                          id={`${id}-${label.toLowerCase()}`}
+                          type="text"
+                          inputMode="numeric"
+                          value={String(current).padStart(2, "0")}
+                          onChange={(event) => {
+                            if (
+                              /^\d{0,2}$/.test(event.target.value) &&
+                              (!twelveHour || Number(event.target.value) > 0) &&
+                              (event.target.value === "" ||
+                                Number(event.target.value) < limit)
+                            ) {
+                              if (!event.target.value) {
+                                return;
+                              }
+
+                              const next = Number(event.target.value);
+                              const hours = hourField
+                                ? twelveHour
+                                  ? (next % 12) + (time.hours >= 12 ? 12 : 0)
+                                  : next
+                                : time.hours;
+                              const minutes = hourField ? time.minutes : next;
+                              updateSelectedTime({ hours, minutes });
+                            }
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "ArrowUp" ||
+                              event.key === "ArrowDown"
+                            ) {
+                              event.preventDefault();
+                              step(event.key === "ArrowUp" ? 1 : -1);
+                            }
+                          }}
+                        />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {timeFormat.startsWith("12h") && (
+                <div
+                  className={styles.periodControl}
+                  role="group"
+                  aria-label={text.time}
+                >
+                  {["AM", "PM"].map((period) => {
+                    const time = parseTime(draftTime, locale, timeFormat) ?? {
+                      hours: 0,
+                      minutes: 0,
+                    };
+                    const selected =
+                      period === "AM" ? time.hours < 12 : time.hours >= 12;
+                    const label =
+                      period === "AM"
+                        ? periodLabel(9, locale)
+                        : periodLabel(21, locale);
+
+                    return (
+                      <Button
+                        key={period}
+                        type="button"
+                        size="sm"
+                        variant={selected ? "soft" : "outline"}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          const hours =
+                            period === "AM"
+                              ? time.hours % 12
+                              : (time.hours % 12) + 12;
+                          updateSelectedTime({ ...time, hours });
+                        }}
+                      >
+                        {label ?? period}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       </dialog>
     </div>
   );
@@ -736,14 +1072,11 @@ export default function PublicationDatePicker(props: {
   onValidityChange?: (valid: boolean) => void;
 }) {
   const locale = useAdminDateLocale();
+  const adminLocale = useAdminLocale();
   const settings = useContext(AdminDateTimeContext);
 
   if (!settings) {
-    return (
-      <p role="alert">
-        {pickerMessages[locale === "hu" ? "hu" : "en"].unavailable}
-      </p>
-    );
+    return <p role="alert">{pickerMessages[adminLocale].unavailable}</p>;
   }
 
   return (
@@ -752,6 +1085,8 @@ export default function PublicationDatePicker(props: {
       key={JSON.stringify([settings.timeZone, locale])}
       locale={locale}
       timeZone={settings.timeZone}
+      dateFormat={settings.dateFormat}
+      timeFormat={settings.timeFormat}
     />
   );
 }

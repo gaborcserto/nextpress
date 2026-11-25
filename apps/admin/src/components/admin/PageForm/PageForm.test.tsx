@@ -20,13 +20,7 @@ vi.mock("@/ui/components", async () => ({
   )),
   EMPTY_SLATE_VALUE: [{ type: "paragraph", children: [{ text: "" }] }],
   EventFields: () => null,
-  HierarchyField: (
-    await import("@/ui/components/HierarchyField/HierarchyField")
-  ).default,
   ListingFields: () => null,
-  MenuPlacementField: (
-    await import("@/ui/components/MenuPlacementField/MenuPlacementField")
-  ).default,
   PageTypeField: (await import("@/ui/components/PageTypeField/PageTypeField"))
     .default,
   RedirectField: () => null,
@@ -66,10 +60,14 @@ function renderPage(
   save: (values: PageFormValues) => Promise<LegacySaveOutcome> = vi.fn(
     async () => true,
   ),
+  contentId?: string,
+  submitting = false,
 ) {
   return render(
     <PageForm
+      contentId={contentId}
       initial={values}
+      submitting={submitting}
       onSubmitAction={save}
       loadTagOptionsAction={async () => []}
       createTagAction={async (name) => ({ id: name, name, slug: name })}
@@ -80,6 +78,62 @@ function renderPage(
 }
 
 describe("PageForm", () => {
+  it("keeps controls visually enabled and shows an in-button saving state", () => {
+    renderPage(
+      { ...initial, title: "A page", slug: "a-page" },
+      vi.fn(),
+      undefined,
+      true,
+    );
+
+    expect(screen.getByLabelText("Title")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Saving..." })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+
+  it("shows the full record ID below the sidebar panels with a copy control", () => {
+    const recordId = "page-record-123456789";
+    renderPage(initial, undefined, recordId);
+
+    const heading = screen.getByRole("heading", { name: "Page" });
+    const id = screen.getByText(recordId);
+
+    expect(id.closest("aside")).toBeInTheDocument();
+    expect(id.closest("header")).not.toBeInTheDocument();
+    expect(id).toHaveClass("font-mono");
+    expect(
+      screen.getByRole("button", { name: "Copy document ID" }),
+    ).toBeInTheDocument();
+    expect(heading).toBeInTheDocument();
+  });
+
+  it("opens the shared date and time picker from the Publishing panel", () => {
+    vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(
+      function showModal(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      },
+    );
+    vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(
+      function close(this: HTMLDialogElement) {
+        this.removeAttribute("open");
+        this.dispatchEvent(new Event("close"));
+      },
+    );
+    renderPage(initial);
+
+    const trigger = screen.getByRole("button", { name: "Open calendar" });
+    expect(trigger).toBeVisible();
+    fireEvent.click(trigger);
+
+    expect(
+      screen.getByRole("button", { name: "Previous month" }),
+    ).toBeVisible();
+    expect(screen.getByLabelText("Hour")).toBeVisible();
+  });
+
   it("retains edits typed during a save and adopts the server publication date on the next submit", async () => {
     const { resolve, promise } = deferred<LegacySaveOutcome>();
     const savedAt = "2026-01-01T12:34:00.000Z";
@@ -122,15 +176,34 @@ describe("PageForm", () => {
     );
   });
 
-  it("opens managed menu placement from the Page editor", () => {
-    renderPage(
-      initial,
-      vi.fn(async () => true),
-    );
+  it.each([undefined, "page-1"])(
+    "omits hierarchy and navigation panels for page creation and editing (%s)",
+    (contentId) => {
+      renderPage(
+        initial,
+        vi.fn(async () => true),
+        contentId,
+      );
+
+      expect(screen.queryByText("Hierarchy")).not.toBeInTheDocument();
+      expect(screen.queryByText("Navigation")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("link", { name: "Manage menu placement" }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("shows the Homepage helper only in the page type field", () => {
+    renderPage({ ...initial, type: pageLayouts.home });
 
     expect(
-      screen.getByRole("link", { name: "Manage menu placement" }),
-    ).toHaveAttribute("href", "/admin/settings/menus");
+      screen.getByText("This page is the website's default landing page."),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(
+        "This is the website's default landing page. Only one Homepage page can exist.",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("retains failed edits and retries tags through the same form save", async () => {
@@ -191,7 +264,7 @@ describe("PageForm", () => {
 
     for (const name of [
       "Standard Page",
-      "Home Page",
+      "Homepage — default landing page",
       "Posts Page",
       "Gallery Page",
     ]) {
@@ -201,6 +274,31 @@ describe("PageForm", () => {
     expect(screen.queryByLabelText("Filter by tag")).not.toBeInTheDocument();
     fireEvent.change(selector, { target: { value: pageLayouts.posts } });
     expect(screen.getByLabelText("Filter by tag")).toBeVisible();
+  });
+
+  it("places Posts listing below Tags in the sidebar only for Posts pages", () => {
+    renderPage(initial);
+
+    expect(
+      screen.queryByRole("heading", { name: "Posts listing" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Page type" }), {
+      target: { value: pageLayouts.posts },
+    });
+
+    const postsHeading = screen.getByRole("heading", {
+      name: "Posts listing",
+    });
+    const tagsHeading = screen.getByRole("heading", { name: "Tags" });
+    const sidebar = postsHeading.closest("aside");
+
+    expect(sidebar).not.toBeNull();
+    expect(sidebar).toContainElement(tagsHeading);
+    expect(
+      tagsHeading.compareDocumentPosition(postsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
   });
 
   it("allows an explicit change from an existing layout to Standard", () => {

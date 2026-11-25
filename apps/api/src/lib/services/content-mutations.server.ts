@@ -1,3 +1,4 @@
+import { prisma } from "@nextpress/db";
 import { pageLayouts } from "@nextpress/shared/content";
 
 import {
@@ -10,6 +11,7 @@ import { validateTagIds } from "@/lib/repos/tagRepo";
 
 import {
   validateCreateBody,
+  PageConflictError,
   validateUpdateBody,
   validatePublicationFields,
   runWithContentConflictHandling,
@@ -57,6 +59,7 @@ export async function createContentService(
   }
 
   await validateListingFilter(kind, parsed.layout, parsed.listingTaxonomyId);
+  await ensureHomepageAvailable(kind, parsed.layout, undefined);
   validateGallery(kind, parsed.layout, parsed.galleryIds);
   await validateTagIds(parsed.tagIds);
   const { tagIds, ...pageData } = parsed;
@@ -94,6 +97,21 @@ export async function updateContentService(
     ]);
   }
 
+  if (
+    kind === "PAGE" &&
+    ((current.layout === pageLayouts.home &&
+      parsed.layout !== undefined &&
+      parsed.layout !== pageLayouts.home) ||
+      (current.layout === pageLayouts.posts &&
+        current.slug === "posts" &&
+        ((parsed.layout !== undefined && parsed.layout !== pageLayouts.posts) ||
+          (parsed.slug !== undefined && parsed.slug !== "posts"))))
+  ) {
+    throw new PageConflictError(
+      "Protected system pages cannot change their page type or canonical slug.",
+    );
+  }
+
   if (parsed.status === "PUBLISHED") {
     validatePublicationFields({
       title: parsed.title ?? current.title,
@@ -106,6 +124,7 @@ export async function updateContentService(
     parsed.layout ?? current.layout,
     parsed.listingTaxonomyId,
   );
+  await ensureHomepageAvailable(kind, parsed.layout ?? current.layout, id);
   validateGallery(kind, parsed.layout ?? current.layout, parsed.galleryIds);
 
   if (parsed.tagIds) {
@@ -119,6 +138,31 @@ export async function updateContentService(
   );
 
   return updated;
+}
+
+async function ensureHomepageAvailable(
+  kind: "PAGE" | "POST",
+  layout: string | undefined,
+  excludeId: string | undefined,
+) {
+  if (kind !== "PAGE" || layout !== pageLayouts.home) {
+    return;
+  }
+
+  const existing = await prisma.page.findFirst({
+    where: {
+      type: "PAGE",
+      layout: pageLayouts.home,
+      ...(excludeId && { id: { not: excludeId } }),
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    throw new PageConflictError(
+      "A Homepage page already exists. Edit the existing Homepage instead.",
+    );
+  }
 }
 
 function validateGallery(

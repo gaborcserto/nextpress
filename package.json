@@ -34,6 +34,8 @@
     "db:up": "docker compose up -d --no-recreate db && npm run db:ready -- compose",
     "db:ready": "node scripts/wait-for-postgres.mjs",
     "db:target": "npm --workspace @nextpress/db run target --",
+    "db:migration-target": "npm --workspace @nextpress/db run target -- --migration",
+    "db:migration-ready": "npm --workspace @nextpress/db exec prisma migrate status",
     "db:seed": "npm --workspace @nextpress/db run seed",
     "admin:bootstrap": "npm --workspace api run bootstrap:admin",
     "bootstrap": "npm run db:target -- --compose && npm run db:up && npm run dev",

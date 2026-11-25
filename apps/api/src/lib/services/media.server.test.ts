@@ -103,6 +103,8 @@ describe("secure media boundaries", () => {
               gallery: { some: { mediaId: "asset" } },
             },
             { pageDocument: { contains: '"asset"' } },
+            { content: { contains: "asset" } },
+            { excerpt: { contains: "asset" } },
           ],
         },
       }),

@@ -18,12 +18,17 @@ import {
   setTagsForPage,
   listTagsWithUsage,
 } from "@/lib/repos";
-import { TagCreateSchema, TagIdsSchema } from "@/lib/validation";
+import {
+  TagCreateSchema,
+  TagIdsSchema,
+  TagUpdateSchema,
+} from "@/lib/validation";
 
 import type { TagDto, TagWithUsageDto } from "@/lib/repos";
 
 export class ValidationError extends Error {}
 export class NotFoundError extends Error {}
+export class TaxonomyConflictError extends Error {}
 
 /**
  * Extract a human-readable validation message from a Yup-like error.
@@ -136,6 +141,131 @@ export async function deleteTagService(rawId: string): Promise<void> {
 
   if (!deleted) {
     throw new NotFoundError("Tag not found");
+  }
+}
+
+export async function deleteCategoryService(rawId: string): Promise<void> {
+  const id = rawId.trim();
+
+  if (!id) {
+    throw new ValidationError("ID is required");
+  }
+
+  const category = await prisma.taxonomy.deleteMany({
+    where: {
+      id,
+      type: "CATEGORY",
+      pages: { none: {} },
+      Page: { none: {} },
+      back_ContentRevisionTaxonomy_target: { none: {} },
+      privateWorkingReferences: { none: {} },
+    },
+  });
+
+  if (!category.count) {
+    const existing = await prisma.taxonomy.findUnique({
+      where: { id, type: "CATEGORY" },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new TaxonomyConflictError(
+        "Remove content references before deleting this category",
+      );
+    }
+
+    throw new NotFoundError("Category not found");
+  }
+}
+
+export async function createCategoryService(input: unknown): Promise<TagDto> {
+  const parsed = TagUpdateSchema.safeParse(input);
+
+  if (!parsed.success) {
+    throw new ValidationError(getValidationMessage(parsed.error));
+  }
+
+  const { name, slug } = parsed.data;
+  const duplicate = await prisma.taxonomy.findFirst({
+    where: { type: "CATEGORY", name: { equals: name, mode: "insensitive" } },
+    select: { id: true },
+  });
+
+  if (duplicate) {
+    throw new TaxonomyConflictError("A category with this name already exists");
+  }
+
+  try {
+    const category = await prisma.taxonomy.create({
+      data: { type: "CATEGORY", name, slug },
+    });
+
+    return { id: category.id, name: category.name, slug: category.slug };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "P2002") {
+      throw new TaxonomyConflictError("This taxonomy slug already exists");
+    }
+
+    throw error;
+  }
+}
+
+export async function updateTagService(
+  rawId: string,
+  rawInput: unknown,
+): Promise<TagDto> {
+  const id = rawId.trim();
+  const parsed = TagUpdateSchema.safeParse(rawInput);
+
+  if (!id || !parsed.success) {
+    throw new ValidationError(
+      parsed.success ? "ID is required" : getValidationMessage(parsed.error),
+    );
+  }
+
+  const existing = await prisma.taxonomy.findFirst({
+    where: { id },
+    select: { type: true },
+  });
+
+  if (!existing) {
+    throw new NotFoundError("Tag not found");
+  }
+
+  const duplicate = await prisma.taxonomy.findFirst({
+    where: {
+      type: existing.type,
+      id: { not: id },
+      OR: [
+        { name: { equals: parsed.data.name, mode: "insensitive" } },
+        { slug: parsed.data.slug },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (duplicate) {
+    throw new ValidationError("A tag with this name or slug already exists");
+  }
+
+  try {
+    const updated = await prisma.taxonomy.update({
+      where: { id, type: existing.type },
+      data: parsed.data,
+    });
+
+    return { id: updated.id, name: updated.name, slug: updated.slug };
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      throw new ValidationError("A tag with this name or slug already exists");
+    }
+
+    throw error;
   }
 }
 

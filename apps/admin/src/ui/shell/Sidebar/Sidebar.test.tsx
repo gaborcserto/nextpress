@@ -3,12 +3,43 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/admin" }));
 vi.mock("@/ui/shell/NavItem", () => ({
-  NavItem: ({ label }: { label: string }) => <span>{label}</span>,
+  NavItem: ({
+    label,
+    IconAction,
+  }: {
+    label: string;
+    IconAction: { name: string };
+  }) => <span data-icon={IconAction.name}>{label}</span>,
 }));
 
 import Sidebar from "./Sidebar";
 
 describe("Sidebar drawer close control", () => {
+  it("uses the shared posts and pages navigation icons", () => {
+    render(<Sidebar collapsed={false} role="ADMIN" />);
+
+    expect(screen.getByText("Posts")).toHaveAttribute(
+      "data-icon",
+      "FaNewspaper",
+    );
+    expect(screen.getByText("Pages")).toHaveAttribute("data-icon", "FaCopy");
+  });
+
+  it("shows the full branded wordmark when expanded", () => {
+    render(<Sidebar collapsed={false} role="ADMIN" />);
+
+    expect(screen.getByLabelText("nextpress.")).toHaveTextContent("nextpress.");
+    expect(
+      screen.getByLabelText("nextpress.").querySelector("span"),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("shows the centered compact wordmark when collapsed", () => {
+    render(<Sidebar collapsed role="ADMIN" />);
+
+    expect(screen.getByLabelText("nextpress.")).toHaveTextContent("np.");
+  });
+
   it("offers a named button that closes the mobile navigation", () => {
     const onCloseAction = vi.fn();
     render(

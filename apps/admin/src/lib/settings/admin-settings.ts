@@ -3,6 +3,7 @@ import {
   PostListingModeSchema,
   PostsPerPageSchema,
   normalizePostsPerPage,
+  type Appearance,
   type PostListingMode,
 } from "@nextpress/shared";
 import {
@@ -76,8 +77,10 @@ export function normalizeSettingsForm(
 export function buildSettingsPayload(
   form: SettingsFormValues,
   credentials: ProviderCredentialUpdates,
+  appearance?: Appearance,
 ): SettingsApiPayload {
   return {
+    ...(appearance ? { appearance } : {}),
     dateTime:
       form.dateTime === undefined
         ? undefined

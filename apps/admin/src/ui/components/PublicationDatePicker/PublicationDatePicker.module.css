@@ -10,17 +10,18 @@
 }
 .field {
   position: relative;
+  display: block;
   min-width: 0;
-}
-.field input {
-  padding-inline-end: calc(var(--target-touch) + 0.25rem);
 }
 .iconButton {
   position: absolute;
-  inset-block: 0.125rem;
-  inset-inline-end: 0.125rem;
+  z-index: 1;
+  inset-inline-end: var(--space-1);
+  top: 50%;
+  transform: translateY(-50%);
   width: var(--target-touch);
-  min-height: var(--target-touch);
+  height: var(--target-touch);
+  min-height: 0;
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
@@ -29,8 +30,11 @@
   cursor: pointer;
   color: var(--control-icon);
 }
+.field > :first-child {
+  min-inline-size: 0;
+}
 .field :global(input) {
-  padding-inline-end: calc(var(--target-touch) + 0.25rem);
+  padding-inline-end: calc(var(--target-touch) + var(--space-2));
 }
 .header button,
 .grid button {
@@ -44,25 +48,15 @@
   background: var(--surface-rail);
 }
 .iconButton:hover:not(:disabled),
-.iconControl:hover:not(:disabled),
-.header .iconControl:hover:not(:disabled) {
+.iconButton:focus-visible {
   color: var(--accent-solid);
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.iconButton:focus-visible,
-.iconControl:focus-visible,
-.iconControl:active {
   background: transparent !important;
   box-shadow: none !important;
 }
 .iconButton,
 .iconButton:hover,
 .iconButton:focus,
-.iconControl,
-.iconControl:hover,
-.iconControl:focus,
-.iconControl:active {
+.iconControl {
   border: 0 !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -79,6 +73,16 @@
   box-shadow: none !important;
   color: var(--control-icon);
   cursor: pointer;
+}
+.iconControl:hover:not(:disabled) {
+  color: var(--color-base-content);
+  background: var(--surface-rail) !important;
+  box-shadow: none !important;
+}
+.todayButton {
+  width: auto;
+  padding-inline: var(--space-2);
+  color: var(--color-base-content);
 }
 .iconControl:disabled,
 .iconButton:disabled {
@@ -101,10 +105,10 @@
   inset: 0 auto auto 0;
   margin: 0;
   box-sizing: border-box;
-  width: min(20rem, calc(100vw - 1rem));
+  width: min(19rem, calc(100vw - 1rem));
   max-width: calc(100vw - 1rem);
   padding: min(var(--space-3), 3vi);
-  overflow: auto;
+  overflow: visible;
   overscroll-behavior: contain;
   border: 1px solid var(--surface-border);
   border-radius: var(--radius-surface);
@@ -113,36 +117,87 @@
   box-shadow: var(--shadow-overlay);
   color-scheme: inherit;
 }
+.dialog:modal {
+  overflow: auto;
+}
+.zone {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-caption-size);
+  line-height: 1.35;
+}
+.monthYear {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  justify-self: center;
+  justify-content: center;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
 .dialog::backdrop {
   background: transparent;
 }
+.dialog:modal::backdrop {
+  background: var(--overlay-backdrop);
+}
 .header {
   display: grid;
-  grid-template-columns: var(--target-touch) minmax(0, 1fr) var(--target-touch);
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
   overflow-wrap: anywhere;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
   text-align: center;
 }
 .header button {
-  width: var(--target-touch);
-  min-height: var(--target-touch);
+  width: 2rem;
+  min-height: 2rem;
   padding: 0;
   border: 0;
   background: transparent !important;
   box-shadow: none !important;
 }
+.monthYear button {
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+  border-radius: var(--radius-control);
+  font-size: var(--text-caption-size);
+  font-weight: 600;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: min(var(--space-1), 0.65vi);
-  margin-block: var(--space-3);
+  gap: 0.125rem;
+  margin-block: 0.5rem;
   text-align: center;
+}
+.selectionGrid {
+  display: grid;
+  min-height: 14.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, 1fr);
+  gap: 0.25rem;
+  margin-block: 0.5rem;
+}
+.selectionGrid button {
+  min-width: 0;
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+}
+.selectionGrid button:hover:not([aria-pressed="true"]) {
+  background: var(--surface-rail);
+}
+.selectionGrid button[aria-pressed="true"] {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: var(--color-primary-content);
 }
 .weekday {
   display: grid;
   min-width: 0;
-  min-height: 2rem;
+  min-height: 1.5rem;
   place-items: center;
   color: var(--text-muted);
   font-size: min(0.75rem, 5.7vi);
@@ -150,11 +205,14 @@
 .grid button {
   display: grid;
   min-width: 0;
-  min-height: var(--target-touch);
+  width: min(100%, 2rem);
+  aspect-ratio: 1;
+  min-height: 0;
+  justify-self: center;
   place-items: center;
   padding: 0;
   border-color: transparent;
-  font-size: var(--text-ui-size);
+  font-size: var(--text-caption-size);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -170,17 +228,6 @@
   background: var(--accent-solid);
   color: var(--color-primary-content);
 }
-.dialog footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.5rem;
-  border-top: 1px solid var(--surface-border);
-  padding-top: 0.5rem;
-}
-.dialog footer :global(.btn-ghost) {
-  color: var(--color-base-content);
-}
 .dialog button:focus-visible,
 .iconButton:focus-visible {
   outline: var(--focus-width) solid var(--focus-color);
@@ -191,80 +238,112 @@
     gap: 0.375rem;
   }
 }
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.625rem;
-  min-height: 2.5rem;
-  align-items: center;
-  border-top: 1px solid var(--surface-border);
-  padding-top: 0.5rem;
-}
-.timeHeader {
+.timeRow {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  padding-block: 0.25rem 0.125rem;
+  border-top: 1px solid var(--surface-border);
 }
 .timePicker {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  align-items: start;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.timeControls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-inline-start: auto;
 }
 .timePicker > div {
-  display: grid;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-ui-size);
+}
+.timePicker > div + div::before {
+  content: ":";
+  color: var(--text-muted);
+  margin-inline-end: 0.25rem;
+}
+.periodControl {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+.periodControl :global(.btn) {
+  min-height: 1.75rem;
+  height: 1.75rem;
+  padding-inline: 0.375rem;
+  font-size: var(--text-caption-size);
 }
 .timePicker label {
-  color: var(--text-muted);
-  font-weight: 600;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 .stepper {
-  display: grid;
-  justify-items: center;
-  grid-template-rows: 2.75rem 2.75rem 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
 }
 .stepper input {
   min-width: 0;
-  width: 3rem;
-  min-height: 2.75rem;
+  width: 2.5rem;
+  block-size: 2rem;
+  min-height: 2rem;
   padding-inline: 0.25rem;
-  border: 1px solid var(--surface-border);
+  border: var(--border-width) solid var(--field-border);
   border-radius: var(--radius-control);
-  background: var(--surface-bg);
+  background: var(--field-background);
   color: var(--color-base-content);
   text-align: center;
   font-variant-numeric: tabular-nums;
-  font-size: 1rem;
+  font-size: var(--text-ui-size);
 }
-.stepper button {
-  width: var(--target-touch);
-  min-height: var(--target-touch);
-  border: 0;
-  background: transparent;
-  color: var(--color-base-content);
-  cursor: pointer;
-  border-radius: var(--radius-control);
+.stepper input:hover:not(:disabled) {
+  border-color: var(--field-border-hover);
 }
-.stepper button:hover {
-  color: var(--accent-solid);
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.stepper button:first-child svg {
-  transform: translateY(0.1rem);
-}
-.stepper button:last-child svg {
-  transform: translateY(-0.1rem);
-}
-.stepper button:focus-visible,
+
 .stepper input:focus-visible {
-  outline: var(--focus-width) solid var(--focus-color);
-  outline-offset: var(--focus-offset);
+  border-color: var(--focus-color);
+  outline: none;
+  box-shadow:
+    0 0 0 1px var(--focus-color),
+    0 0 0 4px color-mix(in srgb, var(--focus-color) 16%, transparent);
+}
+
+@media (max-width: 30rem) {
+  .dialog:modal {
+    width: min(19rem, calc(100vw - 1rem));
+    max-height: calc(100dvh - 1rem);
+    padding: 0.75rem;
+  }
+
+  .grid button {
+    width: min(100%, 2.25rem);
+    min-height: 2.25rem;
+  }
+
+  .stepper input {
+    width: 2.75rem;
+    block-size: var(--target-touch);
+    min-height: var(--target-touch);
+  }
+}
+@media (pointer: coarse) {
+  .timeRow > :first-child {
+    min-height: var(--target-touch);
+  }
+
+  .periodControl :global(.btn) {
+    min-height: var(--target-touch);
+    height: var(--target-touch);
+  }
 }
 .error {
   grid-column: 1 / -1;

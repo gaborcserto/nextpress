@@ -24,5 +24,8 @@ export type SettingsScreenState = {
   loading: boolean;
   saving: boolean;
   error: string | null;
-  save: (credentials: ProviderCredentialUpdates) => Promise<boolean>;
+  save: (
+    credentials: ProviderCredentialUpdates,
+    appearance?: import("@nextpress/shared").Appearance,
+  ) => Promise<boolean>;
 };

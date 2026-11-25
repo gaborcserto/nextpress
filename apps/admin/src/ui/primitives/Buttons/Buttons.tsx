@@ -86,6 +86,7 @@ function BaseButton({
   children,
   className,
   loading,
+  loadingLabel,
   variant,
   color,
   size,
@@ -116,8 +117,20 @@ function BaseButton({
       disabled={isDisabled}
       {...restDomProps}
     >
-      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
-        {children}
+      <span className="admin-button-content">
+        <span
+          className="admin-button-content-state"
+          aria-hidden={loading || undefined}
+        >
+          {children}
+        </span>
+        <span
+          className="admin-button-content-state admin-button-loading-content"
+          aria-hidden={!loading || undefined}
+        >
+          <span className="loading loading-spinner size-4" aria-hidden="true" />
+          {loadingLabel ?? children}
+        </span>
       </span>
     </button>
   );

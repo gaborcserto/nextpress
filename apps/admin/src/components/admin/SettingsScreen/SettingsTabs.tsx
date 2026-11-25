@@ -6,15 +6,16 @@
   type ReactNode,
 } from "react";
 
+import { useSettingsMessages } from "./messages";
 import styles from "./SettingsTabs.module.css";
 
-const sections = [
-  { id: "settings-general", label: "General" },
-  { id: "settings-publishing", label: "Publishing" },
-  { id: "settings-authentication", label: "Authentication" },
+const sectionIds = [
+  "settings-general",
+  "settings-publishing",
+  "settings-authentication",
 ] as const;
 
-type SectionId = (typeof sections)[number]["id"];
+type SectionId = (typeof sectionIds)[number];
 const selectionEvent = "nextpress-settings-selection";
 
 function subscribe(listener: () => void) {
@@ -30,7 +31,7 @@ function subscribe(listener: () => void) {
 }
 
 function defaultSection() {
-  return sections[0].id;
+  return sectionIds[0];
 }
 
 function readSection() {
@@ -39,13 +40,16 @@ function readSection() {
   }
 
   return (
-    sections.find(({ id }) => window.location.hash === `#${id}`)?.id ??
+    sectionIds.find((id) => window.location.hash === `#${id}`) ??
     defaultSection()
   );
 }
 
 export function selectSettingsSection(id: string) {
-  if (!sections.some((section) => section.id === id) || readSection() === id) {
+  if (
+    !sectionIds.some((sectionId) => sectionId === id) ||
+    readSection() === id
+  ) {
     return;
   }
 
@@ -58,6 +62,12 @@ export function useSettingsSection() {
 }
 
 export function SettingsTabs({ active }: { active: SectionId }) {
+  const text = useSettingsMessages();
+  const sections = [
+    { id: sectionIds[0], label: text.generalTab },
+    { id: sectionIds[1], label: text.publishingTab },
+    { id: sectionIds[2], label: text.authenticationTab },
+  ];
   const [focused, setFocused] = useState<SectionId | null>(null);
 
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -93,7 +103,7 @@ export function SettingsTabs({ active }: { active: SectionId }) {
   return (
     <div
       role="tablist"
-      aria-label="Settings sections"
+      aria-label={text.sectionsLabel}
       className={styles.tabs}
       onBlur={resetFocus}
     >

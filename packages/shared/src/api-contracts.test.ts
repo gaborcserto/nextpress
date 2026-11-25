@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  NavigationItemSchema,
   PageSchema,
   PageUpdateSchema,
   EditorialPostSchema,
@@ -171,5 +172,19 @@ describe("summary cover compatibility", () => {
 
     expect(PublicPostSummarySchema.safeParse(expanded).success).toBe(true);
     expect(oldConsumer.safeParse(expanded).success).toBe(false);
+  });
+});
+describe("navigation items", () => {
+  it("defaults item visibility on for existing menu clients", () => {
+    const item = NavigationItemSchema.parse({
+      id: "item",
+      parentId: null,
+      kind: "group",
+      label: "Explore",
+      value: "",
+      newTab: false,
+    });
+
+    expect(item.visible).toBe(true);
   });
 });

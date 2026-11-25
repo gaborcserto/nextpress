@@ -12,7 +12,9 @@ describe("ImageUploader", () => {
     expect(
       screen.getByText("Image uploads are not configured"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Upload image")).toBeDisabled();
+    const fileInput = screen.getByLabelText("Upload image");
+    expect(fileInput).toBeDisabled();
+    expect(fileInput.parentElement).toHaveClass("bg-(--surface-rail)");
     expect(onChange).not.toHaveBeenCalled();
   });
 

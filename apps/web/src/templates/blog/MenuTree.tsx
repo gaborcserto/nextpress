@@ -1,4 +1,7 @@
+import dropdownStyles from "@/components/public-ui/PublicDropdown.module.css";
 import { UiText } from "@/lib/i18n/client";
+import { getMessage } from "@/lib/i18n/messages";
+import { getLocale } from "@/lib/i18n/server";
 
 import styles from "./BlogShell.module.css";
 import { MenuDisclosure } from "./MenuDisclosure";
@@ -6,13 +9,14 @@ import { NavigationLink } from "./NavigationLink";
 
 import type { PublicMenuItem } from "@nextpress/shared/api-contracts";
 
-export function MenuTree({
+export async function MenuTree({
   items,
   dropdown = false,
 }: {
   items: PublicMenuItem[];
   dropdown?: boolean;
 }) {
+  const locale = await getLocale();
   const branches = new Map<number | null, number[]>();
 
   items.forEach(({ parent }, index) => {
@@ -22,8 +26,14 @@ export function MenuTree({
   });
 
   function renderBranch(parent: number | null) {
+    const dropdownItems = dropdown && parent !== null;
+
     return (
-      <ul className={parent === null ? styles.navigation : styles.submenu}>
+      <ul
+        className={`${parent === null ? styles.navigation : styles.submenu} ${
+          dropdown && parent !== null ? dropdownStyles.panel : ""
+        }`}
+      >
         {branches.get(parent)?.map((index) => {
           const item = items[index];
 
@@ -47,11 +57,16 @@ export function MenuTree({
           return (
             <li key={index} className={styles.menuItem}>
               {href?.startsWith("/") ? (
-                <NavigationLink href={href} newTab={newTab}>
+                <NavigationLink
+                  href={href}
+                  newTab={newTab}
+                  className={dropdownItems ? dropdownStyles.item : undefined}
+                >
                   {title}
                 </NavigationLink>
               ) : href ? (
                 <a
+                  className={dropdownItems ? dropdownStyles.item : undefined}
                   href={href}
                   target={target}
                   rel={newTab ? "noopener noreferrer" : undefined}
@@ -59,19 +74,17 @@ export function MenuTree({
                   {title}
                 </a>
               ) : (
-                !dropdown && <span>{title}</span>
+                !nested && <span>{title}</span>
               )}
-              {nested &&
-                (dropdown ? (
-                  <MenuDisclosure
-                    label={href ? label : undefined}
-                    title={href ? "▾" : title}
-                  >
-                    {renderBranch(index)}
-                  </MenuDisclosure>
-                ) : (
-                  renderBranch(index)
-                ))}
+              {nested && (
+                <MenuDisclosure
+                  label={`${getMessage(locale, "navigation.openSubmenu")} ${label}`}
+                  title={href ? null : title}
+                  showChevron={Boolean(href)}
+                >
+                  {renderBranch(index)}
+                </MenuDisclosure>
+              )}
             </li>
           );
         })}

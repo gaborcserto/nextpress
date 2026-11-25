@@ -39,6 +39,11 @@ const events = {
     level: "error",
     outcome: "failure",
   },
+  "public.navigation.degraded": {
+    category: "operational",
+    level: "warn",
+    outcome: "failure",
+  },
   "user.role.changed": { category: "audit", level: "info", outcome: "success" },
   "navigation.menu.created": {
     category: "audit",
@@ -106,6 +111,9 @@ type OperationalFields = {
   operation?: LogOperation;
   code?: FailureCode;
   status?: unknown;
+  errorClass?: unknown;
+  prismaCode?: unknown;
+  constraint?: unknown;
 };
 
 type AuditTarget = {
@@ -144,6 +152,12 @@ type LogFields = OperationalFields & {
   revisionId?: unknown;
   sourceRevisionId?: unknown;
 };
+
+function safeDiagnostic(value: unknown): string | undefined {
+  return typeof value === "string" && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(value)
+    ? value
+    : undefined;
+}
 
 function allowedValue<T extends string>(
   values: readonly T[],
@@ -185,6 +199,9 @@ export function writeServerLog(
     operation,
     code,
     status,
+    errorClass,
+    prismaCode,
+    constraint,
     actorId,
     targetId,
     role,
@@ -220,6 +237,12 @@ export function writeServerLog(
       status <= 599
         ? status
         : undefined,
+    errorClass:
+      category === "operational" ? safeDiagnostic(errorClass) : undefined,
+    prismaCode:
+      category === "operational" ? safeDiagnostic(prismaCode) : undefined,
+    constraint:
+      category === "operational" ? safeDiagnostic(constraint) : undefined,
     actorId: category === "audit" && isEntityId(actorId) ? actorId : undefined,
     targetId:
       category === "audit" &&

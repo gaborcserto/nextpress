@@ -69,6 +69,30 @@ it("requires the complete provider set and preserves omitted or blank write-only
   ).toBe(false);
 });
 
+it("accepts validated appearance as an optional part of the unified save", () => {
+  expect(SettingsUpdateSchema.parse(input)).toEqual(input);
+  expect(
+    SettingsUpdateSchema.parse({
+      ...input,
+      appearance: {
+        websiteTemplate: "blog",
+        stylePreset: "modern",
+        colorMode: "dark",
+      },
+    }).appearance,
+  ).toEqual({
+    websiteTemplate: "blog",
+    stylePreset: "modern",
+    colorMode: "dark",
+  });
+  expect(
+    SettingsUpdateSchema.safeParse({
+      ...input,
+      appearance: { websiteTemplate: "unknown" },
+    }).success,
+  ).toBe(false);
+});
+
 it("requires credential presence metadata while stripping secrets from responses", () => {
   expect(SettingsResponseSchema.safeParse(input).success).toBe(false);
   const response = SettingsResponseSchema.parse({

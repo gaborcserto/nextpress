@@ -139,6 +139,11 @@ export default function AppShell({
           ref={dialogRef}
           aria-label="Admin navigation"
           aria-modal="true"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !isDesktop) {
+              closeNavigation();
+            }
+          }}
           onCancel={(event) => {
             event.preventDefault();
             closeNavigation();

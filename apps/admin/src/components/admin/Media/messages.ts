@@ -1,17 +1,32 @@
-import { useSyncExternalStore } from "react";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 
 const en = {
+  browseFile: "Browse file",
+  browseFiles: "Browse files",
+  dropFiles: "Drag and drop files here",
+  removeUpload: "Remove from upload list",
   library: "Media Library",
+  libraryDescription: "Upload and manage images and documents.",
+  assetKinds: { all: "All", image: "Media", document: "Documents" },
+  uploadAssets: "Upload files",
+  uploadFiles: "Upload files",
+  mediaFiles: "Media files",
+  mixedUploadHint: "Choose or drop images or PDF documents.",
+  singleUploadHint: "Choose or drop one file.",
+  oneFile: "Choose one file.",
   documents: "Document Library",
   download: "Download PDF",
   owner: "Owner ID",
   availability: "Availability",
   publicDocument: "Public download",
   protectedDocument: "Protected download",
-  choose: "Choose image",
+  choose: "Select from Media Library",
   chooseMany: "Choose images",
+  insertFile: "Insert file",
   selected: "Selected",
   upload: "Upload images",
+  uploadFilesTab: "Upload files",
+  allFiles: "All files",
   uploadHint:
     "Choose or drop up to 12 JPEG, PNG, WebP, AVIF, or GIF files, up to 2 MiB each.",
   queued: "Queued",
@@ -40,12 +55,18 @@ const en = {
   updatedAt: "Modified",
   grid: "Grid",
   list: "List",
+  view: "View",
   previous: "Previous",
   next: "Next",
   page: "Page",
   loading: "Loading media…",
   loadError: "Unable to load media.",
   empty: "No matching media.",
+  emptyHeading: "No files uploaded yet",
+  emptyDescription:
+    "Upload images or documents to start building your media library.",
+  noMatches: "No files match these filters",
+  noMatchesDescription: "Try changing or clearing your search and filters.",
   close: "Close",
   cancel: "Cancel",
   confirm: "Use selection",
@@ -92,6 +113,18 @@ const en = {
 
 type Messages = typeof en;
 const hu: Messages = {
+  browseFile: "Fájl tallózása",
+  browseFiles: "Fájlok tallózása",
+  dropFiles: "Húzza ide a fájlokat",
+  removeUpload: "Eltávolítás a feltöltési listából",
+  libraryDescription: "Képek és dokumentumok feltöltése és kezelése.",
+  assetKinds: { all: "Összes", image: "Média", document: "Dokumentumok" },
+  uploadAssets: "Fájlok feltöltése",
+  uploadFiles: "Fájlok feltöltése",
+  mediaFiles: "Médiafájlok",
+  mixedUploadHint: "Válasszon vagy húzzon ide képeket vagy PDF-dokumentumokat.",
+  singleUploadHint: "Válasszon vagy húzzon ide egy fájlt.",
+  oneFile: "Válasszon egy fájlt.",
   library: "Médiatár",
   documents: "Dokumentumtár",
   download: "PDF letöltése",
@@ -101,8 +134,11 @@ const hu: Messages = {
   protectedDocument: "Védett letöltés",
   choose: "Kép kiválasztása",
   chooseMany: "Képek kiválasztása",
+  insertFile: "Fájl beszúrása",
   selected: "Kiválasztva",
   upload: "Képek feltöltése",
+  uploadFilesTab: "Fájlok feltöltése",
+  allFiles: "Minden fájl",
   uploadHint:
     "Válasszon vagy húzzon ide legfeljebb 12 JPEG, PNG, WebP, AVIF vagy GIF fájlt. Mérethatár fájlonként 2 MiB.",
   queued: "Várakozik",
@@ -139,6 +175,12 @@ const hu: Messages = {
   loading: "Média betöltése…",
   loadError: "Nem sikerült betölteni a médiatárat.",
   empty: "Nincs találat.",
+  emptyHeading: "Még nincs feltöltött fájl",
+  emptyDescription:
+    "Töltsön fel képeket vagy dokumentumokat a médiatár használatának megkezdéséhez.",
+  noMatches: "Nincs a szűrőknek megfelelő fájl",
+  noMatchesDescription: "Módosítsa vagy törölje a keresést és a szűrőket.",
+  view: "Nézet",
   close: "Bezárás",
   cancel: "Mégse",
   confirm: "Kijelölés alkalmazása",
@@ -182,18 +224,8 @@ const hu: Messages = {
   documentLimit: "A dokumentum túllépi a méret- vagy blokkszámkorlátot.",
 };
 
-function subscribe(onChange: () => void) {
-  window.addEventListener("languagechange", onChange);
-
-  return () => window.removeEventListener("languagechange", onChange);
-}
-
-function browserMessages() {
-  return navigator.language.toLowerCase().startsWith("hu") ? hu : en;
-}
-
 export function useMediaMessages(documents = false) {
-  const media = useSyncExternalStore(subscribe, browserMessages, () => en);
+  const media = useAdminLocale() === "hu" ? hu : en;
 
   if (!documents) {
     return media;
@@ -218,7 +250,7 @@ export function useMediaMessages(documents = false) {
           loadError: "A dokumentumok betöltése sikertelen.",
         }
       : {
-          choose: "Choose PDF",
+          choose: "Select from Media Library",
           chooseMany: "Choose PDFs",
           upload: "Upload PDFs",
           uploadHint: "Choose or drop up to 12 PDF files, up to 10 MiB each.",
@@ -229,6 +261,13 @@ export function useMediaMessages(documents = false) {
           id: "Document ID",
           url: "Document reference",
           imageType: "Document type",
+          emptyHeading: "No files uploaded yet",
+          emptyDescription:
+            "Upload images or documents to start building your media library.",
+          noMatches: "No files match these filters",
+          noMatchesDescription:
+            "Try changing or clearing your search and filters.",
+          view: "View",
           loading: "Loading documents…",
           loadError: "Unable to load documents.",
         };

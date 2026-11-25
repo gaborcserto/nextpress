@@ -1,6 +1,9 @@
 import path from "path";
 
-import { webSecurityHeaders } from "./src/lib/security/headers";
+import {
+  previewAdminOrigin,
+  webSecurityHeaders,
+} from "./src/lib/security/headers";
 
 import type { NextConfig } from "next";
 
@@ -14,6 +17,8 @@ const nextConfig: NextConfig = {
   // Media authorization is checked on every delivery, including after unpublishing.
   images: { localPatterns: [], remotePatterns: [] },
   async headers() {
+    const adminOrigin = previewAdminOrigin();
+
     return [
       {
         source: "/live-preview",
@@ -27,8 +32,8 @@ const nextConfig: NextConfig = {
                     .replace("img-src 'self'", "img-src 'self' blob:")
                     .replace(
                       "frame-ancestors 'none'",
-                      process.env.PREVIEW_ADMIN_ORIGIN
-                        ? `frame-ancestors ${new URL(process.env.PREVIEW_ADMIN_ORIGIN).origin}`
+                      adminOrigin
+                        ? `frame-ancestors ${adminOrigin}`
                         : "frame-ancestors 'none'",
                     ),
                 }

@@ -1,3 +1,5 @@
+import { pageLayouts } from "@nextpress/shared/content";
+
 import {
   requireContentWrite,
   type ContentActor,
@@ -9,6 +11,7 @@ import {
   createContentService,
   updateContentService,
 } from "./content-mutations.server";
+import { PageConflictError } from "./content.shared";
 
 import type { ContentListFilters } from "@/lib/repos/pageRepo";
 
@@ -31,7 +34,15 @@ export async function deletePageService(
   id: string,
   actor: ContentActor,
 ): Promise<void> {
-  await requireContentWrite(id, actor, "PAGE", true);
+  const page = await requireContentWrite(id, actor, "PAGE", true);
+
+  if (
+    page.layout === pageLayouts.home ||
+    (page.layout === pageLayouts.posts && page.slug === "posts")
+  ) {
+    throw new PageConflictError("Protected system pages cannot be deleted.");
+  }
+
   await deletePage(id, "PAGE", actor);
 }
 

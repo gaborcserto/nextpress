@@ -165,6 +165,29 @@ it("keeps concurrent request logs separate and logs the failure once", async () 
   expect(JSON.stringify(log.mock.calls)).not.toContain("password=secret");
 });
 
+it("logs allowlisted database diagnostics without exposing error messages", async () => {
+  const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+  const failure = Object.assign(new Error("private SQL: password=secret"), {
+    name: "PrismaClientKnownRequestError",
+    code: "P2003",
+    meta: { constraint: "NavigationItem_menuId_parentId_fkey" },
+  });
+
+  const response = await withRequestLogging("protected", () =>
+    internalError(failure),
+  )(new Request("http://localhost"));
+
+  const record = JSON.parse(errorLog.mock.calls[0][0]);
+  expect(record).toMatchObject({
+    code: "database",
+    errorClass: "PrismaClientKnownRequestError",
+    prismaCode: "P2003",
+    constraint: "NavigationItem_menuId_parentId_fkey",
+  });
+  expect(JSON.stringify(record)).not.toContain("password=secret");
+  expect(await response.json()).toEqual({ error: "Unexpected error" });
+});
+
 it("keeps separate delegated cookies and status on correlated redirects", async () => {
   const headers = new Headers({ location: "https://www.example.test" });
   headers.append("Set-Cookie", "session=one; HttpOnly");

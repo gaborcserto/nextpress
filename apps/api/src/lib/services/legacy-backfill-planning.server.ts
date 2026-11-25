@@ -103,6 +103,8 @@ export function mapLegacyRevisionHistory(
           pageDocument: document,
           parentId: null,
           listingTaxonomyId: null,
+          content: source.content,
+          excerpt: source.excerpt,
         },
         relationships: {
           coverId: null,

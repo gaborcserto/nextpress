@@ -62,7 +62,9 @@ export function getActiveAlign(editor: Editor): Align | null {
 
   const [node] = match;
 
-  return SlateElement.isElement(node) ? (node.align ?? null) : null;
+  return SlateElement.isElement(node) && "align" in node
+    ? (node.align ?? null)
+    : null;
 }
 
 function unwrapSelectedLists(editor: Editor): void {

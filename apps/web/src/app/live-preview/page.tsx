@@ -1,4 +1,5 @@
 import { PublicWebsiteShell } from "@/components/public-shell/PublicWebsiteShell";
+import { previewAdminOrigin } from "@/lib/security/headers";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
@@ -13,7 +14,7 @@ export default async function PreviewPage() {
   return (
     <PublicWebsiteShell>
       <Preview
-        adminOrigin={process.env.PREVIEW_ADMIN_ORIGIN ?? ""}
+        adminOrigin={previewAdminOrigin()}
         appearance={{
           listVariant,
           postsPerPage: settings.postsPerPage,

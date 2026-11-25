@@ -49,7 +49,7 @@ it("recovers from a failed hierarchy read without offering an empty result", asy
 });
 
 it("announces denied access in Hungarian", async () => {
-  vi.stubGlobal("navigator", { language: "hu-HU" });
+  document.cookie = "admin-locale=hu; Path=/";
   fetchMock.mockResolvedValue(Response.json({}, { status: 403 }));
   openHierarchy();
 

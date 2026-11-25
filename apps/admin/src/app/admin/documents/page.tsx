@@ -1,21 +1,16 @@
 import { redirect } from "next/navigation";
 
-import {
-  MediaAccessDenied,
-  MediaLibrary,
-} from "@/components/admin/Media/MediaLibrary";
-import { getSessionWithRole, hasAnyRole } from "@/lib/auth/session.server";
+export default async function AdminDocumentsRoute({
+  searchParams,
+}: PageProps<"/admin/documents">) {
+  const query = new URLSearchParams();
 
-export default async function AdminDocumentsRoute() {
-  const session = await getSessionWithRole();
-
-  if (!session?.user.id) {
-    redirect("/auth/sign-in?callbackUrl=%2Fadmin%2Fdocuments");
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === "string") {
+      query.set(key, value);
+    }
   }
 
-  if (!hasAnyRole(session.user.role, ["ADMIN", "EDITOR", "AUTHOR"])) {
-    return <MediaAccessDenied />;
-  }
-
-  return <MediaLibrary documents />;
+  query.set("kind", "document");
+  redirect(`/admin/media?${query}`);
 }

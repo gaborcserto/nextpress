@@ -34,7 +34,15 @@ vi.mock("@/lib/api", () => ({
   jsonFetcher: (url: string) =>
     url === "/api/discovery/session"
       ? Promise.resolve({ user: { id: "user", name: "User", role: "ADMIN" } })
-      : fetcher(url),
+      : url.startsWith("/api/admin/tags?")
+        ? Promise.resolve({
+            items: [],
+            page: 1,
+            limit: 100,
+            total: 0,
+            pages: 1,
+          })
+        : fetcher(url),
   apiFetch,
 }));
 
@@ -265,7 +273,7 @@ describe.each([
     });
   });
 
-  it("preserves server ordering and applies status and sort from the first page", async () => {
+  it("preserves server ordering and applies status and header sorting from the first page", async () => {
     navigation.query = "page=2&view=compact&sort=title&direction=desc";
     fetcher.mockResolvedValue({
       items: [
@@ -301,20 +309,25 @@ describe.each([
     const table = await screen.findByRole("table", { name });
     const firstRow = within(table).getAllByRole("row")[1];
     expect(within(firstRow).getByRole("link", { name: "Zulu" })).toBeVisible();
-    expect(fetcher).toHaveBeenCalledExactlyOnceWith(
-      `${endpoint}?page=2&sort=title&direction=desc`,
-    );
+    const requestedPage = `${endpoint}?page=2&sort=title&direction=desc`;
+    expect(
+      fetcher.mock.calls.filter(([url]) => url === requestedPage),
+    ).toHaveLength(1);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Sort direction" }), {
-      target: { value: "asc" },
-    });
+    fireEvent.click(within(table).getByRole("button", { name: "Title" }));
+
+    expect(navigation.push).toHaveBeenCalledExactlyOnceWith(
+      "/admin/content?view=compact&sort=title&direction=asc",
+      { scroll: false },
+    );
+    navigation.push.mockClear();
+
     fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
       target: { value: "SCHEDULED" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
 
     expect(navigation.push).toHaveBeenCalledExactlyOnceWith(
-      "/admin/content?view=compact&status=SCHEDULED&sort=title&direction=asc",
+      "/admin/content?view=compact&sort=title&direction=desc&status=SCHEDULED",
       { scroll: false },
     );
   });

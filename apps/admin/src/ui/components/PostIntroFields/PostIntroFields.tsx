@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import { SlateEditor, EMPTY_SLATE_VALUE } from "@/ui/components/SlateEditor";
 import { Field } from "@/ui/primitives";
 
@@ -10,15 +11,14 @@ export function PostIntroFields({
   excerpt,
   onExcerptChangeAction,
 }: PostIntroFieldsProps) {
+  const label = useAdminLocale() === "hu" ? "Kivonat" : "Excerpt";
+
   return (
-    <Field
-      label="Excerpt (lead)"
-      hint="Short intro used on listing pages and social previews."
-    >
+    <Field>
       <SlateEditor
         compact
         readOnly={disabled}
-        label="Excerpt (lead)"
+        label={label}
         value={excerpt ?? EMPTY_SLATE_VALUE}
         onChangeAction={onExcerptChangeAction}
       />

@@ -72,6 +72,7 @@ export default function Toggle(props: ToggleProps) {
     baseCls,
     sizeClass(variant, size),
     colorClass(variant, color),
+    variant === "toggle" && "admin-toggle",
     className,
   );
 

@@ -39,15 +39,17 @@ export function DataListSurface({
 
 export function DataListLoading({
   label,
+  message,
   reserveSpace,
 }: {
   label: string;
+  message?: string;
   reserveSpace?: boolean;
 }) {
   return (
     <DataListSurface reserveSpace={reserveSpace}>
       <div className="admin-list-loading" role="status">
-        <span className="sr-only">Loading {label}…</span>
+        <span className="sr-only">{message ?? `Loading ${label}…`}</span>
         {[0, 1, 2].map((row) => (
           <div key={row} className="admin-skeleton-row" aria-hidden="true">
             <div className="skeleton h-4 w-3/5" />

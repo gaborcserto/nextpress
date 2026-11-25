@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useSWRConfig } from "swr";
 
 import { Button } from "@/ui/primitives";
 
 import { initialMediaQuery, MediaBrowser } from "./MediaBrowser";
 import { MediaDialog } from "./MediaDialog";
+import { MediaUploads } from "./MediaUploads";
 import { useMediaMessages } from "./messages";
+import tabStyles from "../SettingsScreen/SettingsTabs.module.css";
 
 import type { MediaAsset } from "@nextpress/shared/media";
 
@@ -21,15 +24,25 @@ export function MediaPicker({
   onConfirm,
   limit = 1,
   documents = false,
+  mode,
+  title,
+  uploadLabel,
 }: {
   limit?: number;
   documents?: boolean;
+  mode?: "images" | "documents" | "mixed";
+  title?: string;
+  uploadLabel?: string;
   onCancel: () => void;
   onConfirm: (assets: MediaAsset[]) => void;
 }) {
+  const mixed = mode === "mixed";
+  documents = mode === "documents" || documents;
   const text = useMediaMessages(documents);
+  const { mutate } = useSWRConfig();
   const [query, setQuery] = useState(initialMediaQuery);
   const [selected, setSelected] = useState<MediaAsset[]>([]);
+  const [view, setView] = useState<"library" | "upload">("library");
 
   function toggle(asset: MediaAsset) {
     setSelected((current) => {
@@ -47,31 +60,95 @@ export function MediaPicker({
 
   return (
     <MediaDialog
-      title={limit === 1 ? text.choose : text.chooseMany}
+      title={title ?? (limit === 1 ? text.choose : text.chooseMany)}
       onClose={onCancel}
     >
-      <MediaBrowser
-        query={query}
-        documents={documents}
-        view={documents ? "list" : "grid"}
-        onQuery={setQuery}
-        onAsset={toggle}
-        selected={selected.map(({ id }) => id)}
-      />
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-        <span role="status">
-          {text.selected} {selected.length} / {limit}
-        </span>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          {text.cancel}
-        </Button>
-        <Button
+      <div aria-label={text.library} className={tabStyles.tabs} role="tablist">
+        <button
           type="button"
-          disabled={!selected.length}
-          onClick={() => onConfirm(selected)}
+          role="tab"
+          aria-selected={view === "library"}
+          tabIndex={view === "library" ? 0 : -1}
+          onClick={() => setView("library")}
         >
-          {text.confirm}
-        </Button>
+          {text.library}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "upload"}
+          tabIndex={view === "upload" ? 0 : -1}
+          onClick={() => setView("upload")}
+        >
+          {uploadLabel ?? text.upload}
+        </button>
+      </div>
+      <div className="admin-media-dialog-content mt-4 min-h-64">
+        {view === "library" ? (
+          <MediaBrowser
+            query={query}
+            documents={documents}
+            all={mixed}
+            view={documents ? "list" : "grid"}
+            onQuery={setQuery}
+            onAsset={toggle}
+            selected={selected.map(({ id }) => id)}
+            showUploads={false}
+          />
+        ) : (
+          <MediaUploads
+            documents={documents}
+            all={mixed}
+            multiple={limit !== 1}
+            onUploaded={(assets, complete) => {
+              void mutate(
+                (key) =>
+                  typeof key === "string" &&
+                  (key.startsWith("/api/documents?") ||
+                    key.startsWith("/api/media/library?")),
+              );
+
+              if (!complete || assets.length === 0) {
+                return;
+              }
+
+              const latestAsset = assets.at(-1);
+
+              if (!latestAsset) {
+                return;
+              }
+
+              setSelected((current) =>
+                limit === 1
+                  ? [latestAsset]
+                  : [...current, ...assets].slice(0, limit),
+              );
+              setQuery(initialMediaQuery);
+              setView("library");
+            }}
+          />
+        )}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        {view === "library" && (
+          <span role="status">
+            {text.selected} {selected.length} / {limit}
+          </span>
+        )}
+        <div className="ms-auto flex items-center gap-2">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            {text.cancel}
+          </Button>
+          {view === "library" && (
+            <Button
+              type="button"
+              disabled={!selected.length || selected.length > limit}
+              onClick={() => onConfirm(selected)}
+            >
+              {text.confirm}
+            </Button>
+          )}
+        </div>
       </div>
     </MediaDialog>
   );

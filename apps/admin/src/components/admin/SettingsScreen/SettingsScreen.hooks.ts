@@ -1,5 +1,6 @@
 "use client";
 
+import { type Appearance } from "@nextpress/shared";
 import {
   SettingsResponseSchema,
   SettingsSavedSchema,
@@ -90,7 +91,7 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
   }, [load]);
 
   const save = useCallback(
-    async (credentials: ProviderCredentialUpdates) => {
+    async (credentials: ProviderCredentialUpdates, appearance?: Appearance) => {
       if (savingRef.current || !loadedRef.current || loading || loadError) {
         return false;
       }
@@ -103,7 +104,9 @@ export function useSettingsScreen(fallbackRole: RoleName): SettingsScreenState {
         const response = await jsonFetcher<unknown>("/api/admin/settings", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildSettingsPayload(form, credentials)),
+          body: JSON.stringify(
+            buildSettingsPayload(form, credentials, appearance),
+          ),
         });
 
         const saved = SettingsSavedSchema.parse(response);

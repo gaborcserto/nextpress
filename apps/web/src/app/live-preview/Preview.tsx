@@ -1,6 +1,5 @@
 "use client";
 
-import { richContentText } from "@nextpress/shared/content";
 import {
   LivePreviewMessageSchema,
   type LivePreviewSnapshot,
@@ -10,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ContentArticle } from "@/components/ContentArticle";
 import { PreviewMediaContext } from "@/components/public-content/ContentMediaImage";
 import { PostCover } from "@/components/public-content/PostCover";
+import { RichContent } from "@/components/RichContent";
 import { parsePublicRichContent } from "@/lib/content/rich-content";
 import { LocalizedDate } from "@/lib/i18n/client";
 
@@ -59,17 +59,23 @@ export default function Preview({ adminOrigin, appearance }: PreviewProps) {
         return;
       }
 
+      window.clearInterval(readyInterval);
       setSnapshot(parsed.data.snapshot);
       setKind(parsed.data.kind);
     }
 
     window.addEventListener("message", receivePreview);
-    host.postMessage({ type: "nextpress:ready", session }, adminOrigin);
+
+    const announceReady = () =>
+      host.postMessage({ type: "nextpress:ready", session }, adminOrigin);
+    const readyInterval = window.setInterval(announceReady, 500);
+    announceReady();
 
     const timeout = window.setTimeout(() => setSnapshot(null), 15 * 60_000);
 
     return () => {
       window.removeEventListener("message", receivePreview);
+      clearInterval(readyInterval);
       clearTimeout(timeout);
     };
   }, [adminOrigin]);
@@ -95,15 +101,17 @@ export default function Preview({ adminOrigin, appearance }: PreviewProps) {
           kind="posts"
           title={snapshot.title}
           content={snapshot.content}
+          mediaOrigin={adminOrigin}
           intro={
             <>
               {snapshot.publishedAt && (
                 <LocalizedDate value={snapshot.publishedAt} />
               )}
               {snapshot.excerpt && (
-                <p>
-                  {richContentText(parsePublicRichContent(snapshot.excerpt))}
-                </p>
+                <RichContent
+                  content={parsePublicRichContent(snapshot.excerpt)}
+                  mediaOrigin={adminOrigin}
+                />
               )}
               <PostCover
                 cover={previewCover(snapshot.cover)}

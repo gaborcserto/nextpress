@@ -15,3 +15,14 @@ export type ActiveToast = {
   isIn: boolean; // true = active/entering, false = exiting
   timeout: number; // ms
 };
+
+export type ToastHostConfig = {
+  placement?: ToastPosition;
+  duration?: number;
+  maxVisible?: number;
+  gap?: number;
+  offset?: number;
+  dismissible?: boolean;
+  pauseOnHover?: boolean;
+  stackMode?: "collapsed" | "expanded";
+};

@@ -1,7 +1,7 @@
 import { ContentRecordSchema } from "@nextpress/shared/api-contracts";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
-const screenshotDirectory = ".notes/ds-01-browser/admin";
+const screenshotDirectory = ".notes/admin-redesign/screenshots-post-ds-01j1";
 const widths = [320, 390, 768, 1023, 1024, 1280, 1440, 1920];
 const screens = [
   ["", "Dashboard"],
@@ -133,6 +133,173 @@ async function expectNoPageOverflow(page: Page) {
   ).toBeLessThanOrEqual(1);
 }
 
+async function expectHeaderAligned(page: Page) {
+  const alignment = await page.evaluate(() => {
+    const header = document.querySelector<HTMLElement>(".admin-topbar");
+    const content = document.querySelector<HTMLElement>(".admin-content");
+
+    if (!header || !content) {
+      throw new Error("Expected the Admin header and content workspace");
+    }
+
+    const headerBounds = header.getBoundingClientRect();
+    const contentBounds = content.getBoundingClientRect();
+    const styles = getComputedStyle(content);
+
+    return {
+      headerLeft: headerBounds.left,
+      headerRight: headerBounds.right,
+      contentLeft: contentBounds.left + Number.parseFloat(styles.paddingLeft),
+      contentRight:
+        contentBounds.right - Number.parseFloat(styles.paddingRight),
+    };
+  });
+
+  expect(alignment.headerLeft).toBeCloseTo(alignment.contentLeft, 0);
+  expect(alignment.headerRight).toBeCloseTo(alignment.contentRight, 0);
+}
+
+async function inspectSidebarDividers(page: Page) {
+  const dividers = await page
+    .locator(".admin-rail .admin-sidebar")
+    .evaluate((sidebar) => {
+      const heading = sidebar.querySelector<HTMLElement>(
+        ".admin-sidebar-heading",
+      );
+      const sections = Array.from(
+        sidebar.querySelectorAll<HTMLElement>(
+          ".admin-sidebar-nav .admin-nav-section",
+        ),
+      );
+      const footer = sidebar.querySelector<HTMLElement>(
+        ".admin-sidebar-footer",
+      );
+
+      if (!heading || sections.length < 2 || !footer) {
+        throw new Error("Expected the Admin sidebar divider structure");
+      }
+
+      const brand = heading.getBoundingClientRect();
+      const brandSeparator = getComputedStyle(heading, "::after");
+      const firstSection = getComputedStyle(sections[0], "::before");
+      const administration = getComputedStyle(sections[1], "::before");
+      const collapse = getComputedStyle(footer, "::before");
+      const footerBounds = footer.getBoundingClientRect();
+      const administrationBounds = sections[1].getBoundingClientRect();
+
+      return {
+        separatorCount:
+          Number(brandSeparator.content !== "none") +
+          Number(administration.content !== "none") +
+          Number(collapse.content !== "none"),
+        publishingSeparator: firstSection.content,
+        widths: [
+          Number.parseFloat(brandSeparator.width),
+          Number.parseFloat(administration.width),
+          Number.parseFloat(collapse.width),
+        ],
+        leftEdges: [
+          brand.left + Number.parseFloat(brandSeparator.left),
+          administrationBounds.left + Number.parseFloat(administration.left),
+          footerBounds.left + Number.parseFloat(collapse.left),
+        ],
+        borderWidths: [
+          brandSeparator.borderBottomWidth,
+          administration.borderTopWidth,
+          collapse.borderTopWidth,
+        ],
+      };
+    });
+
+  expect(dividers.separatorCount, JSON.stringify(dividers)).toBe(3);
+  expect(dividers.publishingSeparator).toBe("none");
+  expect(dividers.widths[1]).toBeCloseTo(dividers.widths[0], 0);
+  expect(dividers.widths[2]).toBeCloseTo(dividers.widths[0], 0);
+  expect(dividers.leftEdges[1]).toBeCloseTo(dividers.leftEdges[0], 0);
+  expect(dividers.leftEdges[2]).toBeCloseTo(dividers.leftEdges[0], 0);
+  expect(new Set(dividers.borderWidths)).toEqual(new Set(["1px"]));
+}
+
+async function expectCollapsedSidebarCentered(page: Page) {
+  const positions = await page
+    .locator(".admin-rail .admin-sidebar")
+    .evaluate((sidebar) => {
+      const bounds = sidebar.getBoundingClientRect();
+      const center = bounds.left + bounds.width / 2;
+      const icons = Array.from(
+        sidebar.querySelectorAll<SVGElement>(".admin-nav-link svg"),
+      ).map((icon) => {
+        const rect = icon.getBoundingClientRect();
+
+        return rect.left + rect.width / 2;
+      });
+      const active = sidebar.querySelector<HTMLElement>(
+        '.admin-nav-link[aria-current="page"]',
+      );
+      const activeBounds = active?.getBoundingClientRect();
+      const brand = sidebar
+        .querySelector<HTMLElement>(".admin-wordmark")
+        ?.getBoundingClientRect();
+
+      return {
+        center,
+        icons,
+        activeCenter: activeBounds
+          ? activeBounds.left + activeBounds.width / 2
+          : null,
+        brandCenter: brand ? brand.left + brand.width / 2 : null,
+      };
+    });
+
+  for (const icon of positions.icons) {
+    expect(icon).toBeCloseTo(positions.center, 0);
+  }
+
+  expect(positions.activeCenter).toBeCloseTo(positions.center, 0);
+  expect(positions.brandCenter).toBeCloseTo(positions.center, 0);
+}
+
+async function inspectHeaderUtilities(page: Page) {
+  const controls = page.locator(
+    ".admin-topbar-controls > .admin-dropdown > .btn",
+  );
+  await expect(controls).toHaveCount(3);
+
+  const metrics = await controls.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const bounds = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+
+      return {
+        width: bounds.width,
+        height: bounds.height,
+        radius: style.borderRadius,
+        transition: style.transitionDuration,
+      };
+    }),
+  );
+
+  expect(new Set(metrics.map(({ width }) => width)).size).toBe(1);
+  expect(new Set(metrics.map(({ height }) => height)).size).toBe(1);
+  expect(new Set(metrics.map(({ radius }) => radius)).size).toBe(1);
+  expect(new Set(metrics.map(({ transition }) => transition)).size).toBe(1);
+
+  const hoverBackgrounds: string[] = [];
+
+  for (const control of await controls.all()) {
+    await control.hover();
+    await page.waitForTimeout(180);
+    hoverBackgrounds.push(
+      await control.evaluate(
+        (button) => getComputedStyle(button).backgroundColor,
+      ),
+    );
+  }
+
+  expect(new Set(hoverBackgrounds).size).toBe(1);
+  expect(hoverBackgrounds[0]).not.toBe("rgba(0, 0, 0, 0)");
+}
+
 test("admin typography, themes and representative layouts reflow in Chromium", async ({
   page,
 }) => {
@@ -157,7 +324,24 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
   await page.setViewportSize({ width: 1440, height: 900 });
   await screenshot(page, "sign-in-light-1440");
   await signIn(page);
+  await inspectHeaderUtilities(page);
+  await inspectSidebarDividers(page);
   await expect(theme).toHaveAccessibleName("Theme: Light");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await selectTheme(page, "Dark");
+  await inspectHeaderUtilities(page);
+  await page.getByRole("button", { name: "Collapse" }).click();
+  await expect(
+    page.getByRole("button", { name: "Expand sidebar" }),
+  ).toBeVisible();
+  await inspectSidebarDividers(page);
+  await expectCollapsedSidebarCentered(page);
+  await expectNoPageOverflow(page);
+  await screenshot(page, "sidebar-collapsed-dark-1440");
+  const expandSidebar = page.getByRole("button", { name: "Expand sidebar" });
+  await expandSidebar.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Collapse" })).toBeVisible();
 
   for (const [path, heading] of screens) {
     await page.goto(`/admin${path}`);
@@ -175,6 +359,13 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
 
     if (["/posts", "/pages", "/users", "/taxonomy"].includes(path)) {
       await expect(page.getByRole("table")).toBeVisible();
+    }
+
+    if (["/posts", "/pages"].includes(path)) {
+      await expect(
+        page.getByRole("columnheader", { name: "Author", exact: true }),
+      ).toBeVisible();
+      await expect(page.locator(".admin-content-author").first()).toBeVisible();
     }
 
     if (["/posts", "/pages", "/taxonomy"].includes(path)) {
@@ -228,7 +419,24 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
 
       for (const width of widths) {
         await page.setViewportSize({ width, height: 900 });
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) => {
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              );
+            }),
+        );
         await expectNoPageOverflow(page);
+        await expectHeaderAligned(page);
+
+        if (width === 390 && ["/posts", "/pages"].includes(path)) {
+          const author = page.locator(".admin-content-author").first();
+          await expect(author).toBeVisible();
+          await expect(author.locator(".admin-cell-label")).toHaveText(
+            "Author",
+          );
+        }
 
         if (
           !path ||
@@ -247,6 +455,19 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
       await page
         .getByRole("heading", { name: "Website appearance", exact: true })
         .scrollIntoViewIfNeeded();
+      await page.evaluate(() =>
+        window.scrollTo(0, document.documentElement.scrollHeight),
+      );
+      const stickyInset = await page
+        .locator(".admin-topbar")
+        .evaluate((header) => Number.parseFloat(getComputedStyle(header).top));
+      await expect
+        .poll(() =>
+          page
+            .locator(".admin-topbar")
+            .evaluate((header) => header.getBoundingClientRect().top),
+        )
+        .toBeCloseTo(stickyInset, 0);
       await screenshot(page, "appearance-dark-1920");
       await page.getByRole("tab", { name: "Authentication" }).click();
       const github = page.locator("summary").filter({ hasText: /github/i });
@@ -266,7 +487,15 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     if (path === "") {
       const topbar = page.getByRole("banner");
       const currentCrumb = topbar.getByText("Dashboard", { exact: true });
-      await expect(topbar).toHaveCSS("position", "sticky");
+
+      const topbarPosition = await topbar.evaluate(
+        (header) => getComputedStyle(header).position,
+      );
+      expect(["relative", "sticky"]).toContain(topbarPosition);
+
+      if (topbarPosition === "relative") {
+        await expect(topbar).toHaveAttribute("data-tall");
+      }
 
       const visibleText = await currentCrumb.evaluate((crumb) => ({
         height: crumb.clientHeight,
@@ -302,6 +531,18 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     );
   }
 
+  await page.goto("/admin/posts");
+  await page.getByRole("button", { name: "Admin language: English" }).click();
+  await page.getByRole("menuitemradio", { name: "Magyar" }).click();
+  await expect(
+    page.getByRole("columnheader", { name: "Szerző", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".admin-content-author .admin-cell-label").first(),
+  ).toHaveText("Szerző");
+  await page.getByRole("button", { name: "Admin nyelve: Magyar" }).click();
+  await page.getByRole("menuitemradio", { name: "English" }).click();
+
   for (const segment of ["posts", "pages"]) {
     await page.goto(`/admin/${segment}/new`);
     await expect(
@@ -315,12 +556,62 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
     );
     await expect(writingCanvas).toBeVisible();
     const canvasBounds = await writingCanvas.boundingBox();
+
+    const primaryBounds = await page
+      .locator(".admin-writing-primary")
+      .boundingBox();
+
+    const sidebarBounds = await page
+      .locator(".admin-writing-layout > aside")
+      .boundingBox();
     expect(canvasBounds?.height).toBeGreaterThanOrEqual(240);
+    expect(primaryBounds?.width).toBeGreaterThan(sidebarBounds?.width ?? 0);
+    const controlStyles = await page.evaluate(() => {
+      const status = document.querySelector<HTMLElement>(
+        'select[id$="-status"]',
+      );
+      const date = document.querySelector<HTMLElement>('input[id$="-date"]');
+      const time = document.querySelector<HTMLElement>('input[id$="-time"]');
+      const tags = document.querySelector<HTMLElement>(
+        ".admin-writing-layout aside .admin-multivalue-control",
+      );
+
+      if (!status || !date || !time || !tags) {
+        throw new Error("Expected shared publication and tags controls");
+      }
+
+      return [status, date, time, tags].map((control) => ({
+        height: control.getBoundingClientRect().height,
+        border: getComputedStyle(control).borderTopColor,
+      }));
+    });
+    expect(new Set(controlStyles.map(({ height }) => height)).size).toBe(1);
+    expect(new Set(controlStyles.map(({ border }) => border)).size).toBe(1);
     await screenshot(page, `new-${segment}-light-1440`);
+    const calendarTrigger = page.getByRole("button", {
+      name: "Open calendar",
+    });
+    await calendarTrigger.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await screenshot(page, `publication-picker-${segment}-light-1440`);
+    await page.keyboard.press("Escape");
+    await expect(calendarTrigger).toBeFocused();
     await page.setViewportSize({ width: 390, height: 800 });
     await selectTheme(page, "Dark");
     await expectNoPageOverflow(page);
     await screenshot(page, `new-${segment}-dark-390`);
+    await calendarTrigger.click();
+    const mobilePicker = page.getByRole("dialog");
+    await expect(mobilePicker).toBeVisible();
+    const mobilePickerBounds = await mobilePicker.boundingBox();
+    expect(mobilePickerBounds?.x).toBeGreaterThanOrEqual(0);
+    expect(
+      (mobilePickerBounds?.x ?? 0) + (mobilePickerBounds?.width ?? 0),
+    ).toBeLessThanOrEqual(390);
+    await expectNoPageOverflow(page);
+    await screenshot(page, `publication-picker-${segment}-dark-390`);
+    await page.keyboard.press("Escape");
+    await expect(calendarTrigger).toBeFocused();
 
     for (const mode of ["Light", "Dark"] as const) {
       await selectTheme(page, mode);
@@ -328,18 +619,54 @@ test("admin typography, themes and representative layouts reflow in Chromium", a
       for (const width of widths) {
         await page.setViewportSize({ width, height: 900 });
         await expectNoPageOverflow(page);
+
+        if (width === 1440) {
+          const topbar = page.getByRole("banner");
+          await page.evaluate(() =>
+            window.scrollTo({ top: 0, behavior: "instant" }),
+          );
+          await expect(topbar).toHaveAttribute("data-scrolled", "false");
+          await expect(topbar).toHaveCSS("box-shadow", "none");
+          await page.evaluate(() =>
+            window.scrollTo({ top: 400, behavior: "instant" }),
+          );
+          await expect(topbar).toHaveAttribute("data-scrolled", "true");
+          await expect
+            .poll(() =>
+              topbar.evaluate((element) => getComputedStyle(element).boxShadow),
+            )
+            .not.toBe("none");
+          await page.evaluate(() =>
+            window.scrollTo({ top: 0, behavior: "instant" }),
+          );
+        }
       }
     }
 
     await page.setViewportSize({ width: 1440, height: 800 });
+    const topbar = page.getByRole("banner");
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await expect(topbar).toHaveAttribute("data-scrolled", "false");
+    await expect(topbar).toHaveCSS("box-shadow", "none");
+    await expect(topbar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
     await page.evaluate(() =>
       window.scrollTo({ top: 400, behavior: "instant" }),
     );
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
       .toBeGreaterThan(0);
-    const topbar = page.getByRole("banner");
     await expect(topbar).toHaveCSS("position", "sticky");
+    await expect
+      .poll(() =>
+        topbar.evaluate((element) => getComputedStyle(element).boxShadow),
+      )
+      .not.toBe("none");
+    await expect
+      .poll(() =>
+        topbar.evaluate((element) => getComputedStyle(element).backdropFilter),
+      )
+      .toContain("blur");
     const stickyInset = await topbar.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).top),
     );
@@ -561,9 +888,38 @@ test("mobile overlays and native confirmation support keyboard dismissal and res
 
   try {
     await page.goto(`/admin/pages/${record.id}`);
+    const hierarchySummary = page.getByText("Page hierarchy", {
+      exact: true,
+    });
+    await screenshot(page, "page-hierarchy-collapsed-light-1280");
+    await hierarchySummary.press("Enter");
+    const hierarchyPanel = page.locator(".admin-hierarchy-panel");
+    await expect(hierarchyPanel).toHaveAttribute("open", "");
+    await expect(
+      hierarchyPanel.getByRole("combobox", { name: "Parent Page" }),
+    ).toBeVisible();
+    const hierarchyOrder = hierarchyPanel.getByRole("spinbutton", {
+      name: "Sibling order",
+    });
+    await hierarchyOrder.fill("17");
+    const saveHierarchy = hierarchyPanel.getByRole("button", {
+      name: "Save hierarchy",
+    });
+    await expect(saveHierarchy).toBeEnabled();
+    await screenshot(page, "page-hierarchy-expanded-light-1280");
+    await saveHierarchy.click();
+    await expect(
+      hierarchyPanel
+        .getByRole("status")
+        .filter({ hasText: "Page hierarchy saved." }),
+    ).toBeVisible();
+    await hierarchySummary.press("Enter");
+    await expect(hierarchyPanel).not.toHaveAttribute("open", "");
+
     const revisionsLink = page.getByRole("link", { name: "Working revisions" });
     await expect(revisionsLink).toBeVisible({ timeout: 25_000 });
     await revisionsLink.click();
+    await expect(page).toHaveURL(/\/revisions$/);
     await expect(page.getByText("No saved revisions yet.")).toBeVisible();
     await selectTheme(page, "Light");
     await page.setViewportSize({ width: 1280, height: 900 });

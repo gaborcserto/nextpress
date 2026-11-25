@@ -1,12 +1,22 @@
 ﻿"use client";
 
-import { PostListingModeSchema, PostsPerPageSchema } from "@nextpress/shared";
+import {
+  PostListingModeSchema,
+  PostsPerPageSchema,
+  type Appearance,
+} from "@nextpress/shared";
 import {
   DEFAULT_SITE_DATE_TIME,
   SiteDateTimeSchema,
 } from "@nextpress/shared/site-date-time";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { flushSync } from "react-dom";
 import { FaSave } from "react-icons/fa";
 import { FiChevronDown } from "react-icons/fi";
@@ -29,6 +39,7 @@ import { showToast } from "@/ui/utils";
 
 import AppearanceSettings from "./AppearanceSettings";
 import { DateTimeSettings } from "./DateTimeSettings";
+import { useSettingsMessages } from "./messages";
 import { useSettingsScreen } from "./SettingsScreen.hooks";
 import {
   selectSettingsSection,
@@ -43,12 +54,6 @@ import type {
   ProviderCredentialUpdates,
   SettingsFormValues,
 } from "./SettingsScreen.types";
-
-const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: role }));
-const POST_LISTING_MODE_OPTIONS = [
-  { value: "PAGINATION", label: "Pagination" },
-  { value: "LOAD_MORE", label: "Load more" },
-] as const;
 
 function updateProviderAtIndex(
   previous: SettingsFormValues,
@@ -90,9 +95,12 @@ export default function SettingsScreen({
   timeZones?: readonly string[];
 }) {
   const router = useRouter();
+  const text = useSettingsMessages();
   const activeSection = useSettingsSection();
   const credentialForm = useRef<HTMLFormElement>(null);
   const [credentialsDirty, setCredentialsDirty] = useState(false);
+  const [appearance, setAppearance] = useState<Appearance | null>(null);
+  const [appearanceDirty, setAppearanceDirty] = useState(false);
   const {
     form,
     setForm,
@@ -110,8 +118,18 @@ export default function SettingsScreen({
   const dateTimeDirty =
     JSON.stringify(dateTime) !== JSON.stringify(savedDateTime);
 
+  const unsavedChanges = dirty || credentialsDirty || appearanceDirty;
+
+  const updateAppearance = useCallback(
+    (selection: Appearance, changed: boolean) => {
+      setAppearance(selection);
+      setAppearanceDirty(changed);
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (!dateTimeDirty) {
+    if (!unsavedChanges) {
       return;
     }
 
@@ -123,12 +141,10 @@ export default function SettingsScreen({
     window.addEventListener("beforeunload", preventLeaving);
 
     return () => window.removeEventListener("beforeunload", preventLeaving);
-  }, [dateTimeDirty]);
+  }, [unsavedChanges]);
 
-  const postsPerPageError = PostsPerPageSchema.safeParse(form.postsPerPage)
-    .success
-    ? undefined
-    : "Enter a whole number from 1 to 50.";
+  const postsPerPageInvalid = !PostsPerPageSchema.safeParse(form.postsPerPage)
+    .success;
 
   useEffect(() => {
     function scrollToLegacyAppearance() {
@@ -207,7 +223,7 @@ export default function SettingsScreen({
       form.oauthProviders.map((provider) => provider.provider),
     );
 
-    if (await save(credentials)) {
+    if (await save(credentials, appearance ?? undefined)) {
       for (const [provider, submitted] of Object.entries(credentials)) {
         const input = credentialForm.current?.elements.namedItem(
           `clientSecret:${provider}`,
@@ -232,35 +248,36 @@ export default function SettingsScreen({
       }
 
       router.refresh();
-      showToast("Settings saved.", "success");
+      showToast(text.saved, "success");
+      setAppearanceDirty(false);
     }
   };
 
   if (loading && !loaded) {
     return (
-      <AdminPageLayout title="Settings" workspace="settings">
-        <DataListLoading label="settings" />
+      <AdminPageLayout title={text.title} workspace="settings">
+        <DataListLoading label="settings" message={text.loading} />
       </AdminPageLayout>
     );
   }
 
   if (!loaded) {
     return (
-      <AdminPageLayout title="Settings" workspace="settings">
+      <AdminPageLayout title={text.title} workspace="settings">
         <Alert
-          message={loadError ?? "Settings have not loaded."}
+          message={loadError ? text.loadError : text.notLoaded}
           status="error"
         />
-        <Button onClick={() => void retry()}>Retry</Button>
+        <Button onClick={() => void retry()}>{text.retry}</Button>
       </AdminPageLayout>
     );
   }
 
   return (
     <AdminPageLayout
-      title="Settings"
+      title={text.title}
       workspace="settings"
-      description="Manage site metadata, publishing, sign-in, and website appearance."
+      description={text.description}
       actions={
         <Button
           type="submit"
@@ -268,10 +285,9 @@ export default function SettingsScreen({
           color="primary"
           loading={saving}
           disabled={loading || !!loadError}
-          aria-describedby="settings-save-scope"
         >
           <FaSave aria-hidden="true" />
-          <span className="min-w-0">Save site settings</span>
+          <span className="min-w-0">{text.save}</span>
         </Button>
       }
     >
@@ -289,136 +305,145 @@ export default function SettingsScreen({
             <Alert message={loadError} status="error" />
             {loadError && (
               <Button loading={loading} onClick={() => void retry()}>
-                Retry loading settings
+                {text.retryLoad}
               </Button>
             )}
-            <Alert message={error} status="error" />
+            <Alert message={error ? text.saveError : null} status="error" />
             <SettingsPanel
               id="settings-general"
               active={activeSection}
               className="admin-settings-general"
             >
               <fieldset disabled={saving} className="min-w-0">
-                <Section
-                  title="Site information"
-                  desc="Basic metadata used across the site."
-                >
-                  <div className="admin-settings-field-grid">
-                    <div>
-                      <Field label="Site name" htmlFor="site-name">
-                        <Input
-                          id="site-name"
-                          fullWidth
-                          required
-                          maxLength={200}
-                          value={form.siteName}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              siteName: event.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
-                    </div>
+                <div className="admin-settings-general-layout">
+                  <Section
+                    title={text.siteInfo}
+                    desc={text.siteInfoDescription}
+                  >
+                    <div className="admin-settings-field-grid">
+                      <div>
+                        <Field label={text.siteName} htmlFor="site-name">
+                          <Input
+                            id="site-name"
+                            fullWidth
+                            required
+                            maxLength={200}
+                            value={form.siteName}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                siteName: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                      </div>
 
-                    <div>
-                      <Field label="Description" htmlFor="site-description">
-                        <Input
-                          id="site-description"
-                          fullWidth
-                          maxLength={1000}
-                          value={form.siteDescription}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              siteDescription: event.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
-                    </div>
+                      <div>
+                        <Field
+                          label={text.descriptionLabel}
+                          htmlFor="site-description"
+                        >
+                          <Input
+                            id="site-description"
+                            fullWidth
+                            maxLength={1000}
+                            value={form.siteDescription}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                siteDescription: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                      </div>
 
-                    <div>
-                      <Field
-                        label="Site URL"
-                        htmlFor="site-url"
-                        hint="Used for canonical URLs."
-                      >
-                        <Input
-                          id="site-url"
-                          type="url"
-                          fullWidth
-                          maxLength={2000}
-                          value={form.siteUrl}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              siteUrl: event.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
-                    </div>
+                      <div>
+                        <Field
+                          label={text.siteUrl}
+                          htmlFor="site-url"
+                          hint={text.canonicalHint}
+                        >
+                          <Input
+                            id="site-url"
+                            type="url"
+                            fullWidth
+                            maxLength={2000}
+                            value={form.siteUrl}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                siteUrl: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                      </div>
 
-                    <div>
-                      <Field
-                        label="Default OG image URL"
-                        htmlFor="og-image-url"
-                      >
-                        <Input
-                          id="og-image-url"
-                          type="url"
-                          fullWidth
-                          maxLength={2000}
-                          value={form.ogImageUrl}
-                          onChange={(event) =>
-                            setForm((current) => ({
-                              ...current,
-                              ogImageUrl: event.target.value,
-                            }))
-                          }
-                        />
-                      </Field>
+                      <div>
+                        <Field label={text.ogImage} htmlFor="og-image-url">
+                          <Input
+                            id="og-image-url"
+                            type="url"
+                            fullWidth
+                            maxLength={2000}
+                            value={form.ogImageUrl}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                ogImageUrl: event.target.value,
+                              }))
+                            }
+                          />
+                        </Field>
+                      </div>
                     </div>
+                  </Section>
+                  <DateTimeSettings
+                    value={dateTime}
+                    timeZones={timeZones}
+                    dirty={dateTimeDirty}
+                    onChange={(value) =>
+                      setForm((current) => ({ ...current, dateTime: value }))
+                    }
+                    onCancel={() =>
+                      setForm((current) => ({
+                        ...current,
+                        dateTime: savedDateTime,
+                      }))
+                    }
+                  />
+                  <div
+                    id="settings-appearance"
+                    className="admin-settings-appearance-anchor"
+                  >
+                    <AppearanceSettings onChangeAction={updateAppearance} />
                   </div>
-                </Section>
-                <DateTimeSettings
-                  value={dateTime}
-                  timeZones={timeZones}
-                  dirty={dateTimeDirty}
-                  onChange={(value) =>
-                    setForm((current) => ({ ...current, dateTime: value }))
-                  }
-                  onCancel={() =>
-                    setForm((current) => ({
-                      ...current,
-                      dateTime: savedDateTime,
-                    }))
-                  }
-                />
+                </div>
               </fieldset>
-              <div
-                id="settings-appearance"
-                className="admin-settings-appearance-anchor"
-              >
-                <AppearanceSettings />
-              </div>
             </SettingsPanel>
             <fieldset disabled={saving} className="grid min-w-0 gap-6">
               <SettingsPanel id="settings-publishing" active={activeSection}>
                 <Section
-                  title="Publishing"
-                  desc="Choose how public post lists are navigated."
+                  title={text.publishing}
+                  desc={text.publishingDescription}
+                  className="admin-settings-compact-panel"
                 >
                   <div className="admin-settings-field-grid">
                     <div>
-                      <Field label="Listing mode" htmlFor="post-listing-mode">
+                      <Field
+                        label={text.listingMode}
+                        htmlFor="post-listing-mode"
+                      >
                         <Select
                           id="post-listing-mode"
                           fullWidth
                           value={form.postListingMode}
-                          options={POST_LISTING_MODE_OPTIONS}
+                          options={[
+                            { value: "PAGINATION", label: text.pagination },
+                            { value: "LOAD_MORE", label: text.loadMore },
+                          ]}
                           onChangeAction={(value) => {
                             const parsed =
                               PostListingModeSchema.safeParse(value);
@@ -435,7 +460,7 @@ export default function SettingsScreen({
                     </div>
                     <div>
                       <Field
-                        label="Posts per page / batch"
+                        label={text.postsPerBatch}
                         htmlFor="posts-per-page"
                       >
                         <Input
@@ -446,8 +471,12 @@ export default function SettingsScreen({
                           min={1}
                           max={50}
                           step={1}
-                          hint="Applies to both pagination pages and Load more batches."
-                          error={postsPerPageError}
+                          hint={text.postsPerBatchHint}
+                          error={
+                            postsPerPageInvalid
+                              ? text.postsPerBatchError
+                              : undefined
+                          }
                           value={form.postsPerPage}
                           onChange={(event) =>
                             setForm((current) => ({
@@ -470,12 +499,13 @@ export default function SettingsScreen({
                 className="space-y-6"
               >
                 <Section
-                  title="Account defaults"
-                  desc="Defaults for users created by an administrator. Public signup always receives SUBSCRIBER."
+                  title={text.accountDefaults}
+                  desc={text.accountDefaultsDescription}
+                  className="admin-settings-account-defaults"
                 >
                   <FormGrid12>
                     <Field
-                      label="Default user role"
+                      label={text.defaultRole}
                       htmlFor="default-user-role"
                       span={12}
                     >
@@ -483,7 +513,10 @@ export default function SettingsScreen({
                         id="default-user-role"
                         fullWidth
                         value={form.defaultUserRole}
-                        options={ROLE_OPTIONS}
+                        options={ROLES.map((role) => ({
+                          value: role,
+                          label: text.roles[role],
+                        }))}
                         onChangeAction={(value) =>
                           setForm((current) => ({
                             ...current,
@@ -495,10 +528,7 @@ export default function SettingsScreen({
                   </FormGrid12>
                 </Section>
 
-                <Section
-                  title="OAuth providers"
-                  desc="Only enabled providers with complete credentials are available for sign-in. Environment credentials are used when stored values are blank."
-                >
+                <Section title={text.oauth} desc={text.oauthDescription}>
                   <div className="admin-provider-list">
                     {form.oauthProviders.length ? (
                       form.oauthProviders.map((provider, index) => {
@@ -517,8 +547,8 @@ export default function SettingsScreen({
                               <span className="admin-provider-status">
                                 <span>
                                   {configured
-                                    ? "Configured"
-                                    : "Credentials required"}
+                                    ? text.configured
+                                    : text.credentialsRequired}
                                 </span>
                                 <Badge
                                   className={
@@ -527,14 +557,16 @@ export default function SettingsScreen({
                                       : "admin-badge-muted"
                                   }
                                 >
-                                  {provider.enabled ? "Enabled" : "Disabled"}
+                                  {provider.enabled
+                                    ? text.enabled
+                                    : text.disabled}
                                 </Badge>
                               </span>
                               <FiChevronDown aria-hidden="true" />
                             </summary>
                             <fieldset className="admin-provider-fields">
                               <Toggle
-                                aria-label={`Enable ${provider.provider}`}
+                                aria-label={`${text.enableProvider} ${provider.provider}`}
                                 checked={provider.enabled}
                                 onChangeAction={(enabled) =>
                                   setForm((current) =>
@@ -543,15 +575,17 @@ export default function SettingsScreen({
                                     }),
                                   )
                                 }
-                                inlineLabel="Allow sign-in"
+                                inlineLabel={text.allowSignIn}
                               />
                               <Input
-                                label={`${provider.provider} client ID`}
+                                label={`${provider.provider} ${text.clientId}`}
                                 fullWidth
                                 maxLength={2000}
                                 value={provider.clientId}
                                 placeholder={
-                                  provider.hasClientId ? "Configured value" : ""
+                                  provider.hasClientId
+                                    ? text.configuredValue
+                                    : ""
                                 }
                                 onChange={(event) =>
                                   setForm((current) =>
@@ -562,7 +596,7 @@ export default function SettingsScreen({
                                 }
                               />
                               <Field
-                                label={`${provider.provider} new secret`}
+                                label={`${provider.provider} ${text.newSecret}`}
                                 htmlFor={`oauth-${provider.provider}-secret`}
                               >
                                 <input
@@ -574,8 +608,8 @@ export default function SettingsScreen({
                                   autoComplete="new-password"
                                   placeholder={
                                     provider.hasClientSecret
-                                      ? "Configured value preserved"
-                                      : "Required"
+                                      ? text.configuredSecret
+                                      : text.required
                                   }
                                 />
                               </Field>
@@ -585,7 +619,7 @@ export default function SettingsScreen({
                       })
                     ) : (
                       <p className="text-sm text-(--text-muted)">
-                        No OAuth providers configured.
+                        {text.noProviders}
                       </p>
                     )}
                   </div>
@@ -596,18 +630,7 @@ export default function SettingsScreen({
                   role="status"
                   className="text-sm font-medium text-(--text-muted)"
                 >
-                  {saving
-                    ? "Saving site settings..."
-                    : dirty || credentialsDirty
-                      ? "Unsaved site settings"
-                      : ""}
-                </p>
-                <p
-                  id="settings-save-scope"
-                  className="text-sm text-(--text-muted)"
-                >
-                  Saves Site information, Publishing, and Authentication
-                  settings.
+                  {saving ? text.saving : unsavedChanges ? text.unsaved : ""}
                 </p>
               </div>
             </fieldset>

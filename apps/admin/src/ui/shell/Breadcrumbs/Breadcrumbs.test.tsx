@@ -9,6 +9,20 @@ import Breadcrumbs from "./Breadcrumbs";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Breadcrumbs", () => {
+  it("shows Admin / Dashboard on the dashboard route", () => {
+    usePathname.mockReturnValue("/admin");
+    render(<Breadcrumbs />);
+    const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(within(nav).getByRole("link", { name: "Admin" })).toHaveAttribute(
+      "href",
+      "/admin",
+    );
+    expect(within(nav).getByText("Dashboard")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("keeps ancestor links and marks the current page", () => {
     usePathname.mockReturnValue("/admin/posts/new");
     render(<Breadcrumbs />);

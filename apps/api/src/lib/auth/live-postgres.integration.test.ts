@@ -409,6 +409,11 @@ describe.skipIf(!testDatabaseUrl)(
             headers: { origin, "content-type": "application/json" },
             body: JSON.stringify({
               ...settings,
+              appearance: {
+                websiteTemplate: "blog",
+                stylePreset: "modern",
+                colorMode: "dark",
+              },
               siteName: "NextPress",
               oauthProviders: settings.oauthProviders.map((row) => ({
                 ...row,
@@ -445,6 +450,95 @@ describe.skipIf(!testDatabaseUrl)(
             stored.clientId === null &&
             stored.clientSecret === null,
         ).toBe(true);
+
+        const persisted = await prisma.siteSettings.findUniqueOrThrow({
+          where: { id: "default" },
+          select: {
+            siteName: true,
+            websiteTemplate: true,
+            stylePreset: true,
+            colorMode: true,
+          },
+        });
+        expect(persisted).toEqual({
+          siteName: "NextPress",
+          websiteTemplate: "blog",
+          stylePreset: "modern",
+          colorMode: "dark",
+        });
+
+        await prisma.$executeRawUnsafe(
+          `CREATE FUNCTION settings_reject_oauth_update() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic OAuth persistence failure'; END $$`,
+        );
+        await prisma.$executeRawUnsafe(
+          `CREATE TRIGGER settings_reject_oauth_update BEFORE UPDATE ON "OAuthProvider" FOR EACH ROW EXECUTE FUNCTION settings_reject_oauth_update()`,
+        );
+
+        try {
+          const rollback = await PUT(
+            new Request(url, {
+              method: "PUT",
+              headers: { origin, "content-type": "application/json" },
+              body: JSON.stringify({
+                ...settings,
+                siteName: "Must roll back",
+                appearance: {
+                  websiteTemplate: "blog",
+                  stylePreset: "minimal",
+                  colorMode: "light",
+                },
+              }),
+            }),
+            context,
+          );
+
+          expect(rollback.status).toBe(500);
+          await expect(
+            prisma.siteSettings.findUniqueOrThrow({
+              where: { id: "default" },
+              select: { siteName: true, stylePreset: true, colorMode: true },
+            }),
+          ).resolves.toEqual({
+            siteName: "NextPress",
+            stylePreset: "modern",
+            colorMode: "dark",
+          });
+        } finally {
+          await prisma.$executeRawUnsafe(
+            `DROP TRIGGER settings_reject_oauth_update ON "OAuthProvider"`,
+          );
+          await prisma.$executeRawUnsafe(
+            `DROP FUNCTION settings_reject_oauth_update()`,
+          );
+        }
+
+        const invalid = await PUT(
+          new Request(url, {
+            method: "PUT",
+            headers: { origin, "content-type": "application/json" },
+            body: JSON.stringify({
+              ...settings,
+              siteName: "Must not persist",
+              appearance: {
+                websiteTemplate: "blog",
+                stylePreset: "unknown",
+                colorMode: "dark",
+              },
+            }),
+          }),
+          context,
+        );
+        expect(invalid.status).toBe(400);
+        await expect(
+          prisma.siteSettings.findUniqueOrThrow({
+            where: { id: "default" },
+            select: { siteName: true, stylePreset: true, colorMode: true },
+          }),
+        ).resolves.toEqual({
+          siteName: "NextPress",
+          stylePreset: "modern",
+          colorMode: "dark",
+        });
       } finally {
         requestHeaders.mockReset();
       }

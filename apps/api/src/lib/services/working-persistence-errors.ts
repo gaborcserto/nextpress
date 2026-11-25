@@ -7,7 +7,9 @@ const homepageConflict = z.object({
   meta: z.object({
     driverAdapterError: z.object({
       cause: z.object({
-        constraint: z.object({ index: z.literal("Page_published_home_key") }),
+        constraint: z.object({
+          index: z.literal("Page_homepage_singleton_key"),
+        }),
       }),
     }),
   }),

@@ -6,10 +6,11 @@ import {
   PublicAppearanceSchema,
 } from "@nextpress/shared";
 import { useEffect, useState } from "react";
-import { FaSave } from "react-icons/fa";
 
 import { jsonFetcher } from "@/lib/api";
 import { Alert, Button, Section, Select } from "@/ui/primitives";
+
+import { useSettingsMessages } from "./messages";
 
 import type { z } from "zod";
 
@@ -18,11 +19,11 @@ const SelectionSchema = PublicAppearanceSchema.extend({
   colorMode: AppearanceSchema.shape.colorMode,
 });
 
-type AppearanceSelection = z.infer<typeof SelectionSchema>;
+type AppearanceSelection = z.infer<typeof AppearanceSchema>;
 type AppearanceCatalog = z.infer<typeof AppearanceCatalogSchema>;
 
 function readSelection(payload: unknown, catalog: AppearanceCatalog) {
-  const selection = SelectionSchema.parse(payload);
+  const selection = AppearanceSchema.parse(payload);
   const template = catalog.find(({ id }) => id === selection.websiteTemplate);
 
   if (!template?.presets.some(({ id }) => id === selection.stylePreset)) {
@@ -32,14 +33,24 @@ function readSelection(payload: unknown, catalog: AppearanceCatalog) {
   return selection;
 }
 
-export default function AppearanceSettings() {
+function localizedCatalogLabel(
+  id: string,
+  fallback: string,
+  labels: Readonly<Record<string, string>>,
+) {
+  return Object.entries(labels).find(([key]) => key === id)?.[1] ?? fallback;
+}
+
+export default function AppearanceSettings({
+  onChangeAction,
+}: {
+  onChangeAction: (selection: AppearanceSelection, dirty: boolean) => void;
+}) {
+  const text = useSettingsMessages();
   const [catalog, setCatalog] = useState<AppearanceCatalog>([]);
   const [selection, setSelection] = useState<AppearanceSelection | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -58,6 +69,7 @@ export default function AppearanceSettings() {
         const active = readSelection(appearance, templates);
         setCatalog(templates);
         setSelection(active);
+        onChangeAction(active, false);
       })
       .catch(() => {
         if (!controller.signal.aborted) {
@@ -66,107 +78,89 @@ export default function AppearanceSettings() {
       });
 
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, onChangeAction]);
 
   const template = catalog.find(({ id }) => id === selection?.websiteTemplate);
 
   function changeSelection(next: AppearanceSelection) {
     setSelection(next);
-    setSaved(false);
-    setSaveError(null);
-  }
-
-  async function saveAppearance() {
-    if (!selection || saving) {
-      return;
-    }
-
-    setSaving(true);
-    setSaveError(null);
-    setSaved(false);
-
-    try {
-      const response = await jsonFetcher<unknown>(endpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selection),
-      });
-      setSelection(readSelection(response, catalog));
-      setSaved(true);
-    } catch {
-      setSaveError(
-        "Unable to confirm the appearance change. Check your session or reload Settings and try again.",
-      );
-    } finally {
-      setSaving(false);
-    }
+    onChangeAction(next, true);
   }
 
   return (
-    <Section
-      title="Website appearance"
-      desc="Choose the appearance used on the public website."
-    >
+    <Section title={text.appearance} desc={text.appearanceDescription}>
       {loadFailed && (
         <>
-          <Alert status="error" message="Unable to load website appearance." />
+          <Alert status="error" message={text.appearanceLoadError} />
           <Button
             onClick={() => {
               setLoadFailed(false);
               setAttempt((previous) => previous + 1);
             }}
           >
-            Retry loading appearance
+            {text.retryAppearance}
           </Button>
         </>
       )}
-      {!loadFailed && !selection && <p role="status">Loading appearance…</p>}
+      {!loadFailed && !selection && (
+        <p role="status">{text.appearanceLoading}</p>
+      )}
       {selection && template && (
         <div className="admin-appearance-settings-form">
-          <fieldset
-            className="grid min-w-0 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]"
-            disabled={saving}
-          >
+          <fieldset className="grid min-w-0 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
             <Select
-              label="Website template"
+              label={text.template}
               fullWidth
-              options={catalog.map(({ id, label }) => ({ value: id, label }))}
+              options={catalog.map(({ id, label }) => ({
+                value: id,
+                label: localizedCatalogLabel(id, label, text.catalog),
+              }))}
               value={selection.websiteTemplate}
               onChangeAction={(value) => {
                 const next = catalog.find(({ id }) => id === value);
 
                 if (next) {
+                  const websiteTemplate =
+                    AppearanceSchema.shape.websiteTemplate.parse(next.id);
+                  const stylePreset = AppearanceSchema.shape.stylePreset.parse(
+                    next.defaultPreset,
+                  );
                   changeSelection({
                     ...selection,
-                    websiteTemplate: next.id,
-                    stylePreset: next.defaultPreset,
+                    websiteTemplate,
+                    stylePreset,
                   });
                 }
               }}
             />
             <Select
-              label="Style variant"
+              label={text.style}
               fullWidth
               options={template.presets.map(({ id, label }) => ({
                 value: id,
-                label,
+                label: localizedCatalogLabel(id, label, text.catalog),
               }))}
               value={selection.stylePreset}
               onChangeAction={(value) => {
                 const preset = template.presets.find(({ id }) => id === value);
 
                 if (preset) {
-                  changeSelection({ ...selection, stylePreset: preset.id });
+                  changeSelection({
+                    ...selection,
+                    stylePreset: AppearanceSchema.shape.stylePreset.parse(
+                      preset.id,
+                    ),
+                  });
                 }
               }}
             />
             <Select
-              label="Website color mode"
+              label={text.colorMode}
               fullWidth
               options={[
-                { value: "light", label: "Light" },
-                { value: "dark", label: "Dark" },
-                { value: "system", label: "System" },
+                { value: "light", label: text.light },
+                { value: "dark", label: text.dark },
+                { value: "system", label: text.system },
               ]}
               value={selection.colorMode}
               onChangeAction={(value) => {
@@ -178,17 +172,6 @@ export default function AppearanceSettings() {
               }}
             />
           </fieldset>
-          <Alert status="error" message={saveError} />
-          <Button
-            type="button"
-            color="primary"
-            loading={saving}
-            onClick={() => void saveAppearance()}
-          >
-            <FaSave aria-hidden="true" />
-            <span className="min-w-0">Save appearance</span>
-          </Button>
-          <p role="status">{saved ? "Appearance saved." : ""}</p>
         </div>
       )}
     </Section>

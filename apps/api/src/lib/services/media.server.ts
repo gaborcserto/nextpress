@@ -259,6 +259,8 @@ export async function serveMedia(id: string, actor?: ContentActor) {
             gallery: { some: { mediaId: id } },
           },
           { pageDocument: { contains: JSON.stringify(id) } },
+          { content: { contains: id } },
+          { excerpt: { contains: id } },
         ],
       },
       select: {
@@ -267,6 +269,8 @@ export async function serveMedia(id: string, actor?: ContentActor) {
         layout: true,
         gallery: { where: { mediaId: id }, select: { mediaId: true }, take: 1 },
         pageDocument: true,
+        content: true,
+        excerpt: true,
       },
     });
 
@@ -283,6 +287,13 @@ export async function serveMedia(id: string, actor?: ContentActor) {
       const document = page.pageDocument
         ? readPageDocument(page.pageDocument)
         : null;
+
+      const richContentContainsAsset =
+        page.content?.includes(id) || page.excerpt?.includes(id);
+
+      if (richContentContainsAsset) {
+        return true;
+      }
 
       return (
         document?.supported && pageMediaIds(document.document).includes(id)

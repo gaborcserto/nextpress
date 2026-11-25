@@ -28,6 +28,7 @@ export default function Select({
   placeholder,
   "aria-describedby": externalDescription,
   "aria-invalid": invalid,
+  "aria-label": accessibleLabel,
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id || generatedId;
@@ -51,6 +52,7 @@ export default function Select({
       <div className={cx("admin-select-trigger", widthCls)}>
         <select
           id={selectId}
+          aria-label={accessibleLabel}
           aria-invalid={error ? true : invalid}
           aria-describedby={describedBy}
           disabled={disabled}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PublicSiteSettingsSchema } from "./api-contracts";
 import {
+  AppearanceCatalogSchema,
   AppearanceSchema,
   DEFAULT_APPEARANCE,
   normalizeAppearance,
@@ -32,6 +33,11 @@ describe("appearance contract", () => {
         entry.presets.map((preset) => preset.id),
       ]),
     ).toEqual([["blog", ["classic", "modern", "minimal"]]]);
+  });
+  it("validates the catalog response served to Admin", () => {
+    expect(AppearanceCatalogSchema.parse(APPEARANCE_CATALOG)).toEqual(
+      APPEARANCE_CATALOG,
+    );
   });
   it.each([
     {},

@@ -84,12 +84,14 @@ export default function ProfileScreen() {
   );
 }
 
-function DisplayNameForm({
+export function DisplayNameForm({
   initialName,
   onSavingChangeAction,
+  onSavedAction,
 }: {
   initialName: string;
   onSavingChangeAction: (saving: boolean) => void;
+  onSavedAction?: (name: string) => void;
 }) {
   const [name, setName] = useState(initialName);
   const [saving, setSaving] = useState(false);
@@ -126,6 +128,7 @@ function DisplayNameForm({
 
       setName(parsed.data);
       setSaved(true);
+      onSavedAction?.(parsed.data);
     } catch {
       setSaveError(
         "Unable to save your profile. Check your session and try again.",

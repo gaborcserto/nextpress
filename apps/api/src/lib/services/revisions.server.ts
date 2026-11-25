@@ -1,6 +1,10 @@
 import "server-only";
 
 import { prisma } from "@nextpress/db/src/client";
+import {
+  richContentDocumentIds,
+  richContentMediaIds,
+} from "@nextpress/shared/content";
 import { documentMime } from "@nextpress/shared/media";
 import {
   pageDocumentIds,
@@ -36,6 +40,7 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
       layout: true,
       pageDocument: true,
       publishedAt: true,
+      updatedAt: true,
       cover: { select: editorImageSelect },
       gallery: editorGallerySelect,
       listingTaxonomy: { select: { slug: true, type: true } },
@@ -50,6 +55,7 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
     where: { pageId },
     orderBy: [{ workingVersion: "desc" }, { createdAt: "desc" }],
     take: 100,
+    include: { author: { select: { name: true } } },
   });
 
   const { listingTaxonomy, gallery, ...current } = page;
@@ -72,7 +78,10 @@ export async function listRevisions(pageId: string, actor: ContentActor) {
       listingTagSlug:
         listingTaxonomy?.type === "TAG" ? listingTaxonomy.slug : null,
     },
-    revisions,
+    revisions: revisions.map(({ author, ...revision }) => ({
+      ...revision,
+      authorName: author?.name ?? null,
+    })),
   };
 }
 
@@ -95,36 +104,44 @@ export async function saveRevision(
       throw new ContentNotFoundError();
     }
 
-    const mediaIds = parsed.pageDocument
-      ? pageMediaIds(parsed.pageDocument)
-      : [];
+    const mediaIds = [
+      ...(parsed.pageDocument ? pageMediaIds(parsed.pageDocument) : []),
+      ...richContentMediaIds(parsed.content),
+      ...richContentMediaIds(parsed.excerpt),
+    ];
+    const uniqueMediaIds = [...new Set(mediaIds)];
 
     const mediaCount = await tx.media.count({
       where: {
-        id: { in: mediaIds },
+        id: { in: uniqueMediaIds },
         mime: { not: documentMime },
         ...(actor.role === "AUTHOR" ? { uploadedById: actor.id } : {}),
       },
     });
 
-    if (mediaCount !== mediaIds.length) {
+    if (mediaCount !== uniqueMediaIds.length) {
       throw new ContentNotFoundError();
     }
 
     const documentIds = parsed.pageDocument
       ? pageDocumentIds(parsed.pageDocument)
       : [];
+    documentIds.push(
+      ...richContentDocumentIds(parsed.content),
+      ...richContentDocumentIds(parsed.excerpt),
+    );
+    const uniqueDocumentIds = [...new Set(documentIds)];
 
-    if (documentIds.length) {
+    if (uniqueDocumentIds.length) {
       const documentCount = await tx.media.count({
         where: {
-          id: { in: documentIds },
+          id: { in: uniqueDocumentIds },
           mime: documentMime,
           ...(actor.role === "AUTHOR" ? { uploadedById: actor.id } : {}),
         },
       });
 
-      if (documentCount !== documentIds.length) {
+      if (documentCount !== uniqueDocumentIds.length) {
         throw new ContentNotFoundError();
       }
     }

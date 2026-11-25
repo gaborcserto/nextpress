@@ -7,14 +7,18 @@ import type {
 export type ContentListItem = {
   id: string;
   title: string;
+  authorName?: string | null;
   typeLabel?: string;
   slug: string;
+  publicPath?: string;
+  systemPage?: boolean;
   status: "DRAFT" | "PUBLISHED";
   publishedAt: string | null;
   publicationState: PublicationState;
   createdAt?: string;
   scheduledAt?: string | null;
   updatedAt?: string | null;
+  canDelete?: boolean;
 };
 
 export type ContentListProps = {

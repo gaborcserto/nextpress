@@ -1,3 +1,7 @@
+import {
+  richContentDocumentIds,
+  richContentMediaIds,
+} from "@nextpress/shared/content";
 import { createHash } from "node:crypto";
 
 import type { Prisma } from "@nextpress/db/generated/prisma/client";
@@ -23,7 +27,8 @@ export function mapEditorialReferenceEdges(
     fields: Pick<
       EditorialSnapshot["fields"],
       "parentId" | "listingTaxonomyId" | "pageDocument"
-    >;
+    > &
+      Partial<Pick<EditorialSnapshot["fields"], "content" | "excerpt">>;
     relationships: EditorialSnapshot["relationships"];
   },
   targets?: ReferenceTargets,
@@ -120,6 +125,19 @@ export function mapEditorialReferenceEdges(
   fields.pageDocument?.blocks.forEach((block, index) =>
     visit(block, `pageDocument.blocks.${index}`),
   );
+
+  for (const [field, value] of [
+    ["content", fields.content],
+    ["excerpt", fields.excerpt],
+  ] as const) {
+    richContentMediaIds(value ?? null).forEach((mediaId, position) =>
+      addMedia(mediaId, "CONTENT", `${field}.image.${position}`, position),
+    );
+    richContentDocumentIds(value ?? null).forEach((mediaId, position) =>
+      addMedia(mediaId, "CONTENT", `${field}.document.${position}`, position),
+    );
+  }
+
   [...listingIds].forEach((id, position) =>
     addTaxonomy(id, "LISTING", position),
   );

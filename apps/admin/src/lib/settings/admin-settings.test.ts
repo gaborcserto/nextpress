@@ -69,6 +69,19 @@ describe("admin settings contracts", () => {
     ).toMatchObject({ clientSecret: "new-secret" });
   });
 
+  it("includes a staged website appearance in the shared save payload", () => {
+    const form = normalizeSettingsForm(undefined, "SUBSCRIBER");
+    const appearance = {
+      websiteTemplate: "blog",
+      stylePreset: "modern",
+      colorMode: "dark",
+    } as const;
+
+    expect(buildSettingsPayload(form, {}, appearance).appearance).toEqual(
+      appearance,
+    );
+  });
+
   it("does not build a settings payload with an out-of-range batch size", () => {
     const form = normalizeSettingsForm(
       {

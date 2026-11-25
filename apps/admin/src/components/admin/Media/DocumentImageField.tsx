@@ -5,7 +5,8 @@ import {
   type PageBlock,
   type PageDocument,
 } from "@nextpress/shared/page-document";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { BsFileEarmarkPdf, BsImage } from "react-icons/bs";
 
 import { Button } from "@/ui/primitives";
 
@@ -20,10 +21,12 @@ export function DocumentImageField({
   value,
   onChange,
   disabled,
+  renderEditor,
 }: {
   value?: PageDocument | null;
   onChange: (value: PageDocument) => void;
   disabled?: boolean;
+  renderEditor?: (actions: ReactNode) => ReactNode;
 }) {
   const text = useMediaMessages();
   const documents = useMediaMessages(true);
@@ -154,124 +157,145 @@ export function DocumentImageField({
       ? DocumentPicker
       : MediaPicker;
 
-  return (
-    <fieldset className="mt-4 min-w-0 space-y-2">
-      <legend className="font-semibold">{text.contentAssets}</legend>
-      {assets.length > 0 && (
-        <ul className="grid gap-2">
-          {assets.map((block) => (
-            <li key={block.id} className="grid gap-2">
-              <span className="wrap-anywhere">
-                {block.type === "hero"
-                  ? block.props.title
-                  : block.type === "document"
-                    ? "PDF"
-                    : block.props.mediaId}
-              </span>
-              {block.type === "image" && (
-                <label className="grid gap-1">
-                  {text.alt}
-                  <input
-                    className="input w-full"
-                    value={block.props.alt}
-                    maxLength={500}
-                    disabled={disabled}
-                    onChange={(event) =>
-                      changeBlock(block.id, {
-                        ...block,
-                        props: {
-                          ...block.props,
-                          alt: event.currentTarget.value,
-                        },
-                      })
-                    }
-                  />
-                </label>
-              )}
-              {block.type === "document" && (
-                <>
-                  <label className="grid gap-1">
-                    {documents.caption}
-                    <input
-                      className="input w-full"
-                      value={block.props.label}
-                      maxLength={500}
-                      disabled={disabled}
-                      onChange={(event) =>
-                        changeBlock(block.id, {
-                          ...block,
-                          props: {
-                            ...block.props,
-                            label: event.currentTarget.value,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    {documents.description}
-                    <textarea
-                      className="textarea w-full"
-                      value={block.props.description}
-                      maxLength={2000}
-                      disabled={disabled}
-                      onChange={(event) =>
-                        changeBlock(block.id, {
-                          ...block,
-                          props: {
-                            ...block.props,
-                            description: event.currentTarget.value,
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                </>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={() => setTarget(block)}
-                >
-                  {block.type === "document" ? documents.choose : text.choose}
-                </Button>
-                {(block.type === "document" || block.props.mediaId) && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={disabled}
-                    onClick={() => remove(block)}
-                  >
-                    {text.remove}
-                  </Button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+  const actions = (
+    <div className="flex gap-1">
       <Button
         type="button"
-        variant="outline"
+        size="sm"
+        variant="ghost"
+        title={text.addContentImage}
+        aria-label={text.addContentImage}
         disabled={disabled || blocks.length >= 100}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => setTarget("new-image")}
       >
-        {text.addContentImage}
+        <BsImage aria-hidden />
       </Button>
       <Button
         type="button"
-        variant="outline"
+        size="sm"
+        variant="ghost"
+        title={documents.addContentDocument}
+        aria-label={documents.addContentDocument}
         disabled={disabled || blocks.length >= 100}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => setTarget("new-document")}
       >
-        {documents.addContentDocument}
+        <BsFileEarmarkPdf aria-hidden />
       </Button>
+    </div>
+  );
+
+  return (
+    <>
+      {renderEditor?.(actions)}
+      {(assets.length > 0 || !renderEditor) && (
+        <fieldset className="mt-4 min-w-0 space-y-2">
+          <legend className="font-semibold">{text.contentAssets}</legend>
+          {assets.length > 0 && (
+            <ul className="grid gap-2">
+              {assets.map((block) => (
+                <li key={block.id} className="grid gap-2">
+                  <span className="wrap-anywhere">
+                    {block.type === "hero"
+                      ? block.props.title
+                      : block.type === "document"
+                        ? "PDF"
+                        : block.props.mediaId}
+                  </span>
+                  {block.type === "image" && (
+                    <label className="grid gap-1">
+                      {text.alt}
+                      <input
+                        className="input w-full"
+                        value={block.props.alt}
+                        maxLength={500}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          changeBlock(block.id, {
+                            ...block,
+                            props: {
+                              ...block.props,
+                              alt: event.currentTarget.value,
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+                  {block.type === "document" && (
+                    <>
+                      <label className="grid gap-1">
+                        {documents.caption}
+                        <input
+                          className="input w-full"
+                          value={block.props.label}
+                          maxLength={500}
+                          disabled={disabled}
+                          onChange={(event) =>
+                            changeBlock(block.id, {
+                              ...block,
+                              props: {
+                                ...block.props,
+                                label: event.currentTarget.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="grid gap-1">
+                        {documents.description}
+                        <textarea
+                          className="textarea w-full"
+                          value={block.props.description}
+                          maxLength={2000}
+                          disabled={disabled}
+                          onChange={(event) =>
+                            changeBlock(block.id, {
+                              ...block,
+                              props: {
+                                ...block.props,
+                                description: event.currentTarget.value,
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                    </>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={disabled}
+                      onClick={() => setTarget(block)}
+                    >
+                      {block.type === "document"
+                        ? documents.choose
+                        : text.choose}
+                    </Button>
+                    {(block.type === "document" || block.props.mediaId) && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={disabled}
+                        onClick={() => remove(block)}
+                      >
+                        {text.remove}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!renderEditor && actions}
+        </fieldset>
+      )}
       {error && <p role="alert">{text.documentLimit}</p>}
       {target && <Picker onCancel={() => setTarget(null)} onConfirm={choose} />}
-    </fieldset>
+    </>
   );
 }

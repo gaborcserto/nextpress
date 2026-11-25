@@ -4,6 +4,8 @@ import {
   ContentSlugSchema,
   readRichContent,
   richContentText,
+  richContentMediaIds,
+  richContentDocumentIds,
   serializeRichContent,
   SerializedRichContentSchema,
   textDocument,
@@ -38,6 +40,34 @@ describe("rich content contract", () => {
     expect(richContentText(readRichContent(encoded))).toBe(
       "Title\nItem\n<script>literal</script>",
     );
+  });
+
+  it("serializes image nodes while excluding them from summary text", () => {
+    const imageBlock = {
+      type: "image",
+      mediaId: "cover-1",
+      alt: "Mountain view",
+      children: [{ text: "" }],
+    };
+    const encoded = serializeRichContent([
+      { type: "paragraph", children: [{ text: "Lead" }] },
+      imageBlock,
+    ]);
+
+    expect(readRichContent(encoded).blocks[1]).toEqual(imageBlock);
+    expect(richContentText(readRichContent(encoded))).toBe("Lead");
+    expect(richContentMediaIds(encoded)).toEqual(["cover-1"]);
+  });
+
+  it("extracts supported media document links for reference validation", () => {
+    const encoded = serializeRichContent([
+      {
+        type: "paragraph",
+        children: [{ text: "PDF", href: "/media/report-1" }],
+      },
+    ]);
+
+    expect(richContentDocumentIds(encoded)).toEqual(["report-1"]);
   });
 
   it("isolates legacy array and literal text compatibility to reads", () => {

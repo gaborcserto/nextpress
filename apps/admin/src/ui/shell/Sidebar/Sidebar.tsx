@@ -5,10 +5,10 @@ import {
   FaCog,
   FaCopy,
   FaHome,
-  FaFilePdf,
   FaImages,
+  FaNewspaper,
+  FaStream,
   FaTags,
-  FaThumbtack,
   FaTimes,
   FaUsers,
 } from "react-icons/fa";
@@ -18,6 +18,8 @@ import {
 } from "react-icons/tb";
 
 import { useMediaMessages } from "@/components/admin/Media/messages";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
+import { AdminLogo } from "@/ui/components/AdminLogo";
 import { NavItem } from "@/ui/shell/NavItem";
 
 import type { NavConfig, SidebarProps } from "./Sidebar.types";
@@ -25,14 +27,13 @@ import type { NavConfig, SidebarProps } from "./Sidebar.types";
 const publishingItems: readonly NavConfig[] = [
   { href: "/admin", label: "Dashboard", icon: FaHome },
   { href: "/admin/pages", label: "Pages", icon: FaCopy },
-  { href: "/admin/posts", label: "Posts", icon: FaThumbtack },
+  { href: "/admin/posts", label: "Posts", icon: FaNewspaper },
   { href: "/admin/taxonomy", label: "Taxonomy", icon: FaTags },
 ];
 
 const administrationItems: readonly NavConfig[] = [
   { href: "/admin/users", label: "Users", icon: FaUsers },
   { href: "/admin/settings", label: "Settings", icon: FaCog },
-  { href: "/admin/settings/menus", label: "Menus", icon: FaCog },
 ];
 
 export default function Sidebar({
@@ -43,27 +44,54 @@ export default function Sidebar({
   onToggleCollapsedAction,
 }: SidebarProps) {
   const pathname = usePathname();
+  const locale = useAdminLocale();
   const mediaText = useMediaMessages();
+  const labels =
+    locale === "hu"
+      ? {
+          dashboard: "Vezérlőpult",
+          pages: "Oldalak",
+          posts: "Bejegyzések",
+          taxonomy: "Taxonómia",
+          users: "Felhasználók",
+          settings: "Beállítások",
+          menus: "Menük",
+          publishing: "Közzététel",
+          administration: "Adminisztráció",
+          expand: "Oldalsáv kinyitása",
+          collapse: "Oldalsáv összecsukása",
+          collapseText: "Összecsukás",
+        }
+      : {
+          dashboard: "Dashboard",
+          pages: "Pages",
+          posts: "Posts",
+          taxonomy: "Taxonomy",
+          users: "Users",
+          settings: "Settings",
+          menus: "Menus",
+          publishing: "Publishing",
+          administration: "Administration",
+          expand: "Expand sidebar",
+          collapse: "Collapse sidebar",
+          collapseText: "Collapse",
+        };
   const editorialItems =
     role && role !== "SUBSCRIBER"
       ? [
           ...publishingItems,
+          { href: "/admin/settings/menus", label: "Menus", icon: FaStream },
           { href: "/admin/media", label: mediaText.library, icon: FaImages },
-          {
-            href: "/admin/documents",
-            label: mediaText.documents,
-            icon: FaFilePdf,
-          },
         ]
       : publishingItems;
-  const collapseLabel = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  const collapseLabel = collapsed ? labels.expand : labels.collapse;
   const groups =
     role === "ADMIN"
       ? [
-          { label: "Publishing", items: editorialItems },
-          { label: "Administration", items: administrationItems },
+          { label: labels.publishing, items: editorialItems },
+          { label: labels.administration, items: administrationItems },
         ]
-      : [{ label: "Publishing", items: editorialItems }];
+      : [{ label: labels.publishing, items: editorialItems }];
 
   const activeHref = groups
     .flatMap(({ items }) => items)
@@ -79,9 +107,7 @@ export default function Sidebar({
     <div className="admin-sidebar" data-collapsed={collapsed}>
       <nav aria-label="Admin navigation" className="admin-sidebar-nav">
         <div className="admin-sidebar-heading">
-          <span className="admin-wordmark" aria-label="NextPress">
-            {collapsed ? "NP" : "NextPress"}
-          </span>
+          <AdminLogo collapsed={collapsed} />
           {onCloseAction && (
             <button
               type="button"
@@ -101,7 +127,19 @@ export default function Sidebar({
                 <li key={href}>
                   <NavItem
                     href={href}
-                    label={itemLabel}
+                    label={
+                      locale === "hu"
+                        ? ({
+                            Dashboard: "Vezérlőpult",
+                            Pages: "Oldalak",
+                            Posts: "Bejegyzések",
+                            Taxonomy: "Taxonómia",
+                            Users: "Felhasználók",
+                            Settings: "Beállítások",
+                            Menus: "Menük",
+                          }[itemLabel] ?? itemLabel)
+                        : itemLabel
+                    }
                     IconAction={icon}
                     active={href === activeHref}
                     collapsed={collapsed}
@@ -126,7 +164,7 @@ export default function Sidebar({
             ) : (
               <TbLayoutSidebarRightExpandFilled size={18} aria-hidden="true" />
             )}
-            {!collapsed && <span>Collapse</span>}
+            {!collapsed && <span>{labels.collapseText}</span>}
           </button>
         </div>
       )}

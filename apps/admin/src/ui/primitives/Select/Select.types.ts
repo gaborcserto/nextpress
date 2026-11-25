@@ -12,7 +12,7 @@ type SelectOption = {
 
 export type SelectProps = Pick<
   ComponentPropsWithoutRef<"select">,
-  "aria-describedby" | "aria-invalid"
+  "aria-describedby" | "aria-invalid" | "aria-label"
 > & {
   label?: string;
   hint?: string;

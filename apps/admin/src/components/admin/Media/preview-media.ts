@@ -1,3 +1,4 @@
+import { richContentMediaIds } from "@nextpress/shared/content";
 import {
   maxStoredMediaBytes,
   MediaInputMimeSchema,
@@ -14,6 +15,13 @@ export function previewMediaIds(snapshot: LivePreviewSnapshot) {
 
   if (snapshot.cover) {
     ids.add(snapshot.cover.id);
+  }
+
+  for (const mediaId of [
+    ...richContentMediaIds(snapshot.content),
+    ...richContentMediaIds(snapshot.excerpt),
+  ]) {
+    ids.add(mediaId);
   }
 
   const document = snapshot.pageDocument

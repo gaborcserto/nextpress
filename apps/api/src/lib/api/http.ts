@@ -69,7 +69,7 @@ export function oops(error?: unknown): NextResponse<ErrorBody> {
 
   if (failure === "HOMEPAGE_CONFLICT") {
     return conflict(
-      "A published or scheduled Home page already exists. Withdraw it before assigning another.",
+      "A Homepage page already exists. Change or remove its Homepage type before assigning another.",
     );
   }
 

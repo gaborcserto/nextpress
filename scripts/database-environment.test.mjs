@@ -82,6 +82,10 @@ test("Prisma config follows the API development dotenv order and expansion", (t)
   const { api, db } = fixture(t);
   writeFileSync(join(api, ".env"), `DATABASE_URL=${compose}\n`);
   writeFileSync(
+    join(db, ".env.migrator"),
+    `MIGRATION_DATABASE_URL=${editorial.replace("fixture", "nextpress_dev_migrator")}\n`,
+  );
+  writeFileSync(
     join(api, ".env.development.local"),
     `EDITORIAL_NAME=nextpress_dev_editorial\nDATABASE_URL=${editorial.replace("nextpress_dev_editorial", "$EDITORIAL_NAME")}\n`,
   );
@@ -101,13 +105,17 @@ test("Prisma config follows the API development dotenv order and expansion", (t)
   assert.equal(prisma.status, 0, prisma.stderr);
   assert.equal(
     prisma.stdout.trim(),
-    'Prisma database target: 127.0.0.1:55434/nextpress_dev_editorial (schema "public")',
+    'Prisma migration target: 127.0.0.1:55434/nextpress_dev_editorial (schema "public") (role nextpress_dev_migrator)',
   );
 });
 
 test("isolated and production process URLs take precedence over local files", (t) => {
   const { api, db } = fixture(t);
   writeFileSync(join(api, ".env"), `DATABASE_URL=${editorial}\n`);
+  writeFileSync(
+    join(db, ".env.migrator"),
+    `MIGRATION_DATABASE_URL=${editorial.replace("fixture", "nextpress_dev_migrator")}\n`,
+  );
 
   for (const NODE_ENV of ["development", "production"]) {
     const result = prismaConfig(db, { DATABASE_URL: isolated, NODE_ENV });
@@ -127,10 +135,24 @@ test("an explicit production phase selects the API production file", (t) => {
     join(api, ".env.production.local"),
     `DATABASE_URL=${isolated}\n`,
   );
+  writeFileSync(
+    join(db, ".env.migrator"),
+    `MIGRATION_DATABASE_URL=${editorial.replace("fixture", "nextpress_dev_migrator")}\n`,
+  );
 
   const result = prismaConfig(db, { NODE_ENV: "production" });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /:54123\/nextpress_dev_verify_fixture/);
+});
+
+test("local editorial migrations reject the API runtime identity", (t) => {
+  const { api, db } = fixture(t);
+  writeFileSync(join(api, ".env"), `DATABASE_URL=${editorial}\n`);
+
+  const result = prismaConfig(db);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /require the nextpress_dev_migrator credential/);
+  assert.doesNotMatch(result.stdout + result.stderr, /fixture_secret/);
 });
 
 test("missing and invalid Prisma URLs fail without exposing secrets or using packages/db/.env", (t) => {

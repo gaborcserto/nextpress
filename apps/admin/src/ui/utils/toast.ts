@@ -1,17 +1,26 @@
-export type ToastType = "success" | "error" | "warning" | "info";
+export type ToastType =
+  | "success"
+  | "error"
+  | "warning"
+  | "info"
+  | "attention"
+  | "loading";
 
 export const TOAST_POSITIONS = [
-  "top-right",
-  "top-left",
-  "bottom-right",
-  "bottom-left",
+  "top-start",
+  "top-center",
+  "top-end",
+  "bottom-start",
+  "bottom-center",
+  "bottom-end",
 ] as const;
 
 export type ToastPosition = (typeof TOAST_POSITIONS)[number];
 
 export type ToastOptions = {
   desc?: string;
-  timeout?: number; // ms, default: 2000
+  timeout?: number;
+  duration?: number;
   position?: ToastPosition;
 };
 
@@ -22,7 +31,7 @@ type ToastShowEvent = {
   msg: string;
   desc?: string;
   type: ToastType;
-  position: ToastPosition;
+  position?: ToastPosition;
   timeout: number;
 };
 
@@ -62,7 +71,11 @@ export function showToast(
     return () => {};
   }
 
-  const { desc, timeout = 2000, position = "top-right" } = opts;
+  const { desc, position } = opts;
+  const timeout =
+    opts.duration ??
+    opts.timeout ??
+    (type === "error" ? 8000 : type === "loading" ? 0 : 4000);
 
   const id = nextId++;
   const event: ToastShowEvent = {

@@ -284,7 +284,14 @@
 }
 
 :global([data-style-preset="classic"]) .entry {
-  padding-block: clamp(1.75rem, 3vw, 2.75rem);
+  padding-block: clamp(1.25rem, 2.25vw, 2rem);
+}
+
+:global([data-style-preset="classic"]) .metadata {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 :global([data-style-preset="classic"]) .cardMedia {

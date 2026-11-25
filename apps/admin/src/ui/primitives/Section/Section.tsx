@@ -5,6 +5,7 @@ import type { SectionProps } from "./Section.types";
 export default function Section({
   title,
   desc,
+  headerAside,
   children,
   className,
   variant = "soft",
@@ -19,18 +20,21 @@ export default function Section({
       <header
         className={
           variant === "plain"
-            ? "mb-3.5"
-            : "px-4 sm:px-6 pt-4 pb-3 border-b border-(--surface-border)"
+            ? "mb-3.5 flex items-center justify-between gap-3"
+            : "flex items-center justify-between gap-3 px-4 sm:px-6 pt-4 pb-3 border-b border-(--surface-border)"
         }
       >
-        <h2 className="text-lg leading-snug font-semibold wrap-anywhere">
-          {title}
-        </h2>
-        {desc && (
-          <p className="mt-1 text-sm leading-relaxed text-(--text-muted)">
-            {desc}
-          </p>
-        )}
+        <div className="min-w-0">
+          <h2 className="text-lg leading-snug font-semibold wrap-anywhere">
+            {title}
+          </h2>
+          {desc && (
+            <p className="mt-1 text-sm leading-relaxed text-(--text-muted)">
+              {desc}
+            </p>
+          )}
+        </div>
+        {headerAside}
       </header>
       <div className={variant === "plain" ? "" : "p-4 sm:p-6"}>{children}</div>
     </section>

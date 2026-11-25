@@ -255,12 +255,37 @@ export async function loadTagsAdminAction(
  * Delete a tag by ID from the admin interface.
  * This also removes the tag from all linked pages/posts.
  */
-export async function deleteTagAdminAction(id: string): Promise<void> {
-  const res = await fetch(`/api/admin/tags/${encodeURIComponent(id)}`, {
+export async function deleteTagAdminAction(
+  id: string,
+  type: "TAG" | "CATEGORY" = "TAG",
+): Promise<void> {
+  const query = type === "CATEGORY" ? "?type=CATEGORY" : "";
+  await jsonFetcher(`/api/admin/tags/${encodeURIComponent(id)}${query}`, {
     method: "DELETE",
   });
+}
 
-  if (!res.ok) {
-    throw new Error("Failed to delete tag");
+export async function updateTagAdminAction(
+  id: string,
+  input: { name: string; slug: string },
+): Promise<void> {
+  const response = await fetch(`/api/admin/tags/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => null);
+
+    const message =
+      typeof payload === "object" &&
+      payload !== null &&
+      "error" in payload &&
+      typeof payload.error === "string"
+        ? payload.error
+        : "Failed to update tag";
+
+    throw new Error(message);
   }
 }

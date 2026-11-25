@@ -39,10 +39,27 @@ describe("SettingsScreen", () => {
   beforeEach(() => {
     useSettingsScreen.mockReset();
     jsonFetcher.mockReset();
+    document.cookie = "admin-locale=en; Path=/";
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     window.history.replaceState(null, "", window.location.pathname);
+  });
+
+  it("localizes the Settings tabs and core controls to Hungarian", () => {
+    document.cookie = "admin-locale=hu; Path=/";
+    mockLoadedSettings();
+
+    render(<SettingsScreen />);
+
+    expect(screen.getByRole("tab", { name: "Általános" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Közzététel" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Hitelesítés" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Módosítások mentése" }),
+    ).toBeVisible();
+    expect(screen.getByText("Webhely adatai")).toBeVisible();
   });
 
   it("blocks editing on an invalid provider list and recovers after retry", async () => {
@@ -62,7 +79,7 @@ describe("SettingsScreen", () => {
       "Unable to load settings. Please try again.",
     );
     expect(
-      screen.queryByRole("button", { name: "Save site settings" }),
+      screen.queryByRole("button", { name: "Save changes" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Site name")).not.toBeInTheDocument();
 
@@ -81,17 +98,17 @@ describe("SettingsScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(
-      await screen.findByRole("button", { name: "Save site settings" }),
+      await screen.findByRole("button", { name: "Save changes" }),
     ).toBeEnabled();
     const siteName = screen.getByLabelText("Site name");
     expect(siteName).toHaveValue("NextPress");
-    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
 
     fireEvent.change(siteName, { target: { value: "Edited name" } });
-    expect(screen.getByText("Unsaved site settings")).toBeVisible();
+    expect(screen.getByText("Unsaved changes")).toBeVisible();
 
     fireEvent.change(siteName, { target: { value: "NextPress" } });
-    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
   });
 
   it("keeps legacy Appearance links in the General tab", () => {
@@ -110,9 +127,7 @@ describe("SettingsScreen", () => {
     );
     expect(screen.queryByRole("tab", { name: "Appearance" })).toBeNull();
     expect(document.getElementById("settings-appearance")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Save site settings" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeVisible();
     expect(document.querySelectorAll("form")).toHaveLength(1);
   });
 
@@ -178,21 +193,24 @@ describe("SettingsScreen", () => {
     fireEvent.click(provider);
     const secret = screen.getByLabelText("github new secret");
     expect(secret).toHaveValue("");
-    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
 
     fireEvent.change(secret, { target: { value: "replacement" } });
     fireEvent.click(provider);
     fireEvent.click(screen.getByRole("tab", { name: "General" }));
     const saveButton = screen.getByRole("button", {
-      name: "Save site settings",
+      name: "Save changes",
     });
     await act(async () => {
       fireEvent.click(saveButton);
     });
 
-    expect(save).toHaveBeenCalledExactlyOnceWith({
-      github: { clientSecret: "replacement" },
-    });
+    expect(save).toHaveBeenCalledExactlyOnceWith(
+      {
+        github: { clientSecret: "replacement" },
+      },
+      undefined,
+    );
     expect(secret).toHaveValue("replacement");
 
     await act(async () => {
@@ -200,7 +218,7 @@ describe("SettingsScreen", () => {
     });
 
     expect(secret).toHaveValue("");
-    expect(screen.queryByText("Unsaved site settings")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unsaved changes")).not.toBeInTheDocument();
     expect(save).toHaveBeenCalledTimes(2);
   });
 
@@ -233,7 +251,7 @@ describe("SettingsScreen", () => {
 
     render(<SettingsScreen />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Save site settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getByRole("tabpanel", { name: "Publishing" })).toBeVisible();
     expect(save).not.toHaveBeenCalled();

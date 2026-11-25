@@ -12,6 +12,53 @@ import { describe, expect, it } from "vitest";
 import { RichContent } from "./RichContent";
 
 describe("RichContent", () => {
+  it("renders inserted media images from their stable asset IDs", () => {
+    render(
+      <RichContent
+        content={serializeRichContent([
+          {
+            type: "image",
+            mediaId: "asset-123",
+            alt: "Blue hills",
+            children: [{ text: "" }],
+          },
+        ])}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Blue hills" })).toHaveAttribute(
+      "src",
+      "/media/asset-123",
+    );
+  });
+  it("renders saved site-relative links with their inline formatting", () => {
+    const content = serializeRichContent([
+      {
+        type: "paragraph",
+        children: [
+          { text: "Related page", href: "/pages/related", bold: true },
+        ],
+      },
+    ]);
+
+    render(<RichContent content={content} />);
+
+    const link = screen.getByRole("link", { name: "Related page" });
+    expect(link).toHaveAttribute("href", "/pages/related");
+    expect(link.querySelector("strong")).toHaveTextContent("Related page");
+  });
+
+  it("rejects executable URLs at the serialization boundary", () => {
+    expect(() =>
+      serializeRichContent([
+        {
+          type: "paragraph",
+          children: [{ text: "Invalid link", href: "javascript:alert(1)" }],
+        },
+      ]),
+    ).toThrow();
+  });
+
   it("renders canonical paragraphs and every supported heading below the page title", () => {
     const content: RichDocument = {
       version: 1,

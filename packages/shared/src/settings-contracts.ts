@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { AppearanceSchema } from "./appearance";
 import { OAUTH_PROVIDERS } from "./oauth-providers";
 import {
   PostListingModeSchema,
@@ -20,6 +21,7 @@ function hasCompleteOAuthProviders(
 }
 
 export const SettingsPayloadSchema = z.object({
+  appearance: AppearanceSchema.optional(),
   dateTime: SiteDateTimeSchema.optional(),
   siteName: z.string(),
   siteDescription: z.string(),

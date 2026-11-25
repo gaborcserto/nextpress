@@ -55,39 +55,79 @@ describe.each([
         id: "draft",
         status: "DRAFT",
         publishedAt: now,
+        authorName: null,
         publicationState: "DRAFT",
       },
       {
         id: "past",
         status: "PUBLISHED",
         publishedAt: new Date(now.getTime() - 1),
+        authorName: null,
         publicationState: "PUBLISHED",
       },
       {
         id: "exact",
         status: "PUBLISHED",
         publishedAt: now,
+        authorName: null,
         publicationState: "PUBLISHED",
       },
       {
         id: "future",
         status: "PUBLISHED",
         publishedAt: new Date(now.getTime() + 1),
+        authorName: null,
         publicationState: "SCHEDULED",
       },
       {
         id: "undated",
         status: "PUBLISHED",
         publishedAt: null,
+        authorName: null,
         publicationState: "MISSING_DATE",
       },
     ]);
     expect(page.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { type: filter },
-        select: expect.objectContaining({ publishedAt: true }),
+        select: expect.objectContaining({
+          publishedAt: true,
+          author: { select: { name: true } },
+        }),
       }),
     );
     expect(page.count).toHaveBeenCalledWith({ where: { type: filter } });
+  });
+
+  it("projects only the explicit author's display name and supports author ordering", async () => {
+    page.findMany.mockResolvedValue([
+      {
+        id: "owned",
+        type,
+        layout: "STANDARD",
+        status: "DRAFT",
+        publishedAt: null,
+        slug: "owned",
+        title: "Owned",
+        excerpt: null,
+        author: { name: "Editorial Writer" },
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+    page.count.mockResolvedValue(1);
+
+    const result = await listPages(0, 10, {
+      type: filter,
+      filters: { sort: "author", direction: "asc" },
+    });
+
+    expect(result.items[0].authorName).toBe("Editorial Writer");
+    expect(result.items[0]).not.toHaveProperty("author");
+    expect(page.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ author: { name: "asc" } }, { id: "asc" }],
+      }),
+    );
   });
 });

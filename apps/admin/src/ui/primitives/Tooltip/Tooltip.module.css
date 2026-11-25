@@ -1,0 +1,66 @@
+.trigger {
+  display: block;
+  min-width: 0;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 100;
+  inline-size: max-content;
+  max-inline-size: min(24rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 1rem);
+  overflow-wrap: break-word;
+  white-space: normal;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-tight);
+  background: var(--surface-tooltip);
+  color: var(--text-tooltip);
+  box-shadow: var(--shadow-control-picker);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity var(--motion-fast) var(--easing-standard),
+    transform var(--motion-fast) var(--easing-standard);
+}
+
+.tooltip[data-side="top"] {
+  transform: translate(-50%, 3px);
+}
+
+.tooltip[data-side="bottom"] {
+  transform: translate(-50%, -3px);
+}
+
+.tooltip[data-state="open"] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.tooltip[data-state="closing"] {
+  opacity: 0;
+}
+
+.arrow {
+  position: absolute;
+  left: var(--tooltip-arrow-left);
+  width: 0.375rem;
+  height: 0.375rem;
+  background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tooltip[data-side="top"] .arrow {
+  bottom: -0.1875rem;
+}
+
+.tooltip[data-side="bottom"] .arrow {
+  top: -0.1875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    transition-duration: var(--motion-reduced);
+  }
+}

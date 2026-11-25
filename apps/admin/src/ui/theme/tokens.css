@@ -11,7 +11,11 @@
 
   --surface-bg: var(--color-base-100);
   --surface-elevated: var(--surface-bg);
+  --surface-tooltip: #64748b;
   --text-primary: var(--color-base-content);
+  --text-tooltip: var(--palette-white);
+  --brand-foreground: light-dark(#171717, #f5f5f5);
+  --brand-accent: light-dark(#c47740, #e5a36f);
   --text-secondary: light-dark(#39475b, #d1dae6);
   --surface-border: light-dark(#dedfe3, #3b4250);
   --surface-rail: light-dark(#f4f5f7, #1b2028);
@@ -22,13 +26,49 @@
   --accent-soft: light-dark(#e9f1fc, #283953);
   --control-icon: var(--text-muted);
   --control-icon-hover: var(--text-primary);
-  --control-border: light-dark(#687487, #8795a8);
-  --field-border: var(--control-border);
-  --field-border-hover: light-dark(#526073, #b4c0cf);
+  --field-border-reference-light: oklch(0.872 0.01 258.338);
+  --field-border: light-dark(
+    var(--field-border-reference-light),
+    oklch(0.58 0.015 258.338)
+  );
+  --field-border-hover: light-dark(
+    oklch(0.54 0.018 258.338),
+    oklch(0.72 0.01 258.338)
+  );
+  --field-border-invalid: var(--danger-text);
+  --field-border-disabled: var(--surface-border);
+  --field-background: var(--surface-bg);
+  --field-background-disabled: var(--surface-rail);
+  --field-background-readonly: var(--surface-rail);
+  --field-placeholder: var(--text-muted);
+  --control-border: var(--field-border);
   --surface-hover: color-mix(in srgb, var(--accent-soft), transparent 45%);
   --overlay-backdrop: rgb(17 24 39 / 55%);
   --status-success-text: light-dark(#24543a, #a9d9b6);
   --status-warning-text: light-dark(#6c4b12, #f5d89b);
+  --toast-success: light-dark(#008f54, #00d982);
+  --toast-danger: light-dark(#c82333, #ff6674);
+  --toast-warning: light-dark(#8a6400, #ffd24a);
+  --toast-info: light-dark(#087f91, #35d7f4);
+  --toast-attention: light-dark(#bd5700, #ff9847);
+  --role-admin-bg: light-dark(#f1eafe, #382b4d);
+  --role-admin-text: light-dark(#542b91, #d7baff);
+  --role-editor-bg: light-dark(#e8f1ff, #263954);
+  --role-editor-text: light-dark(#214f91, #b6d2ff);
+  --role-author-bg: light-dark(#e9f4ea, #263c31);
+  --role-author-text: var(--status-success-text);
+  --dashboard-post-bg: light-dark(#edf4ff, #202f43);
+  --dashboard-post-text: light-dark(#214f91, #c2d8fa);
+  --dashboard-post-border: light-dark(#c7d8ef, #3d506b);
+  --dashboard-page-bg: light-dark(#f3edfc, #30283e);
+  --dashboard-page-text: light-dark(#583b85, #d1b9f0);
+  --dashboard-page-border: light-dark(#d7c8ec, #514267);
+  --dashboard-draft-bg: light-dark(#f1f3f5, #282d34);
+  --dashboard-draft-text: light-dark(#46515f, #c2cbd6);
+  --dashboard-draft-border: light-dark(#d5dae0, #424b57);
+  --dashboard-scheduled-bg: light-dark(#fff5e8, #382d20);
+  --dashboard-scheduled-text: light-dark(#78501c, #f0d09a);
+  --dashboard-scheduled-border: light-dark(#ead5b6, #59472d);
 
   --font-admin: var(--font-sans);
   --text-ui-size: 0.875rem;
@@ -48,6 +88,8 @@
   --radius-control: 0.5rem;
   --shadow-control-picker: 0 4px 14px rgb(10 16 30 / 14%);
   --shadow-overlay: 0 10px 30px rgb(10 16 30 / 16%);
+  --shadow-sticky: 0 5px 16px light-dark(rgb(10 16 30 / 14%), rgb(0 0 0 / 32%));
+  --sidebar-divider-inset: var(--space-3);
   --focus-color: var(--accent-solid);
   --focus-width: 2px;
   --focus-offset: 2px;
@@ -61,7 +103,7 @@
   --layout-auth-max-width: 25rem;
   --admin-topbar-height: 3.75rem;
   --workspace-wide: 112rem;
-  --workspace-editor: 94rem;
+  --workspace-editor: 120rem;
   --workspace-settings: 74rem;
   --workspace-focused: 56rem;
   --layout-page-gutter: clamp(0.875rem, 2.6vw, 2.5rem);

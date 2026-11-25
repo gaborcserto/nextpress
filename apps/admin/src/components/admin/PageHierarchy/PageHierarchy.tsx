@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { ApiRequestError, apiFetch, jsonResult } from "@/lib/api";
-import { useAdminDateLocale } from "@/lib/settings/admin-date-time";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import { Button, Input, Select } from "@/ui/primitives";
 
 type HierarchyPage = z.infer<typeof page>;
@@ -56,7 +56,7 @@ export function PageHierarchy({
     null,
   );
   const summary = useRef<HTMLElement>(null);
-  const hu = useAdminDateLocale() === "hu";
+  const hu = useAdminLocale() === "hu";
 
   useEffect(() => {
     if (!attempt) {
@@ -103,68 +103,72 @@ export function PageHierarchy({
 
   return (
     <details
-      className="rounded border border-current/20 p-4"
+      className="admin-surface admin-hierarchy-panel"
       onToggle={(event) => {
         if (event.currentTarget.open && !attempt) {
           setAttempt(1);
         }
       }}
     >
-      <summary ref={summary} className="cursor-pointer font-semibold">
+      <summary ref={summary} className="admin-hierarchy-heading">
         {hu ? "Oldalhierarchia" : "Page hierarchy"}
       </summary>
-      {failure && (
-        <p role="alert">
-          {failure === "unauthorized"
-            ? hu
-              ? "Nincs jogosultsága az oldalhierarchia megtekintéséhez."
-              : "You do not have access to the Page hierarchy."
-            : hu
-              ? "Az oldalhierarchia nem tölthető be."
-              : "Unable to load Page hierarchy."}
-        </p>
-      )}
-      {failure === "failed" && (
-        <Button onClick={retry}>{hu ? "Újrapróbálkozás" : "Retry"}</Button>
-      )}
-      {!!attempt && (
-        <p role="status">
-          {!pages &&
-            !failure &&
-            (hu ? "Oldalhierarchia betöltése…" : "Loading Page hierarchy…")}
-          {pages?.length === 0 &&
-            (hu ? "Nincsenek elérhető oldalak." : "No Pages found.")}
-        </p>
-      )}
-      {!!pages?.length && !id && (
-        <Select
-          label="Page"
-          value={selected}
-          onChangeAction={setSelected}
-          options={[
-            { value: "", label: "Select a Page" },
-            ...pages.map((entry) => ({
-              value: entry.id,
-              label: lineage(entry.id, pages)
-                .map(({ title }) => title)
-                .join(" / "),
-            })),
-          ]}
-        />
-      )}
-      {current && pages && (
-        <HierarchyFields
-          key={current.id}
-          pendingSlug={pendingSlug}
-          current={current}
-          pages={pages}
-          onSaved={(updated) =>
-            setPages(
-              pages.map((entry) => (entry.id === updated.id ? updated : entry)),
-            )
-          }
-        />
-      )}
+      <div className="admin-hierarchy-content">
+        {failure && (
+          <p role="alert">
+            {failure === "unauthorized"
+              ? hu
+                ? "Nincs jogosultsága az oldalhierarchia megtekintéséhez."
+                : "You do not have access to the Page hierarchy."
+              : hu
+                ? "Az oldalhierarchia nem tölthető be."
+                : "Unable to load Page hierarchy."}
+          </p>
+        )}
+        {failure === "failed" && (
+          <Button onClick={retry}>{hu ? "Újrapróbálkozás" : "Retry"}</Button>
+        )}
+        {!!attempt && (
+          <p role="status">
+            {!pages &&
+              !failure &&
+              (hu ? "Oldalhierarchia betöltése…" : "Loading Page hierarchy…")}
+            {pages?.length === 0 &&
+              (hu ? "Nincsenek elérhető oldalak." : "No Pages found.")}
+          </p>
+        )}
+        {!!pages?.length && !id && (
+          <Select
+            label="Page"
+            value={selected}
+            onChangeAction={setSelected}
+            options={[
+              { value: "", label: "Select a Page" },
+              ...pages.map((entry) => ({
+                value: entry.id,
+                label: lineage(entry.id, pages)
+                  .map(({ title }) => title)
+                  .join(" / "),
+              })),
+            ]}
+          />
+        )}
+        {current && pages && (
+          <HierarchyFields
+            key={current.id}
+            pendingSlug={pendingSlug}
+            current={current}
+            pages={pages}
+            onSaved={(updated) =>
+              setPages(
+                pages.map((entry) =>
+                  entry.id === updated.id ? updated : entry,
+                ),
+              )
+            }
+          />
+        )}
+      </div>
     </details>
   );
 }

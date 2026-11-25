@@ -188,6 +188,7 @@ async function projectPublicContent(
     slug: row.slug,
     title: row.title,
     summary: richContentText(parsePublicRichContent(row.excerpt)),
+    intro: parsePublicRichContent(row.excerpt),
     content: parsePublicRichContent(row.content),
     publishedAt: row.publishedAt.toISOString(),
     author: row.author?.name ? { name: row.author.name } : null,

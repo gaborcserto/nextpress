@@ -92,6 +92,12 @@ export const MediaBrowseSchema = z.strictObject({
   page: z.coerce.number().int().min(1).max(100_000).default(1),
 });
 
+export const AssetKindSchema = z.enum(["all", "image", "document"]);
+export type AssetKind = z.infer<typeof AssetKindSchema>;
+export const MediaLibraryBrowseSchema = MediaBrowseSchema.extend({
+  kind: AssetKindSchema.default("image"),
+});
+
 export const DocumentBrowseSchema = MediaBrowseSchema.omit({ mime: true });
 
 export const DocumentFilenameSchema = z
