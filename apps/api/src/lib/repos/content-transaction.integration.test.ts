@@ -816,6 +816,20 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
   it("synchronizes Header Page nesting in the menu save transaction", async () => {
     const { saveMenu } = await import("./navigation");
 
+    const headerAssignment = await db.navigationAssignment.findUniqueOrThrow({
+      where: { location: "header" },
+      select: {
+        menu: {
+          select: {
+            id: true,
+            name: true,
+            version: true,
+            items: true,
+          },
+        },
+      },
+    });
+
     const parent = await db.page.create({
       data: {
         type: "PAGE",
@@ -837,37 +851,65 @@ describe.skipIf(!testUrl)("isolated content aggregate transactions", () => {
     });
 
     try {
-      const menu = await saveMenu({
-        name: "Header hierarchy test",
-        locations: ["header"],
-        items: [
-          {
-            id: "parent",
-            parentId: null,
-            kind: "content",
-            label: "",
-            value: parent.id,
-            newTab: false,
-          },
-          {
-            id: "child",
-            parentId: "parent",
-            kind: "content",
-            label: "",
-            value: child.id,
-            newTab: false,
-          },
-        ],
-      });
+      const menu = await saveMenu(
+        {
+          name: "Header hierarchy test",
+          locations: ["header"],
+          items: [
+            {
+              id: "parent",
+              parentId: null,
+              kind: "content",
+              label: "",
+              value: parent.id,
+              newTab: false,
+            },
+            {
+              id: "child",
+              parentId: "parent",
+              kind: "content",
+              label: "",
+              value: child.id,
+              newTab: false,
+            },
+          ],
+        },
+        {
+          id: headerAssignment.menu.id,
+          version: headerAssignment.menu.version,
+        },
+      );
 
       expect(
-        await db.page.findUniqueOrThrow({
-          where: { id: child.id },
+        await db.navigationItem.findUniqueOrThrow({
+          where: { menuId_id: { menuId: menu.id, id: "child" } },
           select: { parentId: true },
         }),
-      ).toEqual({ parentId: parent.id });
-      await db.navigationMenu.delete({ where: { id: menu.id } });
+      ).toEqual({ parentId: "parent" });
+      expect(menu.id).toBe(headerAssignment.menu.id);
     } finally {
+      const currentMenu = await db.navigationMenu.findUniqueOrThrow({
+        where: { id: headerAssignment.menu.id },
+        select: { version: true },
+      });
+      await saveMenu(
+        {
+          name: headerAssignment.menu.name,
+          locations: ["header"],
+          items: headerAssignment.menu.items.map(
+            ({ id, parentId, kind, label, value, newTab, visible }) => ({
+              id,
+              parentId,
+              kind,
+              label,
+              value,
+              newTab,
+              visible,
+            }),
+          ),
+        },
+        { id: headerAssignment.menu.id, version: currentMenu.version },
+      );
       await db.page.deleteMany({
         where: { id: { in: [parent.id, child.id] } },
       });

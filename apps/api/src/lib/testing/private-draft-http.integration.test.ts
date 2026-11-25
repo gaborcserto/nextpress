@@ -830,12 +830,13 @@ describe.skipIf(!ownerUrl || !appUrl)(
               .title,
           ).toBe(legacy.title);
           await page.getByText("Schedule publication", { exact: true }).click();
-          const scheduleDate = page.locator("#private-schedule-date");
-          const scheduleTime = page.locator("#private-schedule-time");
-          await scheduleDate.fill("2099-01-01");
-          await scheduleDate.press("Enter");
-          await scheduleTime.fill("12:00");
-          await scheduleTime.press("Enter");
+          const scheduleDateTime = page
+            .getByRole("region", { name: "Private draft" })
+            .getByRole("textbox", {
+              name: "Publish date and Publish time",
+            });
+          await scheduleDateTime.fill("2099-01-01 12:00");
+          await scheduleDateTime.press("Enter");
           await page
             .getByRole("button", { name: "Schedule", exact: true })
             .click();
@@ -847,8 +848,8 @@ describe.skipIf(!ownerUrl || !appUrl)(
           await browserExpect(
             page.getByRole("button", { name: "Publish Changes", exact: true }),
           ).toBeEnabled();
-          await scheduleDate.fill("2099-01-02");
-          await scheduleDate.press("Enter");
+          await scheduleDateTime.fill("2099-01-02 12:00");
+          await scheduleDateTime.press("Enter");
           await page
             .getByRole("button", { name: "Reschedule", exact: true })
             .click();
