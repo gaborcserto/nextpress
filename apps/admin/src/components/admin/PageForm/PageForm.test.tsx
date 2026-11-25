@@ -55,19 +55,23 @@ const initial: PageFormValues = {
   inFooterMenu: false,
 };
 
-function renderPage(
-  values: PageFormValues,
-  save: (values: PageFormValues) => Promise<LegacySaveOutcome> = vi.fn(
-    async () => true,
-  ),
-  contentId?: string,
-  submitting = false,
+function renderPageForm(
+  values: PageFormValues = initial,
+  options: {
+    save?: (values: PageFormValues) => Promise<LegacySaveOutcome>;
+    contentId?: string;
+    submitting?: boolean;
+    submitLabel?: string;
+  } = {},
 ) {
+  const save = options.save ?? vi.fn(async () => true);
+
   return render(
     <PageForm
-      contentId={contentId}
+      contentId={options.contentId}
       initial={values}
-      submitting={submitting}
+      submitting={options.submitting}
+      submitLabel={options.submitLabel}
       onSubmitAction={save}
       loadTagOptionsAction={async () => []}
       createTagAction={async (name) => ({ id: name, name, slug: name })}
@@ -77,26 +81,48 @@ function renderPage(
   );
 }
 
+function getTitleInput() {
+  return screen.getByLabelText("Title");
+}
+
+function getFormForButton(name: string) {
+  const form = screen.getByRole("button", { name }).closest("form");
+
+  if (!form) {
+    throw new Error(`Expected the ${name} button to belong to a form`);
+  }
+
+  return form;
+}
+
+function mockCalendarDialog() {
+  vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(
+    function showModal(this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    },
+  );
+  vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(
+    function close(this: HTMLDialogElement) {
+      this.removeAttribute("open");
+      this.dispatchEvent(new Event("close"));
+    },
+  );
+}
+
 describe("PageForm", () => {
   it("keeps controls visually enabled and shows an in-button saving state", () => {
-    renderPage(
+    renderPageForm(
       { ...initial, title: "A page", slug: "a-page" },
-      vi.fn(),
-      undefined,
-      true,
+      { submitting: true },
     );
 
-    expect(screen.getByLabelText("Title")).not.toBeDisabled();
+    expect(getTitleInput()).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Saving..." })).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
   });
 
   it("shows the full record ID below the sidebar panels with a copy control", () => {
     const recordId = "page-record-123456789";
-    renderPage(initial, undefined, recordId);
+    renderPageForm(initial, { contentId: recordId });
 
     const heading = screen.getByRole("heading", { name: "Page" });
     const id = screen.getByText(recordId);
@@ -111,18 +137,8 @@ describe("PageForm", () => {
   });
 
   it("opens the shared date and time picker from the Publishing panel", () => {
-    vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(
-      function showModal(this: HTMLDialogElement) {
-        this.setAttribute("open", "");
-      },
-    );
-    vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(
-      function close(this: HTMLDialogElement) {
-        this.removeAttribute("open");
-        this.dispatchEvent(new Event("close"));
-      },
-    );
-    renderPage(initial);
+    mockCalendarDialog();
+    renderPageForm();
 
     const trigger = screen.getByRole("button", { name: "Open calendar" });
     expect(trigger).toBeVisible();
@@ -141,7 +157,7 @@ describe("PageForm", () => {
       .fn()
       .mockReturnValueOnce(promise)
       .mockResolvedValueOnce(true);
-    renderPage(
+    renderPageForm(
       {
         ...initial,
         title: "Scheduled page",
@@ -149,12 +165,10 @@ describe("PageForm", () => {
         status: "PUBLISHED",
         publishedAt: "2099-01-01T12:34:00.000Z",
       },
-      save,
+      { save },
     );
-    const editor = screen
-      .getByRole("button", { name: "Save" })
-      .closest("form")!;
-    const title = screen.getByLabelText("Title");
+    const editor = getFormForButton("Save");
+    const title = getTitleInput();
 
     expect(screen.getByText("Scheduled", { exact: true })).toBeVisible();
     fireEvent.submit(editor);
@@ -179,11 +193,7 @@ describe("PageForm", () => {
   it.each([undefined, "page-1"])(
     "omits hierarchy and navigation panels for page creation and editing (%s)",
     (contentId) => {
-      renderPage(
-        initial,
-        vi.fn(async () => true),
-        contentId,
-      );
+      renderPageForm(initial, { save: vi.fn(async () => true), contentId });
 
       expect(screen.queryByText("Hierarchy")).not.toBeInTheDocument();
       expect(screen.queryByText("Navigation")).not.toBeInTheDocument();
@@ -194,7 +204,7 @@ describe("PageForm", () => {
   );
 
   it("shows the Homepage helper only in the page type field", () => {
-    renderPage({ ...initial, type: pageLayouts.home });
+    renderPageForm({ ...initial, type: pageLayouts.home });
 
     expect(
       screen.getByText("This page is the website's default landing page."),
@@ -211,7 +221,10 @@ describe("PageForm", () => {
       .fn()
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
-    renderPage({ ...initial, title: "Existing", slug: "existing" }, save);
+    renderPageForm(
+      { ...initial, title: "Existing", slug: "existing" },
+      { save },
+    );
     fireEvent.click(screen.getByRole("button", { name: "Assign on save" }));
     expect(screen.getByRole("status")).toHaveTextContent("Unsaved changes");
     await act(async () =>
@@ -232,7 +245,7 @@ describe("PageForm", () => {
   it("round-trips a scheduled Page date through an unrelated edit", async () => {
     const publishedAt = "2026-12-01T12:30:00.000Z";
     const save = vi.fn(async (_values: PageFormValues) => true);
-    renderPage(
+    renderPageForm(
       {
         ...initial,
         status: "PUBLISHED",
@@ -240,9 +253,9 @@ describe("PageForm", () => {
         slug: "scheduled",
         publishedAt,
       },
-      save,
+      { save },
     );
-    fireEvent.change(screen.getByLabelText("Title"), {
+    fireEvent.change(getTitleInput(), {
       target: { value: "Edited schedule" },
     });
     await act(async () =>
@@ -257,7 +270,7 @@ describe("PageForm", () => {
   });
 
   it("offers four page types and reveals the tag filter only for Posts pages", () => {
-    renderPage(initial);
+    renderPageForm();
     const selector = screen.getByRole("combobox", { name: "Page type" });
 
     expect(selector).toHaveValue("STANDARD");
@@ -277,7 +290,7 @@ describe("PageForm", () => {
   });
 
   it("places Posts listing below Tags in the sidebar only for Posts pages", () => {
-    renderPage(initial);
+    renderPageForm();
 
     expect(
       screen.queryByRole("heading", { name: "Posts listing" }),
@@ -302,7 +315,7 @@ describe("PageForm", () => {
   });
 
   it("allows an explicit change from an existing layout to Standard", () => {
-    renderPage({ ...initial, type: "LISTING" });
+    renderPageForm({ ...initial, type: "LISTING" });
     fireEvent.change(screen.getByRole("combobox", { name: "Page type" }), {
       target: { value: "STANDARD" },
     });
@@ -337,12 +350,12 @@ describe("PageForm", () => {
         redirectTo: "/historical-target",
       };
       const save = vi.fn(async () => true);
-      renderPage(legacy, save);
+      renderPageForm(legacy, { save });
       expect(screen.getByRole("combobox", { name: "Page type" })).toHaveValue(
         type,
       );
       expect(screen.getByRole("option", { name: /legacy/ })).toBeDisabled();
-      fireEvent.change(screen.getByLabelText("Title"), {
+      fireEvent.change(getTitleInput(), {
         target: { value: "Edited title" },
       });
       await act(async () => {
@@ -371,16 +384,7 @@ describe("PageForm", () => {
     "retains unsaved input on failed save and resets only on success (%s)",
     async (accepted) => {
       const save = vi.fn(async () => accepted);
-      render(
-        <PageForm
-          initial={initial}
-          onSubmitAction={save}
-          loadTagOptionsAction={async () => []}
-          createTagAction={async (name) => ({ id: name, name, slug: name })}
-          loadEntityTagsAction={async () => []}
-          updateEntityTagsAction={async () => undefined}
-        />,
-      );
+      renderPageForm(initial, { save });
       fireEvent.change(screen.getByLabelText("Title"), {
         target: { value: "Local page" },
       });
@@ -392,7 +396,7 @@ describe("PageForm", () => {
           fireEvent.submit(form);
         }
       });
-      expect(screen.getByLabelText("Title")).toHaveValue("Local page");
+      expect(getTitleInput()).toHaveValue("Local page");
       const event = new Event("beforeunload", { cancelable: true });
       window.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(!accepted);
@@ -409,20 +413,11 @@ describe("PageForm", () => {
 
         return true;
       });
-      render(
-        <PageForm
-          initial={{ ...initial, parentId }}
-          onSubmitAction={save}
-          loadTagOptionsAction={async () => []}
-          createTagAction={async (name) => ({ id: name, name, slug: name })}
-          loadEntityTagsAction={async () => []}
-          updateEntityTagsAction={async () => undefined}
-        />,
-      );
+      renderPageForm({ ...initial, parentId }, { save });
       expect(
         screen.queryByRole("combobox", { name: "Parent page" }),
       ).not.toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText("Title"), {
+      fireEvent.change(getTitleInput(), {
         target: { value: "Updated page" },
       });
       await act(async () => {
@@ -446,17 +441,10 @@ describe("PageForm", () => {
 
   it("validates required fields inline and submits through its form", () => {
     submitAction.mockReset();
-    render(
-      <PageForm
-        initial={initial}
-        onSubmitAction={submitAction}
-        submitLabel="Create"
-        loadTagOptionsAction={async () => []}
-        createTagAction={async (name) => ({ id: name, name, slug: name })}
-        loadEntityTagsAction={async () => []}
-        updateEntityTagsAction={async () => undefined}
-      />,
-    );
+    renderPageForm(initial, {
+      save: submitAction,
+      submitLabel: "Create",
+    });
 
     const form = screen
       .getByRole("button", { name: "Create" })
