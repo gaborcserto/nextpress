@@ -272,7 +272,7 @@ html:has(.admin-topbar[data-tall]) {
 }
 
 .admin-wordmark {
-  font: 750 1.125rem/1.2 var(--font-sans);
+  font: 750 2rem/1.2 var(--font-sans);
   letter-spacing: -0.035em;
   text-transform: lowercase;
   color: var(--brand-foreground);
@@ -612,6 +612,10 @@ html:has(.admin-topbar[data-tall]) {
   .admin-rail[data-collapsed="true"] {
     inline-size: 3.75rem;
     --sidebar-divider-inset: var(--space-2);
+  }
+
+  .admin-rail[data-collapsed="true"] .admin-wordmark {
+    font-size: 1.625rem;
   }
 
   .admin-rail .admin-nav-link {
