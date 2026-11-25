@@ -24,7 +24,8 @@ import { FiChevronDown } from "react-icons/fi";
 import { ROLES, type RoleName } from "@/lib/auth/roles";
 import { DataListLoading } from "@/ui/components/DataList";
 import {
-  Button,
+  AdminAsyncButton,
+  AdminButton,
   Alert,
   Field,
   FormGrid12,
@@ -268,7 +269,7 @@ export default function SettingsScreen({
           message={loadError ? text.loadError : text.notLoaded}
           status="error"
         />
-        <Button onClick={() => void retry()}>{text.retry}</Button>
+        <AdminButton onClick={() => void retry()}>{text.retry}</AdminButton>
       </AdminPageLayout>
     );
   }
@@ -279,19 +280,19 @@ export default function SettingsScreen({
       workspace="settings"
       description={text.description}
       actions={
-        <Button
+        <AdminAsyncButton
           type="submit"
           form="admin-settings-form"
           color="primary"
           loading={saving}
           disabled={loading || !!loadError}
+          icon={FaSave}
         >
-          <FaSave aria-hidden="true" />
           <span className="min-w-0">{text.save}</span>
-        </Button>
+        </AdminAsyncButton>
       }
     >
-      <div className="admin-settings-workspace">
+      <div className="admin-settings-workspace admin-tab-stack">
         <SettingsTabs active={activeSection} />
         <div className="admin-settings-layout">
           <form
@@ -304,9 +305,9 @@ export default function SettingsScreen({
           >
             <Alert message={loadError} status="error" />
             {loadError && (
-              <Button loading={loading} onClick={() => void retry()}>
+              <AdminAsyncButton loading={loading} onClick={() => void retry()}>
                 {text.retryLoad}
-              </Button>
+              </AdminAsyncButton>
             )}
             <Alert message={error ? text.saveError : null} status="error" />
             <SettingsPanel

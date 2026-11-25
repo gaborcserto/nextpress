@@ -1,10 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { initialMediaQuery, MediaBrowser } from "./MediaBrowser";
 
 const { useSWR } = vi.hoisted(() => ({ useSWR: vi.fn() }));
 vi.mock("swr", () => ({ default: useSWR }));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const emptyCollection = { items: [], hasMore: false, page: 1 };
 
@@ -55,7 +59,10 @@ describe("MediaBrowser empty states", () => {
       q: "cover",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    const search = screen.getByRole("button", { name: "Search" });
+    expect(search.children).toHaveLength(1);
+    expect(search.querySelector(":scope > svg")).toBeInTheDocument();
+    fireEvent.click(search);
     expect(onQuery).toHaveBeenCalledTimes(2);
   });
 
@@ -64,8 +71,16 @@ describe("MediaBrowser empty states", () => {
     useSWR.mockReturnValue({ data: emptyCollection });
     renderBrowser({ ...initialMediaQuery, page: 2 }, onQuery);
 
-    const direction = screen.getByRole("button", { name: "Ascending" });
+    const sort = within(screen.getByRole("group", { name: "Sort by" }));
+    expect(sort.getByRole("combobox", { name: "Sort by" })).toHaveValue(
+      "createdAt",
+    );
+
+    const direction = sort.getByRole("button", { name: "Ascending" });
     expect(direction).toHaveAttribute("title", "Ascending");
+    expect(direction.children).toHaveLength(1);
+    expect(direction.querySelector(":scope > svg")).toBeInTheDocument();
+    expect(direction).not.toHaveAttribute("aria-busy");
     fireEvent.click(direction);
 
     expect(onQuery).toHaveBeenCalledWith({
@@ -75,7 +90,7 @@ describe("MediaBrowser empty states", () => {
     });
   });
 
-  it("switches views with equally sized accessible icon buttons", () => {
+  it("switches views with accessible icon toggles", () => {
     const onView = vi.fn();
     useSWR.mockReturnValue({ data: emptyCollection });
     render(
@@ -87,19 +102,20 @@ describe("MediaBrowser empty states", () => {
       />,
     );
 
-    const grid = screen.getByRole("button", { name: "Grid" });
-    const list = screen.getByRole("button", { name: "List" });
+    const view = within(screen.getByRole("group", { name: "View" }));
+    const grid = view.getByRole("button", { name: "Grid" });
+    const list = view.getByRole("button", { name: "List" });
     expect(grid).toHaveAttribute("aria-pressed", "true");
     expect(list).toHaveAttribute("aria-pressed", "false");
     expect(grid).toHaveAttribute("title", "Grid");
-    expect(grid.className).toContain("size-10");
-    expect(list.className).toContain("size-10");
+    expect(grid.children).toHaveLength(1);
+    expect(list.children).toHaveLength(1);
+    expect(grid.querySelector(":scope > svg")).toBeInTheDocument();
+    expect(list.querySelector(":scope > svg")).toBeInTheDocument();
 
     fireEvent.click(list);
     expect(onView).toHaveBeenCalledWith("list");
-    expect(screen.getByRole("status").closest(".overflow-hidden")).toHaveClass(
-      "border",
-    );
+    expect(onView).toHaveBeenCalledOnce();
   });
 
   it("does not show an empty state while loading or after a request error", () => {
@@ -127,4 +143,37 @@ describe("MediaBrowser empty states", () => {
       screen.queryByRole("heading", { name: "No files uploaded yet" }),
     ).toBeNull();
   });
+});
+
+it("reveals a complete document filename from the existing asset button", () => {
+  vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(80);
+  vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(240);
+  const filename = "typography-and-structured-content-public-style-guide.pdf";
+  const asset = {
+    id: "style-guide",
+    filename,
+    caption: "Style guide",
+    mime: "application/pdf",
+    size: 1024,
+    createdAt: "2026-09-25T10:00:00.000Z",
+  };
+  const onAsset = vi.fn();
+  useSWR.mockReturnValue({ data: { ...emptyCollection, items: [asset] } });
+  render(
+    <MediaBrowser
+      query={initialMediaQuery}
+      onQuery={vi.fn()}
+      onAsset={onAsset}
+    />,
+  );
+
+  const button = screen.getByRole("button", { name: /Style guide/ });
+  fireEvent.focus(button);
+
+  expect(screen.getByRole("tooltip")).toHaveTextContent(filename);
+  expect(button).not.toHaveAttribute("title");
+
+  fireEvent.click(button);
+
+  expect(onAsset).toHaveBeenCalledWith(asset);
 });

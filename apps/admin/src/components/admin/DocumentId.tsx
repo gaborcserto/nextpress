@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { FaCopy } from "react-icons/fa";
 
-import { IconButton, Tooltip } from "@/ui/primitives";
+import { AdminIconButton, Tooltip } from "@/ui/primitives";
 import { showToast } from "@/ui/utils";
 
 export default function DocumentId({ id }: { id: string }) {
@@ -29,7 +29,7 @@ export default function DocumentId({ id }: { id: string }) {
         content="Copy document ID"
         onOpenChange={setTooltipOpen}
       >
-        <IconButton
+        <AdminIconButton
           icon={FaCopy}
           size="xs"
           variant="ghost"

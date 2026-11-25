@@ -9,11 +9,11 @@ import {
   type MediaBrowse,
 } from "@nextpress/shared/media";
 import Image from "next/image";
+import { useId, useRef, type ReactNode } from "react";
 import {
   FaFilePdf,
   FaFolderOpen,
   FaList,
-  FaSearch,
   FaSortAmountDownAlt,
   FaSortAmountUpAlt,
   FaThLarge,
@@ -23,8 +23,17 @@ import useSWR from "swr";
 import { jsonFetcher } from "@/lib/api";
 import { safeImageUrl } from "@/lib/security/image-url";
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
-import { Button, Input, Select } from "@/ui/primitives";
+import { ToolbarSearch } from "@/ui/components/DataList/ToolbarSearch";
+import { useTextOverflow } from "@/ui/components/TruncatedText/useTextOverflow";
+import {
+  AdminButton,
+  AdminIconButton,
+  AdminToggleButton,
+  Select,
+} from "@/ui/primitives";
+import { Tooltip } from "@/ui/primitives/Tooltip/Tooltip";
 
+import styles from "./MediaBrowser.module.css";
 import { MediaUploads } from "./MediaUploads";
 import { useMediaMessages } from "./messages";
 
@@ -95,6 +104,79 @@ async function fetchCollection(url: string) {
   );
 }
 
+function MediaAssetButton({
+  className,
+  pressed,
+  onClick,
+  label,
+  filename,
+  list,
+  thumbnail,
+  children,
+}: {
+  className: string;
+  pressed?: boolean;
+  onClick: () => void;
+  label: string;
+  filename?: string;
+  list: boolean;
+  thumbnail: ReactNode;
+  children: ReactNode;
+}) {
+  const id = useId();
+  const { ref: titleRef, truncated: titleTruncated } = useTextOverflow(label);
+  const { ref: filenameRef, truncated: filenameTruncated } = useTextOverflow(
+    filename ?? "",
+  );
+
+  return (
+    <Tooltip
+      id={id}
+      enabled={titleTruncated || filenameTruncated}
+      touchPreview
+      content={
+        filename ? (
+          <>
+            {label}
+            <br />
+            {filename}
+          </>
+        ) : (
+          label
+        )
+      }
+    >
+      <button
+        type="button"
+        className={className}
+        aria-pressed={pressed}
+        onClick={onClick}
+      >
+        <span
+          className={
+            list
+              ? "grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-3"
+              : "grid grid-cols-[minmax(0,1fr)] gap-2"
+          }
+        >
+          {thumbnail}
+          <span className="min-w-0 wrap-anywhere">
+            <span ref={titleRef} className="admin-ellipsis">
+              {label}
+            </span>
+            {filename && (
+              <small ref={filenameRef} className="admin-ellipsis">
+                {filename}
+              </small>
+            )}
+            {children}
+          </span>
+        </span>
+      </button>
+    </Tooltip>
+  );
+}
+
 export function MediaBrowser({
   query,
   onQuery,
@@ -108,6 +190,7 @@ export function MediaBrowser({
   all = false,
 }: BrowserProps) {
   const text = useMediaMessages(documents);
+  const filtersRef = useRef<HTMLFormElement>(null);
   const params = new URLSearchParams({
     page: String(query.page),
     sort: query.sort,
@@ -146,6 +229,14 @@ export function MediaBrowser({
     onQuery(next);
   }
 
+  function applyFilterSelection() {
+    const form = filtersRef.current;
+
+    if (form) {
+      submitFilters(form);
+    }
+  }
+
   return (
     <div className="grid min-w-0 gap-4">
       {showUploads && (
@@ -155,92 +246,67 @@ export function MediaBrowser({
           onUploaded={() => void mutate()}
         />
       )}
-      <div className="min-w-0 overflow-hidden rounded-(--radius-surface) border border-(--surface-border) bg-base-100">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-(--surface-border) bg-(--surface-rail) p-2 sm:p-3">
-          <form
-            key={params.toString()}
-            className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              submitFilters(event.currentTarget);
-            }}
-          >
-            <div className="relative w-48 max-w-full">
-              <Input
-                id="media-search"
-                name="q"
-                aria-label={text.search}
-                defaultValue={query.q}
-                maxLength={100}
-                placeholder={text.search}
-                size="sm"
-                rightIcon={<FaSearch size={14} />}
-                className="w-full"
-              />
-              <button
-                type="submit"
-                aria-label={text.searchButton}
-                title={text.searchButton}
-                className="absolute end-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-(--radius-control) text-(--control-icon) hover:text-(--control-icon-hover) focus-visible:outline-(length:--focus-width) focus-visible:outline-offset-(--focus-offset) focus-visible:outline-(--focus-color)"
-              >
-                <FaSearch size={14} aria-hidden="true" />
-              </button>
-            </div>
-            {!documents && (
-              <Select
-                id="media-format"
-                name="mime"
-                aria-label={text.format}
-                defaultValue={query.mime ?? ""}
-                className="select-sm w-auto max-w-full"
-                options={[
-                  { value: "", label: all ? text.allFiles : text.any },
-                  ...MediaInputMimeSchema.options.map((mime) => ({
-                    value: mime,
-                    label: mime.slice(6).toUpperCase(),
-                  })),
-                  ...(all ? [{ value: documentMime, label: "PDF" }] : []),
-                ]}
-                onChangeAction={() => {
-                  const form =
-                    document.querySelector<HTMLInputElement>(
-                      "#media-search",
-                    )?.form;
-
-                  if (form) {
-                    submitFilters(form);
-                  }
-                }}
-              />
-            )}
+      <div className={styles.surface}>
+        <form
+          ref={filtersRef}
+          key={params.toString()}
+          className={`admin-filter-toolbar ${styles.toolbar}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            submitFilters(event.currentTarget);
+          }}
+        >
+          <ToolbarSearch
+            name="q"
+            aria-label={text.search}
+            defaultValue={query.q}
+            maxLength={100}
+            placeholder={text.search}
+            submitLabel={text.searchButton}
+          />
+          {!documents && (
+            <Select
+              id="media-format"
+              name="mime"
+              aria-label={text.format}
+              defaultValue={query.mime ?? ""}
+              className="select-sm"
+              options={[
+                { value: "", label: all ? text.allFiles : text.any },
+                ...MediaInputMimeSchema.options.map((mime) => ({
+                  value: mime,
+                  label: mime.slice(6).toUpperCase(),
+                })),
+                ...(all ? [{ value: documentMime, label: "PDF" }] : []),
+              ]}
+              onChangeAction={applyFilterSelection}
+            />
+          )}
+          <div className={styles.sortGroup} role="group" aria-label={text.sort}>
             <Select
               id="media-sort"
               name="sort"
               aria-label={text.sort}
               defaultValue={query.sort}
-              className="select-sm w-auto max-w-full"
+              className="select-sm"
               options={[
                 { value: "createdAt", label: text.createdAt },
                 { value: "updatedAt", label: text.updatedAt },
                 { value: "filename", label: text.filename },
                 { value: "size", label: text.size },
               ]}
-              onChangeAction={() => {
-                const form =
-                  document.querySelector<HTMLInputElement>(
-                    "#media-search",
-                  )?.form;
-
-                if (form) {
-                  submitFilters(form);
-                }
-              }}
+              onChangeAction={applyFilterSelection}
             />
-            <Button
-              type="button"
+            <AdminIconButton
+              icon={
+                query.direction === "asc"
+                  ? FaSortAmountUpAlt
+                  : FaSortAmountDownAlt
+              }
+              iconSize={18}
               variant="ghost"
-              className="size-10 min-h-10 min-w-10 border-0 bg-transparent p-0 text-(--control-icon) shadow-none hover:text-(--control-icon-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+              className="admin-plain-icon-button"
               aria-label={query.direction === "asc" ? text.newest : text.oldest}
               title={query.direction === "asc" ? text.newest : text.oldest}
               onClick={() =>
@@ -250,56 +316,48 @@ export function MediaBrowser({
                   page: 1,
                 })
               }
-            >
-              {query.direction === "asc" ? (
-                <FaSortAmountUpAlt size={18} aria-hidden="true" />
-              ) : (
-                <FaSortAmountDownAlt size={18} aria-hidden="true" />
-              )}
-            </Button>
-          </form>
+            />
+          </div>
           {onView && (
             <div
-              className="ms-auto flex w-fit items-center gap-2 self-center"
+              className={styles.viewGroup}
               role="group"
               aria-label={text.view}
             >
-              <Button
-                type="button"
+              <AdminToggleButton
+                icon={FaThLarge}
+                iconSize={18}
                 variant="ghost"
-                className={`size-10 min-h-10 min-w-10 border-0 bg-transparent p-0 shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color) ${view === "grid" ? "text-(--accent-solid)" : "text-(--control-icon)"}`}
-                aria-pressed={view === "grid"}
+                className="admin-plain-icon-button"
+                pressed={view === "grid"}
                 aria-label={text.grid}
                 title={text.grid}
                 onClick={() => onView("grid")}
-              >
-                <FaThLarge aria-hidden="true" size={18} />
-              </Button>
-              <Button
-                type="button"
+              />
+              <AdminToggleButton
+                icon={FaList}
+                iconSize={18}
                 variant="ghost"
-                className={`size-10 min-h-10 min-w-10 border-0 bg-transparent p-0 shadow-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color) ${view === "list" ? "text-(--accent-solid)" : "text-(--control-icon)"}`}
-                aria-pressed={view === "list"}
+                className="admin-plain-icon-button"
+                pressed={view === "list"}
                 aria-label={text.list}
                 title={text.list}
                 onClick={() => onView("list")}
-              >
-                <FaList aria-hidden="true" size={18} />
-              </Button>
+              />
             </div>
           )}
-        </div>
+        </form>
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 p-3 sm:p-4">
           {error && (
             <div className="flex flex-wrap items-center gap-2">
               <p role="alert">{text.loadError}</p>
-              <Button
+              <AdminButton
                 type="button"
                 variant="outline"
                 onClick={() => void mutate()}
               >
                 {text.retry}
-              </Button>
+              </AdminButton>
             </div>
           )}
           {isLoading && <p role="status">{text.loading}</p>}
@@ -344,58 +402,48 @@ export function MediaBrowser({
 
                 return (
                   <li key={asset.id} className="min-w-0">
-                    <button
-                      type="button"
-                      aria-pressed={library ? undefined : active}
+                    <MediaAssetButton
+                      pressed={library ? undefined : active}
                       onClick={() => onAsset(asset)}
-                      className={`w-full rounded-lg border p-2 text-start hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary ${active ? "border-primary bg-base-200" : "border-base-300"}`}
-                    >
-                      <span
-                        className={
-                          view === "list"
-                            ? "grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-3"
-                            : "grid gap-2"
-                        }
-                      >
-                        {isDocument ? (
+                      label={isDocument ? asset.caption || name : name}
+                      filename={isDocument && asset.caption ? name : undefined}
+                      list={view === "list"}
+                      thumbnail={
+                        isDocument ? (
                           <FaFilePdf aria-hidden="true" />
                         ) : (
                           <MediaThumbnail asset={{ ...asset, alt: "" }} />
-                        )}
-                        <span className="wrap-anywhere">
-                          {isDocument ? asset.caption || name : name}
-                          {isDocument && asset.caption && (
-                            <small className="block">{name}</small>
+                        )
+                      }
+                      className={`w-full rounded-lg border p-2 text-start hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary ${active ? "border-primary bg-base-200" : "border-base-300"}`}
+                    >
+                      {view === "list" && (
+                        <small className="block text-(--text-muted)">
+                          {asset.originalMime ?? asset.mime} ·{" "}
+                          {asset.size === null
+                            ? text.unknown
+                            : `${Math.ceil(asset.size / 1024)} KiB`}
+                        </small>
+                      )}
+                      {isDocument && (
+                        <small className="block text-(--text-muted)">
+                          {text.createdAt}{" "}
+                          <AdminTimestamp value={asset.createdAt} />
+                          {asset.updatedAt && (
+                            <>
+                              {" "}
+                              · {text.updatedAt}{" "}
+                              <AdminTimestamp value={asset.updatedAt} />
+                            </>
                           )}
-                          {view === "list" && (
-                            <small className="block text-(--text-muted)">
-                              {asset.originalMime ?? asset.mime} ·{" "}
-                              {asset.size === null
-                                ? text.unknown
-                                : `${Math.ceil(asset.size / 1024)} KiB`}
-                            </small>
-                          )}
-                          {isDocument && (
-                            <small className="block text-(--text-muted)">
-                              {text.createdAt}{" "}
-                              <AdminTimestamp value={asset.createdAt} />
-                              {asset.updatedAt && (
-                                <>
-                                  {" "}
-                                  · {text.updatedAt}{" "}
-                                  <AdminTimestamp value={asset.updatedAt} />
-                                </>
-                              )}
-                            </small>
-                          )}
-                          {active && (
-                            <small className="block font-semibold">
-                              {text.selected}
-                            </small>
-                          )}
-                        </span>
-                      </span>
-                    </button>
+                        </small>
+                      )}
+                      {active && (
+                        <small className="block font-semibold">
+                          {text.selected}
+                        </small>
+                      )}
+                    </MediaAssetButton>
                   </li>
                 );
               })}
@@ -403,25 +451,25 @@ export function MediaBrowser({
           )}
           {(query.page > 1 || data?.hasMore) && (
             <div className="flex flex-wrap items-center gap-2">
-              <Button
+              <AdminButton
                 type="button"
                 variant="outline"
                 disabled={query.page <= 1}
                 onClick={() => onQuery({ ...query, page: query.page - 1 })}
               >
                 {text.previous}
-              </Button>
+              </AdminButton>
               <span>
                 {text.page} {query.page}
               </span>
-              <Button
+              <AdminButton
                 type="button"
                 variant="outline"
                 disabled={!data?.hasMore}
                 onClick={() => onQuery({ ...query, page: query.page + 1 })}
               >
                 {text.next}
-              </Button>
+              </AdminButton>
             </div>
           )}
         </div>

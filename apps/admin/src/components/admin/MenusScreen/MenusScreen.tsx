@@ -40,16 +40,19 @@ import { z } from "zod";
 import { apiFetch } from "@/lib/api";
 import { isSystemPage } from "@/lib/content/system-page";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
+import { EmptyState } from "@/ui/components/EmptyState";
 import { PublicationStatusBadge } from "@/ui/components/PublicationStatusBadge";
+import { TruncatedText } from "@/ui/components/TruncatedText/TruncatedText";
 import {
-  Button,
+  AdminAsyncButton,
+  AdminButton,
   Input,
   Section,
   Select,
   Toggle,
   Tooltip,
 } from "@/ui/primitives";
-import { IconButton } from "@/ui/primitives/Buttons";
+import { AdminIconButton } from "@/ui/primitives/Buttons";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 import { showToast } from "@/ui/utils";
 
@@ -176,7 +179,8 @@ export function MenusScreen() {
     }[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<"save" | "delete" | null>(null);
+  const busy = pending !== null;
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [destinationError, setDestinationError] = useState(false);
@@ -724,7 +728,7 @@ export function MenusScreen() {
       return;
     }
 
-    setBusy(true);
+    setPending(remove ? "delete" : "save");
     setError("");
     setMessage("");
 
@@ -767,7 +771,7 @@ export function MenusScreen() {
         "error",
       );
     } finally {
-      setBusy(false);
+      setPending(null);
     }
   }
 
@@ -890,11 +894,11 @@ export function MenusScreen() {
                       <FaGripVertical aria-hidden="true" className="size-4" />
                     </button>
                     <span
-                      className={`${styles.menuItemName} min-w-0 break-words text-base leading-6 font-semibold text-(--text-primary)`}
+                      className={`${styles.menuItemName} min-w-0 text-base leading-6 font-semibold text-(--text-primary)`}
                       role="heading"
                       aria-level={3}
                     >
-                      {title}
+                      <TruncatedText value={title} />
                     </span>
                     <span
                       className={`${styles.menuItemKind} shrink-0 text-sm text-(--text-muted)`}
@@ -1136,7 +1140,7 @@ export function MenusScreen() {
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-(--surface-border) pt-3">
-                      <IconButton
+                      <AdminIconButton
                         id={`menu-up-${item.id}`}
                         type="button"
                         icon={FaArrowUp}
@@ -1148,7 +1152,7 @@ export function MenusScreen() {
                         disabled={index === 0}
                         onClick={() => move(item, -1)}
                       />
-                      <IconButton
+                      <AdminIconButton
                         id={`menu-down-${item.id}`}
                         type="button"
                         icon={FaArrowDown}
@@ -1161,7 +1165,7 @@ export function MenusScreen() {
                         onClick={() => move(item, 1)}
                       />
                       {index > 0 && (
-                        <IconButton
+                        <AdminIconButton
                           type="button"
                           icon={FaIndent}
                           iconSize={14}
@@ -1181,7 +1185,7 @@ export function MenusScreen() {
                         />
                       )}
                       {item.parentId && (
-                        <IconButton
+                        <AdminIconButton
                           type="button"
                           icon={FaOutdent}
                           iconSize={14}
@@ -1200,7 +1204,7 @@ export function MenusScreen() {
                           }
                         />
                       )}
-                      <IconButton
+                      <AdminIconButton
                         type="button"
                         icon={FaTrash}
                         iconSize={14}
@@ -1257,22 +1261,23 @@ export function MenusScreen() {
               {hu ? "Nem mentett módosítások" : "Unsaved changes"}
             </span>
           )}
-          <Button
+          <AdminButton
             variant="ghost"
             disabled={busy || !dirty}
             onClick={() => selectMenu(selected)}
           >
             <FaXmark aria-hidden="true" />
             {hu ? "Mégse" : "Cancel"}
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminAsyncButton
             color="primary"
+            icon={FaFloppyDisk}
             disabled={busy || !dirty}
+            loading={pending === "save"}
             onClick={() => void persist()}
           >
-            <FaFloppyDisk aria-hidden="true" />
             {hu ? "Mentés" : "Save"}
-          </Button>
+          </AdminAsyncButton>
         </div>
       }
     >
@@ -1285,7 +1290,7 @@ export function MenusScreen() {
           {message}
         </span>
       )}
-      <fieldset disabled={busy} className="space-y-2">
+      <fieldset disabled={busy} className="admin-tab-stack">
         <nav
           className={tabStyles.tabs}
           role="tablist"
@@ -1359,7 +1364,7 @@ export function MenusScreen() {
                       />
                     ))}
                   </div>
-                  <Button
+                  <AdminButton
                     type="button"
                     variant="solid"
                     color="primary"
@@ -1384,11 +1389,11 @@ export function MenusScreen() {
                   >
                     <FaPlus aria-hidden="true" />
                     {hu ? "Kijelöltek hozzáadása" : "Add selected"}
-                  </Button>
+                  </AdminButton>
                 </div>
               ))}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button
+                <AdminButton
                   id="menu-add-item"
                   type="button"
                   variant="outline"
@@ -1402,8 +1407,8 @@ export function MenusScreen() {
                 >
                   <FaLink aria-hidden="true" />
                   {hu ? "Egyéni hivatkozás" : "Custom link"}
-                </Button>
-                <Button
+                </AdminButton>
+                <AdminButton
                   type="button"
                   variant="outline"
                   color="primary"
@@ -1416,7 +1421,7 @@ export function MenusScreen() {
                 >
                   <FaPlus aria-hidden="true" />
                   {kinds.group}
-                </Button>
+                </AdminButton>
               </div>
             </div>
           </Section>
@@ -1436,23 +1441,15 @@ export function MenusScreen() {
                 {renderItems()}
               </>
             ) : (
-              <div
-                className="grid min-h-48 place-content-center justify-items-center gap-2 rounded-(--radius-control) border border-dashed border-(--surface-border) bg-(--surface-rail) px-4 py-8 text-center"
-                role="status"
-              >
-                <FaBeer
-                  aria-hidden="true"
-                  className="size-10 text-(--text-muted)"
-                />
-                <h3 className="font-semibold">
-                  {hu ? "Még nincsenek menüpontok" : "No menu items yet"}
-                </h3>
-                <p className="max-w-prose text-sm text-(--text-muted)">
-                  {hu
+              <EmptyState
+                icon={FaBeer}
+                heading={hu ? "Még nincsenek menüpontok" : "No menu items yet"}
+                description={
+                  hu
                     ? "Adjon hozzá oldalakat, egyéni hivatkozásokat vagy csoportokat a navigáció felépítéséhez."
-                    : "Add pages, custom links or groups to build your navigation."}
-                </p>
-              </div>
+                    : "Add pages, custom links or groups to build your navigation."
+                }
+              />
             )}
           </Section>
         </div>

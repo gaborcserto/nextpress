@@ -33,7 +33,11 @@ import { MediaDialog } from "@/components/admin/Media/MediaDialog";
 import { MediaPicker } from "@/components/admin/Media/MediaPicker";
 import { useMediaMessages } from "@/components/admin/Media/messages";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
-import { Button } from "@/ui/primitives/Buttons";
+import {
+  AdminButton,
+  AdminIconButton,
+  AdminToggleButton,
+} from "@/ui/primitives/Buttons";
 
 import { insertRichAsset } from "./slate.assets";
 import { ICON_SIZE } from "./slate.constants";
@@ -452,31 +456,29 @@ export function SlateLinkActions() {
 
   return (
     <div className="flex gap-1">
-      <Button
+      <AdminToggleButton
         type="button"
         size="sm"
         variant="ghost"
         title={title}
         aria-label={title}
         disabled={!canLink}
-        aria-pressed={Boolean(href)}
+        pressed={Boolean(href)}
+        icon={BsLink45Deg}
         onMouseDown={(event) => event.preventDefault()}
         onClick={open}
-      >
-        <BsLink45Deg aria-hidden />
-      </Button>
-      <Button
+      />
+      <AdminIconButton
         type="button"
         size="sm"
         variant="ghost"
         title={removeLabel}
+        icon={BsX}
         aria-label={removeLabel}
         disabled={!href}
         onMouseDown={(event) => event.preventDefault()}
         onClick={remove}
-      >
-        <BsX aria-hidden />
-      </Button>
+      />
       {url !== null && (
         <MediaDialog title={title} onClose={close}>
           <form
@@ -503,9 +505,9 @@ export function SlateLinkActions() {
                   : "Enter a site-relative path or an HTTPS URL."}
               </p>
             )}
-            <Button type="submit" className="mt-3">
+            <AdminButton type="submit" className="mt-3">
               {hu ? "Alkalmazás" : "Apply"}
-            </Button>
+            </AdminButton>
           </form>
         </MediaDialog>
       )}

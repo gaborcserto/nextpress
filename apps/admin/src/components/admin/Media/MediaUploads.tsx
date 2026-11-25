@@ -16,7 +16,7 @@ import { FaFileCirclePlus } from "react-icons/fa6";
 
 import { ApiRequestError, jsonFetcher } from "@/lib/api";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
-import { Button } from "@/ui/primitives";
+import { AdminButton } from "@/ui/primitives";
 
 import { useMediaMessages } from "./messages";
 
@@ -367,16 +367,16 @@ export function MediaUploads({
                 )}
               </div>
               {item.status === "failedUpload" && (
-                <Button
+                <AdminButton
                   type="button"
                   size="sm"
                   disabled={running}
                   onClick={() => void run([item])}
                 >
                   {text.retry}
-                </Button>
+                </AdminButton>
               )}
-              <Button
+              <AdminButton
                 type="button"
                 variant="ghost"
                 size="sm"
@@ -389,7 +389,7 @@ export function MediaUploads({
                 }
               >
                 {text.removeUpload}
-              </Button>
+              </AdminButton>
             </li>
           ))}
         </ul>
@@ -400,7 +400,7 @@ export function MediaUploads({
         </p>
       )}
       {running && uploads.some(({ status }) => status === "queued") && (
-        <Button
+        <AdminButton
           type="button"
           variant="ghost"
           className="w-fit"
@@ -416,7 +416,7 @@ export function MediaUploads({
           }}
         >
           {text.stop}
-        </Button>
+        </AdminButton>
       )}
     </section>
   );

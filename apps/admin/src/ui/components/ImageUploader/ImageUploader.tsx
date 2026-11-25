@@ -3,7 +3,7 @@
 import { type DragEvent, useRef, useState } from "react";
 
 import { safeImageUrl } from "@/lib/security/image-url";
-import { Alert, Button } from "@/ui/primitives";
+import { AdminButton, Alert } from "@/ui/primitives";
 
 import type { ImageUploaderProps } from "./ImageUploader.types";
 
@@ -124,7 +124,7 @@ export default function ImageUploader({
               ) : null}
             </div>
             <div className="flex gap-2">
-              <Button
+              <AdminButton
                 type="button"
                 variant="outline"
                 color="neutral"
@@ -136,8 +136,8 @@ export default function ImageUploader({
                 }}
               >
                 Change image
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminButton
                 type="button"
                 variant="ghost"
                 color="error"
@@ -148,7 +148,7 @@ export default function ImageUploader({
                 }}
               >
                 Remove
-              </Button>
+              </AdminButton>
             </div>
           </div>
         ) : (

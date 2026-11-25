@@ -89,41 +89,47 @@ export function MediaLibrary() {
           onUploaded={refresh}
         />
       </Section>
-      <nav aria-label={text.library} role="tablist" className={styles.tabs}>
-        {AssetKindSchema.options.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={kind === tab}
-            tabIndex={kind === tab ? 0 : -1}
-            onClick={() =>
-              setLocation(
-                { ...query, page: 1, mime: undefined },
-                view,
-                undefined,
-                tab,
-              )
-            }
-          >
-            {text.assetKinds[tab]}
-          </button>
-        ))}
-      </nav>
-      {notice && <p role="status">{notice}</p>}
-      <Section title={text.mediaFiles}>
-        <MediaBrowser
-          library
-          showUploads={false}
-          all={kind === "all"}
-          documents={documents}
-          query={query}
-          onQuery={(next) => setLocation(next, view)}
-          view={view === "list" ? "list" : "grid"}
-          onView={(next) => setLocation(query, next)}
-          onAsset={(asset) => setLocation(query, view, asset.id)}
-        />
-      </Section>
+      <div className="admin-tab-stack">
+        <nav aria-label={text.library} role="tablist" className={styles.tabs}>
+          {AssetKindSchema.options.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={kind === tab}
+              tabIndex={kind === tab ? 0 : -1}
+              onClick={() =>
+                setLocation(
+                  { ...query, page: 1, mime: undefined },
+                  view,
+                  undefined,
+                  tab,
+                )
+              }
+            >
+              {text.assetKinds[tab]}
+            </button>
+          ))}
+        </nav>
+        <Section title={text.mediaFiles}>
+          {notice && (
+            <p className="mb-2" role="status">
+              {notice}
+            </p>
+          )}
+          <MediaBrowser
+            library
+            showUploads={false}
+            all={kind === "all"}
+            documents={documents}
+            query={query}
+            onQuery={(next) => setLocation(next, view)}
+            view={view === "list" ? "list" : "grid"}
+            onView={(next) => setLocation(query, next)}
+            onAsset={(asset) => setLocation(query, view, asset.id)}
+          />
+        </Section>
+      </div>
       {assetId.success && (
         <MediaDetails
           id={assetId.data}

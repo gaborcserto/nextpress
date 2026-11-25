@@ -22,10 +22,11 @@ import {
   QuerySortableHeader,
 } from "@/ui/components/DataList/SortableHeader";
 import { PublicationStatusBadge } from "@/ui/components/PublicationStatusBadge";
+import { TruncatedText } from "@/ui/components/TruncatedText/TruncatedText";
 import {
+  AdminAsyncButton,
+  AdminButton,
   Alert,
-  Button,
-  IconButton,
   LinkIconButton,
   ConfirmDialog,
   Tooltip,
@@ -34,7 +35,6 @@ import {
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import ContentListPagination from "./ContentListPagination";
-import { ContentListTitle } from "./ContentListTitle";
 import ListDate from "./ListDate";
 
 import type { ContentListProps } from "./ContentList.types";
@@ -63,17 +63,16 @@ function ProtectedPageDeleteButton({
         aria-label={`Delete ${title} unavailable`}
         aria-describedby={tooltipOpen ? tooltipId : undefined}
       >
-        <IconButton
+        <AdminButton
           icon={FaTrash}
           size="sm"
           color="error"
           variant="ghost"
           disabled
           aria-label={`Delete ${title}`}
-          title="System pages cannot be deleted."
         >
           Delete
-        </IconButton>
+        </AdminButton>
       </span>
     </Tooltip>
   );
@@ -186,9 +185,10 @@ export default function ContentList({
   const sortColumn = query?.values.get("sort") ?? "updatedAt";
   const sortDirection = query?.values.get("direction") ?? "desc";
 
-  const sortable = (column: string, label: string) =>
+  const sortable = (column: string, label: string, className?: string) =>
     query ? (
       <QuerySortableHeader
+        className={className}
         column={column}
         activeColumn={sortColumn}
         direction={sortDirection === "asc" ? "asc" : "desc"}
@@ -197,7 +197,9 @@ export default function ContentList({
         {label}
       </QuerySortableHeader>
     ) : (
-      <th scope="col">{label}</th>
+      <th scope="col" className={className}>
+        {label}
+      </th>
     );
 
   const askDelete = (id: string, title: string) => confirm.show({ id, title });
@@ -227,7 +229,9 @@ export default function ContentList({
       {error && (
         <div className="space-y-3">
           <Alert status="error" message={error} />
-          {onRetryAction && <Button onClick={onRetryAction}>Retry</Button>}
+          {onRetryAction && (
+            <AdminButton onClick={onRetryAction}>Retry</AdminButton>
+          )}
         </div>
       )}
       {isLoading && !items.length ? (
@@ -235,32 +239,38 @@ export default function ContentList({
       ) : (
         !error && (
           <DataListSurface
+            adaptive
             reserveSpace
             pendingLabel={isLoading ? heading.toLowerCase() : undefined}
           >
             {query && (
-              <>
-                <ListFilters query={query} fields={fields} />
-                <MobileSortControl
-                  label={locale === "hu" ? "Rendezés" : "Sort by"}
-                  directionLabel={
-                    locale === "hu"
-                      ? "Rendezési irány váltása"
-                      : "Change sort direction"
-                  }
-                  options={[
-                    { value: "title", label: "Title" },
-                    { value: "slug", label: "Slug" },
-                    { value: "author", label: authorLabel },
-                    { value: "createdAt", label: "Created" },
-                    { value: "updatedAt", label: "Last modified" },
-                  ]}
-                  value={sortColumn}
-                  direction={sortDirection === "asc" ? "asc" : "desc"}
-                  onFieldAction={query.onSortFieldAction}
-                  onDirectionAction={() => query.onSortAction(sortColumn)}
-                />
-              </>
+              <ListFilters
+                query={query}
+                fields={fields}
+                searchWidth="responsive"
+                trailingControls={
+                  <MobileSortControl
+                    className="admin-content-sort"
+                    label={locale === "hu" ? "Rendezés" : "Sort by"}
+                    directionLabel={
+                      locale === "hu"
+                        ? "Rendezési irány váltása"
+                        : "Change sort direction"
+                    }
+                    options={[
+                      { value: "title", label: "Title" },
+                      { value: "slug", label: "Slug" },
+                      { value: "author", label: authorLabel },
+                      { value: "createdAt", label: "Created" },
+                      { value: "updatedAt", label: "Last modified" },
+                    ]}
+                    value={sortColumn}
+                    direction={sortDirection === "asc" ? "asc" : "desc"}
+                    onFieldAction={query.onSortFieldAction}
+                    onDirectionAction={() => query.onSortAction(sortColumn)}
+                  />
+                }
+              />
             )}
             <table
               className="table admin-responsive-table admin-content-table w-full"
@@ -270,9 +280,9 @@ export default function ContentList({
               <thead role="rowgroup">
                 <tr role="row">
                   {sortable("title", "Title")}
-                  {sortable("author", authorLabel)}
+                  {sortable("author", authorLabel, "admin-content-secondary")}
                   <th scope="col">Status</th>
-                  {sortable("createdAt", "Created")}
+                  {sortable("createdAt", "Created", "admin-content-secondary")}
                   {sortable("updatedAt", "Last modified")}
                   <th role="columnheader" scope="col" className="text-right">
                     Actions
@@ -290,10 +300,10 @@ export default function ContentList({
                         className="admin-table-identity"
                       >
                         <div className="flex min-w-0 items-center gap-2">
-                          <ContentListTitle
-                            id={item.id}
+                          <TruncatedText
+                            className="max-w-[32rem] font-semibold"
                             href={editHrefAction(item.id)}
-                            title={item.title}
+                            value={item.title}
                           />
                           {item.systemPage && (
                             <span className="admin-badge admin-badge-info shrink-0">
@@ -301,19 +311,45 @@ export default function ContentList({
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-(--text-muted)">
-                          {item.publicPath ?? `/${item.slug}`}
+                        <div className="flex min-w-0 items-baseline gap-1 text-sm text-(--text-muted)">
+                          <TruncatedText
+                            value={item.publicPath ?? `/${item.slug}`}
+                          />
                           {item.typeLabel && (
-                            <span> &middot; {item.typeLabel}</span>
+                            <span className="shrink-0">
+                              &middot; {item.typeLabel}
+                            </span>
                           )}
+                        </div>
+                        <div className="admin-content-compact-metadata text-sm text-(--text-muted)">
+                          <div className="flex min-w-0 gap-1">
+                            <span className="shrink-0">{authorLabel}:</span>
+                            <TruncatedText
+                              value={item.authorName || unassignedAuthorLabel}
+                            />
+                          </div>
+                          <div>
+                            {"Created: "}
+                            <ListDate value={item.createdAt} />
+                          </div>
                         </div>
                       </th>
 
-                      <td role="cell" className="admin-content-author">
-                        <span className="admin-cell-label" aria-hidden="true">
-                          {authorLabel}
-                        </span>
-                        {item.authorName || unassignedAuthorLabel}
+                      <td
+                        role="cell"
+                        className="admin-content-author admin-content-secondary"
+                      >
+                        <div className="flex min-w-0 items-baseline">
+                          <span
+                            className="admin-cell-label shrink-0"
+                            aria-hidden="true"
+                          >
+                            {authorLabel}
+                          </span>
+                          <TruncatedText
+                            value={item.authorName || unassignedAuthorLabel}
+                          />
+                        </div>
                       </td>
 
                       <td role="cell">
@@ -337,7 +373,10 @@ export default function ContentList({
                         </div>
                       </td>
 
-                      <td role="cell" className="admin-record-date">
+                      <td
+                        role="cell"
+                        className="admin-record-date admin-content-secondary"
+                      >
                         <span className="admin-cell-label" aria-hidden="true">
                           Created
                         </span>
@@ -374,7 +413,7 @@ export default function ContentList({
                                 title={item.title}
                               />
                             ) : (
-                              <IconButton
+                              <AdminAsyncButton
                                 icon={FaTrash}
                                 size="sm"
                                 color="error"
@@ -386,7 +425,7 @@ export default function ContentList({
                                 onClick={() => askDelete(item.id, item.title)}
                               >
                                 Delete
-                              </IconButton>
+                              </AdminAsyncButton>
                             ))}
                         </div>
                       </td>

@@ -94,7 +94,9 @@ describe("ContentList", () => {
     expect(remove).toBeDisabled();
     expect(systemPage).toBeVisible();
     expect(systemPage.parentElement).toBe(title.parentElement?.parentElement);
-    expect(screen.getByText("/", { selector: ".text-sm" })).toBeVisible();
+    expect(
+      screen.getByText("/", { selector: ".admin-ellipsis" }),
+    ).toBeVisible();
 
     fireEvent.focus(tooltipTrigger);
 
@@ -114,16 +116,18 @@ describe("ContentList", () => {
     expect(screen.queryByRole("button", { name: "Delete Home" })).toBeNull();
   });
 
-  it("shows the default modified ordering and sends header sorting actions", async () => {
+  it("shows the default modified ordering and supports header and compact sorting", async () => {
     const onSortAction = vi.fn();
+    const onSortFieldAction = vi.fn();
+    const onApplyAction = vi.fn();
     renderList(
       <ContentList
         {...props}
         query={{
           values: new URLSearchParams(),
-          onApplyAction: vi.fn(),
+          onApplyAction,
           onSortAction,
-          onSortFieldAction: vi.fn(),
+          onSortFieldAction,
         }}
       />,
     );
@@ -135,6 +139,40 @@ describe("ContentList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Title" }));
 
     expect(onSortAction).toHaveBeenCalledWith("title");
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Sort by" }), {
+      target: { value: "author" },
+    });
+
+    expect(onSortFieldAction).toHaveBeenCalledWith("author");
+
+    const search = screen.getByRole("searchbox", { name: "Search" });
+    const direction = screen.getByRole("button", {
+      name: "Change sort direction",
+    });
+    expect(direction.closest("form")).toBe(search.closest("form"));
+    fireEvent.click(direction);
+
+    expect(onSortAction).toHaveBeenLastCalledWith("updatedAt");
+    expect(onApplyAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps pagination available below the listing", () => {
+    const onPageAction = vi.fn();
+    renderList(
+      <ContentList
+        {...props}
+        pagination={{ page: 1, busy: false, hasNextPage: true, onPageAction }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "Pages pagination" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(onPageAction).toHaveBeenCalledWith(2);
   });
 
   it("loads named taxonomy options and applies selections without losing search", async () => {
@@ -256,7 +294,10 @@ it("shows a scheduled date separately from record dates and hides a retained dra
   const upcomingRow = screen.getByRole("row", { name: /Upcoming/ });
   expect(upcomingRow).toHaveTextContent("Scheduled");
   expect(
-    Array.from(upcomingRow.querySelectorAll("time"), (time) => time.dateTime),
+    Array.from(
+      upcomingRow.querySelectorAll<HTMLTimeElement>("td time"),
+      (time) => time.dateTime,
+    ),
   ).toEqual([scheduledAt, createdAt, updatedAt]);
   const draftRow = screen.getByRole("row", { name: /Home/ });
   expect(draftRow).toHaveTextContent("Draft");

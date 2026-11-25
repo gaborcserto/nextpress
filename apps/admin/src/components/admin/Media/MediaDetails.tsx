@@ -12,7 +12,7 @@ import useSWR from "swr";
 
 import { ApiRequestError, apiFetch, jsonFetcher } from "@/lib/api";
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
-import { Button, ConfirmDialog } from "@/ui/primitives";
+import { AdminAsyncButton, AdminButton, ConfirmDialog } from "@/ui/primitives";
 
 import { MediaThumbnail } from "./MediaBrowser";
 import { MediaDialog } from "./MediaDialog";
@@ -165,13 +165,13 @@ function MetadataForm({
           <MediaThumbnail asset={asset} showGif={showGif} />
         )}
         {asset.mime === "image/gif" && (
-          <Button
+          <AdminButton
             type="button"
             variant="outline"
             onClick={() => setShowGif(!showGif)}
           >
             {showGif ? text.hideGif : text.showGif}
-          </Button>
+          </AdminButton>
         )}
         <dl className="grid gap-2 text-sm wrap-anywhere">
           {[
@@ -228,7 +228,7 @@ function MetadataForm({
               <dd className="flex flex-wrap items-center gap-1">
                 {value ?? text.unknown}
                 {canCopy && typeof value === "string" && (
-                  <Button
+                  <AdminButton
                     type="button"
                     size="sm"
                     variant="ghost"
@@ -236,7 +236,7 @@ function MetadataForm({
                     onClick={() => void copy(value)}
                   >
                     {text.copy}
-                  </Button>
+                  </AdminButton>
                 )}
               </dd>
             </div>
@@ -300,10 +300,10 @@ function MetadataForm({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" loading={saving}>
+          <AdminAsyncButton type="submit" loading={saving}>
             {text.save}
-          </Button>
-          <Button
+          </AdminAsyncButton>
+          <AdminButton
             type="button"
             variant="outline"
             color="error"
@@ -311,7 +311,7 @@ function MetadataForm({
             onClick={() => setConfirm(true)}
           >
             {text.delete}
-          </Button>
+          </AdminButton>
         </div>
         <ConfirmDialog
           open={confirm}

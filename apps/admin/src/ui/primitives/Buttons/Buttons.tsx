@@ -3,11 +3,14 @@
 import Link from "next/link";
 
 import type {
-  BaseProps,
-  ButtonProps,
-  IconButtonProps,
+  AdminAsyncButtonProps,
+  AdminButtonProps,
+  AdminIconButtonProps,
+  AdminToggleButtonProps,
+  ButtonAppearance,
   LinkButtonProps,
   LinkIconButtonProps,
+  NativeAdminButtonProps,
 } from "./Buttons.types";
 
 const cx = (...xs: Array<string | false | undefined>) =>
@@ -33,10 +36,7 @@ function buildClasses({
   wide,
   active,
   className,
-}: Pick<
-  BaseProps,
-  "variant" | "color" | "size" | "fullWidth" | "wide" | "active" | "className"
->) {
+}: ButtonAppearance) {
   const base = "btn admin-button";
 
   const sizeCls =
@@ -77,132 +77,140 @@ function buildClasses({
     fullWidthCls,
     wideCls,
     activeCls,
-    "inline-flex items-center justify-center gap-2",
     className,
   );
 }
 
 function BaseButton({
-  children,
   className,
+  variant,
+  color,
+  size,
+  fullWidth,
+  wide,
+  type = "button",
+  ...props
+}: NativeAdminButtonProps) {
+  return (
+    <button
+      {...props}
+      type={type}
+      className={buildClasses({
+        variant,
+        color,
+        size,
+        fullWidth,
+        wide,
+        className,
+      })}
+    />
+  );
+}
+
+export function AdminButton({
+  icon: Icon,
+  iconSize = 16,
+  children,
+  ...props
+}: AdminButtonProps) {
+  return (
+    <BaseButton {...props}>
+      {Icon && <Icon size={iconSize} aria-hidden="true" />}
+      {children}
+    </BaseButton>
+  );
+}
+
+export function AdminIconButton({
+  icon,
+  shape = "square",
+  className,
+  ...props
+}: AdminIconButtonProps) {
+  return (
+    <AdminButton
+      {...props}
+      icon={icon}
+      className={cx(
+        "admin-icon-button",
+        shape === "circle" && "btn-circle",
+        className,
+      )}
+    />
+  );
+}
+
+export function AdminToggleButton({
+  pressed,
+  ...props
+}: AdminToggleButtonProps) {
+  if (props.children === undefined) {
+    return <AdminIconButton {...props} aria-pressed={pressed} />;
+  }
+
+  return <AdminButton {...props} aria-pressed={pressed} />;
+}
+
+export function AdminAsyncButton({
+  icon: Icon,
+  iconSize = 16,
+  children,
   loading,
   loadingLabel,
-  variant,
-  color,
-  size,
-  fullWidth,
-  wide,
-  active,
-  ...domProps
-}: BaseProps) {
-  const { disabled: disabledProp, type: typeProp, ...restDomProps } = domProps;
-  const isDisabled = !!disabledProp || !!loading;
-
-  const classes = buildClasses({
-    variant,
-    color,
-    size,
-    fullWidth,
-    wide,
-    active,
-    className,
-  });
+  disabled,
+  ...props
+}: AdminAsyncButtonProps) {
+  const hasLoadingLabel = loadingLabel != null;
+  const hasSeparateLoadingState = hasLoadingLabel || !Icon;
+  const showLoadingState = loading && hasSeparateLoadingState;
+  // Both states keep their grid space so translated loading labels do not resize the button.
+  const spinner = loading && (
+    <span
+      className="loading loading-spinner size-4 shrink-0"
+      style={
+        hasSeparateLoadingState
+          ? undefined
+          : { inlineSize: iconSize, blockSize: iconSize }
+      }
+      aria-hidden="true"
+    />
+  );
 
   return (
-    <button
-      type={typeProp ?? "button"}
-      className={classes}
-      aria-busy={!!loading}
-      aria-pressed={typeof active === "boolean" ? active : undefined}
-      disabled={isDisabled}
-      {...restDomProps}
+    <BaseButton
+      {...props}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
     >
-      <span className="admin-button-content">
+      <span className="admin-async-button-content">
         <span
-          className="admin-button-content-state"
-          aria-hidden={loading || undefined}
+          className="admin-async-button-state"
+          aria-hidden={showLoadingState || undefined}
         >
+          {!hasSeparateLoadingState && Icon && (
+            <span className="admin-async-button-indicator" aria-hidden="true">
+              <Icon
+                size={iconSize}
+                style={{ visibility: loading ? "hidden" : undefined }}
+              />
+              {spinner}
+            </span>
+          )}
+          {hasLoadingLabel && Icon && (
+            <Icon size={iconSize} aria-hidden="true" />
+          )}
           {children}
         </span>
-        <span
-          className="admin-button-content-state admin-button-loading-content"
-          aria-hidden={!loading || undefined}
-        >
-          <span className="loading loading-spinner size-4" aria-hidden="true" />
-          {loadingLabel ?? children}
-        </span>
+        {hasSeparateLoadingState && (
+          <span className="admin-async-button-state" aria-hidden={!loading}>
+            <span className="size-4 shrink-0" aria-hidden="true">
+              {spinner}
+            </span>
+            {loadingLabel ?? children}
+          </span>
+        )}
       </span>
-    </button>
-  );
-}
-
-export function Button(props: ButtonProps) {
-  return <BaseButton {...props} />;
-}
-
-export function IconButton({
-  icon: Icon,
-  rightIcon: RightIcon,
-  iconSize = 16,
-  shape,
-  children,
-  className,
-  loading,
-  variant,
-  color,
-  size,
-  fullWidth,
-  wide,
-  active,
-  "aria-label": ariaLabel,
-  ...domProps
-}: IconButtonProps) {
-  const { disabled: disabledProp, type: typeProp, ...restDomProps } = domProps;
-  const isDisabled = !!disabledProp || !!loading;
-
-  const classes = buildClasses({
-    variant,
-    color,
-    size,
-    fullWidth,
-    wide,
-    active,
-    className,
-  });
-
-  const shapeCls =
-    shape === "circle" ? "btn-circle" : shape === "square" ? "btn-square" : "";
-
-  const content = (
-    <>
-      {loading && Icon ? (
-        <span
-          className="loading loading-spinner shrink-0"
-          style={{ inlineSize: iconSize, blockSize: iconSize }}
-          aria-hidden="true"
-        />
-      ) : (
-        Icon && <Icon size={iconSize} aria-hidden="true" />
-      )}
-      {children && <span>{children}</span>}
-      {RightIcon && <RightIcon size={iconSize} aria-hidden="true" />}
-    </>
-  );
-
-  return (
-    <button
-      type={typeProp ?? "button"}
-      className={cx(classes, "admin-icon-button", shapeCls)}
-      aria-busy={!!loading}
-      aria-pressed={typeof active === "boolean" ? active : undefined}
-      aria-label={ariaLabel}
-      disabled={isDisabled}
-      {...restDomProps}
-    >
-      <span className="inline-flex min-w-0 items-center gap-2 [&>svg]:shrink-0">
-        {content}
-      </span>
-    </button>
+    </BaseButton>
   );
 }
 
@@ -303,7 +311,7 @@ export function LinkIconButton({
   return (
     <Link
       href={href}
-      className={cx(classes, "admin-icon-button")}
+      className={cx(classes, "admin-link-icon-button")}
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
       aria-disabled={isDisabled || undefined}

@@ -10,7 +10,11 @@ import {
 } from "@/lib/content/publication-status";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import { Badge } from "@/ui/primitives/Badge";
-import { Button, LinkButton } from "@/ui/primitives/Buttons";
+import {
+  AdminAsyncButton,
+  AdminButton,
+  LinkButton,
+} from "@/ui/primitives/Buttons";
 import { EditorHeaderContext } from "@/ui/shell/EditorHeaderContext";
 
 import type { ReactNode } from "react";
@@ -73,11 +77,11 @@ export function EditorActions({
               Publication
             </a>
           )}
-          <Button variant="ghost" onClick={onCancelAction}>
+          <AdminButton variant="ghost" onClick={onCancelAction}>
             <FaTimes aria-hidden="true" />
             Cancel
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminAsyncButton
             type="submit"
             form="admin-content-editor"
             color="primary"
@@ -85,10 +89,10 @@ export function EditorActions({
             aria-label={saving ? (hu ? "Mentés..." : "Saving...") : submitLabel}
             loading={saving}
             loadingLabel={hu ? "Mentés..." : "Saving..."}
+            icon={FaSave}
           >
-            <FaSave aria-hidden="true" />
             {submitLabel}
-          </Button>
+          </AdminAsyncButton>
         </div>
       </div>
       <div className="admin-action-status">

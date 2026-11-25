@@ -25,6 +25,13 @@ actions, and Categories provide read-only discovery. See
 [Admin discovery](architecture.md#admin-discovery) for available metadata and
 pagination behavior.
 
+Posts and Pages use the listing width to switch between the full table, a
+compact table, and mobile cards. The compact table keeps title, publication
+state, modification time, and actions visible. Author and creation time appear
+under the title, and the sort picker includes the fields that lack a visible
+column header. Long listing labels and paths use ellipses and expose their full
+text through the Admin tooltip on hover or keyboard focus.
+
 ## Page concepts
 
 The schema distinguishes `PageType` (content classification) and `PageLayout` (layout intent); public template/preset selection is a separate site appearance configuration. A content block is structured content inside a document, not a page type or appearance preset.

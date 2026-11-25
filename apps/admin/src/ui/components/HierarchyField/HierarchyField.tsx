@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { ApiRequestError, jsonResult } from "@/lib/api";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
-import { Button, Select } from "@/ui/primitives";
+import { AdminButton, Select } from "@/ui/primitives";
 
 import type { HierarchyFieldProps, PageOption } from "./HierarchyField.types";
 
@@ -110,7 +110,9 @@ export default function HierarchyField({
           (hu ? "Nincsenek elérhető szülőoldalak." : "No Pages found.")}
       </p>
       {lookup.status === "failed" && (
-        <Button onClick={retry}>{hu ? "Újrapróbálkozás" : "Retry"}</Button>
+        <AdminButton onClick={retry}>
+          {hu ? "Újrapróbálkozás" : "Retry"}
+        </AdminButton>
       )}
     </>
   );

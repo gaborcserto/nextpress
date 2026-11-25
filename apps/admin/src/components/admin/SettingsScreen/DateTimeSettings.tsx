@@ -8,7 +8,7 @@ import {
 } from "@nextpress/shared/site-date-time";
 
 import { useAdminDateLocale } from "@/lib/settings/admin-date-time";
-import { Button, Input, Section, Select } from "@/ui/primitives";
+import { AdminButton, Input, Section, Select } from "@/ui/primitives";
 
 import { useSettingsMessages } from "./messages";
 
@@ -110,9 +110,9 @@ export function DateTimeSettings({
       {dirty && (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <span role="status">{text.unsavedDateTime}</span>
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <AdminButton type="button" variant="ghost" onClick={onCancel}>
             {text.cancelDateTime}
-          </Button>
+          </AdminButton>
         </div>
       )}
     </Section>

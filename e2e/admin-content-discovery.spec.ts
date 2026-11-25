@@ -33,21 +33,20 @@ test("filters content with keyboard navigation and restores filters from browser
   const table = page.getByRole("table", { name: "Pages" });
   const search = page.getByRole("searchbox", { name: "Search", exact: true });
   const type = page.getByLabel("Page type", { exact: true });
-  const apply = page.getByRole("button", { name: "Apply filters" });
 
   await search.fill("browser-gallery");
+  await search.press("Enter");
+  await expect(page).toHaveURL(/q=browser-gallery/);
   await type.selectOption("gallery");
-  await apply.press("Enter");
   await expect(page).toHaveURL(/q=browser-gallery.*pageType=gallery/);
   const row = table
     .getByRole("row")
     .filter({ hasText: "Discovery browser gallery" });
   await expect(row).toContainText("Gallery Page");
-  await expect(row.locator("time")).toHaveCount(2);
+  await expect(row.locator("time:visible")).toHaveCount(2);
 
   await page.setViewportSize({ width: 320, height: 640 });
   await page.getByLabel("Status", { exact: true }).selectOption("PUBLISHED");
-  await apply.press("Enter");
   await expect(table.getByText("No items found.")).toBeVisible();
 
   await page.goBack();
@@ -55,9 +54,9 @@ test("filters content with keyboard navigation and restores filters from browser
   await expect(
     row.getByRole("link", { name: "Edit Discovery browser gallery" }),
   ).toBeVisible();
-  const id = row.getByText("ID", { exact: true });
-  await id.press("Enter");
-  await expect(row.getByRole("textbox", { name: "Record ID" })).toBeVisible();
+  await expect(
+    row.getByRole("link", { name: "Discovery browser gallery", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Create Page" }),
   ).toBeInViewport();

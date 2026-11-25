@@ -9,7 +9,7 @@ import {
   FaSortUp,
 } from "react-icons/fa";
 
-import { Select } from "@/ui/primitives";
+import { AdminIconButton, Select } from "@/ui/primitives";
 
 type SortDirection = "ascending" | "descending";
 type SortValue = string | number | null;
@@ -22,6 +22,7 @@ export function MobileSortControl({
   direction,
   onFieldAction,
   onDirectionAction,
+  className,
 }: {
   label: string;
   directionLabel: string;
@@ -30,9 +31,14 @@ export function MobileSortControl({
   direction: "asc" | "desc";
   onFieldAction: (column: string) => void;
   onDirectionAction: () => void;
+  className?: string;
 }) {
   return (
-    <div className="admin-mobile-sort" role="group" aria-label={label}>
+    <div
+      className={className ?? "admin-mobile-sort"}
+      role="group"
+      aria-label={label}
+    >
       <Select
         aria-label={label}
         value={value}
@@ -40,18 +46,14 @@ export function MobileSortControl({
         className="select-sm w-full"
         onChangeAction={onFieldAction}
       />
-      <button
-        type="button"
-        className="btn size-10 min-h-10 min-w-10 border-0 bg-transparent p-0 text-(--control-icon) shadow-none hover:text-(--control-icon-hover) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+      <AdminIconButton
+        icon={direction === "asc" ? FaSortAmountUpAlt : FaSortAmountDownAlt}
+        iconSize={18}
+        variant="ghost"
+        className="admin-plain-icon-button"
         aria-label={directionLabel}
         onClick={onDirectionAction}
-      >
-        {direction === "asc" ? (
-          <FaSortAmountUpAlt size={18} aria-hidden="true" />
-        ) : (
-          <FaSortAmountDownAlt size={18} aria-hidden="true" />
-        )}
-      </button>
+      />
     </div>
   );
 }
@@ -150,12 +152,14 @@ export function QuerySortableHeader({
   activeColumn,
   direction,
   onSortAction,
+  className,
   children,
 }: {
   column: string;
   activeColumn: string;
   direction: "asc" | "desc";
   onSortAction: (column: string) => void;
+  className?: string;
   children: ReactNode;
 }) {
   const active = activeColumn === column;
@@ -172,7 +176,9 @@ export function QuerySortableHeader({
       aria-sort={
         active ? (direction === "asc" ? "ascending" : "descending") : "none"
       }
-      className="admin-sort-header"
+      className={
+        className ? `admin-sort-header ${className}` : "admin-sort-header"
+      }
     >
       <button
         type="button"

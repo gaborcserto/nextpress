@@ -1,4 +1,4 @@
-import { Button } from "@/ui/primitives/Buttons";
+import { AdminButton } from "@/ui/primitives/Buttons";
 
 import type { ContentPagination } from "@/lib/content/useContentList";
 
@@ -39,22 +39,22 @@ export default function ContentListPagination({
         {summary}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button
+        <AdminButton
           variant="outline"
           className="min-h-11"
           disabled={busy || page <= 1}
           onClick={() => onPageAction(page - 1)}
         >
           Previous
-        </Button>
-        <Button
+        </AdminButton>
+        <AdminButton
           variant="outline"
           className="min-h-11"
           disabled={busy || !hasNextPage}
           onClick={() => onPageAction(page + 1)}
         >
           Next
-        </Button>
+        </AdminButton>
       </div>
     </nav>
   );

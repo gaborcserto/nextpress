@@ -8,7 +8,7 @@ import {
   useAdminTimestampFormatter,
 } from "@/lib/settings/admin-date-time";
 import PublicationDatePicker from "@/ui/components/PublicationDatePicker/PublicationDatePicker";
-import { Button } from "@/ui/primitives/Buttons";
+import { AdminButton } from "@/ui/primitives/Buttons";
 import { ConfirmDialog } from "@/ui/primitives/ConfirmDialog";
 import { Select } from "@/ui/primitives/Select";
 
@@ -105,16 +105,16 @@ export function PrivateDraftRecovery({
       </p>
       <p role="status">{draft.message}</p>
       <div className="flex flex-wrap gap-2 mt-2">
-        <Button type="button" disabled={busy} onClick={draft.recover}>
+        <AdminButton type="button" disabled={busy} onClick={draft.recover}>
           Recover private draft
-        </Button>
-        <Button
+        </AdminButton>
+        <AdminButton
           type="button"
           disabled={busy || draft.pending}
           onClick={() => setConfirmDiscard(true)}
         >
           Discard recovery draft
-        </Button>
+        </AdminButton>
       </div>
       <ConfirmDialog
         open={confirmDiscard}
@@ -285,7 +285,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
         )}
       </p>
       <div className="flex flex-wrap items-center gap-2 mt-2">
-        <Button
+        <AdminButton
           type="button"
           disabled={publicationDisabled}
           onClick={() => setConfirmation("publish")}
@@ -293,8 +293,8 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           {draft.publicState.status === "PUBLISHED"
             ? "Publish Changes"
             : "Publish"}
-        </Button>
-        <Button
+        </AdminButton>
+        <AdminButton
           type="button"
           disabled={
             publicationDisabled || draft.publicState.status !== "PUBLISHED"
@@ -302,7 +302,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
           onClick={() => setConfirmation("unpublish")}
         >
           Unpublish
-        </Button>
+        </AdminButton>
       </div>
       <details
         className="admin-editor-disclosure"
@@ -317,7 +317,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             onValidityChange={setValidSchedule}
             disabled={publicationDisabled}
           />
-          <Button
+          <AdminButton
             type="button"
             disabled={
               publicationDisabled || !validSchedule || !scheduleIsFuture
@@ -325,14 +325,14 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             onClick={requestSchedule}
           >
             {draft.release?.state === "PENDING" ? "Reschedule" : "Schedule"}
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
             disabled={publicationDisabled || draft.release?.state !== "PENDING"}
             onClick={() => setConfirmation("cancelSchedule")}
           >
             Cancel Schedule
-          </Button>
+          </AdminButton>
         </div>
       </details>
       {draft.savedAt && (
@@ -355,36 +355,36 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
         <summary>Draft recovery and history</summary>
         <div className="flex flex-wrap gap-2 mt-2">
           {draft.phase === "error" && (
-            <Button
+            <AdminButton
               type="button"
               onClick={() => {
                 void draft.save();
               }}
             >
               Retry private save
-            </Button>
+            </AdminButton>
           )}
-          <Button
+          <AdminButton
             type="button"
             disabled={draft.pending || busy || !draft.dirty}
             onClick={() => setConfirmation("local")}
           >
             Discard local changes
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
             disabled={draft.pending || busy || draft.phase === "unsaved"}
             onClick={() => setConfirmation("reset")}
           >
             Reset private draft to live source
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
             disabled={draft.pending || busy}
             onClick={() => setConfirmation("reload")}
           >
             Reload private draft
-          </Button>
+          </AdminButton>
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <Select
@@ -402,7 +402,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             ]}
             onChangeAction={setRestoreVersion}
           />
-          <Button
+          <AdminButton
             type="button"
             disabled={
               !restoreVersion ||
@@ -414,7 +414,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             onClick={() => setConfirmation("restore")}
           >
             Restore to Draft
-          </Button>
+          </AdminButton>
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-2">
           <Select
@@ -431,7 +431,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             ]}
             onChangeAction={setLegacyRevisionId}
           />
-          <Button
+          <AdminButton
             type="button"
             disabled={
               !legacyRevisionId ||
@@ -443,7 +443,7 @@ export function PrivateDraftStatus({ draft }: { draft: PrivateDraftControls }) {
             onClick={() => setConfirmation("legacy")}
           >
             Restore Legacy to Draft
-          </Button>
+          </AdminButton>
         </div>
       </details>
       <ConfirmDialog

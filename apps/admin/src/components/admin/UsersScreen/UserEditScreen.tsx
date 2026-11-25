@@ -9,7 +9,13 @@ import { ROLES } from "@/lib/auth/roles";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import RecordId from "@/ui/components/DataList/RecordId";
 import { RoleBadge } from "@/ui/components/RoleBadge";
-import { Alert, Button, LinkButton, Section, Select } from "@/ui/primitives";
+import {
+  AdminAsyncButton,
+  Alert,
+  LinkButton,
+  Section,
+  Select,
+} from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
 
 import { DisplayNameForm } from "../ProfileScreen/ProfileScreen";
@@ -73,7 +79,7 @@ export function UserEditScreen({ id }: { id: string }) {
           <LinkButton href="/admin/users" variant="ghost">
             {hu ? "Vissza" : "Back to users"}
           </LinkButton>
-          <Button
+          <AdminAsyncButton
             type="submit"
             form="edit-user"
             color="primary"
@@ -81,7 +87,7 @@ export function UserEditScreen({ id }: { id: string }) {
             disabled={!user || role === currentRole || saving}
           >
             {hu ? "Mentés" : "Save"}
-          </Button>
+          </AdminAsyncButton>
         </>
       }
     >
@@ -156,14 +162,14 @@ export function UserEditScreen({ id }: { id: string }) {
                   );
                 }}
               />
-              <Button
+              <AdminAsyncButton
                 type="submit"
                 form="admin-profile-form"
                 variant="outline"
                 loading={savingProfile}
               >
                 {hu ? "Megjelenített név mentése" : "Save display name"}
-              </Button>
+              </AdminAsyncButton>
             </div>
           )}
         </Section>

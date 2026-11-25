@@ -18,7 +18,12 @@ import {
 } from "react-icons/fa";
 
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
-import { Button, IconButton, Section, Tooltip } from "@/ui/primitives";
+import {
+  AdminAsyncButton,
+  AdminIconButton,
+  Section,
+  Tooltip,
+} from "@/ui/primitives";
 import { LinkButton } from "@/ui/primitives/Buttons";
 import { AdminPageLayout } from "@/ui/shell";
 
@@ -80,7 +85,7 @@ function RevisionActionButton({
 
   return (
     <Tooltip id={tooltipId} content={label} onOpenChange={setTooltipOpen}>
-      <IconButton
+      <AdminIconButton
         aria-label={`${label} ${revision.workingVersion}`}
         aria-describedby={tooltipOpen ? tooltipId : undefined}
         icon={action === "preview" ? FaEye : FaUndo}
@@ -115,7 +120,8 @@ export default function RevisionEditor({
   const [revisions, setRevisions] = useState<RevisionList | null>(null);
   const [selectedRevisionId, setSelectedRevisionId] = useState("");
   const [message, setMessage] = useState("Loading revisions...");
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<RevisionAction | null>(null);
+  const busy = pending !== null;
   const activeAction = useRef(false);
   const [preview, setPreview] = useState<RevisionRecord | null>(null);
 
@@ -171,7 +177,7 @@ export default function RevisionEditor({
     const feedback = revisionActions[action];
 
     activeAction.current = true;
-    setBusy(true);
+    setPending(action);
     setMessage("");
 
     try {
@@ -232,7 +238,7 @@ export default function RevisionEditor({
       );
     } finally {
       activeAction.current = false;
-      setBusy(false);
+      setPending(null);
     }
   }
 
@@ -264,15 +270,16 @@ export default function RevisionEditor({
             Back to editor
           </LinkButton>
           {revisions && (
-            <Button
+            <AdminAsyncButton
               type="button"
               color="primary"
               disabled={busy}
+              loading={pending === "save"}
               onClick={() => void perform("save")}
             >
               <FaSave aria-hidden="true" />
               Save working revision
-            </Button>
+            </AdminAsyncButton>
           )}
         </div>
       }
@@ -391,25 +398,27 @@ export default function RevisionEditor({
               ))}
               {revisions.revisions.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  <Button
+                  <AdminAsyncButton
                     className="min-w-0 max-w-full"
                     color="primary"
                     disabled={!selectedRevisionId || busy}
+                    loading={pending === "publish"}
                     onClick={() => void perform("publish")}
                   >
                     <FaCheck aria-hidden="true" />
                     {revisionActions.publish.label}
-                  </Button>
-                  <Button
+                  </AdminAsyncButton>
+                  <AdminAsyncButton
                     className="min-w-0 max-w-full"
                     variant="ghost"
                     color="neutral"
                     disabled={!selectedRevisionId || busy}
+                    loading={pending === "unpublish"}
                     onClick={() => void perform("unpublish")}
                   >
                     <FaEyeSlash aria-hidden="true" />
                     {revisionActions.unpublish.label}
-                  </Button>
+                  </AdminAsyncButton>
                 </div>
               )}
             </fieldset>

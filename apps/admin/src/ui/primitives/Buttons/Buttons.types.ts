@@ -2,60 +2,65 @@ import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   ComponentType,
+  SVGProps,
   ReactNode,
 } from "react";
 
 import type { ButtonVariant, UiColor, UiSize } from "@/ui/theme/types";
 
-export type Size = UiSize;
-
-export type BaseProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonAppearance = {
   variant?: ButtonVariant;
   color?: UiColor;
   size?: UiSize;
   fullWidth?: boolean;
   wide?: boolean;
   active?: boolean;
-  loading?: boolean;
-  loadingLabel?: ReactNode;
   className?: string;
 };
 
+type ButtonIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
+
 export type IconProps = {
-  icon?: ComponentType<{ size?: number }>;
-  rightIcon?: ComponentType<{ size?: number }>;
+  icon?: ButtonIcon;
+  rightIcon?: ButtonIcon;
   iconSize?: number;
 };
 
-export type ButtonProps = Omit<BaseProps, keyof IconProps> & {
-  children: ReactNode;
-};
+export type NativeAdminButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
+  Omit<ButtonAppearance, "active">;
 
-type IconButtonBaseProps = Omit<BaseProps, "aria-label" | "loadingLabel"> & {
+export type AdminButtonProps = NativeAdminButtonProps &
+  Omit<IconProps, "rightIcon">;
+
+export type AdminIconButtonProps = Omit<
+  AdminButtonProps,
+  "children" | "fullWidth" | "wide"
+> & {
+  icon: ButtonIcon;
   "aria-label": string;
+  children?: never;
+  shape?: "circle" | "square";
 };
 
-export type IconButtonProps = IconButtonBaseProps &
-  IconProps & {
-    children?: ReactNode;
-    shape?: "circle" | "square";
+type TextToggleProps = Omit<AdminButtonProps, "children"> & {
+  children: Exclude<ReactNode, undefined>;
+};
+
+export type AdminToggleButtonProps = (
+  | Omit<AdminIconButtonProps, "aria-pressed">
+  | Omit<TextToggleProps, "aria-pressed">
+) & { pressed: boolean };
+
+export type AdminAsyncButtonProps = Omit<AdminButtonProps, "aria-busy"> & {
+  loading: boolean;
+  loadingLabel?: ReactNode;
+};
+
+type LinkBaseProps = AnchorHTMLAttributes<HTMLAnchorElement> &
+  ButtonAppearance & {
+    disabled?: boolean;
+    loading?: boolean;
   };
-
-export type LinkBaseProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-  variant?: ButtonVariant;
-  color?: UiColor;
-  size?: UiSize;
-  fullWidth?: boolean;
-  wide?: boolean;
-  active?: boolean;
-  className?: string;
-
-  /** Visual + behavior disable (since <a> has no real disabled attr) */
-  disabled?: boolean;
-
-  /** Shows spinner + disables interaction */
-  loading?: boolean;
-};
 
 export type LinkButtonProps = Omit<LinkBaseProps, keyof IconProps> & {
   href: string;

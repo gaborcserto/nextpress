@@ -6,15 +6,18 @@ import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import {
   FaEdit,
+  FaFolder,
   FaPlus,
   FaSave,
   FaSyncAlt,
+  FaTag,
   FaTimes,
   FaTrash,
 } from "react-icons/fa";
 
 import { ApiRequestError, jsonFetcher } from "@/lib/api/client";
 import { useContentList } from "@/lib/content/useContentList";
+import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import {
   createTagAction,
   deleteTagAdminAction,
@@ -22,8 +25,8 @@ import {
 } from "@/lib/services/tag.client";
 import ContentListPagination from "@/ui/components/ContentList/ContentListPagination";
 import {
-  DataListEmptyRow,
   DataListLoading,
+  DataListScrollableResults,
   DataListSurface,
 } from "@/ui/components/DataList";
 import ListFilters from "@/ui/components/DataList/ListFilters";
@@ -31,11 +34,13 @@ import {
   MobileSortControl,
   QuerySortableHeader,
 } from "@/ui/components/DataList/SortableHeader";
+import { EmptyState } from "@/ui/components/EmptyState";
+import { TruncatedText } from "@/ui/components/TruncatedText/TruncatedText";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
+  AdminAsyncButton,
+  AdminButton,
   Alert,
-  Button,
-  IconButton,
   ConfirmDialog,
   useConfirmDialog,
   FormGrid12,
@@ -54,6 +59,35 @@ const taxonomyTypes = [
 ] as const;
 
 const fields = [{ name: "q", label: "Search", placeholder: "Name or slug" }];
+
+const emptyMessages = {
+  en: {
+    category: {
+      heading: "No categories yet",
+      description: "Create categories to organize your content.",
+      noMatches: "No matching categories",
+    },
+    tag: {
+      heading: "No tags yet",
+      description: "Create tags to help classify your content.",
+      noMatches: "No matching tags",
+    },
+    searchHint: "Try a different search term.",
+  },
+  hu: {
+    category: {
+      heading: "Még nincsenek kategóriák",
+      description: "Hozzon létre kategóriákat a tartalmak rendszerezéséhez.",
+      noMatches: "Nincs egyező kategória",
+    },
+    tag: {
+      heading: "Még nincsenek címkék",
+      description: "Hozzon létre címkéket a tartalmak besorolásához.",
+      noMatches: "Nincs egyező címke",
+    },
+    searchHint: "Próbálkozzon másik keresőkifejezéssel.",
+  },
+};
 
 async function fetchTaxonomyList(url: string) {
   return TaxonomyListSchema.parse(await jsonFetcher<unknown>(url));
@@ -81,6 +115,10 @@ export default function TaxonomyScreen() {
   const listLabel = heading.toLowerCase();
   const itemLabel = isCategory ? "category" : "tag";
   const createLabel = isCategory ? "Create category" : "Create tag";
+
+  const messages = emptyMessages[useAdminLocale()];
+  const empty = messages[itemLabel];
+  const searching = Boolean(query.values.get("q")?.trim());
 
   const [createOpen, setCreateOpen] = useState(false);
   const createDialogRef = useModalDialog(createOpen);
@@ -218,169 +256,182 @@ export default function TaxonomyScreen() {
       description="Manage categories and tags used to organize content."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button variant="ghost" onClick={reload} disabled={loading}>
+          <AdminButton variant="ghost" onClick={reload} disabled={loading}>
             <FaSyncAlt aria-hidden="true" />
             Refresh
-          </Button>
-          <IconButton
+          </AdminButton>
+          <AdminButton
             aria-label={createLabel}
             icon={FaPlus}
             color="primary"
             onClick={() => setCreateOpen(true)}
           >
             {createLabel}
-          </IconButton>
+          </AdminButton>
         </div>
       }
     >
-      <nav className="admin-taxonomy-tabs" aria-label="Taxonomy sections">
-        {taxonomyTypes.map(({ value, label }) => {
-          const active = label === heading;
-          const params = new URLSearchParams(query.values);
-          params.set("type", value);
-          params.delete("page");
+      <div className="admin-tab-stack">
+        <nav className="admin-taxonomy-tabs" aria-label="Taxonomy sections">
+          {taxonomyTypes.map(({ value, label }) => {
+            const active = label === heading;
+            const params = new URLSearchParams(query.values);
+            params.set("type", value);
+            params.delete("page");
 
-          return (
-            <Link
-              key={value}
-              href={`/admin/taxonomy?${params}`}
-              aria-current={active ? "page" : undefined}
-              scroll={false}
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
-      {loading && !items.length ? (
-        <DataListLoading reserveSpace label={listLabel} />
-      ) : loadError ? (
-        <Alert
-          status="error"
-          message={
-            loadError instanceof ApiRequestError &&
-            (loadError.status === 401 || loadError.status === 403)
-              ? "Sign in with an authorized admin account and try again."
-              : "Unable to load " + listLabel + ". Please try again."
-          }
-        />
-      ) : (
-        <DataListSurface
-          reserveSpace
-          pendingLabel={loading ? listLabel : undefined}
-        >
-          <ListFilters query={query} fields={fields}>
-            <input
-              type="hidden"
-              name="type"
-              value={isCategory ? "CATEGORY" : "TAG"}
-            />
-          </ListFilters>
-          <MobileSortControl
-            label="Sort by"
-            directionLabel="Change sort direction"
-            options={[
-              { value: "name", label: "Name" },
-              { value: "slug", label: "Slug" },
-              { value: "usedCount", label: "Posts" },
-            ]}
-            value={sortColumn}
-            direction={sortDirection === "desc" ? "desc" : "asc"}
-            onFieldAction={query.onSortFieldAction}
-            onDirectionAction={() => query.onSortAction(sortColumn)}
+            return (
+              <Link
+                key={value}
+                href={`/admin/taxonomy?${params}`}
+                aria-current={active ? "page" : undefined}
+                scroll={false}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+        {loading && !items.length ? (
+          <DataListLoading reserveSpace label={listLabel} />
+        ) : loadError ? (
+          <Alert
+            status="error"
+            message={
+              loadError instanceof ApiRequestError &&
+              (loadError.status === 401 || loadError.status === 403)
+                ? "Sign in with an authorized admin account and try again."
+                : "Unable to load " + listLabel + ". Please try again."
+            }
           />
-          <table
-            className="table admin-responsive-table"
-            role="table"
-            aria-label={heading}
+        ) : (
+          <DataListSurface
+            reserveSpace
+            pendingLabel={loading ? listLabel : undefined}
           >
-            <thead role="rowgroup">
-              <tr role="row">
-                {(["name", "slug", "usedCount"] as const).map((column) => (
-                  <QuerySortableHeader
-                    key={column}
-                    column={column}
-                    activeColumn={sortColumn}
-                    direction={sortDirection === "desc" ? "desc" : "asc"}
-                    onSortAction={query.onSortAction}
-                  >
-                    {column === "usedCount"
-                      ? "Posts"
-                      : column === "name"
-                        ? "Name"
-                        : "Slug"}
-                  </QuerySortableHeader>
-                ))}
-                <th scope="col" className="text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody role="rowgroup">
-              {items.length ? (
-                items.map((tag) => (
-                  <tr key={tag.id} role="row">
-                    <td
-                      role="cell"
-                      className="admin-table-identity font-semibold"
-                    >
-                      <span>{tag.name}</span>
-                    </td>
-                    <td role="cell">
-                      <span aria-hidden="true" className="admin-cell-label">
-                        Slug
-                      </span>
-                      {tag.slug}
-                    </td>
-                    <td role="cell" className="tabular-nums">
-                      <span aria-hidden="true" className="admin-cell-label">
-                        Posts
-                      </span>
-                      {tag.usedCount}
-                    </td>
-                    <td role="cell" className="admin-table-actions">
-                      <div className="flex justify-end">
-                        <IconButton
-                          icon={FaEdit}
-                          size="sm"
-                          variant="ghost"
-                          aria-label={`Edit ${itemLabel} ${tag.name}`}
-                          title={`Edit ${itemLabel} ${tag.name}`}
-                          onClick={() => {
-                            setEditingTag(tag);
-                            setEditName(tag.name);
-                            setEditSlug(tag.slug);
-                            setError(null);
-                          }}
-                        >
-                          Edit
-                        </IconButton>
-                        <IconButton
-                          icon={FaTrash}
-                          size="sm"
-                          color="error"
-                          variant="ghost"
-                          loading={deletingId === tag.id}
-                          disabled={Boolean(deletingId)}
-                          aria-label={`Delete ${itemLabel} ${tag.name}`}
-                          title={`Delete ${itemLabel} ${tag.name}`}
-                          onClick={() => onAskDelete(tag)}
-                        >
-                          Delete
-                        </IconButton>
-                      </div>
-                    </td>
+            <ListFilters query={query} fields={fields} searchWidth="responsive">
+              <input
+                type="hidden"
+                name="type"
+                value={isCategory ? "CATEGORY" : "TAG"}
+              />
+            </ListFilters>
+            <MobileSortControl
+              label="Sort by"
+              directionLabel="Change sort direction"
+              options={[
+                { value: "name", label: "Name" },
+                { value: "slug", label: "Slug" },
+                { value: "usedCount", label: "Posts" },
+              ]}
+              value={sortColumn}
+              direction={sortDirection === "desc" ? "desc" : "asc"}
+              onFieldAction={query.onSortFieldAction}
+              onDirectionAction={() => query.onSortAction(sortColumn)}
+            />
+            <DataListScrollableResults>
+              <table
+                className="table admin-responsive-table admin-bounded-table"
+                role="table"
+                aria-label={heading}
+              >
+                <thead role="rowgroup">
+                  <tr role="row">
+                    {(["name", "slug", "usedCount"] as const).map((column) => (
+                      <QuerySortableHeader
+                        key={column}
+                        column={column}
+                        activeColumn={sortColumn}
+                        direction={sortDirection === "desc" ? "desc" : "asc"}
+                        onSortAction={query.onSortAction}
+                      >
+                        {column === "usedCount"
+                          ? "Posts"
+                          : column === "name"
+                            ? "Name"
+                            : "Slug"}
+                      </QuerySortableHeader>
+                    ))}
+                    <th scope="col" className="text-right">
+                      Actions
+                    </th>
                   </tr>
-                ))
-              ) : (
-                <DataListEmptyRow colSpan={4}>
-                  No {listLabel} found.
-                </DataListEmptyRow>
-              )}
-            </tbody>
-          </table>
-        </DataListSurface>
-      )}
+                </thead>
+                <tbody role="rowgroup">
+                  {items.length ? (
+                    items.map((tag) => (
+                      <tr key={tag.id} role="row">
+                        <td
+                          role="cell"
+                          className="admin-table-identity font-semibold"
+                        >
+                          <TruncatedText value={tag.name} />
+                        </td>
+                        <td role="cell">
+                          <span aria-hidden="true" className="admin-cell-label">
+                            Slug
+                          </span>
+                          <TruncatedText value={tag.slug} />
+                        </td>
+                        <td role="cell" className="tabular-nums">
+                          <span aria-hidden="true" className="admin-cell-label">
+                            Posts
+                          </span>
+                          {tag.usedCount}
+                        </td>
+                        <td role="cell" className="admin-table-actions">
+                          <div className="flex justify-end">
+                            <AdminButton
+                              icon={FaEdit}
+                              size="sm"
+                              variant="ghost"
+                              aria-label={`Edit ${itemLabel} ${tag.name}`}
+                              title={`Edit ${itemLabel} ${tag.name}`}
+                              onClick={() => {
+                                setEditingTag(tag);
+                                setEditName(tag.name);
+                                setEditSlug(tag.slug);
+                                setError(null);
+                              }}
+                            >
+                              Edit
+                            </AdminButton>
+                            <AdminAsyncButton
+                              icon={FaTrash}
+                              size="sm"
+                              color="error"
+                              variant="ghost"
+                              loading={deletingId === tag.id}
+                              disabled={Boolean(deletingId)}
+                              aria-label={`Delete ${itemLabel} ${tag.name}`}
+                              title={`Delete ${itemLabel} ${tag.name}`}
+                              onClick={() => onAskDelete(tag)}
+                            >
+                              Delete
+                            </AdminAsyncButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr role="row" className="admin-table-empty">
+                      <td role="cell" colSpan={4}>
+                        <EmptyState
+                          variant="plain"
+                          icon={isCategory ? FaFolder : FaTag}
+                          heading={searching ? empty.noMatches : empty.heading}
+                          description={
+                            searching ? messages.searchHint : empty.description
+                          }
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </DataListScrollableResults>
+          </DataListSurface>
+        )}
+      </div>
 
       <ContentListPagination heading={heading} pagination={pagination} />
 
@@ -428,19 +479,19 @@ export default function TaxonomyScreen() {
             </FormGrid12>
             <Alert status="error" message={error} className="mt-3" />
             <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <Button variant="ghost" onClick={closeCreateDialog}>
+              <AdminButton variant="ghost" onClick={closeCreateDialog}>
                 <FaTimes aria-hidden="true" />
                 Cancel
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminAsyncButton
                 type="submit"
                 color="primary"
                 disabled={!canCreate}
                 loading={creating}
+                icon={FaSave}
               >
-                <FaSave aria-hidden="true" />
                 {createLabel}
-              </Button>
+              </AdminAsyncButton>
             </div>
           </fieldset>
         </form>
@@ -486,19 +537,19 @@ export default function TaxonomyScreen() {
             </FormGrid12>
             <Alert status="error" message={error} className="mt-3" />
             <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <Button variant="ghost" onClick={closeEditDialog}>
+              <AdminButton variant="ghost" onClick={closeEditDialog}>
                 <FaTimes aria-hidden="true" />
                 Cancel
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminAsyncButton
                 type="submit"
                 color="primary"
                 disabled={!editName.trim() || !editSlug.trim()}
                 loading={savingEdit}
+                icon={FaSave}
               >
-                <FaSave aria-hidden="true" />
                 Save changes
-              </Button>
+              </AdminAsyncButton>
             </div>
           </fieldset>
         </form>

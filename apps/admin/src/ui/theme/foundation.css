@@ -1,4 +1,4 @@
-﻿@layer components {
+@layer components {
   .btn,
   .input,
   .select,
@@ -55,7 +55,7 @@
     border-color: var(--surface-border);
   }
 
-  .table tbody tr:hover {
+  .table tbody tr:hover:not(:where(:has([data-empty-state="plain"]))) {
     background: var(--surface-hover);
   }
 
@@ -150,12 +150,17 @@
 }
 
 .admin-button {
+  gap: var(--space-2);
+}
+
+.admin-button:not(.admin-icon-button) {
   position: relative;
   block-size: auto;
   max-inline-size: 100%;
 }
 
 .admin-button:not(
+  .admin-icon-button,
   .btn-square,
   .btn-circle,
   .btn-xs,
@@ -166,32 +171,35 @@
   padding-inline: min(var(--space-control-inline), 4vi);
 }
 
-.admin-button:not(.btn-xs, .btn-sm, .btn-lg, .btn-xl) {
+.admin-button:not(.admin-icon-button, .btn-xs, .btn-sm, .btn-lg, .btn-xl) {
   min-block-size: var(--control-min-height);
 }
 
-.admin-button-content {
+.admin-async-button-content,
+.admin-async-button-indicator {
   display: grid;
   min-inline-size: 0;
   place-items: center;
 }
 
-.admin-button-content-state {
+.admin-async-button-state,
+.admin-async-button-indicator > * {
   grid-area: 1 / 1;
+}
+
+.admin-async-button-state {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-.admin-button-loading-content > svg:first-child {
-  display: none;
-}
-
-.admin-button[aria-busy="true"]
-  .admin-button-content-state:not(.admin-button-loading-content),
-.admin-button:not([aria-busy="true"]) .admin-button-loading-content {
+.admin-async-button-state[aria-hidden="true"] {
   visibility: hidden;
+}
+
+.admin-async-button-indicator {
+  flex: none;
 }
 
 /* Keep DaisyUI's active fill feedback without changing the button border. */
@@ -221,10 +229,66 @@
   --btn-border: transparent;
 }
 
+.admin-button.admin-icon-button {
+  --icon-button-size: var(--size, var(--control-min-height));
+
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--icon-button-size);
+  block-size: var(--icon-button-size);
+  padding: 0;
+}
+
+.admin-icon-button > svg {
+  max-inline-size: 100%;
+  max-block-size: 100%;
+}
+
+.admin-plain-icon-button.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  border-radius: var(--radius-control);
+}
+
+.admin-plain-icon-button.btn-ghost:enabled {
+  color: var(--control-icon);
+}
+
+.admin-plain-icon-button.btn-ghost:enabled:hover {
+  color: var(--control-icon-hover);
+}
+
+.admin-plain-icon-button.btn-ghost[aria-pressed="true"]:enabled {
+  color: var(--accent-solid);
+}
+
+.admin-plain-icon-button:focus-visible {
+  outline: var(--focus-width) solid var(--focus-color);
+  outline-offset: var(--focus-offset);
+}
+
+.admin-search-submit {
+  position: absolute;
+  inset-inline-end: var(--space-1);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  z-index: 10;
+}
+
 @media (pointer: coarse) {
-  .admin-icon-button {
+  .admin-link-icon-button {
     min-inline-size: var(--target-touch);
     min-block-size: var(--target-touch);
+  }
+
+  .admin-button.admin-icon-button:not(.admin-search-submit) {
+    --icon-button-size: max(
+      var(--size, var(--control-min-height)),
+      var(--target-touch)
+    );
   }
 }
 
@@ -369,34 +433,52 @@ dialog::backdrop {
   }
 }
 
-.admin-list-toolbar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+.admin-filter-toolbar {
+  --filter-control-height: var(--control-min-height);
+
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--surface-border);
-  background: var(--surface-rail);
-  padding: 0.5rem;
-}
-
-form.admin-list-toolbar {
-  inline-size: 100%;
-}
-
-.admin-list-toolbar > .relative {
-  grid-column: span 2;
-}
-
-.admin-list-toolbar .relative,
-.admin-list-toolbar .form-control,
-.admin-list-toolbar .admin-select-trigger,
-.admin-list-toolbar :is(.input, .select) {
-  inline-size: 100%;
+  gap: var(--space-2);
   min-inline-size: 0;
+  border-block-end: var(--border-width) solid var(--surface-border);
+  background: var(--surface-rail);
+  padding: var(--space-2);
 }
 
-.admin-list-toolbar :is(.input, .select) {
-  min-block-size: var(--control-height-sm, 2.5rem);
+.admin-list-toolbar {
+  inline-size: 100%;
+}
+
+.admin-filter-toolbar .form-control,
+.admin-filter-toolbar .admin-select-trigger {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.admin-filter-toolbar .admin-select-trigger {
+  inline-size: auto;
+}
+
+.admin-filter-toolbar :is(.input, .select) {
+  min-block-size: var(--filter-control-height);
+}
+
+.admin-toolbar-search {
+  position: relative;
+  inline-size: var(--toolbar-search-width, 24rem);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.admin-toolbar-search:has(.admin-search-submit) .input {
+  padding-inline-end: calc(var(--control-min-height) + var(--space-1));
+}
+
+@media (pointer: coarse) {
+  .admin-filter-toolbar {
+    --filter-control-height: var(--target-touch);
+  }
 }
 
 .admin-discovery-results {
@@ -427,7 +509,6 @@ form.admin-list-toolbar {
 }
 
 .admin-content-table tbody th {
-  inline-size: 32%;
   min-inline-size: 0;
   font-weight: normal;
 }
@@ -452,12 +533,18 @@ form.admin-list-toolbar {
   color: var(--accent-text);
 }
 
+.admin-tab-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  min-inline-size: 0;
+}
+
 .admin-taxonomy-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   border-block-end: var(--border-width) solid var(--surface-border);
-  margin-block-end: var(--space-6);
 }
 
 .admin-taxonomy-tabs a {
@@ -721,7 +808,6 @@ form.admin-list-toolbar {
   max-inline-size: 36rem;
 }
 
-.admin-settings-workspace,
 .admin-settings-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1307,48 +1393,67 @@ html:has(.admin-settings-workspace) {
     min-block-size: 0;
   }
 
-  .admin-mobile-sort {
+  .admin-list-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 2.5rem;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-2);
-    border-bottom: 1px solid var(--surface-border);
-    background: var(--surface-rail);
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-mobile-sort .form-control,
-  .admin-mobile-sort .admin-select-trigger,
-  .admin-mobile-sort .select {
+  .admin-list-toolbar > .admin-toolbar-search {
     inline-size: 100%;
-    min-inline-size: 0;
+  }
+
+  .admin-list-surface:not(.admin-adaptive-list) {
+    --listing-cards: true;
+  }
+}
+
+.admin-list-surface {
+  container: listing / inline-size;
+}
+
+.admin-adaptive-list {
+  --listing-adaptive: true;
+}
+
+.admin-list-surface .admin-list-toolbar {
+  border-start-start-radius: calc(var(--radius-surface) - var(--border-width));
+  border-start-end-radius: calc(var(--radius-surface) - var(--border-width));
+}
+
+:is(.admin-mobile-sort, .admin-content-sort) {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.admin-mobile-sort {
+  padding: var(--space-2);
+  border-bottom: var(--border-width) solid var(--surface-border);
+  background: var(--surface-rail);
+}
+
+:is(.admin-mobile-sort, .admin-content-sort)
+  :is(.form-control, .admin-select-trigger, .select) {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.admin-content-compact-metadata {
+  display: none;
+}
+
+@container listing ((inline-size < 38rem) and style(--listing-adaptive: true)) or style(--listing-cards: true) {
+  :is(.admin-mobile-sort, .admin-content-sort) {
+    display: grid;
+  }
+
+  .admin-content-sort {
+    inline-size: 100%;
   }
 
   .admin-responsive-table thead tr:has(.admin-sort-header) {
     display: none;
-  }
-
-  .admin-list-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-    gap: var(--space-2);
-  }
-
-  .admin-list-toolbar > .relative {
-    grid-column: auto;
-  }
-
-  .admin-list-toolbar > .relative,
-  .admin-list-toolbar .form-control,
-  .admin-list-toolbar .admin-select-trigger,
-  .admin-list-toolbar :is(.input, .select) {
-    inline-size: 100%;
-    max-inline-size: none;
-    min-inline-size: 0;
-  }
-
-  .admin-list-toolbar > .relative {
-    flex: 0 1 auto;
   }
 
   .admin-responsive-table,
@@ -1402,16 +1507,12 @@ html:has(.admin-settings-workspace) {
     border-block-start: var(--border-width) solid var(--surface-border);
   }
 
-  .admin-content-table tbody th {
+  .admin-responsive-table tbody .admin-table-identity {
     inline-size: auto;
   }
 
   .admin-content-table tbody td:has(.admin-publication-timing) {
     grid-column: 1 / -1;
-  }
-
-  .admin-content-author {
-    overflow-wrap: anywhere;
   }
 
   .admin-responsive-table .admin-table-actions {
@@ -1456,25 +1557,19 @@ html:has(.admin-settings-workspace) {
   }
 }
 
-@media (width >= 48rem) {
-  .admin-mobile-sort {
-    display: none;
-  }
-}
-
 @media (width >= 48rem) and (width < 93.25rem) {
-  .admin-responsive-table :is(th, td) {
+  .admin-responsive-table:not(.admin-content-table) :is(th, td) {
     overflow-wrap: break-word;
   }
 
-  .admin-responsive-table .admin-table-actions > div {
+  .admin-responsive-table:not(.admin-content-table) .admin-table-actions > div {
     display: flex;
     flex-flow: row nowrap;
     justify-content: center;
     gap: var(--space-1);
   }
 
-  .admin-responsive-table .admin-table-actions .btn {
+  .admin-responsive-table:not(.admin-content-table) .admin-table-actions .btn {
     flex: 0 0 auto;
     inline-size: var(--control-height-sm, 2.5rem);
     min-inline-size: var(--control-height-sm, 2.5rem);
@@ -1483,19 +1578,22 @@ html:has(.admin-settings-workspace) {
     font-size: 0;
   }
 
-  .admin-responsive-table .admin-table-actions .btn svg {
+  .admin-responsive-table:not(.admin-content-table)
+    .admin-table-actions
+    .btn
+    svg {
     inline-size: 1rem;
     block-size: 1rem;
   }
 
-  .admin-responsive-table .admin-table-actions {
+  .admin-responsive-table:not(.admin-content-table) .admin-table-actions {
     inline-size: 7rem;
     white-space: nowrap;
   }
 }
 
 @media (width >= 93.25rem) {
-  .admin-responsive-table .admin-table-actions > div {
+  .admin-responsive-table:not(.admin-content-table) .admin-table-actions > div {
     display: flex;
     flex-flow: row nowrap;
     justify-content: flex-end;
@@ -1503,10 +1601,121 @@ html:has(.admin-settings-workspace) {
   }
 }
 
+/* Keep the title flexible while status, dates and controls set their own width. */
+.admin-content-table .admin-table-identity > div,
+.admin-content-author > div,
+.admin-bounded-table td > .admin-ellipsis-trigger {
+  contain: inline-size;
+}
+
+@media (width >= 48rem) {
+  .admin-bounded-table .admin-table-identity {
+    inline-size: 38%;
+  }
+}
+
+.admin-list-date > span {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.admin-content-table .admin-table-actions > div {
+  flex-wrap: nowrap;
+}
+
+@container listing (inline-size < 22rem) {
+  .admin-content-table .admin-record-date {
+    grid-column: 1 / -1;
+  }
+}
+
+@container listing (inline-size >= 66rem) {
+  .admin-content-table tbody .admin-table-identity {
+    inline-size: 32%;
+  }
+
+  .admin-content-table .admin-content-author {
+    inline-size: 12%;
+  }
+}
+
+@container listing (inline-size < 66rem) {
+  .admin-toolbar-search[data-width="responsive"] {
+    inline-size: 100%;
+  }
+}
+
+@container listing (38rem <= inline-size < 66rem) {
+  .admin-content-table .admin-content-secondary {
+    display: none;
+  }
+
+  .admin-content-table tbody .admin-table-identity {
+    inline-size: 100%;
+  }
+
+  .admin-content-compact-metadata {
+    display: block;
+    margin-block-start: var(--space-1);
+  }
+
+  .admin-adaptive-list .admin-list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .admin-content-sort {
+    display: grid;
+    grid-template-columns: minmax(0, max-content) auto;
+    max-inline-size: 100%;
+  }
+
+  .admin-content-table
+    :is(.admin-record-date, .admin-publication-timing)
+    .admin-list-date
+    > span {
+    display: block;
+  }
+
+  .admin-content-table .admin-table-actions > div {
+    gap: var(--space-1);
+  }
+
+  .admin-content-table .admin-table-actions .btn {
+    inline-size: var(--control-height-sm, 2.5rem);
+    min-inline-size: var(--control-height-sm, 2.5rem);
+    padding-inline: 0;
+    font-size: 0;
+  }
+
+  .admin-content-table .admin-table-actions .btn svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+  }
+}
+
+.admin-ellipsis-trigger {
+  display: block;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.admin-ellipsis {
+  display: block;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.admin-ellipsis:focus-visible {
+  outline: var(--border-width) solid var(--focus-color);
+  outline-offset: 1px;
+}
+
 @media (pointer: coarse) {
   .admin-sort-button,
-  .admin-table-actions .btn,
-  .admin-list-toolbar :is(.input, .select) {
+  .admin-table-actions .btn {
     min-block-size: var(--target-touch);
   }
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Button } from "@/ui/primitives/Buttons/Buttons";
+import { AdminButton } from "@/ui/primitives/Buttons";
 
 const copy = {
   404: [
@@ -39,9 +39,9 @@ export function AdminErrorPage({
       <p className="admin-page-description">{description}</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {retry && (
-          <Button type="button" color="primary" onClick={retry}>
+          <AdminButton type="button" color="primary" onClick={retry}>
             Try again
-          </Button>
+          </AdminButton>
         )}
         <Link href="/admin" className="btn btn-outline" prefetch={false}>
           Back to dashboard

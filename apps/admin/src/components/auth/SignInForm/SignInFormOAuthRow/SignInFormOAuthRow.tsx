@@ -10,7 +10,7 @@ import {
   FaDiscord,
 } from "react-icons/fa";
 
-import { IconButton } from "@/ui/primitives";
+import { AdminAsyncButton } from "@/ui/primitives";
 
 import type {
   Provider,
@@ -67,7 +67,7 @@ export function SignInFormOAuthRow({
 
         return (
           <div key={provider} className="flex items-center justify-center">
-            <IconButton
+            <AdminAsyncButton
               aria-label={provider}
               icon={() => <Icon size={iconSize} />}
               onClick={() => handleProviderClick(provider)}
@@ -90,7 +90,7 @@ export function SignInFormOAuthRow({
                   {provider}
                 </span>
               )}
-            </IconButton>
+            </AdminAsyncButton>
           </div>
         );
       })}

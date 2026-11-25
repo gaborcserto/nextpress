@@ -5,7 +5,7 @@ import { FaCheck, FaTimes, FaTrash } from "react-icons/fa";
 
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import { Alert } from "@/ui/primitives/Alert";
-import { Button } from "@/ui/primitives/Buttons";
+import { AdminAsyncButton, AdminButton } from "@/ui/primitives/Buttons";
 
 import type { ConfirmDialogProps } from "./ConfirmDialog.types";
 
@@ -101,7 +101,7 @@ export function ConfirmDialog({
             ref={actionsRef}
             className="mt-6 flex flex-wrap justify-end gap-2"
           >
-            <Button
+            <AdminButton
               variant="ghost"
               color="neutral"
               onClick={dismiss}
@@ -109,19 +109,15 @@ export function ConfirmDialog({
             >
               <FaTimes aria-hidden="true" />
               {cancelLabel}
-            </Button>
-            <Button
+            </AdminButton>
+            <AdminAsyncButton
               color={confirmColor}
               loading={loading}
               onClick={onConfirmAction}
+              icon={confirmColor === "error" ? FaTrash : FaCheck}
             >
-              {confirmColor === "error" ? (
-                <FaTrash aria-hidden="true" />
-              ) : (
-                <FaCheck aria-hidden="true" />
-              )}
               {confirmLabel}
-            </Button>
+            </AdminAsyncButton>
           </div>
         </>
       )}

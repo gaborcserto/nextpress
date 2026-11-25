@@ -1,12 +1,12 @@
-import { Button, type ButtonProps } from "@/ui/primitives";
+import { AdminAsyncButton, type AdminAsyncButtonProps } from "@/ui/primitives";
 
 export function AuthSubmitButton({
   children,
   className,
   ...props
-}: ButtonProps) {
+}: AdminAsyncButtonProps) {
   return (
-    <Button
+    <AdminAsyncButton
       variant="solid"
       color="primary"
       size="md"
@@ -15,6 +15,6 @@ export function AuthSubmitButton({
       {...props}
     >
       {children}
-    </Button>
+    </AdminAsyncButton>
   );
 }

@@ -25,8 +25,8 @@ class ResizeObserverMock implements ResizeObserver {
 
   disconnect() {}
 
-  trigger() {
-    this.callback([], this);
+  trigger(target: Element) {
+    this.callback([{ target } as ResizeObserverEntry], this);
   }
 }
 
@@ -41,7 +41,7 @@ function setTitleDimensions(
   });
 
   act(() => {
-    ResizeObserverMock.latest?.trigger();
+    ResizeObserverMock.latest?.trigger(title);
   });
 }
 
@@ -77,11 +77,7 @@ describe("MenuPageOption", () => {
   it("shows a delayed tooltip only when rendered dimensions show a truncated title", async () => {
     const { checkbox, title } = renderPageOption(pageTitle);
 
-    expect(title).toHaveClass(
-      "overflow-hidden",
-      "text-ellipsis",
-      "whitespace-nowrap",
-    );
+    expect(title).toHaveClass("admin-ellipsis");
     setTitleDimensions(title, 80, 240);
 
     fireEvent.pointerEnter(checkbox, { pointerType: "mouse" });

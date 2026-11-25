@@ -1,6 +1,6 @@
 import { FaTimes } from "react-icons/fa";
 
-import { IconButton } from "../Buttons";
+import { AdminIconButton } from "../Buttons";
 
 import type { ReactNode } from "react";
 
@@ -27,12 +27,11 @@ export function AdminDialogHeader({
       >
         {title}
       </h2>
-      <IconButton
+      <AdminIconButton
         icon={FaTimes}
         iconSize={18}
-        shape="square"
         variant="ghost"
-        className="size-10 min-h-10 min-w-10 p-0 text-(--control-icon) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+        className="admin-plain-icon-button"
         aria-label={closeLabel}
         title={closeLabel}
         disabled={disabled}

@@ -26,8 +26,8 @@ import {
 import { DataListLoading } from "@/ui/components/DataList";
 import { PublicationStatusBadge } from "@/ui/components/PublicationStatusBadge";
 import {
+  AdminAsyncButton,
   Alert,
-  Button,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -239,13 +239,14 @@ export default function DashboardScreen({
       {canEdit && error && (
         <div className="grid justify-items-start gap-3">
           <Alert status="error" message={text.loadError} />
-          <Button
+          <AdminAsyncButton
             size="sm"
-            disabled={isValidating}
+            loading={isValidating}
+            loadingLabel={text.retrying}
             onClick={() => void mutate()}
           >
-            {isValidating ? text.retrying : text.retry}
-          </Button>
+            {text.retry}
+          </AdminAsyncButton>
         </div>
       )}
       {canEdit && !error && !data && (

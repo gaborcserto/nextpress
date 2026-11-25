@@ -4,7 +4,7 @@ import { maxGalleryImages, type EditorImage } from "@nextpress/shared/media";
 import { useState } from "react";
 import { FaImages } from "react-icons/fa";
 
-import { Button } from "@/ui/primitives";
+import { AdminButton } from "@/ui/primitives";
 
 import { MediaThumbnail } from "./MediaBrowser";
 import { MediaPicker } from "./MediaPicker";
@@ -42,7 +42,7 @@ export function CoverMediaField({
             />
           )}
           <div className="flex flex-col items-center gap-2">
-            <Button
+            <AdminButton
               type="button"
               variant="ghost"
               disabled={disabled}
@@ -50,16 +50,16 @@ export function CoverMediaField({
             >
               <FaImages size={16} aria-hidden="true" />
               {text.choose}
-            </Button>
+            </AdminButton>
             {value && (
-              <Button
+              <AdminButton
                 type="button"
                 variant="ghost"
                 disabled={disabled}
                 onClick={() => onChange(null)}
               >
                 {text.remove}
-              </Button>
+              </AdminButton>
             )}
           </div>
         </div>
@@ -129,7 +129,7 @@ export function GalleryMediaField({
                 <p>{label}</p>
                 {!readOnly && (
                   <div className="flex flex-wrap gap-1">
-                    <Button
+                    <AdminButton
                       type="button"
                       size="sm"
                       variant="ghost"
@@ -143,8 +143,8 @@ export function GalleryMediaField({
                       }}
                     >
                       {text.up}
-                    </Button>
-                    <Button
+                    </AdminButton>
+                    <AdminButton
                       type="button"
                       size="sm"
                       variant="ghost"
@@ -158,8 +158,8 @@ export function GalleryMediaField({
                       }}
                     >
                       {text.down}
-                    </Button>
-                    <Button
+                    </AdminButton>
+                    <AdminButton
                       type="button"
                       size="sm"
                       variant="ghost"
@@ -170,7 +170,7 @@ export function GalleryMediaField({
                       }
                     >
                       {text.remove}
-                    </Button>
+                    </AdminButton>
                   </div>
                 )}
               </div>
@@ -179,14 +179,14 @@ export function GalleryMediaField({
         })}
       </ol>
       {!readOnly && (
-        <Button
+        <AdminButton
           type="button"
           variant="outline"
           disabled={disabled || value.length >= maxGalleryImages}
           onClick={() => setOpen(true)}
         >
           {text.chooseMany}
-        </Button>
+        </AdminButton>
       )}
       {open && (
         <MediaPicker

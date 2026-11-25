@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { jsonFetcher } from "@/lib/api";
-import { Alert, Button, Section, Select } from "@/ui/primitives";
+import { AdminButton, Alert, Section, Select } from "@/ui/primitives";
 
 import { useSettingsMessages } from "./messages";
 
@@ -92,14 +92,14 @@ export default function AppearanceSettings({
       {loadFailed && (
         <>
           <Alert status="error" message={text.appearanceLoadError} />
-          <Button
+          <AdminButton
             onClick={() => {
               setLoadFailed(false);
               setAttempt((previous) => previous + 1);
             }}
           >
             {text.retryAppearance}
-          </Button>
+          </AdminButton>
         </>
       )}
       {!loadFailed && !selection && (

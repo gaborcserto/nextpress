@@ -1,9 +1,10 @@
 "use client";
 
 import { Fragment, useId, useRef } from "react";
-import { FaSearch } from "react-icons/fa";
 
-import { Input, Select } from "@/ui/primitives";
+import { Select } from "@/ui/primitives";
+
+import { ToolbarSearch, type ToolbarSearchWidth } from "./ToolbarSearch";
 
 import type { ReactNode } from "react";
 
@@ -20,6 +21,8 @@ type ListFiltersProps = {
   query: ContentListQuery;
   fields: FilterField[];
   children?: ReactNode;
+  trailingControls?: ReactNode;
+  searchWidth?: ToolbarSearchWidth;
 };
 
 export const sortDirectionField = {
@@ -36,6 +39,8 @@ export default function ListFilters({
   query,
   fields,
   children,
+  trailingControls,
+  searchWidth,
 }: ListFiltersProps) {
   const prefix = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,7 +51,7 @@ export default function ListFilters({
   return (
     <form
       ref={formRef}
-      className="admin-list-toolbar"
+      className="admin-filter-toolbar admin-list-toolbar"
       onSubmit={(event) => {
         event.preventDefault();
         query.onApplyAction(new FormData(event.currentTarget));
@@ -70,7 +75,7 @@ export default function ListFilters({
                   : options[0]?.value
               }
               options={options}
-              className="select-sm w-auto max-w-full"
+              className="select-sm"
               onChangeAction={(selected) => {
                 const form = formRef.current;
 
@@ -82,30 +87,22 @@ export default function ListFilters({
               }}
             />
           ) : (
-            <div key={name} className="relative w-48 max-w-full">
-              <Input
-                id={id}
-                name={name}
-                aria-label={label}
-                placeholder={placeholder}
-                type="search"
-                maxLength={200}
-                size="sm"
-                className="w-full"
-                defaultValue={value}
-              />
-              <button
-                type="submit"
-                aria-label={`Submit ${label.toLowerCase()}`}
-                title={`Submit ${label.toLowerCase()}`}
-                className="absolute end-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-(--radius-control) text-(--control-icon) hover:text-(--control-icon-hover) focus-visible:outline-(length:--focus-width) focus-visible:outline-offset-(--focus-offset) focus-visible:outline-(--focus-color)"
-              >
-                <FaSearch size={14} aria-hidden="true" />
-              </button>
-            </div>
+            <ToolbarSearch
+              key={name}
+              id={id}
+              name={name}
+              aria-label={label}
+              placeholder={placeholder}
+              type="search"
+              width={searchWidth}
+              maxLength={200}
+              defaultValue={value}
+              submitLabel={`Submit ${label.toLowerCase()}`}
+            />
           );
         })}
       </Fragment>
+      {trailingControls}
     </form>
   );
 }

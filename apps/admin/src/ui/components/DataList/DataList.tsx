@@ -5,16 +5,19 @@ export function DataListSurface({
   label,
   reserveSpace = false,
   pendingLabel,
+  adaptive = false,
 }: {
   children: ReactNode;
   label?: string;
   reserveSpace?: boolean;
   pendingLabel?: string;
+  adaptive?: boolean;
 }) {
   return (
     <div
       className={
-        "admin-surface w-full overflow-x-auto" +
+        "admin-surface admin-list-surface w-full min-w-0" +
+        (adaptive ? " admin-adaptive-list" : "") +
         (reserveSpace ? " admin-discovery-results" : "")
       }
       role={label ? "region" : undefined}
@@ -35,6 +38,14 @@ export function DataListSurface({
       )}
     </div>
   );
+}
+
+export function DataListScrollableResults({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return <div className="overflow-x-auto">{children}</div>;
 }
 
 export function DataListLoading({

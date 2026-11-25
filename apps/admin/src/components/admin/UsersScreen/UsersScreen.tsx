@@ -5,13 +5,14 @@ import {
   MAX_PASSWORD_LENGTH,
 } from "@nextpress/shared/auth-policy";
 import { useState, type FormEvent, type SyntheticEvent } from "react";
-import { FaEdit, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
+import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
 
 import { ROLES } from "@/lib/auth/roles";
 import { AdminTimestamp } from "@/lib/settings/admin-date-time";
 import {
   DataListEmptyRow,
   DataListLoading,
+  DataListScrollableResults,
   DataListSurface,
 } from "@/ui/components/DataList";
 import {
@@ -20,15 +21,17 @@ import {
   useTableSort,
   sortableTimestamp,
 } from "@/ui/components/DataList/SortableHeader";
+import { ToolbarSearch } from "@/ui/components/DataList/ToolbarSearch";
 import { RoleBadge } from "@/ui/components/RoleBadge";
+import { TruncatedText } from "@/ui/components/TruncatedText/TruncatedText";
 import { useModalDialog } from "@/ui/hooks/useModalDialog";
 import {
+  AdminAsyncButton,
+  AdminButton,
   ConfirmDialog,
   Alert,
-  Button,
   Field,
   FormGrid12,
-  IconButton,
   LinkIconButton,
   Input,
   Select,
@@ -126,10 +129,10 @@ export default function UsersScreen() {
       title="Users"
       description="Manage accounts and their access to NextPress. Sorting applies to the loaded accounts."
       actions={
-        <Button type="button" color="primary" onClick={openCreateUser}>
+        <AdminButton type="button" color="primary" onClick={openCreateUser}>
           <FaPlus aria-hidden="true" />
           Add user
-        </Button>
+        </AdminButton>
       }
     >
       <Alert status="error" message={error} />
@@ -138,22 +141,17 @@ export default function UsersScreen() {
       ) : (
         <DataListSurface>
           <form
-            className="admin-list-toolbar"
+            className="admin-filter-toolbar admin-list-toolbar"
             role="search"
             onSubmit={(event) => event.preventDefault()}
           >
-            <div className="relative w-48 max-w-full">
-              <Input
-                aria-label="Search users"
-                placeholder="Name or email"
-                type="search"
-                size="sm"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                rightIcon={<FaSearch size={14} />}
-                className="w-full"
-              />
-            </div>
+            <ToolbarSearch
+              aria-label="Search users"
+              placeholder="Name or email"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </form>
           <MobileSortControl
             label="Sort by"
@@ -171,115 +169,123 @@ export default function UsersScreen() {
             }
             onDirectionAction={() => sort.toggle(sort.column)}
           />
-          <table
-            className="table admin-responsive-table w-full"
-            role="table"
-            aria-label="All users"
-          >
-            <thead role="rowgroup">
-              <tr role="row">
-                <SortableHeader column="account" sort={sort}>
-                  Account
-                </SortableHeader>
-                <SortableHeader column="role" sort={sort}>
-                  Role
-                </SortableHeader>
-                <SortableHeader column="verified" sort={sort}>
-                  Verified
-                </SortableHeader>
-                <SortableHeader column="created" sort={sort}>
-                  Created
-                </SortableHeader>
-                <th
-                  role="columnheader"
-                  scope="col"
-                  className="whitespace-nowrap text-right"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
+          <DataListScrollableResults>
+            <table
+              className="table admin-responsive-table admin-bounded-table w-full"
+              role="table"
+              aria-label="All users"
+            >
+              <thead role="rowgroup">
+                <tr role="row">
+                  <SortableHeader column="account" sort={sort}>
+                    Account
+                  </SortableHeader>
+                  <SortableHeader column="role" sort={sort}>
+                    Role
+                  </SortableHeader>
+                  <SortableHeader column="verified" sort={sort}>
+                    Verified
+                  </SortableHeader>
+                  <SortableHeader column="created" sort={sort}>
+                    Created
+                  </SortableHeader>
+                  <th
+                    role="columnheader"
+                    scope="col"
+                    className="whitespace-nowrap text-right"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
 
-            <tbody role="rowgroup">
-              {visibleUsers.length ? (
-                visibleUsers.map((u) => {
-                  const role = (u.roleName ?? "SUBSCRIBER") as RoleName;
+              <tbody role="rowgroup">
+                {visibleUsers.length ? (
+                  visibleUsers.map((u) => {
+                    const role = (u.roleName ?? "SUBSCRIBER") as RoleName;
 
-                  return (
-                    <tr key={u.id} role="row">
-                      <td role="cell" className="admin-table-identity">
-                        <strong>{u.name ?? "Unnamed user"}</strong>
-                        <div className="text-sm text-(--text-muted)">
-                          {u.email}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={u.id} role="row">
+                        <td role="cell" className="admin-table-identity">
+                          <TruncatedText
+                            className="font-bold"
+                            value={u.name ?? "Unnamed user"}
+                          />
+                          <TruncatedText
+                            className="text-sm text-(--text-muted)"
+                            value={u.email ?? ""}
+                          />
+                        </td>
 
-                      <td role="cell">
-                        <span className="admin-cell-label" aria-hidden="true">
-                          Role
-                        </span>
-                        <RoleBadge role={role} />
-                      </td>
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Role
+                          </span>
+                          <RoleBadge role={role} />
+                        </td>
 
-                      <td role="cell">
-                        <span className="admin-cell-label" aria-hidden="true">
-                          Verified
-                        </span>
-                        <Badge
-                          className={
-                            u.emailVerified ? undefined : "admin-badge-muted"
-                          }
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Verified
+                          </span>
+                          <Badge
+                            className={
+                              u.emailVerified ? undefined : "admin-badge-muted"
+                            }
+                          >
+                            {u.emailVerified ? "Verified" : "Unverified"}
+                          </Badge>
+                        </td>
+
+                        <td role="cell">
+                          <span className="admin-cell-label" aria-hidden="true">
+                            Created
+                          </span>
+                          <AdminTimestamp value={u.createdAt} />
+                        </td>
+
+                        <td
+                          role="cell"
+                          className="admin-table-actions text-right"
                         >
-                          {u.emailVerified ? "Verified" : "Unverified"}
-                        </Badge>
-                      </td>
-
-                      <td role="cell">
-                        <span className="admin-cell-label" aria-hidden="true">
-                          Created
-                        </span>
-                        <AdminTimestamp value={u.createdAt} />
-                      </td>
-
-                      <td
-                        role="cell"
-                        className="admin-table-actions text-right"
-                      >
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <LinkIconButton
-                            href={`/admin/users/${encodeURIComponent(u.id)}/edit`}
-                            icon={FaEdit}
-                            size="sm"
-                            variant="ghost"
-                            aria-label={`Edit ${u.name ?? u.email ?? "user"}`}
-                            title={`Edit ${u.name ?? u.email ?? "user"}`}
-                          >
-                            Edit
-                          </LinkIconButton>
-                          <IconButton
-                            type="button"
-                            icon={FaTrash}
-                            size="sm"
-                            color="error"
-                            variant="ghost"
-                            loading={deletingId === u.id}
-                            disabled={Boolean(deletingId)}
-                            aria-label="Delete user"
-                            title="Delete user"
-                            onClick={() => askDelete(u)}
-                          >
-                            Delete
-                          </IconButton>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <DataListEmptyRow colSpan={5}>No users found.</DataListEmptyRow>
-              )}
-            </tbody>
-          </table>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <LinkIconButton
+                              href={`/admin/users/${encodeURIComponent(u.id)}/edit`}
+                              icon={FaEdit}
+                              size="sm"
+                              variant="ghost"
+                              aria-label={`Edit ${u.name ?? u.email ?? "user"}`}
+                              title={`Edit ${u.name ?? u.email ?? "user"}`}
+                            >
+                              Edit
+                            </LinkIconButton>
+                            <AdminAsyncButton
+                              type="button"
+                              icon={FaTrash}
+                              size="sm"
+                              color="error"
+                              variant="ghost"
+                              loading={deletingId === u.id}
+                              disabled={Boolean(deletingId)}
+                              aria-label="Delete user"
+                              title="Delete user"
+                              onClick={() => askDelete(u)}
+                            >
+                              Delete
+                            </AdminAsyncButton>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <DataListEmptyRow colSpan={5}>
+                    No users found.
+                  </DataListEmptyRow>
+                )}
+              </tbody>
+            </table>
+          </DataListScrollableResults>
         </DataListSurface>
       )}
       <dialog
@@ -367,18 +373,22 @@ export default function UsersScreen() {
             <Alert status="error" message={createError} />
 
             <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={closeCreateUser}>
+              <AdminButton
+                type="button"
+                variant="ghost"
+                onClick={closeCreateUser}
+              >
                 Cancel
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminAsyncButton
                 type="submit"
                 color="primary"
                 loading={creating}
                 disabled={creating}
+                icon={FaPlus}
               >
-                <FaPlus aria-hidden="true" />
                 Create user
-              </Button>
+              </AdminAsyncButton>
             </div>
           </fieldset>
         </form>

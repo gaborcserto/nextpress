@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 
-import { Button } from "@/ui/primitives";
+import { AdminButton } from "@/ui/primitives";
 
 import { initialMediaQuery, MediaBrowser } from "./MediaBrowser";
 import { MediaDialog } from "./MediaDialog";
@@ -63,71 +63,77 @@ export function MediaPicker({
       title={title ?? (limit === 1 ? text.choose : text.chooseMany)}
       onClose={onCancel}
     >
-      <div aria-label={text.library} className={tabStyles.tabs} role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === "library"}
-          tabIndex={view === "library" ? 0 : -1}
-          onClick={() => setView("library")}
+      <div className="admin-tab-stack">
+        <div
+          aria-label={text.library}
+          className={tabStyles.tabs}
+          role="tablist"
         >
-          {text.library}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={view === "upload"}
-          tabIndex={view === "upload" ? 0 : -1}
-          onClick={() => setView("upload")}
-        >
-          {uploadLabel ?? text.upload}
-        </button>
-      </div>
-      <div className="admin-media-dialog-content mt-4 min-h-64">
-        {view === "library" ? (
-          <MediaBrowser
-            query={query}
-            documents={documents}
-            all={mixed}
-            view={documents ? "list" : "grid"}
-            onQuery={setQuery}
-            onAsset={toggle}
-            selected={selected.map(({ id }) => id)}
-            showUploads={false}
-          />
-        ) : (
-          <MediaUploads
-            documents={documents}
-            all={mixed}
-            multiple={limit !== 1}
-            onUploaded={(assets, complete) => {
-              void mutate(
-                (key) =>
-                  typeof key === "string" &&
-                  (key.startsWith("/api/documents?") ||
-                    key.startsWith("/api/media/library?")),
-              );
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "library"}
+            tabIndex={view === "library" ? 0 : -1}
+            onClick={() => setView("library")}
+          >
+            {text.library}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "upload"}
+            tabIndex={view === "upload" ? 0 : -1}
+            onClick={() => setView("upload")}
+          >
+            {uploadLabel ?? text.upload}
+          </button>
+        </div>
+        <div className="admin-media-dialog-content min-h-64">
+          {view === "library" ? (
+            <MediaBrowser
+              query={query}
+              documents={documents}
+              all={mixed}
+              view={documents ? "list" : "grid"}
+              onQuery={setQuery}
+              onAsset={toggle}
+              selected={selected.map(({ id }) => id)}
+              showUploads={false}
+            />
+          ) : (
+            <MediaUploads
+              documents={documents}
+              all={mixed}
+              multiple={limit !== 1}
+              onUploaded={(assets, complete) => {
+                void mutate(
+                  (key) =>
+                    typeof key === "string" &&
+                    (key.startsWith("/api/documents?") ||
+                      key.startsWith("/api/media/library?")),
+                );
 
-              if (!complete || assets.length === 0) {
-                return;
-              }
+                if (!complete || assets.length === 0) {
+                  return;
+                }
 
-              const latestAsset = assets.at(-1);
+                const latestAsset = assets.at(-1);
 
-              if (!latestAsset) {
-                return;
-              }
+                if (!latestAsset) {
+                  return;
+                }
 
-              setSelected((current) =>
-                limit === 1
-                  ? [latestAsset]
-                  : [...current, ...assets].slice(0, limit),
-              );
-              setQuery(initialMediaQuery);
-              setView("library");
-            }}
-          />
-        )}
+                setSelected((current) =>
+                  limit === 1
+                    ? [latestAsset]
+                    : [...current, ...assets].slice(0, limit),
+                );
+                setQuery(initialMediaQuery);
+                setView("library");
+              }}
+            />
+          )}
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         {view === "library" && (
@@ -136,17 +142,17 @@ export function MediaPicker({
           </span>
         )}
         <div className="ms-auto flex items-center gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <AdminButton type="button" variant="ghost" onClick={onCancel}>
             {text.cancel}
-          </Button>
+          </AdminButton>
           {view === "library" && (
-            <Button
+            <AdminButton
               type="button"
               disabled={!selected.length || selected.length > limit}
               onClick={() => onConfirm(selected)}
             >
               {text.confirm}
-            </Button>
+            </AdminButton>
           )}
         </div>
       </div>

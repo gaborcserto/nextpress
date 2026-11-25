@@ -8,7 +8,7 @@ import {
 import { useState, type ReactNode } from "react";
 import { BsFileEarmarkPdf, BsImage } from "react-icons/bs";
 
-import { Button } from "@/ui/primitives";
+import { AdminButton } from "@/ui/primitives";
 
 import { DocumentPicker, MediaPicker } from "./MediaPicker";
 import { useMediaMessages } from "./messages";
@@ -159,7 +159,7 @@ export function DocumentImageField({
 
   const actions = (
     <div className="flex gap-1">
-      <Button
+      <AdminButton
         type="button"
         size="sm"
         variant="ghost"
@@ -170,8 +170,8 @@ export function DocumentImageField({
         onClick={() => setTarget("new-image")}
       >
         <BsImage aria-hidden />
-      </Button>
-      <Button
+      </AdminButton>
+      <AdminButton
         type="button"
         size="sm"
         variant="ghost"
@@ -182,7 +182,7 @@ export function DocumentImageField({
         onClick={() => setTarget("new-document")}
       >
         <BsFileEarmarkPdf aria-hidden />
-      </Button>
+      </AdminButton>
     </div>
   );
 
@@ -264,7 +264,7 @@ export function DocumentImageField({
                     </>
                   )}
                   <div className="flex flex-wrap gap-2">
-                    <Button
+                    <AdminButton
                       type="button"
                       size="sm"
                       variant="outline"
@@ -274,9 +274,9 @@ export function DocumentImageField({
                       {block.type === "document"
                         ? documents.choose
                         : text.choose}
-                    </Button>
+                    </AdminButton>
                     {(block.type === "document" || block.props.mediaId) && (
-                      <Button
+                      <AdminButton
                         type="button"
                         size="sm"
                         variant="ghost"
@@ -284,7 +284,7 @@ export function DocumentImageField({
                         onClick={() => remove(block)}
                       >
                         {text.remove}
-                      </Button>
+                      </AdminButton>
                     )}
                   </div>
                 </li>

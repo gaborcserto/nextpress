@@ -3,7 +3,7 @@ import {
   MediaAssetSchema,
   MediaCollectionSchema,
 } from "@nextpress/shared/media";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
 
 test.setTimeout(120_000);
@@ -27,6 +27,227 @@ async function signIn(page: Page) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).not.toHaveURL(/sign-in/, { timeout: 30_000 });
 }
+
+async function bounds(locator: Locator) {
+  await expect(locator).toBeVisible();
+  const box = await locator.boundingBox();
+
+  if (!box) {
+    throw new Error("Expected a visible toolbar control");
+  }
+
+  return { ...box, right: box.x + box.width, bottom: box.y + box.height };
+}
+
+async function expectCenteredIcon(button: Locator) {
+  const graphic = button.locator(":scope > svg");
+  await expect(graphic).toHaveCount(1);
+  await expect(button).not.toHaveAttribute("aria-busy");
+
+  const [outer, icon, layout] = await Promise.all([
+    bounds(button),
+    bounds(graphic),
+    button.evaluate((element) => {
+      const { padding, flexShrink } = getComputedStyle(element);
+
+      return { padding, flexShrink };
+    }),
+  ]);
+
+  expect(layout).toEqual({ padding: "0px", flexShrink: "0" });
+  expect(outer.width).toBe(outer.height);
+  expect(icon.x).toBeGreaterThanOrEqual(outer.x);
+  expect(icon.y).toBeGreaterThanOrEqual(outer.y);
+  expect(icon.right).toBeLessThanOrEqual(outer.right);
+  expect(icon.bottom).toBeLessThanOrEqual(outer.bottom);
+  expect(icon.x + icon.width / 2).toBeCloseTo(outer.x + outer.width / 2, 0);
+  expect(icon.y + icon.height / 2).toBeCloseTo(outer.y + outer.height / 2, 0);
+
+  return outer;
+}
+
+test("keeps Media Library toolbar groups aligned at available panel widths", async ({
+  page,
+  browser,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await signIn(page);
+  await page.goto("/admin/media");
+
+  const search = page.getByRole("textbox", { name: "Search media" });
+  const toolbar = page
+    .locator("form.admin-filter-toolbar")
+    .filter({ has: search });
+  const submit = toolbar.getByRole("button", { name: "Search", exact: true });
+  const fileType = toolbar.getByRole("combobox", { name: "Original format" });
+  const sort = toolbar.getByRole("group", { name: "Sort by" });
+  const sortField = sort.getByRole("combobox");
+  const direction = sort.getByRole("button");
+  const view = toolbar.getByRole("group", { name: "View" });
+  const list = view.getByRole("button", { name: "List" });
+  const grid = view.getByRole("button", { name: "Grid" });
+
+  await list.click();
+  await expect(list).toHaveAttribute("aria-pressed", "true");
+
+  for (const width of [320, 375, 390, 440, 768, 1024, 1440, 1920]) {
+    await test.step(`Media toolbar at ${width}px`, async () => {
+      await page.setViewportSize({ width, height: 1000 });
+
+      const bar = await bounds(toolbar);
+      const input = await bounds(search);
+      const searchButton = await expectCenteredIcon(submit);
+      const typeSelect = await bounds(fileType);
+      const order = await bounds(sortField);
+      const orderButton = await expectCenteredIcon(direction);
+      const gridButton = await expectCenteredIcon(grid);
+      const listButton = await expectCenteredIcon(list);
+
+      const padding = await toolbar.evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).paddingInlineEnd),
+      );
+
+      expect(searchButton.x).toBeGreaterThan(input.x);
+      expect(searchButton.right).toBeLessThan(input.right);
+      expect(searchButton.y).toBeGreaterThan(input.y);
+      expect(searchButton.bottom).toBeLessThan(input.bottom);
+      expect(order.y).toBeCloseTo(orderButton.y, 0);
+      expect(order.height).toBe(orderButton.height);
+      expect(typeSelect.height).toBe(order.height);
+      expect(gridButton.y).toBe(listButton.y);
+      expect(gridButton.y).toBeGreaterThanOrEqual(
+        Math.max(typeSelect.y, order.y),
+      );
+      expect(bar.right - listButton.right).toBeCloseTo(padding, 0);
+
+      for (const control of [
+        input,
+        typeSelect,
+        order,
+        orderButton,
+        gridButton,
+        listButton,
+      ]) {
+        expect(control.x).toBeGreaterThanOrEqual(bar.x + padding - 1);
+        expect(control.right).toBeLessThanOrEqual(bar.right - padding + 1);
+      }
+
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(width);
+
+      if (width >= 1440) {
+        expect(input.y).toBeCloseTo(listButton.y, 0);
+        expect(input.width).toBeLessThan(bar.width / 2);
+      }
+
+      if (width === 768) {
+        expect(typeSelect.y).toBeCloseTo(order.y, 0);
+        expect(gridButton.y).toBeCloseTo(order.y, 0);
+      }
+
+      if (width <= 768) {
+        expect(input.width).toBeCloseTo(bar.width - 2 * padding, 0);
+        expect(order.y).toBeGreaterThan(input.y);
+      }
+    });
+  }
+
+  await test.step("Dark Hungarian touch toolbar at 440px", async () => {
+    const touch = await browser.newContext({
+      viewport: { width: 440, height: 900 },
+      hasTouch: true,
+      colorScheme: "dark",
+      locale: "hu-HU",
+    });
+
+    try {
+      await touch.addCookies([
+        ...(await page.context().cookies()),
+        { name: "theme", value: "dark", url: "http://localhost:49201" },
+        { name: "admin-locale", value: "hu", url: "http://localhost:49201" },
+      ]);
+      const localized = await touch.newPage();
+      await localized.goto("http://localhost:49201/admin/media");
+
+      const mediaToolbar = localized.locator("form.admin-filter-toolbar");
+      const searchInput = mediaToolbar.locator('input[name="q"]');
+      await expect(searchInput).toHaveAttribute(
+        "aria-label",
+        "Keresés a médiatárban",
+      );
+      await expect(localized.locator("html")).toHaveCSS("color-scheme", "dark");
+      const localizedSort = mediaToolbar.getByRole("group", {
+        name: "Rendezés",
+      });
+      const localizedView = mediaToolbar.getByRole("group", {
+        name: "Nézet",
+      });
+
+      const select = await bounds(localizedSort.getByRole("combobox"));
+      const order = await expectCenteredIcon(localizedSort.getByRole("button"));
+
+      const firstView = await expectCenteredIcon(
+        localizedView.getByRole("button").first(),
+      );
+
+      const lastView = await expectCenteredIcon(
+        localizedView.getByRole("button").last(),
+      );
+
+      expect(order.height).toBe(44);
+      expect(select.height).toBe(order.height);
+      expect(select.y).toBeCloseTo(order.y, 0);
+      expect(firstView.y).toBe(lastView.y);
+      expect(firstView.y).toBeGreaterThanOrEqual(order.y);
+      expect(
+        await localized.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(440);
+    } finally {
+      await touch.close();
+    }
+  });
+
+  await test.step("Shared filter searches stay compact and fill their mobile row", async () => {
+    for (const path of ["posts", "pages", "taxonomy", "users"]) {
+      await page.goto("/admin/" + path);
+      const filters = page.locator("form.admin-list-toolbar");
+      const field = filters.getByRole("searchbox");
+      const searchAction = filters.getByRole("button", {
+        name: "Submit search",
+      });
+
+      for (const width of [390, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+
+        const bar = await bounds(filters);
+        const input = await bounds(field);
+
+        const padding = await filters.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).paddingInlineEnd),
+        );
+
+        if (width === 390) {
+          expect(input.width).toBeCloseTo(bar.width - 2 * padding, 0);
+        } else {
+          expect(input.width).toBeLessThan(bar.width / 2);
+          expect(input.x - bar.x).toBeCloseTo(padding, 0);
+        }
+
+        if (path !== "users") {
+          const submit = await expectCenteredIcon(searchAction);
+          expect(submit.right).toBeLessThan(input.right);
+          expect(submit.y).toBeGreaterThan(input.y);
+          expect(submit.bottom).toBeLessThan(input.bottom);
+        }
+
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(width);
+      }
+    }
+  });
+});
 
 test("uploads static and animated GIFs without autoplay in the library", async ({
   page,

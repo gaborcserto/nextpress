@@ -5,13 +5,13 @@ import {
   maxPageDepth,
   pageLayouts,
 } from "@nextpress/shared/content";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { ApiRequestError, apiFetch, jsonResult } from "@/lib/api";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
-import { Button, Input, Select } from "@/ui/primitives";
+import { TruncatedText } from "@/ui/components/TruncatedText/TruncatedText";
+import { AdminButton, Input, Select } from "@/ui/primitives";
 
 type HierarchyPage = z.infer<typeof page>;
 const page = z.object({
@@ -126,7 +126,9 @@ export function PageHierarchy({
           </p>
         )}
         {failure === "failed" && (
-          <Button onClick={retry}>{hu ? "Újrapróbálkozás" : "Retry"}</Button>
+          <AdminButton onClick={retry}>
+            {hu ? "Újrapróbálkozás" : "Retry"}
+          </AdminButton>
         )}
         {!!attempt && (
           <p role="status">
@@ -281,10 +283,11 @@ function HierarchyFields({
         value={order}
         onChange={(event) => setOrder(event.target.value)}
       />
-      <p>
-        Page path <code>{path}</code>
-      </p>
-      <Button
+      <div className="flex min-w-0 gap-2">
+        <span className="shrink-0">Page path</span>
+        <TruncatedText value={path} className="font-mono" />
+      </div>
+      <AdminButton
         disabled={
           !order ||
           !/^\d+$/.test(order) ||
@@ -294,7 +297,7 @@ function HierarchyFields({
         onClick={() => void save()}
       >
         Save hierarchy
-      </Button>
+      </AdminButton>
       {error && <p role="alert">{error}</p>}
       <p role="status">{message}</p>
       <h3 className="font-medium">Child Pages</h3>
@@ -302,9 +305,11 @@ function HierarchyFields({
         <ul className="list-disc pl-5">
           {children.map((child) => (
             <li key={child.id}>
-              <Link href={`/admin/pages/${child.id}`} className="underline">
-                {child.title}
-              </Link>
+              <TruncatedText
+                href={`/admin/pages/${child.id}`}
+                className="underline"
+                value={child.title}
+              />
             </li>
           ))}
         </ul>

@@ -9,7 +9,7 @@ import { FaSave } from "react-icons/fa";
 
 import { authClient, useSession } from "@/lib/auth/auth-client";
 import { UserAvatar } from "@/ui/components";
-import { Alert, Box, Button, Input, Section } from "@/ui/primitives";
+import { AdminAsyncButton, Alert, Box, Input, Section } from "@/ui/primitives";
 import { AdminPageLayout } from "@/ui/shell";
 
 export default function ProfileScreen() {
@@ -40,15 +40,15 @@ export default function ProfileScreen() {
       description="Manage your display name and review your account details."
       actions={
         user ? (
-          <Button
+          <AdminAsyncButton
             type="submit"
             form="admin-profile-form"
             color="primary"
             loading={saving}
+            icon={FaSave}
           >
-            <FaSave aria-hidden="true" />
             Save profile
-          </Button>
+          </AdminAsyncButton>
         ) : undefined
       }
     >

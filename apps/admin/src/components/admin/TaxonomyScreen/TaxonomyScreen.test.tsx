@@ -8,6 +8,8 @@ import {
 import { SWRConfig } from "swr";
 import { afterEach, expect, it, vi } from "vitest";
 
+import { setAdminLocale } from "@/lib/i18n/admin-locale";
+
 import TaxonomyScreen from "./TaxonomyScreen";
 
 const navigation = vi.hoisted(() => ({ query: "", push: vi.fn() }));
@@ -40,6 +42,7 @@ function listResponse(
 }
 
 afterEach(() => {
+  setAdminLocale("en");
   navigation.query = "";
   navigation.push.mockClear();
   vi.unstubAllGlobals();
@@ -52,7 +55,7 @@ it("announces loading without showing an empty state", () => {
   );
   renderTaxonomy();
   expect(screen.getByRole("status")).toHaveTextContent(/Loading tags/);
-  expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
+  expect(screen.queryByText("No tags yet")).not.toBeInTheDocument();
 });
 
 it("renders records, slugs, and zero, single, and multiple post usage counts", async () => {
@@ -87,11 +90,89 @@ it("renders records, slugs, and zero, single, and multiple post usage counts", a
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
-it("shows empty taxonomy only after a successful empty response", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(listResponse([])));
-  renderTaxonomy();
-  expect(await screen.findByText("No tags found.")).toBeInTheDocument();
-});
+it.each([
+  ["TAG", "en", "No tags yet", "Create tags to help classify your content."],
+  [
+    "CATEGORY",
+    "en",
+    "No categories yet",
+    "Create categories to organize your content.",
+  ],
+  [
+    "TAG",
+    "hu",
+    "Még nincsenek címkék",
+    "Hozzon létre címkéket a tartalmak besorolásához.",
+  ],
+  [
+    "CATEGORY",
+    "hu",
+    "Még nincsenek kategóriák",
+    "Hozzon létre kategóriákat a tartalmak rendszerezéséhez.",
+  ],
+] as const)(
+  "explains an empty %s collection in %s",
+  async (type, locale, heading, description) => {
+    navigation.query = `type=${type}`;
+    setAdminLocale(locale);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(listResponse([])));
+
+    renderTaxonomy();
+
+    const emptyHeading = await screen.findByRole("heading", { name: heading });
+    const status = emptyHeading.closest('[role="status"]');
+
+    expect(status).toHaveTextContent(description);
+    expect(status?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("searchbox", { name: "Search" })).toBeVisible();
+  },
+);
+
+it.each([
+  [
+    "TAG",
+    "en",
+    "No matching tags",
+    "Try a different search term.",
+    "No tags yet",
+  ],
+  [
+    "CATEGORY",
+    "en",
+    "No matching categories",
+    "Try a different search term.",
+    "No categories yet",
+  ],
+  [
+    "TAG",
+    "hu",
+    "Nincs egyező címke",
+    "Próbálkozzon másik keresőkifejezéssel.",
+    "Még nincsenek címkék",
+  ],
+  [
+    "CATEGORY",
+    "hu",
+    "Nincs egyező kategória",
+    "Próbálkozzon másik keresőkifejezéssel.",
+    "Még nincsenek kategóriák",
+  ],
+] as const)(
+  "suggests another search when %s has no matching records in %s",
+  async (type, locale, heading, description, emptyHeading) => {
+    navigation.query = `type=${type}&q=missing`;
+    setAdminLocale(locale);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(listResponse([])));
+
+    renderTaxonomy();
+
+    expect(await screen.findByRole("heading", { name: heading })).toBeVisible();
+    expect(screen.getByText(description)).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: emptyHeading }),
+    ).not.toBeInTheDocument();
+  },
+);
 
 it("edits a tag name and slug in place and refreshes the list", async () => {
   const fetch = vi
@@ -297,11 +378,11 @@ it.each([401, 403, 500])(
         ? "Unable to load tags"
         : "Sign in with an authorized admin account",
     );
-    expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No tags yet")).not.toBeInTheDocument();
     const refreshButton = screen.getByRole("button", { name: "Refresh" });
     expect(refreshButton.querySelector("svg")).toBeInTheDocument();
     fireEvent.click(refreshButton);
-    expect(await screen.findByText("No tags found.")).toBeInTheDocument();
+    expect(await screen.findByText("No tags yet")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   },
 );
@@ -319,6 +400,6 @@ it.each(["network", "malformed"])(
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load tags",
     );
-    expect(screen.queryByText("No tags found.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No tags yet")).not.toBeInTheDocument();
   },
 );

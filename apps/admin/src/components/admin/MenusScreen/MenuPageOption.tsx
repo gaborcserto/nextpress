@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { PublicationStatusBadge } from "@/ui/components/PublicationStatusBadge";
+import { useTextOverflow } from "@/ui/components/TruncatedText/useTextOverflow";
 import { Tooltip } from "@/ui/primitives";
 
 import styles from "./MenuPageOption.module.css";
@@ -24,55 +25,16 @@ export function MenuPageOption({
   systemPage?: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
-  const titleRef = useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
+  const { ref: titleRef, truncated } = useTextOverflow(title);
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const tooltipId = `menu-page-title-tooltip-${id}`;
-
-  const measureTitleOverflow = useCallback(() => {
-    const titleElement = titleRef.current;
-
-    if (!titleElement) {
-      return;
-    }
-
-    const isTitleTruncated =
-      titleElement.scrollWidth > titleElement.clientWidth;
-
-    setIsTruncated(isTitleTruncated);
-
-    if (!isTitleTruncated) {
-      setIsTooltipOpen(false);
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    const titleElement = titleRef.current;
-
-    if (!titleElement) {
-      return;
-    }
-
-    measureTitleOverflow();
-
-    const resizeObserver =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(measureTitleOverflow);
-    resizeObserver?.observe(titleElement);
-    window.addEventListener("resize", measureTitleOverflow);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener("resize", measureTitleOverflow);
-    };
-  }, [measureTitleOverflow, title]);
 
   return (
     <Tooltip
       id={tooltipId}
       content={title}
-      enabled={isTruncated}
+      enabled={truncated}
+      touchPreview
       onOpenChange={setIsTooltipOpen}
     >
       <label
@@ -85,10 +47,7 @@ export function MenuPageOption({
           aria-describedby={isTooltipOpen ? tooltipId : undefined}
           onChange={(event) => onCheckedChange(event.target.checked)}
         />
-        <span
-          ref={titleRef}
-          className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-        >
+        <span ref={titleRef} className="admin-ellipsis flex-1">
           {title}
         </span>
         {systemPage && (

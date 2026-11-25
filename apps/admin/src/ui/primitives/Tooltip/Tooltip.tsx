@@ -28,6 +28,9 @@ type TooltipPosition = {
 
 type TooltipProps = {
   id: string;
+  as?: "div" | "span";
+  className?: string;
+  touchPreview?: boolean;
   content: ReactNode;
   enabled?: boolean;
   delayDuration?: number;
@@ -39,13 +42,16 @@ const animationDuration = 120;
 
 export function Tooltip({
   id,
+  as: Trigger = "div",
+  className,
+  touchPreview = false,
   content,
   enabled = true,
   delayDuration = 250,
   onOpenChange,
   children,
 }: TooltipProps) {
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const pointerInside = useRef(false);
   const focusInside = useRef(false);
@@ -63,6 +69,10 @@ export function Tooltip({
       setPhase("closed");
     }
   }
+
+  const setTrigger = useCallback((element: HTMLElement | null) => {
+    triggerRef.current = element;
+  }, []);
 
   const clearHoverTimer = useCallback(() => {
     if (hoverTimer.current) {
@@ -212,7 +222,7 @@ export function Tooltip({
     [clearHoverTimer],
   );
 
-  function handlePointerEnter(event: PointerEvent<HTMLDivElement>) {
+  function handlePointerEnter(event: PointerEvent<HTMLElement>) {
     if (event.pointerType === "touch") {
       return;
     }
@@ -221,6 +231,19 @@ export function Tooltip({
 
     if (!dismissed.current && enabled) {
       scheduleHover();
+    }
+  }
+
+  function handleTouchStart(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "touch" && enabled) {
+      scheduleHover();
+    }
+  }
+
+  function handleTouchEnd(event: PointerEvent<HTMLElement>) {
+    if (event.pointerType === "touch") {
+      clearHoverTimer();
+      scheduleClose();
     }
   }
 
@@ -239,7 +262,7 @@ export function Tooltip({
     showTooltip();
   }
 
-  function handleBlur(event: FocusEvent<HTMLDivElement>) {
+  function handleBlur(event: FocusEvent<HTMLElement>) {
     const nextTarget = event.relatedTarget;
 
     if (
@@ -256,7 +279,7 @@ export function Tooltip({
     }
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key !== "Escape") {
       return;
     }
@@ -274,11 +297,14 @@ export function Tooltip({
   };
 
   return (
-    <div
-      ref={triggerRef}
-      className={styles.trigger}
+    <Trigger
+      ref={setTrigger}
+      className={className ? `${styles.trigger} ${className}` : styles.trigger}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
+      onPointerDown={touchPreview ? handleTouchStart : undefined}
+      onPointerUp={touchPreview ? handleTouchEnd : undefined}
+      onPointerCancel={touchPreview ? handleTouchEnd : undefined}
       onFocusCapture={handleFocus}
       onBlurCapture={handleBlur}
       onKeyDown={handleKeyDown}
@@ -301,6 +327,6 @@ export function Tooltip({
           </div>,
           document.body,
         )}
-    </div>
+    </Trigger>
   );
 }

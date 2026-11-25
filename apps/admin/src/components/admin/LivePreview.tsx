@@ -18,7 +18,7 @@ import {
 
 import { slateToString, type SlateLike } from "@/lib/content/editor";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
-import { IconButton } from "@/ui/primitives";
+import { AdminIconButton } from "@/ui/primitives";
 import { Select } from "@/ui/primitives/Select";
 
 import styles from "./LivePreview.module.css";
@@ -548,7 +548,7 @@ export default function LivePreview({
               <h2 id="live-preview-heading">{text.title}</h2>
               <div className={styles.previewHeaderActions}>
                 {origin && (
-                  <IconButton
+                  <AdminIconButton
                     icon={FaExternalLinkAlt}
                     variant="ghost"
                     size="sm"

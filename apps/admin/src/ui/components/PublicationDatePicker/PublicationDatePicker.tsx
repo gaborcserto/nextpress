@@ -13,7 +13,7 @@ import {
   AdminDateTimeContext,
   useAdminDateLocale,
 } from "@/lib/settings/admin-date-time";
-import { Button } from "@/ui/primitives/Buttons/Buttons";
+import { AdminButton, AdminToggleButton } from "@/ui/primitives/Buttons";
 import Input from "@/ui/primitives/Input/Input";
 
 import { pickerMessages } from "./messages";
@@ -632,7 +632,7 @@ function PublicationDatePickerFields({
       {occurrences.length > 1 && !mode && (
         <div role="group" aria-label={text.overlap}>
           {occurrences.map((occurrence, index) => (
-            <Button
+            <AdminButton
               key={occurrence.instant}
               type="button"
               size="sm"
@@ -643,7 +643,7 @@ function PublicationDatePickerFields({
               }}
             >
               {index === 0 ? text.first : text.second} (UTC{occurrence.offset})
-            </Button>
+            </AdminButton>
           ))}
         </div>
       )}
@@ -684,7 +684,7 @@ function PublicationDatePickerFields({
             {occurrences.length > 1 && (
               <div role="group" aria-label={text.overlap}>
                 {occurrences.map((occurrence, index) => (
-                  <Button
+                  <AdminButton
                     key={occurrence.instant}
                     type="button"
                     size="sm"
@@ -697,7 +697,7 @@ function PublicationDatePickerFields({
                   >
                     {index === 0 ? text.first : text.second} (UTC
                     {occurrence.offset})
-                  </Button>
+                  </AdminButton>
                 ))}
               </div>
             )}
@@ -918,7 +918,7 @@ function PublicationDatePickerFields({
           <div className={styles.timeRow}>
             <>
               {view === "day" ? (
-                <Button
+                <AdminButton
                   type="button"
                   size="sm"
                   variant="ghost"
@@ -927,7 +927,7 @@ function PublicationDatePickerFields({
                   onClick={selectToday}
                 >
                   {text.today}
-                </Button>
+                </AdminButton>
               ) : (
                 <button
                   type="button"
@@ -1036,12 +1036,12 @@ function PublicationDatePickerFields({
                         : periodLabel(21, locale);
 
                     return (
-                      <Button
+                      <AdminToggleButton
                         key={period}
                         type="button"
                         size="sm"
                         variant={selected ? "soft" : "outline"}
-                        aria-pressed={selected}
+                        pressed={selected}
                         onClick={() => {
                           const hours =
                             period === "AM"
@@ -1051,7 +1051,7 @@ function PublicationDatePickerFields({
                         }}
                       >
                         {label ?? period}
-                      </Button>
+                      </AdminToggleButton>
                     );
                   })}
                 </div>
