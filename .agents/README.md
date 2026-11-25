@@ -26,7 +26,7 @@
 - `workflows/dependency-update.md`: use when intentionally updating dependencies; includes security and workspace verification.
 - Run `npm run agents:validate` after changing `.agents/` resources or `AGENTS.md`; CI runs it with repository validation.
 
-Start with `AGENTS.md`, read applicable resources, inspect current repository facts, and review the full task diff against selected skills before completion. Run canonical changed-file verification; passing static checks is not architectural review. A task may use a skill and a workflow together when both add value.
+Start with `AGENTS.md`, read applicable resources, inspect current repository facts, and review the task diff against selected skills before completion. Run task-scoped verification appropriate to the change; use aggregate changed-file verification only when its combined working-tree scope is intended. Passing static checks is not architectural review. A task may use a skill and a workflow together when both add value.
 
 Resources apply across the monorepo unless a section is explicitly labeled for one application. Inspect the owning application before reusing its conventions in the other; shared concerns do not imply shared implementation.
 

@@ -21,14 +21,14 @@ Avoid arbitrary values when a token fits, unnecessary decoration, and generic ge
 
 1. Inspect the affected rendered UI and nearby patterns, including shared navigation, search, language/theme controls, footer, article, and taxonomy elements where relevant.
 2. Identify reusable components, tokens, template boundaries, and preset behavior.
-3. Check desktop, tablet, and mobile constraints, Light and Dark modes, and localized text length.
+3. Consider desktop, tablet, mobile, themes, and localized text in proportion to the affected surface and risk.
 4. Make the smallest coherent implementation. Use semantic HTML, named controls, visible keyboard focus, practical target sizes, and reduced-motion support. Keep animation subtle and avoid layout shifts.
 5. Review interactions: keyboard traversal, Escape and outside-click dismissal, focus restoration, and hydration consistency when applicable.
-6. Verify actual browser rendering, alignment, and interactions; CSS declarations or passing tests alone do not establish a visual fix. For alignment defects, compare rendered element bounding rectangles.
+6. For browser verification, check actual rendering, alignment, and interactions; CSS declarations or passing tests alone do not establish a visual fix. Use a targeted check when needed; reserve browser regression testing for complex responsive changes, major design changes, audits, or explicit requests. For alignment defects, compare rendered element bounding rectangles.
 7. Check accessibility and run focused automated checks for the affected surface.
 8. Report what was checked and any limits.
 
-Scale verification to risk. For visual or interaction changes, cover relevant desktop/tablet/mobile sizes, both themes, English/Hungarian, keyboard/focus behavior, reduced motion, long strings, and 200% text resizing. Exercise affected Blog presets individually. Use browser inspection or screenshots when available; confirm actual rendered alignment and no overflow, clipping, or accidental wrapping.
+Scale verification to risk. For routine or minor UI changes, use focused checks and do not automatically run browser automation or a broad viewport/theme/locale matrix. For complex responsive changes, major design changes, audits, or explicit requests, cover the relevant sizes, themes, locales, keyboard/focus behavior, reduced motion, long strings, and text resizing. Exercise affected Blog presets individually. Use browser inspection or screenshots when available; confirm actual rendered alignment and no overflow, clipping, or accidental wrapping.
 
 ## Activation examples
 
