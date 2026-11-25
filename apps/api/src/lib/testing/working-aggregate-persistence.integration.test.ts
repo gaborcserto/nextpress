@@ -67,35 +67,42 @@ describe.skipIf(!url)(
 
     it("reserves the Homepage slot across concurrent writes regardless of publication status", async () => {
       const records = await Promise.all([seed(), seed()]);
+      const recordIds = records.map(({ id }) => id);
 
       const assignHomepage = (id: string) =>
         db.page.update({ where: { id }, data: { layout: "HOME" } });
 
-      const results = await Promise.allSettled(
-        records.map(({ id }) => assignHomepage(id)),
-      );
+      try {
+        const results = await Promise.allSettled(recordIds.map(assignHomepage));
 
-      const selected = await db.page.findMany({
-        where: { id: { in: records.map(({ id }) => id) }, layout: "HOME" },
-      });
+        const selected = await db.page.findMany({
+          where: { id: { in: recordIds }, layout: "HOME" },
+        });
 
-      expect(results.map(({ status }) => status).sort()).toEqual([
-        "fulfilled",
-        "rejected",
-      ]);
-      expect(selected).toHaveLength(1);
-      const [active] = selected;
-      const replacement = records.find(({ id }) => id !== active?.id);
+        expect(results.map(({ status }) => status).sort()).toEqual([
+          "fulfilled",
+          "rejected",
+        ]);
+        expect(selected).toHaveLength(1);
+        const [active] = selected;
+        const replacement = records.find(({ id }) => id !== active?.id);
 
-      if (!active || !replacement) {
-        throw new Error("Expected one active homepage and one replacement");
+        if (!active || !replacement) {
+          throw new Error("Expected one active homepage and one replacement");
+        }
+
+        await db.page.update({
+          where: { id: active.id },
+          data: { status: "DRAFT" },
+        });
+        await expect(assignHomepage(replacement.id)).rejects.toBeDefined();
+      } finally {
+        // The browser rehearsal shares this cluster and needs the Homepage slot.
+        await db.page.updateMany({
+          where: { id: { in: recordIds }, layout: "HOME" },
+          data: { layout: "EVENT_PAGE" },
+        });
       }
-
-      await db.page.update({
-        where: { id: active.id },
-        data: { status: "DRAFT" },
-      });
-      await expect(assignHomepage(replacement.id)).rejects.toBeDefined();
     });
 
     it.each([

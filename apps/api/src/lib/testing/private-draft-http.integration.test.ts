@@ -984,6 +984,10 @@ describe.skipIf(!ownerUrl || !appUrl)(
             "POSTS",
             "GALLERY",
           ] as const) {
+            await browserExpect(
+              layoutField.locator(`option[value="${layout}"]`),
+              `${preset} preview: ${layout} should be selectable`,
+            ).toBeEnabled();
             await layoutField.selectOption(layout);
             const title = `${preset} ${layout} editorial preview`;
             await titleField.fill(title);
