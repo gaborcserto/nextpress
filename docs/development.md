@@ -89,7 +89,11 @@ required full checks; task-scoped development commands do not replace them.
 
 Do not stage or alter another user's work to validate it.
 
-CI compares the pull request or push commit range and uses Turbo filters for changed workspaces and their dependents. Root configuration and unrecognized paths trigger full workspace validation. Root/workspace README files and Markdown or image assets under `docs/` are explicitly documentation-only and skip application validation. `AGENTS.md` and agent resources still trigger full validation because they affect repository automation and contributor workflows. The required `Quality Gates` job succeeds for that documentation-only skip only after change detection and the production dependency audit succeed. CI runs on fresh hosted runners without persisted Turbo task cache; standard Turbo caching remains enabled for correct reuse within a job.
+CI compares a pull request's base to the checked-out merge commit, or a push's previous revision to its checked-out commit. Turbo selects changed workspaces and their dependents. Root configuration, missing comparison history, and unclassified inputs select full validation. Documentation-only changes skip workspace validation. Agent changes and workspace validation each require the dedicated agent-resource job, which runs once.
+
+Workspace validation retains lint, typecheck, and coverage. Selected unit-test-only changes skip production builds. Changes outside the narrowly scoped integration exemptions run schema validation and the guarded PostgreSQL rehearsals. The content rehearsal also uses Chromium for authenticated browser flows. Prisma client generation follows the task graph and can run without a database server.
+
+The stable `Quality Gates` check requires successful selection and production dependency audit, and checks that the agent and workspace jobs either succeeded or were correctly skipped. CI persists a dedicated Turbo workspace lint cache across runs. Only pushes to `master` publish it. Other Turbo task artifacts remain local to the runner.
 
 ## Troubleshooting
 

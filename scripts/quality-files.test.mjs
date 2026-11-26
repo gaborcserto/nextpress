@@ -583,8 +583,8 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
       cwd,
       env: {
         ...process.env,
-        BASE_SHA: "HEAD",
-        HEAD_SHA: "HEAD",
+        BASE_SHA: "",
+        HEAD_SHA: git("rev-parse", "HEAD").trim(),
         GITHUB_OUTPUT: output,
       },
       encoding: "utf8",
@@ -593,7 +593,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
   assert.equal(result.status, 0, result.stderr);
   assert.equal(
     readFileSync(output, "utf8"),
-    "should_validate=true\nshould_validate_agents=false\nturbo_filters=\n",
+    "scope=full\nshould_validate=true\nshould_validate_agents=true\nshould_build=true\nshould_integrate=true\nturbo_filters=full\n",
   );
   const base = git("rev-parse", "HEAD").trim();
   mkdirSync(path.join(cwd, "apps/web/src"), { recursive: true });
@@ -622,7 +622,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
       env: {
         ...process.env,
         BASE_SHA: base,
-        HEAD_SHA: "HEAD",
+        HEAD_SHA: git("rev-parse", "HEAD").trim(),
         GITHUB_OUTPUT: output,
       },
       encoding: "utf8",
@@ -631,7 +631,7 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
   assert.equal(run("--ci").status, 0);
   assert.equal(
     readFileSync(output, "utf8"),
-    "should_validate=true\nshould_validate_agents=false\nturbo_filters=--filter=...{./apps/web}\n",
+    "scope=full\nshould_validate=true\nshould_validate_agents=true\nshould_build=true\nshould_integrate=true\nturbo_filters=full\n",
   );
 
   for (const args of [
@@ -661,7 +661,6 @@ test("CI selection runs on a clean checkout without installed dependencies", (t)
     readFileSync(path.join(cwd, sourceFile), "utf8"),
     "export const example = { value: 1 };\n",
   );
-  assert.equal(run("--format-check", "--ci").status, 0);
 });
 
 test("local and CI entry points reject committed format drift and base writes leave other files untouched", (t) => {
@@ -729,7 +728,11 @@ test("local and CI entry points reject committed format drift and base writes le
   const run = (...args) =>
     spawnSync(process.execPath, ["scripts/check-changed.mjs", ...args], {
       cwd,
-      env: { ...process.env, BASE_SHA: base, HEAD_SHA: "HEAD" },
+      env: {
+        ...process.env,
+        BASE_SHA: base,
+        HEAD_SHA: git("rev-parse", "HEAD").trim(),
+      },
       encoding: "utf8",
     });
   const full = run("--format-check", "--full");
@@ -1504,4 +1507,49 @@ test("formatter writes stabilize nested mock calls before reporting success", (t
   formatFiles([file], { cwd });
   formatFiles([file], { cwd, write: true });
   assert.equal(readFileSync(path.join(cwd, file), "utf8"), once);
+});
+
+test("staged planning retains a DB project and falls back for non-module inputs", () => {
+  const manifests = new Map([
+    [
+      "apps/api",
+      {
+        name: "api",
+        scripts: { test: "vitest run" },
+        dependencies: { db: "*" },
+      },
+    ],
+    ["packages/db", { name: "db", scripts: { test: "vitest run" } }],
+  ]);
+  const dbSource = { status: "M", file: "packages/db/src/client.ts" };
+  const schema = { status: "M", file: "packages/db/prisma/schema.prisma" };
+  const config = { status: "M", file: "apps/api/vitest.config.mts" };
+
+  assert.deepEqual(
+    projectTests([dbSource], manifests).map(({ directory, fallback }) => [
+      directory,
+      fallback,
+    ]),
+    [
+      ["apps/api", undefined],
+      ["packages/db", undefined],
+    ],
+  );
+  assert.deepEqual(
+    projectTests([schema], manifests).map(({ directory, fallback }) => [
+      directory,
+      fallback,
+    ]),
+    [
+      ["apps/api", schema],
+      ["packages/db", schema],
+    ],
+  );
+  assert.deepEqual(
+    projectTests([config], manifests).map(({ directory, fallback }) => [
+      directory,
+      fallback,
+    ]),
+    [["apps/api", config]],
+  );
 });

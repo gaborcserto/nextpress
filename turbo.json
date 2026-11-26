@@ -35,10 +35,10 @@
     "lint": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "apps/admin/.env",
-        "apps/web/.env",
-        "packages/db/.env",
-        "apps/api/.env"
+        "$TURBO_ROOT$/apps/admin/.env",
+        "$TURBO_ROOT$/apps/web/.env",
+        "$TURBO_ROOT$/packages/db/.env",
+        "$TURBO_ROOT$/apps/api/.env"
       ],
       "env": [
         "NEXTPRESS_SECURITY_TEST_DATABASE_URL",
@@ -114,6 +114,7 @@
   },
   "globalDependencies": [
     "packages/eslint-config/**",
+    "!packages/eslint-config/.turbo/**",
     "eslint.config.mjs",
     ".oxfmtrc.json",
     "scripts/readability.mjs",

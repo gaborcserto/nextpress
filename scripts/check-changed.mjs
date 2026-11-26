@@ -1,19 +1,34 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { appendFileSync, existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { selectChanges } from "./affected-workspaces.mjs";
+import { selectChanges, selectCiChanges } from "./affected-workspaces.mjs";
 import { formatFiles } from "./quality-files.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
-const git = (...args) =>
-  execFileSync("git", args, {
+const git = (...args) => {
+  const result = spawnSync("git", args, {
     cwd: root,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status === 1 && args.includes("--quiet")) {
+    return "";
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`git ${args[0]} failed: ${result.stderr}`);
+  }
+
+  return result.stdout;
+};
 
 const paths = (output) => output.split("\0").filter(Boolean);
 
@@ -44,6 +59,57 @@ export function turboFilters(selection) {
   return selection.mode === "affected"
     ? selection.directories.map((directory) => `--filter=...{./${directory}}`)
     : [];
+}
+
+export function ciChanges(
+  runGit,
+  { BASE_SHA: base, HEAD_SHA: head, GITHUB_EVENT_NAME: event },
+) {
+  // An unavailable comparison is a known full scope. A failed diff is an error.
+  if (!/^[a-f0-9]{40}$/i.test(head ?? "")) {
+    throw new Error("CI selection requires the checked-out commit SHA");
+  }
+
+  const checkedOut = runGit("rev-parse", "HEAD").trim();
+
+  if (checkedOut !== head) {
+    throw new Error("CI head does not match the checked-out commit");
+  }
+
+  if (!/^[a-f0-9]{40}$/i.test(base ?? "")) {
+    return null;
+  }
+
+  if (!runGit("rev-parse", "--verify", "--quiet", `${base}^{commit}`).trim()) {
+    return null;
+  }
+
+  // PR validation runs against the synthetic merge, so its first parent must
+  // be the event's base. Pushes compare endpoint trees, including force pushes.
+  if (
+    event === "pull_request" &&
+    runGit("rev-parse", "--verify", "--quiet", `${head}^1`).trim() !== base
+  ) {
+    return null;
+  }
+
+  return paths(
+    runGit("diff", "--name-only", "--no-renames", "-z", base, head, "--"),
+  );
+}
+
+export function ciOutputs(selection) {
+  return {
+    scope: selection.mode,
+    should_validate: selection.mode !== "none",
+    should_validate_agents: selection.validateAgents,
+    should_build: selection.build,
+    should_integrate: selection.integration,
+    turbo_filters:
+      selection.mode === "affected"
+        ? turboFilters(selection).join(" ")
+        : selection.mode,
+  };
 }
 
 function main() {
@@ -87,8 +153,8 @@ function main() {
     throw new Error("Choose one formatting mode");
   }
 
-  if (ci && base) {
-    throw new Error("CI uses BASE_SHA/HEAD_SHA, not --base");
+  if (ci && (base || args.includes("--full"))) {
+    throw new Error("--ci cannot be combined with local verification options");
   }
 
   if (write && (ci || args.includes("--full"))) {
@@ -104,79 +170,42 @@ function main() {
   let files;
   let selection;
 
-  try {
-    if (ci) {
-      const ciBase = process.env.BASE_SHA;
+  if (ci) {
+    files = ciChanges(git, process.env);
 
-      if (!ciBase) {
-        throw new Error("Missing base revision");
-      }
-
-      git("cat-file", "-e", `${ciBase}^{commit}`);
-      files = paths(
-        git(
-          "diff",
-          "--name-only",
-          "--no-renames",
-          "-z",
-          ciBase,
-          process.env.HEAD_SHA || "HEAD",
-        ),
-      );
-      selection = selectChanges(files, { emptyIsFull: true });
-    } else {
-      files =
-        explicitFiles ??
-        (args.includes("--full")
-          ? paths(
-              git(
-                "ls-files",
-                "--cached",
-                "--others",
-                "--exclude-standard",
-                "-z",
-              ),
-            )
-          : localChanges(git, base));
-      selection = selectChanges(files, { full: args.includes("--full") });
+    if (formatOnly && files === null) {
+      throw new Error("Cannot check formatting without a comparison revision");
     }
 
-    if (
-      selection.mode === "affected" &&
-      selection.directories.some(
-        (directory) =>
-          !existsSync(
-            new URL(
-              `${directory}/package.json`,
-              new URL("../", import.meta.url),
-            ),
-          ),
-      )
-    ) {
-      selection = {
-        mode: "full",
-        reason:
-          "A changed workspace manifest is missing; scope cannot be resolved safely.",
-      };
-    }
-  } catch (error) {
-    // Only the output-only CI selector retains conservative full validation.
-    // A formatter must never turn detection failure into an empty success/write.
-    if (!ci || formatOnly) {
-      throw error;
-    }
+    selection = selectCiChanges(files ?? [], { full: files === null });
+  } else {
+    files =
+      explicitFiles ??
+      (args.includes("--full")
+        ? paths(
+            git("ls-files", "--cached", "--others", "--exclude-standard", "-z"),
+          )
+        : localChanges(git, base));
+    selection = selectChanges(files, { full: args.includes("--full") });
+  }
 
-    selection = selectChanges([], { full: true });
+  if (
+    selection.mode === "affected" &&
+    selection.directories.some(
+      (directory) =>
+        !existsSync(new URL(`../${directory}/package.json`, import.meta.url)),
+    )
+  ) {
+    selection = (ci ? selectCiChanges : selectChanges)([], { full: true });
   }
 
   console.log(`[check:changed] ${selection.mode}: ${selection.reason}`);
 
   if (ci && !formatOnly) {
-    const filter = turboFilters(selection).join(" ");
-    appendFileSync(
-      process.env.GITHUB_OUTPUT,
-      `should_validate=${selection.mode !== "none"}\nshould_validate_agents=${selection.validateAgents === true}\nturbo_filters=${filter}\n`,
-    );
+    const outputs = Object.entries(ciOutputs(selection))
+      .map(([name, value]) => `${name}=${value}\n`)
+      .join("");
+    appendFileSync(process.env.GITHUB_OUTPUT, outputs);
 
     return;
   }

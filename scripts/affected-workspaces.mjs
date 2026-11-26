@@ -22,11 +22,7 @@ export function selectChanges(
       continue;
     }
 
-    if (
-      file === "AGENTS.md" ||
-      file === "CLAUDE.md" ||
-      file.startsWith(".agents/")
-    ) {
+    if (isAgentResource(file)) {
       validateAgents = true;
       continue;
     }
@@ -62,10 +58,62 @@ export function selectChanges(
       };
 }
 
+function isAgentResource(file) {
+  return (
+    file === "AGENTS.md" || file === "CLAUDE.md" || file.startsWith(".agents/")
+  );
+}
+
 function isDocumentationOnly(file) {
   if (/^(?:docs\/|\.github\/ISSUE_TEMPLATE\/)/.test(file)) {
     return /\.(?:md|mdx|png|jpe?g|gif|svg|webp|avif)$/i.test(file);
   }
 
   return /^(?:README\.md|(?:apps|packages)\/[^/]+\/README\.md)$/i.test(file);
+}
+
+// Only paths with an explicit integration exemption can bypass the rehearsals.
+// Other workspace source still gets Turbo's reverse dependency selection.
+const adminUnitTest = /^apps\/admin\/src\/.+(?<!\.integration)\.test\.tsx?$/;
+const presentation = new Set([
+  "apps/admin/src/components/admin/SettingsScreen/SettingsTabs.module.css",
+  "apps/web/src/components/public-content/GalleryEmpty.tsx",
+]);
+const mockedApi = "apps/api/src/lib/api/openapi.test.ts";
+const knownSource =
+  /^(?:apps\/(?:admin|api|web)\/(?:src|scripts)|packages\/(?:db|shared)\/src)\/.+\.(?:[cm]?[jt]sx?|css|json)$/;
+
+export function selectCiChanges(files, options) {
+  const selection = selectChanges(files, { emptyIsFull: true, ...options });
+  const inputs = files.filter(
+    (file) => !isDocumentationOnly(file) && !isAgentResource(file),
+  );
+  const full =
+    selection.mode === "full" || inputs.some((file) => !knownSource.test(file));
+  const mode = full ? "full" : selection.mode;
+  const validate = mode !== "none";
+  const unitOnly =
+    mode === "affected" &&
+    inputs.every((file) => adminUnitTest.test(file) || file === mockedApi);
+  const integration =
+    validate &&
+    (full ||
+      inputs.some(
+        (file) =>
+          !adminUnitTest.test(file) &&
+          !presentation.has(file) &&
+          file !== mockedApi,
+      ));
+
+  return {
+    ...selection,
+    mode,
+    reason:
+      full && selection.mode !== "full"
+        ? "An input is outside the classified workspace source paths."
+        : selection.reason,
+    validateAgents: validate || selection.validateAgents === true,
+    build: validate && !unitOnly,
+    integration,
+  };
 }

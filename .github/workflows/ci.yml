@@ -42,8 +42,11 @@ jobs:
     name: Detect affected workspaces
     runs-on: ubuntu-latest
     outputs:
+      scope: ${{ steps.filter.outputs.scope }}
       should_validate: ${{ steps.filter.outputs.should_validate }}
       should_validate_agents: ${{ steps.filter.outputs.should_validate_agents }}
+      should_build: ${{ steps.filter.outputs.should_build }}
+      should_integrate: ${{ steps.filter.outputs.should_integrate }}
       turbo_filters: ${{ steps.filter.outputs.turbo_filters }}
 
     steps:
@@ -57,6 +60,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.1
         with:
           node-version-file: .nvmrc
+          package-manager-cache: false
 
       - name: Select affected workspaces
         id: filter
@@ -82,6 +86,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
+          package-manager-cache: false
 
       - name: Validate agent resources
         run: npm run agents:validate && npm run agents:test
@@ -92,28 +97,17 @@ jobs:
     if: needs.changes.outputs.should_validate == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:18-trixie
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: cms
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d cms"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cms?schema=public
+      # Prisma configuration requires a URL even for offline validation/generation.
+      # The guarded rehearsal runner overrides this with its own disposable target.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/cms?schema=public
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          # The selector regression suite also compares HEAD to its parent.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Set up Node.js
@@ -130,43 +124,82 @@ jobs:
         run: npm ci
 
       - name: Check repository formatting
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
         run: npm run format:check
 
       - name: Test changed-file selection
         run: npm run check:changed:test
 
-      - name: Validate agent resources
-        run: npm run agents:validate && npm run agents:test
-
       - name: Lint root tooling
         run: npm run lint:root
 
-      - name: Validate schema and deploy migrations to isolated service
-        run: npm run prisma:validate && npm run prisma:deploy
+      - name: Validate Prisma schema
+        if: needs.changes.outputs.should_integrate == 'true'
+        run: npm run prisma:validate
 
-      - name: Generate database client
-        run: npm run prisma:generate
+      # This cache holds only workspace lint logs. No executable build output,
+      # coverage, Prisma client or integration state passes through it.
+      - name: Restore Turbo lint cache
+        id: lint-cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .turbo/ci-lint
+          key: turbo-ci-lint-v1-${{ runner.os }}-${{ runner.arch }}-npm12.2.2-${{ hashFiles('.nvmrc', 'package-lock.json', 'turbo.json', '**/turbo.json', '.github/workflows/ci.yml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            turbo-ci-lint-v1-${{ runner.os }}-${{ runner.arch }}-npm12.2.2-${{ hashFiles('.nvmrc', 'package-lock.json', 'turbo.json', '**/turbo.json', '.github/workflows/ci.yml') }}-
 
-      - name: Install Playwright Chromium for authenticated integration tests
-        run: npx playwright install --with-deps chromium
+      - name: Lint affected workspaces
+        env:
+          TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}
+        run: |
+          filters=()
+          if [[ "$TURBO_FILTERS" != "full" ]]; then
+            read -r -a filters <<< "$TURBO_FILTERS"
+          fi
+          npx turbo run lint --cache-dir=.turbo/ci-lint --cache=local:rw "${filters[@]}"
 
-      - name: Validate isolated backend transactions
-        working-directory: apps/api
-        run: npx tsx scripts/b04-postgres.ts content
-
-      - name: Validate isolated authentication lifecycle
-        working-directory: apps/api
-        run: npx tsx scripts/b04-postgres.ts security
+      - name: Save trusted Turbo lint cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: .turbo/ci-lint
+          key: ${{ steps.lint-cache.outputs.cache-primary-key }}
 
       - name: Validate affected workspaces
         env:
           TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}
+          BUILD_REQUIRED: ${{ needs.changes.outputs.should_build }}
         run: |
-          read -r -a filters <<< "$TURBO_FILTERS"
-          npx turbo run lint typecheck test:coverage build "${filters[@]}"
+          filters=()
+          if [[ "$TURBO_FILTERS" != "full" ]]; then
+            read -r -a filters <<< "$TURBO_FILTERS"
+          fi
+          tasks=(typecheck test:coverage)
+          if [[ "$BUILD_REQUIRED" == "true" ]]; then
+            tasks+=(build)
+          fi
+          npx turbo run "${tasks[@]}" --cache=local:rw "${filters[@]}"
+
+      - name: Prepare generated client for guarded rehearsals
+        if: needs.changes.outputs.should_integrate == 'true'
+        run: |
+          if [[ ! -f packages/db/generated/prisma/client.ts ]]; then
+            npm run prisma:generate
+          fi
+
+      # The content rehearsal includes authenticated browser preview assertions.
+      - name: Install Playwright Chromium for authenticated integration tests
+        if: needs.changes.outputs.should_integrate == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate isolated backend transactions
+        if: needs.changes.outputs.should_integrate == 'true'
+        working-directory: apps/api
+        run: npx tsx scripts/b04-postgres.ts content
+
+      - name: Validate isolated authentication lifecycle
+        if: needs.changes.outputs.should_integrate == 'true'
+        working-directory: apps/api
+        run: npx tsx scripts/b04-postgres.ts security
 
   quality-gates:
     name: Quality Gates
@@ -186,16 +219,28 @@ jobs:
           AGENT_RESULT: ${{ needs.validate-agent-resources.result }}
           AGENT_REQUIRED: ${{ needs.changes.outputs.should_validate_agents }}
           AUDIT_RESULT: ${{ needs.dependency-audit.result }}
+          SCOPE: ${{ needs.changes.outputs.scope }}
+          BUILD_REQUIRED: ${{ needs.changes.outputs.should_build }}
+          INTEGRATION_REQUIRED: ${{ needs.changes.outputs.should_integrate }}
+          TURBO_FILTERS: ${{ needs.changes.outputs.turbo_filters }}
         run: |
-          [[ "$CHANGES_RESULT" == "success" ]] || exit 1
-          [[ "$AUDIT_RESULT" == "success" ]] || exit 1
-          if [[ "$AGENT_REQUIRED" == "true" ]]; then
-            [[ "$AGENT_RESULT" == "success" ]] || exit 1
-          else
-            [[ "$AGENT_RESULT" == "skipped" ]] || exit 1
-          fi
-          if [[ "$VALIDATE_REQUIRED" == "true" ]]; then
-            [[ "$VALIDATE_RESULT" == "success" ]] || exit 1
-          else
-            [[ "$VALIDATE_RESULT" == "skipped" ]] || exit 1
-          fi
+          require_job() {
+            case "$1:$2" in
+              true:success|false:skipped) return 0 ;;
+              *) echo "Invalid requirement or result for $3 ($1:$2)"; return 1 ;;
+            esac
+          }
+          [[ "$CHANGES_RESULT" == "success" && "$AUDIT_RESULT" == "success" ]] || exit 1
+          require_job "$AGENT_REQUIRED" "$AGENT_RESULT" agents || exit 1
+          require_job "$VALIDATE_REQUIRED" "$VALIDATE_RESULT" validation || exit 1
+
+          case "$SCOPE:$VALIDATE_REQUIRED:$BUILD_REQUIRED:$INTEGRATION_REQUIRED:$AGENT_REQUIRED" in
+            none:false:false:false:true|none:false:false:false:false|full:true:true:true:true)
+              [[ "$TURBO_FILTERS" == "$SCOPE" ]]
+              ;;
+            affected:true:true:true:true|affected:true:true:false:true|affected:true:false:false:true)
+              filter='--filter=\.\.\.\{\./(apps/(admin|api|web)|packages/(db|shared|eslint-config))\}'
+              [[ "$TURBO_FILTERS" =~ ^$filter(\ $filter)*$ ]]
+              ;;
+            *) exit 1 ;;
+          esac
