@@ -92,6 +92,19 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
     controller.reload((canApply) =>
       editing.reloadAction(canApply, acceptedVersion),
     );
+
+  const reloadAfterAcknowledgement = async (
+    save: Promise<boolean>,
+    refusalMessage: string,
+  ) => {
+    if (!(await save)) {
+      throw new Error(refusalMessage);
+    }
+
+    if (!controller.hasLocalChanges()) {
+      await reload(controller.snapshot().version);
+    }
+  };
   const { snapshot: acknowledged, ...saveState } = state;
 
   return {
@@ -108,22 +121,14 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
     history: editing.draft.history ?? [],
     legacyHistory: editing.draft.legacyHistory ?? [],
     release: acknowledged.release,
-    publication: async (
+    publication: (
       operation: "PUBLISH" | "UNPUBLISH" | "SCHEDULE" | "CANCEL_SCHEDULE",
       scheduledFor?: string,
-    ) => {
-      if (
-        !(await controller.save(operation, undefined, undefined, scheduledFor))
-      ) {
-        throw new Error(
-          "Publication command was not acknowledged; check status before retrying",
-        );
-      }
-
-      if (!controller.hasLocalChanges()) {
-        await reload(controller.snapshot().version);
-      }
-    },
+    ) =>
+      reloadAfterAcknowledgement(
+        controller.save(operation, undefined, undefined, scheduledFor),
+        "Publication command was not acknowledged; check status before retrying",
+      ),
     save: () => {
       controller.update(values, formPatch(values));
 
@@ -137,33 +142,21 @@ export function usePrivateDraft<T extends PageFormValues | PostFormValues>(
         setContentKey((key) => key + 1);
       }
     },
-    reset: async () => {
-      if (!(await controller.save("RESET"))) {
-        throw new Error("Private discard was not acknowledged");
-      }
-
-      if (!controller.hasLocalChanges()) {
-        await reload(controller.snapshot().version);
-      }
-    },
-    restore: async (version: number) => {
-      if (!(await controller.save("RESTORE", version))) {
-        throw new Error("Private restore was not acknowledged");
-      }
-
-      if (!controller.hasLocalChanges()) {
-        await reload(controller.snapshot().version);
-      }
-    },
-    restoreLegacy: async (id: string) => {
-      if (!(await controller.save("RESTORE_LEGACY", undefined, id))) {
-        throw new Error("Legacy restore was not acknowledged");
-      }
-
-      if (!controller.hasLocalChanges()) {
-        await reload(controller.snapshot().version);
-      }
-    },
+    reset: () =>
+      reloadAfterAcknowledgement(
+        controller.save("RESET"),
+        "Private discard was not acknowledged",
+      ),
+    restore: (version: number) =>
+      reloadAfterAcknowledgement(
+        controller.save("RESTORE", version),
+        "Private restore was not acknowledged",
+      ),
+    restoreLegacy: (id: string) =>
+      reloadAfterAcknowledgement(
+        controller.save("RESTORE_LEGACY", undefined, id),
+        "Legacy restore was not acknowledged",
+      ),
     reload: () => reload(),
   };
 }

@@ -265,13 +265,15 @@ export async function saveWorkingAggregate(
       command.operation,
     );
 
+  const hasDraftEdit =
+    Object.keys(command.edit.patch).length > 0 ||
+    command.edit.publicationIntent !== undefined;
+
   if (
     (command.operation === "EXECUTE" && !options.scheduledExecution) ||
     (command.operation === "SCHEDULE") !==
       (command.scheduledFor !== undefined) ||
-    (lifecycle &&
-      (Object.keys(command.edit.patch).length > 0 ||
-        command.edit.publicationIntent))
+    (lifecycle && hasDraftEdit)
   ) {
     throw new WorkingAggregateConflictError("PUBLICATION_COMMAND_CONFLICT");
   }
@@ -283,17 +285,12 @@ export async function saveWorkingAggregate(
       (command.legacyRevisionId !== undefined) ||
     ((command.operation === "RESTORE" ||
       command.operation === "RESTORE_LEGACY") &&
-      (Object.keys(command.edit.patch).length > 0 ||
-        command.edit.publicationIntent))
+      hasDraftEdit)
   ) {
     throw new WorkingAggregateConflictError("RESTORE_COMMAND_CONFLICT");
   }
 
-  if (
-    command.operation === "RESET" &&
-    (Object.keys(command.edit.patch).length > 0 ||
-      command.edit.publicationIntent)
-  ) {
+  if (command.operation === "RESET" && hasDraftEdit) {
     throw new WorkingAggregateConflictError("RESET_COMMAND_CONFLICT");
   }
 

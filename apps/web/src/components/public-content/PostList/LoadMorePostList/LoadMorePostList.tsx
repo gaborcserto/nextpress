@@ -71,7 +71,8 @@ export function LoadMorePostList({
   }, [previewNavigation]);
 
   const nextPage = page + 1;
-  const canLoadMore = hasMore && nextPage <= getMaxPostsPage(postsPerPage);
+  const maxPage = getMaxPostsPage(postsPerPage);
+  const canLoadMore = hasMore && nextPage <= maxPage;
   const fallbackHref = localizedHref(`${basePath}?page=${nextPage}`, locale);
 
   const loadMore = async () => {
@@ -86,14 +87,11 @@ export function LoadMorePostList({
     setMessage("");
 
     try {
-      const loadPage =
-        previewNavigation?.loadPage ??
-        ((number: number) =>
-          pageSlug
-            ? getNextPostBatch(number, pageSlug)
-            : getNextPostBatch(number));
-
-      const batch = await loadPage(nextPage);
+      const batch = previewNavigation
+        ? await previewNavigation.loadPage(nextPage)
+        : pageSlug
+          ? await getNextPostBatch(nextPage, pageSlug)
+          : await getNextPostBatch(nextPage);
 
       if (!batch) {
         setEnhancementFailed(true);
@@ -112,7 +110,7 @@ export function LoadMorePostList({
       setPage(nextPage);
 
       if (
-        (!batch.hasMore || nextPage >= getMaxPostsPage(postsPerPage)) &&
+        (!batch.hasMore || nextPage >= maxPage) &&
         startedWithButtonFocus &&
         (document.activeElement === buttonRef.current ||
           document.activeElement === document.body)

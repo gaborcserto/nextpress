@@ -17,7 +17,7 @@ const adapter = new PrismaPg(
   { schema: target.schema },
 );
 
-const globalForPrisma = globalThis as unknown as {
+const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };
 

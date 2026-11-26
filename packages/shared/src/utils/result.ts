@@ -15,12 +15,12 @@ export async function tryCatch<T>(promise: Promise<T>): Promise<Result<T>> {
 }
 
 export function unwrapResult<T>(
-  result: Result<T>,
+  [value, error]: Result<T>,
   makeError?: (error: Error) => Error,
 ): T {
-  if (result[1] !== null) {
-    throw makeError ? makeError(result[1]) : result[1];
+  if (error !== null) {
+    throw makeError ? makeError(error) : error;
   }
 
-  return result[0];
+  return value;
 }
