@@ -1,6 +1,7 @@
 // @vitest-environment node
 import bcrypt from "bcryptjs";
 import { memoryAdapter } from "better-auth/adapters/memory";
+import * as credentialCrypto from "better-auth/crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { db, prisma, requestHeaders } = vi.hoisted(() => ({
@@ -24,6 +25,7 @@ vi.mock("@nextpress/db", () => ({ prisma }));
 vi.mock("better-auth/adapters/prisma", () => ({
   prismaAdapter: () => memoryAdapter(db),
 }));
+vi.mock("better-auth/crypto", { spy: true });
 vi.mock("better-auth/next-js", () => ({
   nextCookies: () => ({ id: "test-cookies" }),
 }));
@@ -86,6 +88,7 @@ beforeEach(() => {
   requestHeaders.mockResolvedValue(new Headers());
 });
 afterEach(() => {
+  vi.mocked(credentialCrypto.hashPassword).mockReset();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
@@ -234,7 +237,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     ).toBe(200);
   });
 
-  it("resets account attempts after success while retaining the process work budget", async () => {
+  it("resets only the successful account and leaves unrelated accounts available", async () => {
     const { auth } = await registeredAuthWithFastPasswords();
 
     for (let i = 0; i < 4; i++) {
@@ -273,18 +276,11 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       ).status,
     ).toBe(429);
 
-    for (let i = 0; i < 60; i++) {
-      authBudgets.consume("credential-work", 60, 60_000);
-    }
-
-    expect(
-      (
-        await sessionRequest(auth, "/sign-in/email", {
-          email: "different@example.com",
-          password,
-        })
-      ).status,
-    ).toBe(429);
+    const unrelated = await sessionRequest(auth, "/sign-in/email", {
+      email: "different@example.com",
+      password,
+    });
+    expect(unrelated.status).toBe(401);
   });
 
   it("reserves parallel guesses before password verification starts", async () => {
@@ -351,14 +347,12 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     expect(hash).not.toHaveBeenCalled();
   });
 
-  it("bounds credential stuffing across distinct emails without trusting proxy headers", async () => {
-    const auth = await getAuth();
-    vi.spyOn((await auth.$context).password, "hash").mockResolvedValue(
-      "test-hash",
-    );
+  it("admits a valid HTTP sign-in after 60 sequential failures across accounts", async () => {
+    const auth = await registeredAuth();
+    vi.mocked(credentialCrypto.hashPassword).mockResolvedValue("test-hash");
 
     for (let i = 0; i < 60; i++) {
-      const response = await auth.handler(
+      const response = await authRoute(
         new Request(`${origin}/api/auth/sign-in/email`, {
           method: "POST",
           headers: {
@@ -374,14 +368,89 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       expect(response.status).toBe(401);
     }
 
-    const blocked = await sessionRequest(auth, "/sign-in/email", {
-      email: "another@example.com",
-      password,
-    });
-    expect(blocked.status).toBe(429);
-    expect(blocked.headers.get("retry-after")).toBeTruthy();
+    const response = await authRoute(
+      new Request(`${origin}/api/auth/sign-in/email`, {
+        method: "POST",
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ email: "user@example.com", password }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.getSetCookie()).not.toHaveLength(0);
+    expect(db.Session).toHaveLength(1);
     expect(auth.options.advanced?.ipAddress?.disableIpTracking).toBe(true);
     expect(auth.options.rateLimit?.enabled).toBe(false);
+  });
+
+  it("holds capacity across HTTP cancellation and rejects both known and missing accounts while full", async () => {
+    const auth = await registeredAuth();
+    const cancelled = new AbortController();
+
+    let signalStarted = () => {};
+    const started = new Promise<void>((resolve) => {
+      signalStarted = resolve;
+    });
+
+    let finishHashing = () => {};
+    const finished = new Promise<string>((resolve) => {
+      finishHashing = () => resolve("unused-dummy-hash");
+    });
+
+    const hash = vi
+      .mocked(credentialCrypto.hashPassword)
+      .mockClear()
+      .mockImplementation(() => {
+        if (hash.mock.calls.length === 4) {
+          signalStarted();
+        }
+
+        return finished;
+      });
+    const first = authRoute(
+      new Request(`${origin}/api/auth/sign-in/email`, {
+        method: "POST",
+        signal: cancelled.signal,
+        headers: { origin, "content-type": "application/json" },
+        body: JSON.stringify({ email: "cancelled@example.com", password }),
+      }),
+    );
+    const others = Array.from({ length: 3 }, (_, index) =>
+      sessionRequest(auth, "/sign-in/email", {
+        email: `busy${index}@example.com`,
+        password,
+      }),
+    );
+
+    try {
+      await started;
+      cancelled.abort();
+
+      const known = await sessionRequest(auth, "/sign-in/email", {
+        email: "user@example.com",
+        password,
+      });
+
+      const missing = await sessionRequest(auth, "/sign-in/email", {
+        email: "missing@example.com",
+        password,
+      });
+
+      expect(known.status).toBe(429);
+      expect(missing.status).toBe(429);
+      expect(known.headers.get("retry-after")).toBeNull();
+      expect(await known.json()).toEqual(await missing.json());
+      await expect(
+        auth.api.signInEmail({
+          body: { email: "internal@example.com", password },
+        }),
+      ).rejects.toMatchObject({ statusCode: 429 });
+      expect(hash).toHaveBeenCalledTimes(4);
+    } finally {
+      finishHashing();
+      await Promise.all([first, ...others]);
+    }
+
+    expect((await signIn(auth)).response.status).toBe(200);
   });
 
   it("throttles repeated signup uniformly, preserving SUBSCRIBER and expiry", async () => {
@@ -471,7 +540,7 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     expect(db.User).toHaveLength(0);
   });
 
-  it("shares credential budgets with password change and server password verification", async () => {
+  it("shares account limits with password change and server password verification", async () => {
     const { auth } = await registeredAuthWithFastPasswords();
     const { cookie } = await signIn(auth);
 
@@ -569,7 +638,11 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
     expect(db.verification).toHaveLength(0);
   });
 
-  it("bounds raw malformed HTTP requests before provider/database work", async () => {
+  it("keeps shared HTTP ingress protection across callers until the window expires", async () => {
+    await registeredAuth();
+    const start = Date.now();
+    const now = vi.spyOn(Date, "now").mockReturnValue(start);
+
     for (let i = 0; i < 120; i++) {
       await authRoute(
         new Request(`${origin}/api/auth/sign-in/email`, {
@@ -580,17 +653,30 @@ describe("authentication abuse boundaries with the installed Better Auth", () =>
       );
     }
 
+    const unrelatedLogin = () =>
+      authRoute(
+        new Request(`${origin}/api/auth/sign-in/email`, {
+          method: "POST",
+          headers: {
+            origin,
+            "content-type": "application/json",
+            "x-forwarded-for": "192.0.2.42",
+            "x-real-ip": "192.0.2.42",
+            forwarded: "for=192.0.2.42",
+            "x-request-id": "untrusted-caller-id",
+          },
+          body: JSON.stringify({ email: "user@example.com", password }),
+        }),
+      );
     prisma.oAuthProvider.findMany.mockClear();
-    const response = await authRoute(
-      new Request(`${origin}/api/auth/sign-in/email`, {
-        method: "POST",
-        headers: { origin, "content-type": "application/json" },
-        body: "{",
-      }),
-    );
+    const response = await unrelatedLogin();
+
     expect(response.status).toBe(429);
-    expect(response.headers.get("retry-after")).toBeTruthy();
+    expect(response.headers.get("retry-after")).toBe("60");
     expect(prisma.oAuthProvider.findMany).not.toHaveBeenCalled();
+
+    now.mockReturnValue(start + 60_000);
+    expect((await unrelatedLogin()).status).toBe(200);
   });
 
   it("rejects oversized auth bodies before parsing or querying providers", async () => {

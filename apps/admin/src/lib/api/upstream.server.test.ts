@@ -56,6 +56,43 @@ it("forwards method, body, cookies and exact Origin only to the configured origi
   expect(await response.json()).toEqual({ error: "Untrusted request origin" });
 });
 
+it("forwards auth overload without giving client identity headers to the API", async () => {
+  vi.stubEnv("API_INTERNAL_ORIGIN", "http://127.0.0.1:49102");
+  const clientIdentityHeaders = {
+    "x-forwarded-for": "192.0.2.42",
+    "x-real-ip": "192.0.2.42",
+    forwarded: "for=192.0.2.42",
+    "x-caller-id": "untrusted",
+  };
+  const body = {
+    code: "TOO_MANY_REQUESTS",
+    message: "Too many requests. Please try again later.",
+  };
+  const fetcher = vi.fn(async (target: URL, init: RequestInit) => {
+    expect(target.href).toBe("http://127.0.0.1:49102/api/auth/sign-in/email");
+    const headers = new Headers(init.headers);
+
+    for (const name of Object.keys(clientIdentityHeaders)) {
+      expect(headers.has(name)).toBe(false);
+    }
+
+    return Response.json(body, { status: 429 });
+  });
+  vi.stubGlobal("fetch", fetcher);
+
+  const response = await forwardApiRequest(
+    new Request("https://admin.example/api/auth/sign-in/email", {
+      method: "POST",
+      headers: clientIdentityHeaders,
+    }),
+  );
+
+  expect(response.status).toBe(429);
+  expect(response.headers.get("retry-after")).toBeNull();
+  expect(response.headers.get("cache-control")).toBe("private, no-store");
+  expect(await response.json()).toEqual(body);
+});
+
 it("preserves separate cookies, logout deletions and OAuth redirects without caching", async () => {
   const headers = new Headers({
     location: "https://provider.example/authorize",

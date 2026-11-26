@@ -44,7 +44,7 @@ function accountKey(body: unknown): string {
 /** Runs before validation/hashing for HTTP and direct auth.api calls. */
 export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
   if (ctx.path === "/sign-in/email") {
-    enforce(authBudgets.consume("credential-work", 60, 60_000));
+    // Reserve before verification so parallel requests cannot overspend.
     enforce(accountAttempts.consume(accountKey(ctx.body), 5, 60_000));
   } else if (ctx.path === "/sign-up/email") {
     // Duplicate and malformed registrations spend the same budget as new ones.
@@ -61,7 +61,6 @@ export const authAbusePolicy = createAuthMiddleware(async (ctx) => {
   } else if (
     ["/change-password", "/verify-password"].includes(ctx.path ?? "")
   ) {
-    enforce(authBudgets.consume("credential-work", 60, 60_000));
     const session = await getSessionFromCtx(ctx, { disableCookieCache: true });
 
     if (session) {

@@ -37,8 +37,12 @@ it("bounds hashing and verification concurrency together without queuing request
   ];
   await expect(hashPassword("extra")).rejects.toMatchObject({
     statusCode: 429,
-    headers: { "Retry-After": "1" },
+    headers: { "Cache-Control": "no-store" },
   });
+  // The legacy length guard must return the same overload response as scrypt.
+  await expect(
+    verifyCredentialPassword({ hash: "$2b$legacy", password: "a".repeat(73) }),
+  ).rejects.toMatchObject({ statusCode: 429 });
   expect(hash).toHaveBeenCalledTimes(2);
   expect(verify).toHaveBeenCalledTimes(1);
   expect(legacyVerify).toHaveBeenCalledTimes(1);

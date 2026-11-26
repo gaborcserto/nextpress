@@ -10,11 +10,12 @@ import {
 
 import { logAbuseThrottle } from "@/lib/security/rate-limit.server";
 
+const MAX_CONCURRENT_PASSWORD_OPERATIONS = 4;
 let activePasswordWork = 0;
 
 async function runPasswordWork<T>(work: () => Promise<T>): Promise<T> {
-  // Bound both libuv queued work and scrypt memory; there is no unbounded wait queue.
-  if (activePasswordWork >= 4) {
+  // Bound credential jobs to the default libuv pool size and cap scrypt memory.
+  if (activePasswordWork >= MAX_CONCURRENT_PASSWORD_OPERATIONS) {
     logAbuseThrottle();
     throw new APIError(
       "TOO_MANY_REQUESTS",
@@ -22,13 +23,14 @@ async function runPasswordWork<T>(work: () => Promise<T>): Promise<T> {
         code: "TOO_MANY_REQUESTS",
         message: "Too many requests. Please try again later.",
       },
-      { "Retry-After": "1", "Cache-Control": "no-store" },
+      { "Cache-Control": "no-store" },
     );
   }
 
   activePasswordWork++;
 
   try {
+    // Keep capacity occupied until the work settles, even if the caller disconnects.
     return await work();
   } finally {
     activePasswordWork--;
@@ -46,19 +48,21 @@ export async function verifyCredentialPassword({
   hash: string;
   password: string;
 }) {
-  if (password.length > MAX_PASSWORD_LENGTH) {
-    return false;
-  }
-
-  if (/^\$2[aby]\$/.test(hash)) {
-    // Legacy bcrypt cannot distinguish suffixes beyond 72 bytes. These accounts
-    // need a new credential when the original password exceeded that boundary.
-    if (Buffer.byteLength(password, "utf8") > 72) {
+  return runPasswordWork(async () => {
+    if (password.length > MAX_PASSWORD_LENGTH) {
       return false;
     }
 
-    return runPasswordWork(() => bcrypt.compare(password, hash));
-  }
+    if (/^\$2[aby]\$/.test(hash)) {
+      // Legacy bcrypt cannot distinguish suffixes beyond 72 bytes. These accounts
+      // need a new credential when the original password exceeded that boundary.
+      if (Buffer.byteLength(password, "utf8") > 72) {
+        return false;
+      }
 
-  return runPasswordWork(() => verifyPassword({ hash, password }));
+      return bcrypt.compare(password, hash);
+    }
+
+    return verifyPassword({ hash, password });
+  });
 }
