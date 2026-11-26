@@ -4,12 +4,14 @@ import { z } from "zod";
 
 import {
   assertBackfillOwnership,
-  BackfillFenceError,
   lockBackfillDomain,
   renewBackfillOwnership,
-  verifyBackfillDatabase,
   type BackfillOwnership,
 } from "./legacy-backfill-fence.server";
+import {
+  BackfillFenceError,
+  verifyBackfillDatabase,
+} from "./legacy-backfill-identity.server";
 import { persistFencedLegacyPage } from "./legacy-backfill-persistence.server";
 import {
   BackfillConflictError,

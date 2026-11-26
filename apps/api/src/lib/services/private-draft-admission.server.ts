@@ -1,6 +1,6 @@
 import "server-only";
 
-import { verifyBackfillDatabase } from "./legacy-backfill/legacy-backfill-fence.server";
+import { verifyBackfillDatabase } from "./legacy-backfill/legacy-backfill-identity.server";
 
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 

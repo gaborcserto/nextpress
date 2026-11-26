@@ -5,7 +5,6 @@ const { session, redirect } = vi.hoisted(() => ({
   session: vi.fn(),
   redirect: vi.fn(),
 }));
-vi.mock("@nextpress/db/src/client", () => ({ prisma: {} }));
 vi.mock("@/lib/auth/session.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/auth/session.server")>()),
   getSessionWithRole: session,

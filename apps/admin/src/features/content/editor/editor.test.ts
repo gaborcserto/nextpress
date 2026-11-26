@@ -4,7 +4,6 @@ import {
   buildInitialForm,
   getEntityId,
   normalizeSlateValue,
-  publicationDateToLocal,
   slateToString,
 } from "./editor";
 
@@ -42,12 +41,5 @@ describe("editor content helpers", () => {
     ];
     expect(normalizeSlateValue(slateToString(blocks))).toEqual(blocks);
     expect(JSON.parse(slateToString(blocks))).toEqual({ version: 1, blocks });
-  });
-  it("preserves the publication instant through the local date input including seconds", () => {
-    const instant = "2024-06-01T12:34:56.789Z";
-    const local = publicationDateToLocal(instant);
-    expect(local).not.toBeNull();
-    expect(new Date(local ?? "").toISOString()).toBe(instant);
-    expect(publicationDateToLocal(null)).toBeNull();
   });
 });

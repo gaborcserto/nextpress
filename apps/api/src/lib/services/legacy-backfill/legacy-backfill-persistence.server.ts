@@ -2,11 +2,13 @@ import "server-only";
 
 import {
   assertBackfillOwnership,
-  BackfillFenceError,
   lockBackfillDomain,
-  verifyBackfillDatabase,
   type BackfillOwnership,
 } from "./legacy-backfill-fence.server";
+import {
+  BackfillFenceError,
+  verifyBackfillDatabase,
+} from "./legacy-backfill-identity.server";
 import {
   BackfillConflictError,
   inspectLegacyPage,

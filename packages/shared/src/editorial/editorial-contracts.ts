@@ -12,7 +12,24 @@ import {
   EditorialFieldSchema,
 } from "./editorial-snapshot";
 
-export * from "./editorial-snapshot";
+export {
+  canonicalEditorialJson,
+  DraftPatchSchema,
+  EditorialFieldSchema,
+  editorialHash,
+  EditorialOperationIdSchema,
+  EditorialReferenceSchema,
+  EditorialSnapshotSchema,
+  EditorialVersionSchema,
+  readEditorialSnapshot,
+  RestoreProvenanceSchema,
+  RevisionCoverageSchema,
+} from "./editorial-snapshot";
+export type {
+  DraftPatch,
+  EditorialSnapshot,
+  SnapshotReadResult,
+} from "./editorial-snapshot";
 
 const instant = z.iso.datetime({ offset: true });
 export const ExpectedEditorialVersionsSchema = z.strictObject({

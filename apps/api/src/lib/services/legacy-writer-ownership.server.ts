@@ -3,9 +3,9 @@ import "server-only";
 import {
   assertBackfillOwnership,
   lockBackfillDomain,
-  verifyBackfillDatabase,
   type BackfillOwnership,
 } from "./legacy-backfill/legacy-backfill-fence.server";
+import { verifyBackfillDatabase } from "./legacy-backfill/legacy-backfill-identity.server";
 import {
   BackfillConflictError,
   inspectLegacyPage,

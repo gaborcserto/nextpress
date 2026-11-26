@@ -1,14 +1,14 @@
 import { prisma } from "@nextpress/db/src/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { verifyBackfillDatabase } from "./legacy-backfill/legacy-backfill-fence.server";
+import { verifyBackfillDatabase } from "./legacy-backfill/legacy-backfill-identity.server";
 import {
   PrivateDraftUnavailableError,
   requirePrivateDraftAdmission,
 } from "./private-draft-admission.server";
 
 vi.mock("@nextpress/db/src/client", () => ({ prisma: { $queryRaw: vi.fn() } }));
-vi.mock("./legacy-backfill/legacy-backfill-fence.server", () => ({
+vi.mock("./legacy-backfill/legacy-backfill-identity.server", () => ({
   verifyBackfillDatabase: vi.fn(),
 }));
 

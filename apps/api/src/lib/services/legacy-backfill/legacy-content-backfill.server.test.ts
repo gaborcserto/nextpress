@@ -2,7 +2,7 @@ import { prisma } from "@nextpress/db/src/client";
 import { describe, expect, it, vi } from "vitest";
 
 import { mapEditorialReferenceEdges } from "../editorial-mapping";
-import { verifyBackfillDatabase } from "./legacy-backfill-fence.server";
+import { verifyBackfillDatabase } from "./legacy-backfill-identity.server";
 import {
   backfillLegacyContent,
   mapLegacyRevisionHistory,

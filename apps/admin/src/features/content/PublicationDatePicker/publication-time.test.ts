@@ -35,3 +35,12 @@ it("uses the offset for the selected date when scheduling a future instant", () 
     [{ instant: "2099-07-21T12:30:00.000Z", offset: "+02:00" }],
   );
 });
+
+it("round-trips a publication instant including seconds and milliseconds", () => {
+  const instant = "2024-06-01T12:34:56.789Z";
+  const wallTime = publicationWallTime(instant, "Europe/Budapest").toString();
+
+  expect(resolvePublicationTime(wallTime, "Europe/Budapest")).toEqual([
+    { instant, offset: "+02:00" },
+  ]);
+});

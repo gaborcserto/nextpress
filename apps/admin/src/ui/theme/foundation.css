@@ -486,19 +486,6 @@ dialog::backdrop {
   min-inline-size: 0;
 }
 
-.admin-menu-placement-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
-  gap: 0.5rem 1rem;
-  min-inline-size: 0;
-}
-
-.admin-menu-placement-options > label,
-.admin-menu-placement-options > label > span {
-  min-inline-size: 0;
-  overflow-wrap: anywhere;
-}
-
 .admin-responsive-table thead {
   background: var(--surface-rail);
   color: var(--text-muted);
