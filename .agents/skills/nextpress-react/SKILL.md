@@ -7,6 +7,8 @@ description: Implement or review React UI in NextPress, including Next.js App Ro
 
 Apply [NextPress readability](../nextpress-readability/SKILL.md) for source edits. Name nontrivial JSX handlers, group related hooks/state and review component ownership without unrelated folder migrations. Preserve effect timing; do not swap layout effects for style. Review predictable state transitions and revision/record selection after requests; do not reset selection or add derived state/effects as a readability refactor. Keep complex JSX readable with focused extractions only when they help.
 
+Apply the [structural organization conventions](../nextpress-readability/references/source-conventions.md#structural-organization) when deciding component ownership and support files. Extract child components, types, constants, utilities, hooks, tests and styles only when their responsibilities justify the boundary. Keep private code with its owner and preserve each app's Server/Client and feature boundaries.
+
 Inspect the owning application and nearby components before choosing a pattern. `apps/web` and `apps/admin` are separate products with their own UI primitives and conventions; keep code in its owning workspace.
 
 - In the App Router, prefer Server Components and server-side data access by default. Add `"use client"` only for state, effects, event handlers, browser APIs, or client-only libraries, and keep the client boundary as narrow as practical.

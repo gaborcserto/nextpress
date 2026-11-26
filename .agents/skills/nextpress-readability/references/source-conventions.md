@@ -1,5 +1,84 @@
 # Source readability conventions
 
+## Structural organization
+
+Treat the following as a supported pattern, not a required file checklist:
+
+```text
+ComponentName/
+  ComponentName.tsx
+  ComponentName.types.ts
+  ComponentName.constants.ts
+  ComponentName.utils.ts
+  ComponentName.hooks.ts
+  ComponentName.test.tsx
+  ComponentName.module.css
+  index.ts
+  components/
+  hooks/
+```
+
+Prefer a component directory when multiple related implementation, test, style
+or support files belong to that component. Keep a simple standalone component
+in one file when that is clearer. Apply the following decisions by responsibility:
+
+- Extract substantial, reusable or independently meaningful types into a named
+  type module; keep small private types inline and reuse existing shared
+  contracts instead of duplicating them.
+- Put meaningful static configuration, mappings and reusable constants in the
+  narrowest owning constants module. Trivial literals do not need a constants
+  file.
+- Extract cohesive pure transformations into focused utility modules when they
+  are independently meaningful or testable. Keep small local helpers inline;
+  do not collect unrelated helpers in generic `utils` directories or barrels.
+- Extract stateful behavior, effects, subscriptions and reusable component
+  logic into custom hooks when that clarifies responsibilities. Use a
+  component-specific hooks module for cohesive hooks and a `hooks/` directory
+  for multiple independently meaningful hooks. Do not extract hooks just to
+  shorten a component; preserve effect order, cleanup, dependencies and
+  server/client boundaries.
+- Extract private child components for independently meaningful rendering
+  responsibilities. Keep them with their owning component or feature; promote
+  them to shared ownership only when actual consumers justify it.
+- Colocate component-specific tests and styles where that fits their ownership.
+  Preserve feature-level integration tests and shared styles at their proper
+  level; do not force every test or stylesheet into a component directory.
+- Use an intentional `index.ts` with explicit named exports when it defines an
+  externally consumed component directory or cohesive module's public
+  interface. Use direct imports for private implementation dependencies.
+  Preserve package-level exports; avoid unnecessary barrels, wildcard exports,
+  circular dependencies and re-export chains.
+
+Choose the narrowest feature or module that owns shared implementation. Keep
+Admin, API and Public Web independent; retain Web template registries and
+independent presets, API domain and technical boundaries, Shared package public
+interfaces, DB/Prisma ownership and repository tooling responsibilities. Apply
+the same responsibility-based reasoning to services, modules, scripts and
+packages without imposing React filenames on them. Avoid cross-feature leakage,
+generic dumping grounds, premature sharing, duplicated implementations,
+mechanical directory creation, arbitrary file-length targets and unnecessary
+architectural migrations.
+
+These rules apply to new components and modules. When substantially modifying
+existing code, assess its structure and correct directly related inconsistencies
+when justified; do not turn ordinary feature work into unrelated restructuring.
+For dedicated structural review or refactoring, assess in-scope existing code
+against the same conventions. Legacy status alone is not an exemption. Inspect
+implementation responsibilities, not filenames alone.
+
+### Structural Convention Review
+
+For an explicit structural review, cleanup or convention-alignment request,
+scope the review to the full repository, one workspace, a feature or changed
+files. Review actual responsibilities, component directories, public entry
+points, types, constants, utilities, hooks, child components, test/style
+colocation, naming, imports/exports, ownership, separation of concerns,
+structural duplication, and unnecessary abstractions or support files.
+Distinguish review-only requests from review-and-fix requests. For review-and-fix,
+correct confirmed inconsistencies within scope and run proportionate verification.
+If no justified changes are needed, say so. Do not run this workflow during
+ordinary development unless the requested change calls for it.
+
 - Imports: external and workspace packages first, app aliases second, relatives last, with one blank line between groups. Follow ESLint ordering/type-import policy. Preserve directives, side-effect import order and CSS cascade; do not blindly sort or delete potentially effectful imports.
 - State/hooks: group related state and refs, derived setup, effects, handlers and render where dependencies allow. Preserve hook execution order. Separate independent effects and meaningful stages without spacing every declaration.
 - Functions/methods: separate independent functions, function-valued declarations and methods with a blank line. Keep overloads together and comments attached. Prefer descriptive names and focused responsibilities; extract helpers only when they clarify meaningful work. Avoid ambiguous boolean arguments and unnecessary one-line helpers.

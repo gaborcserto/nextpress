@@ -19,6 +19,8 @@ All three applications are first-class. Keep code in its owning workspace, and d
 
 Admin-specific: keep admin UI organized with the existing `src/components`, `src/ui`, `src/lib`, and `src/app/api` split. API validation commonly lives in `apps/api/src/lib/validation`; follow a nearby implementation before adding another location.
 
+Apply the responsibility-based structural conventions in [.agents/skills/nextpress-readability/references/source-conventions.md](.agents/skills/nextpress-readability/references/source-conventions.md) to new code and substantially modified modules. During dedicated structural reviews or refactors, evaluate in-scope existing code by its actual responsibilities; legacy structure is not exempt. Keep ordinary feature changes scoped to directly related structural corrections. React work also follows [.agents/skills/nextpress-react/SKILL.md](.agents/skills/nextpress-react/SKILL.md).
+
 The database package owns `packages/db/prisma/schema.prisma`, migrations, seed logic, and the Prisma client. Do not edit generated output. Do not change the schema or migrations unless the task explicitly requires a database change and includes the appropriate Prisma workflow.
 
 For local editorial database migrations, Prisma CLI reads the dedicated ignored `packages/db/.env.migrator` configuration; keep the API runtime URL in `apps/api/.env` on `nextpress_dev_api`. Verify runtime and migration targets separately with `npm run db:target` and `npm run db:migration-target` before deployment. Never grant the runtime role access to `_prisma_migrations` or deploy as the local provisioner. See `docs/development.md` for credential setup and recovery.

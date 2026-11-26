@@ -9,6 +9,8 @@ Read the authoritative [source conventions](references/source-conventions.md) be
 
 Apply the [import-path policy](references/source-conventions.md#import-paths-and-public-entry-points): prefer relative paths within a component/feature and explicit public module entry points across boundaries. Do not replace local imports with broad barrels or add barrels just to shorten paths. IDE import-shortening suggestions are optional hints; review cycles and Server/Client boundaries before accepting them.
 
+Apply [structural organization](references/source-conventions.md#structural-organization) to new and substantially modified modules. Use the [Structural Convention Review](references/source-conventions.md#structural-convention-review) workflow only for explicit structural review, cleanup or alignment requests; it supports repository, workspace, feature and changed-file scope, and distinguishes review-only from review-and-fix.
+
 Oxfmt owns layout, shared ESLint owns braces, quality and imports, and TypeScript owns types. The readability checker owns structural blank lines, including the initializer boundaries described in the source conventions. Format task-owned files and run the narrowest relevant checks; use `npm run check:changed` only when its aggregate working-tree scope is intended. Include `-- --base <ref>` for committed branch scope. Use explicit `-- --files path...` when unrelated user changes exist. Report contextual exceptions because green checks cannot establish cohesive architecture.
 
 Make the control flow and domain intent easier to understand without introducing abstraction for its own sake. First inspect nearby code and follow its established naming and organization.
