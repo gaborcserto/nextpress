@@ -49,6 +49,9 @@ export const documentMime = "application/pdf";
 export const maxDocumentUploadBytes = 10 * 1024 * 1024;
 export const maxStoredMediaBytes = 8_388_608;
 export const maxMediaUploadBytes = 2_097_152;
+// Base64 can expand the decoded limit by at most 4/3; metadata allows 3,020
+// UTF-8 bytes (alt 500 chars, filename 255 chars), plus JSON framing.
+export const maxImageUploadRequestBytes = 2_800_000;
 
 const plainText = (limit: number) =>
   z

@@ -33,6 +33,42 @@ beforeEach(() => {
 });
 
 describe("secure media boundaries", () => {
+  it("accepts a valid image close to the maximum supported decoded upload size", async () => {
+    const width = 1400;
+    const raw = Buffer.alloc(width * width * 3);
+    let random = 13;
+
+    for (let index = 0; index < raw.length; index += 1) {
+      random = (random * 1_664_525 + 1_013_904_223) >>> 0;
+      raw[index] = random >>> 24;
+    }
+
+    const jpeg = await sharp(raw, {
+      raw: { width, height: width, channels: 3 },
+    })
+      .jpeg({ quality: 95 })
+      .toBuffer();
+
+    expect(jpeg.byteLength).toBeGreaterThan(1_900_000);
+    expect(jpeg.byteLength).toBeLessThanOrEqual(2_097_152);
+    db.media.create.mockResolvedValue({ id: "large-image" });
+
+    await uploadMedia(
+      { data: jpeg.toString("base64"), mime: "image/jpeg", alt: null },
+      actor,
+    );
+
+    expect(storage.put).toHaveBeenCalledWith(
+      expect.stringMatching(/\.jpg$/),
+      expect.any(Buffer),
+    );
+    expect(db.media.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ size: expect.any(Number) }),
+      }),
+    );
+  });
+
   it("checks the signature and complete image decoder before storage", async () => {
     await expect(
       uploadMedia({ data: image, mime: "image/jpeg", alt: "spoof" }, actor),

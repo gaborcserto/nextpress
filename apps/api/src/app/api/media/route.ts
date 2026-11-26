@@ -1,7 +1,12 @@
+import { maxImageUploadRequestBytes } from "@nextpress/shared/media";
 import { writeServerLog } from "@nextpress/shared/server-logging";
 import { ZodError } from "zod";
 
 import { bad, ok, oops } from "@/lib/api";
+import {
+  ImageRequestBodyError,
+  readBoundedJson,
+} from "@/lib/api/image-request-body.server";
 import { apiLogContext } from "@/lib/api/request-log-context.server";
 import { withAuth } from "@/lib/auth/auth-server";
 import { tooManyRequests } from "@/lib/security/rate-limit.server";
@@ -28,7 +33,10 @@ export const POST = withAuth(
   ["ADMIN", "EDITOR", "AUTHOR"],
   async (req, _ctx, { session }) => {
     try {
-      const media = await uploadMedia(await req.json(), session.user);
+      const media = await uploadMedia(
+        await readBoundedJson(req, maxImageUploadRequestBytes, 15_000),
+        session.user,
+      );
       writeServerLog("api", "media.uploaded", {
         ...apiLogContext(),
         actorId: session.user.id,
@@ -37,6 +45,20 @@ export const POST = withAuth(
 
       return ok(media, 201);
     } catch (error) {
+      if (error instanceof ImageRequestBodyError) {
+        return Response.json(
+          {
+            error:
+              error.status === 413
+                ? "Image upload too large"
+                : error.status === 408
+                  ? "Image upload timed out"
+                  : "Invalid image upload",
+          },
+          { status: error.status },
+        );
+      }
+
       if (error instanceof MediaBusyError) {
         return tooManyRequests(1);
       }
@@ -57,4 +79,5 @@ export const POST = withAuth(
     }
   },
   "create-content",
+  "application/json",
 );

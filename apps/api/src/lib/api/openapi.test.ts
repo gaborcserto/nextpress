@@ -105,6 +105,17 @@ describe("OpenAPI contract", () => {
     }
   });
 
+  it("documents image upload body limits and timeout responses", () => {
+    const responses = openApiDocument.paths["/api/media"]?.post?.responses;
+
+    expect(responses).toHaveProperty("400");
+    expect(responses).toHaveProperty("408");
+    expect(responses).toHaveProperty("413");
+    expect(openApiDocument.paths["/api/media"]?.post?.description).toContain(
+      "2,800,000 encoded request bytes",
+    );
+  });
+
   it("documents request correlation on successful and failed API responses", () => {
     const responses =
       openApiDocument.paths["/api/public/settings"]?.get?.responses;

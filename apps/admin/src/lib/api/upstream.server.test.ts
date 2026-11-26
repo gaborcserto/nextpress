@@ -144,6 +144,40 @@ it.each([401, 404, 409, 429, 500])(
   },
 );
 
+it.each([408, 413])(
+  "streams an image JSON request without Content-Length and propagates upstream %s",
+  async (status) => {
+    vi.stubEnv("API_INTERNAL_ORIGIN", "http://127.0.0.1:49102");
+    const fetcher = vi.fn(async (target: URL, init: RequestInit) => {
+      expect(target.href).toBe("http://127.0.0.1:49102/api/media");
+      expect(init.body).toBeInstanceOf(ReadableStream);
+      expect(new Headers(init.headers).has("content-length")).toBe(false);
+      expect(new Headers(init.headers).get("content-type")).toBe(
+        "application/json",
+      );
+
+      return Response.json({ error: "upload rejected" }, { status });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const request = new Request("https://admin.example/api/media", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"data":"x"}'));
+          controller.close();
+        },
+      }),
+      duplex: "half",
+    } as RequestInit);
+
+    const response = await forwardApiRequest(request);
+
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual({ error: "upload rejected" });
+  },
+);
+
 it("does not fabricate a missing Origin", async () => {
   const fetcher = vi
     .fn()
