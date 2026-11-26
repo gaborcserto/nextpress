@@ -1,0 +1,107 @@
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import PostEditorScreen from "@/features/posts/PostEditorScreen/PostEditorScreen";
+import PostsListScreen from "@/features/posts/PostsListScreen/PostsListScreen";
+import { ApiRequestError } from "@/lib/api/client";
+
+import PageEditorScreen from "./PageEditorScreen";
+import PagesListScreen from "../PagesListScreen/PagesListScreen";
+
+const { editorState, listState } = vi.hoisted(() => ({
+  editorState: vi.fn(),
+  listState: vi.fn(),
+}));
+// Exercise legacy load behavior after the server explicitly declines private admission.
+vi.mock("@/lib/api", async (original) => ({
+  ...(await original<typeof import("@/lib/api")>()),
+  apiFetch: vi.fn(
+    async () =>
+      new Response(JSON.stringify({ code: "PRIVATE_DRAFT_DISABLED" }), {
+        status: 503,
+      }),
+  ),
+}));
+vi.mock("./PageEditorScreen.hooks", () => ({ usePageEditor: editorState }));
+vi.mock("@/features/posts/PostEditorScreen/PostEditorScreen.hooks", () => ({
+  usePostEditor: editorState,
+}));
+vi.mock("../PagesListScreen/PagesListScreen.hooks", () => ({
+  usePagesList: listState,
+  useDeletePage: () => ({}),
+}));
+vi.mock("@/features/posts/PostsListScreen/PostsListScreen.hooks", () => ({
+  usePostsList: listState,
+  useDeletePost: () => ({}),
+}));
+
+describe("Content screen load failures", () => {
+  beforeEach(() => {
+    editorState.mockReturnValue({
+      isEdit: true,
+      item: null,
+      isLoading: false,
+      notFound: true,
+      error: new Error("offline"),
+    });
+    listState.mockReturnValue({
+      items: [],
+      isLoading: false,
+      error: new Error("offline"),
+    });
+  });
+
+  it.each(["page", "post"])(
+    "distinguishes a %s load failure from not found",
+    async (kind) => {
+      render(
+        kind === "page" ? (
+          <PageEditorScreen id="item-1" />
+        ) : (
+          <PostEditorScreen postId="item-1" />
+        ),
+      );
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        `Unable to load ${kind}.`,
+      );
+      expect(screen.queryByText(/not found/)).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(["page", "post"])(
+    "preserves the missing %s state for a 404",
+    async (kind) => {
+      editorState.mockReturnValue({
+        isEdit: true,
+        item: null,
+        isLoading: false,
+        notFound: true,
+        error: new ApiRequestError("Missing", 404),
+      });
+      render(
+        kind === "page" ? (
+          <PageEditorScreen id="item-1" />
+        ) : (
+          <PostEditorScreen postId="item-1" />
+        ),
+      );
+      expect(
+        await screen.findByText(
+          kind === "page" ? "Page not found." : "Post not found.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(["pages", "posts"])(
+    "distinguishes a %s list failure from an empty list",
+    (kind) => {
+      render(kind === "pages" ? <PagesListScreen /> : <PostsListScreen />);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        `Unable to load ${kind}.`,
+      );
+      expect(screen.queryByText("No items found.")).not.toBeInTheDocument();
+    },
+  );
+});

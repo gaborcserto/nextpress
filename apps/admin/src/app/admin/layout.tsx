@@ -2,10 +2,10 @@ import { PublicSiteSettingsSchema } from "@nextpress/shared/api-contracts";
 import { DEFAULT_SITE_DATE_TIME } from "@nextpress/shared/site-date-time";
 import { redirect } from "next/navigation";
 
+import { AppShell } from "@/components/shell/AppShell";
 import { apiOrigin } from "@/lib/api/upstream.server";
 import { getSessionWithRole } from "@/lib/auth/session.server";
 import { AdminDateTimeProvider } from "@/lib/settings/admin-date-time";
-import { AppShell } from "@/ui/shell";
 
 import type { ReactNode } from "react";
 

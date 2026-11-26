@@ -2,7 +2,7 @@ import "server-only";
 
 import { normalizeAppearance } from "@nextpress/shared";
 
-import { resolvePostListTemplate } from "@/components/public-content/templates";
+import { resolvePostListTemplate } from "@/components/public-content/PostList/templates";
 import { resolveWebsiteTemplate } from "@/templates/registry";
 
 import { publicAppearance } from "./appearance";

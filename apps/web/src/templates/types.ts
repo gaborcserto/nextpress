@@ -1,9 +1,10 @@
 import type { WebsiteTemplateId, StylePresetId } from "@nextpress/shared";
 import type {
+  PublicMenuItem,
   PublicSearchQuerySchema,
   PublicSearchResultSchema,
 } from "@nextpress/shared/api-contracts";
-import type { ComponentProps, ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { z } from "zod";
 
 import type { PostListVariant } from "@/components/public-content/PostList";
@@ -13,9 +14,14 @@ import type {
   PublicPostSummary,
 } from "@/lib/content/public-content.server";
 
-import type { BlogShell } from "./blog/BlogShell";
-
 export type { WebsiteTemplateId, StylePresetId } from "@nextpress/shared";
+export type ShellProps = {
+  children: ReactNode;
+  siteName: string;
+  menus?: Record<"header" | "footer" | "sidebar", PublicMenuItem[]>;
+  supportsSidebar?: boolean;
+};
+
 export type HomeProps = {
   tagBatch?: PublicTagBatch;
   siteName: string;
@@ -52,7 +58,7 @@ export type WebsiteTemplate = {
   id: WebsiteTemplateId;
   presets: readonly StylePresetId[];
   views: {
-    Shell: ComponentType<ComponentProps<typeof BlogShell>>;
+    Shell: ComponentType<ShellProps>;
     Home: ComponentType<HomeProps>;
     Archive: ComponentType<ArchiveProps>;
     Search: ComponentType<SearchProps>;

@@ -1,4 +1,4 @@
-import PostsListScreen from "@/components/admin/PostsListScreen/PostsListScreen";
+import PostsListScreen from "@/features/posts/PostsListScreen/PostsListScreen";
 
 export default function AdminPostsPage() {
   return <PostsListScreen />;

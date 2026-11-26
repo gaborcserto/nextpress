@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import {
   MediaAccessDenied,
   MediaLibrary,
-} from "@/components/admin/Media/MediaLibrary";
+} from "@/features/media/MediaLibrary/MediaLibrary";
 import { getSessionWithRole, hasAnyRole } from "@/lib/auth/session.server";
 
 export default async function AdminMediaRoute() {

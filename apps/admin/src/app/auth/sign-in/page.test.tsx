@@ -11,9 +11,9 @@ vi.mock("@/lib/auth/session.server", () => ({
   getSessionWithRole: session,
   getOperationalOAuthProviders: getProviders,
 }));
-vi.mock("@/components/auth/SignInForm", () => ({ default: vi.fn() }));
+vi.mock("@/features/auth/SignInForm", () => ({ default: vi.fn() }));
 
-import SignInForm from "@/components/auth/SignInForm";
+import SignInForm from "@/features/auth/SignInForm";
 
 import SignInPageRoute from "./page";
 

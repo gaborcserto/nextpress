@@ -16,12 +16,12 @@ import { workingPersistenceFailure } from "./working-persistence-errors";
 
 vi.mock("@nextpress/db/src/client", () => ({ prisma: {} }));
 
-vi.mock("./legacy-content-backfill.server", () => {
+vi.mock("./legacy-backfill/legacy-content-backfill.server", () => {
   throw new Error(
     "Working aggregate must load independently of backfill orchestration",
   );
 });
-vi.mock("./legacy-backfill-planning.server", () => {
+vi.mock("./legacy-backfill/legacy-backfill-planning.server", () => {
   throw new Error(
     "Working aggregate must load independently of backfill planning",
   );

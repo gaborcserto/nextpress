@@ -1,4 +1,4 @@
-import PageEditorScreen from "@/components/admin/PageEditorScreen";
+import PageEditorScreen from "@/features/pages/PageEditorScreen";
 
 export default function NewPageRoute() {
   return <PageEditorScreen />;

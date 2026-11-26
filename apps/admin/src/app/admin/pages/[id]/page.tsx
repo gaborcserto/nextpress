@@ -1,4 +1,4 @@
-import PageEditorScreen from "@/components/admin/PageEditorScreen";
+import PageEditorScreen from "@/features/pages/PageEditorScreen";
 
 type RouteParams = { id: string };
 

@@ -6,8 +6,8 @@ import { verifyDisposableDatabase } from "./docker-database";
 const url = process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
 let db: typeof import("@nextpress/db/src/client").prisma;
 let persistLegacyPageInDisposableDatabase: typeof import("./legacy-backfill-persistence").persistLegacyPageInDisposableDatabase;
-let backfillLegacyContent: typeof import("../services/legacy-content-backfill.server").backfillLegacyContent;
-let reconcileLegacyContent: typeof import("../services/legacy-content-backfill.server").reconcileLegacyContent;
+let backfillLegacyContent: typeof import("../services/legacy-backfill/legacy-content-backfill.server").backfillLegacyContent;
+let reconcileLegacyContent: typeof import("../services/legacy-backfill/legacy-content-backfill.server").reconcileLegacyContent;
 const prefix = "b052b-";
 const publishedAt = new Date("2020-01-01T00:00:00Z");
 
@@ -44,7 +44,7 @@ describe.skipIf(!url)("isolated transactional legacy backfill", () => {
     ({ persistLegacyPageInDisposableDatabase } =
       await import("./legacy-backfill-persistence"));
     ({ backfillLegacyContent, reconcileLegacyContent } =
-      await import("../services/legacy-content-backfill.server"));
+      await import("../services/legacy-backfill/legacy-content-backfill.server"));
   });
 
   afterAll(async () => {

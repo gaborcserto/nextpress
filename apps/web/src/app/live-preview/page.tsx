@@ -3,7 +3,7 @@ import { previewAdminOrigin } from "@/lib/security/headers";
 import { getPublicSiteSettings } from "@/lib/settings/public-site-settings.server";
 import { resolveWebsiteAppearance } from "@/lib/website-appearance";
 
-import Preview from "./Preview";
+import { Preview } from "./Preview";
 
 export const metadata = { robots: { index: false, follow: false } };
 

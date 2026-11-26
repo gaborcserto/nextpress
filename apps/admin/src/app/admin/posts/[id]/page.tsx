@@ -1,4 +1,4 @@
-import PostEditorScreen from "@/components/admin/PostEditorScreen";
+import PostEditorScreen from "@/features/posts/PostEditorScreen";
 
 type RouteParams = { id: string };
 

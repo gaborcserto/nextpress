@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import DashboardScreen from "@/components/admin/DashboardScreen/DashboardScreen";
+import DashboardScreen from "@/features/dashboard/DashboardScreen/DashboardScreen";
 import { getSessionWithRole } from "@/lib/auth/session.server";
 
 export default async function DashboardPage() {

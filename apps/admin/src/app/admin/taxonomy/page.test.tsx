@@ -11,7 +11,7 @@ vi.mock("@/lib/auth/session.server", async (importOriginal) => ({
   getSessionWithRole: session,
 }));
 vi.mock("next/navigation", () => ({ redirect }));
-vi.mock("@/components/admin/TaxonomyScreen", () => ({
+vi.mock("@/features/taxonomy/TaxonomyScreen", () => ({
   default: () => <div>Taxonomy records</div>,
 }));
 

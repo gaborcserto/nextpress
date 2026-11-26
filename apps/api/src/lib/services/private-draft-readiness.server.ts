@@ -8,7 +8,7 @@ import { mapEditorialReferenceEdges } from "./editorial-mapping";
 import {
   BackfillConflictError,
   inspectLegacyPage,
-} from "./legacy-backfill-planning.server";
+} from "./legacy-backfill/legacy-backfill-planning.server";
 import {
   assertWorkingAggregateBase,
   captureWorkingAggregate,

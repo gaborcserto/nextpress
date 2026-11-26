@@ -1,0 +1,2 @@
+export const PREVIEW_SESSION_DURATION_MS = 15 * 60_000;
+export const PREVIEW_READY_INTERVAL_MS = 500;

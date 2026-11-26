@@ -1,1 +1,0 @@
-export { AuthSubmitButton } from "./AuthSubmitButton";

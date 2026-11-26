@@ -1,6 +1,6 @@
 import { LocalizedDate, UiText } from "@/lib/i18n/client";
 
-import styles from "./post-list.module.css";
+import styles from "./PostList/post-list.module.css";
 
 import type { PublicPostSummary } from "@/lib/content/public-content.server";
 

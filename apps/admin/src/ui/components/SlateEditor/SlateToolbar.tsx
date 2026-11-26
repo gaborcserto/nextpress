@@ -29,9 +29,9 @@ import { Editor, Range, Transforms, type RangeRef } from "slate";
 import { HistoryEditor } from "slate-history";
 import { ReactEditor, useSlate } from "slate-react";
 
-import { MediaDialog } from "@/components/admin/Media/MediaDialog";
-import { MediaPicker } from "@/components/admin/Media/MediaPicker";
-import { useMediaMessages } from "@/components/admin/Media/messages";
+import { MediaDialog } from "@/features/media/MediaDialog";
+import { MediaPicker } from "@/features/media/MediaPicker/MediaPicker";
+import { useMediaMessages } from "@/features/media/messages";
 import { useAdminLocale } from "@/lib/i18n/admin-locale";
 import {
   AdminButton,

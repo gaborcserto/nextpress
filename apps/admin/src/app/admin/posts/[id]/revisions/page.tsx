@@ -1,4 +1,4 @@
-import RevisionEditor from "@/components/admin/RevisionEditor";
+import RevisionEditor from "@/features/content/RevisionEditor/RevisionEditor";
 
 export default async function RevisionsPage({
   params,

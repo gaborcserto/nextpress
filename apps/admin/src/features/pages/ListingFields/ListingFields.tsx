@@ -1,0 +1,71 @@
+"use client";
+
+import { Field, FormGrid12, Input, Select } from "@/ui/primitives";
+
+import type { ChangeEvent } from "react";
+
+import type { ListingKind } from "@/features/content/editor/contracts";
+
+import type { ListingFieldsProps } from "./ListingFields.types";
+
+/**
+ * Listing configuration fields:
+ * - which content type to list
+ * - optional taxonomy filter
+ */
+export default function ListingFields({
+  listingKind,
+  listingTaxonomyId,
+  onChangeAction,
+}: ListingFieldsProps) {
+  const listingKindOptions: readonly { value: ListingKind; label: string }[] = [
+    { value: "POSTS", label: "Posts" },
+    { value: "PRODUCTS", label: "Products" },
+    { value: "EVENTS", label: "Events" },
+  ];
+
+  const handleListingKindChange = (raw: string | number | "") => {
+    if (!raw) {
+      onChangeAction("listingKind", null);
+
+      return;
+    }
+
+    onChangeAction("listingKind", raw as ListingKind);
+  };
+
+  const handleTaxonomyChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    onChangeAction("listingTaxonomyId", raw ? raw : null);
+  };
+
+  return (
+    <FormGrid12>
+      <Field label="Content type to list" htmlFor="listing-kind" span={6}>
+        <Select
+          id="listing-kind"
+          fullWidth
+          value={listingKind ?? ""}
+          placeholder="– select –"
+          options={listingKindOptions}
+          onChangeAction={handleListingKindChange}
+        />
+      </Field>
+
+      <Field
+        label="Filter by taxonomy (optional)"
+        htmlFor="listing-taxonomy"
+        span={6}
+      >
+        <Input
+          id="listing-taxonomy"
+          fullWidth
+          placeholder="taxonomyId"
+          value={listingTaxonomyId ?? ""}
+          onChange={handleTaxonomyChange}
+          clearable
+        />
+      </Field>
+    </FormGrid12>
+  );
+}

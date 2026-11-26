@@ -1,4 +1,7 @@
-import { ContentVersionConflictError, isSlugConflictError } from "@/lib/utils";
+import {
+  ContentVersionConflictError,
+  isSlugConflictError,
+} from "@/lib/content-conflicts";
 import {
   PageSchema,
   PageUpdateSchema,

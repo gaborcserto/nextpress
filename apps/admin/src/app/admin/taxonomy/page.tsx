@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import TaxonomyScreen from "@/components/admin/TaxonomyScreen";
+import TaxonomyScreen from "@/features/taxonomy/TaxonomyScreen";
 import { getSessionWithRole, hasAnyRole } from "@/lib/auth/session.server";
 
 export default async function AdminTaxonomyRoute() {

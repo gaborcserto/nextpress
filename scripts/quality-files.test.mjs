@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
   globSync,
   mkdirSync,
   mkdtempSync,
@@ -1143,20 +1144,23 @@ test("staged test planning follows manifest dependencies and bounds rename fallb
     ["packages/bridge", { name: "bridge", dependencies: { shared: "*" } }],
     ["packages/shared", { name: "shared", scripts: testScript }],
   ]);
+  const oldEditor = "apps/admin/src/components/admin/PostForm/PostForm.tsx";
+  const movedEditor = "apps/admin/src/features/posts/PostForm/PostForm.tsx";
   const renamed = projectTests(
     [
-      { status: "D", file: "apps/admin/src/old.ts" },
-      { status: "A", file: "apps/admin/src/new.ts" },
+      { status: "D", file: oldEditor },
+      { status: "A", file: movedEditor },
     ],
     manifests,
   );
   assert.equal(renamed.length, 1);
   const [admin] = renamed;
   assert.equal(admin.directory, "apps/admin");
-  assert.equal(admin.fallback.file, "apps/admin/src/old.ts");
-  assert.deepEqual(admin.related.slice(0, 2), [
-    "apps/admin/src/old.ts",
-    "apps/admin/src/new.ts",
+  assert.equal(admin.fallback.file, oldEditor);
+  assert.deepEqual(admin.related, [
+    oldEditor,
+    movedEditor,
+    "apps/admin/src/lib/api/boundary.test.ts",
   ]);
   assert.deepEqual(
     projectTests(
@@ -1174,12 +1178,20 @@ test("pre-commit selects affected Vitest files and blocks a broken staged snapsh
   const cwd = fixture(t);
 
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" });
-  const adminFiles = execFileSync("git", ["ls-files", "-z", "apps/admin"], {
-    cwd: root,
-    encoding: "utf8",
-  })
+  const adminFiles = execFileSync(
+    "git",
+    [
+      "ls-files",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "-z",
+      "apps/admin",
+    ],
+    { cwd: root, encoding: "utf8" },
+  )
     .split("\0")
-    .filter(Boolean);
+    .filter((file) => file && existsSync(path.join(root, file)));
   const files = [
     ...adminFiles,
     ".gitignore",
@@ -1232,9 +1244,9 @@ test("pre-commit selects affected Vitest files and blocks a broken staged snapsh
     { cwd },
   );
 
-  const component = "apps/admin/src/ui/shell/NavItem/NavItem.tsx";
+  const component = "apps/admin/src/components/shell/NavItem/NavItem.tsx";
   const picker =
-    "apps/admin/src/ui/components/PublicationDatePicker/PublicationDatePicker";
+    "apps/admin/src/features/content/PublicationDatePicker/PublicationDatePicker";
   const pickerTest = `${picker}.test.tsx`;
   const cases = [
     { label: "component", file: component, expected: /NavItem\.test\.tsx/ },
@@ -1321,7 +1333,7 @@ test("pre-commit selects affected Vitest files and blocks a broken staged snapsh
 
     if (label === "direct test") {
       assert.deepEqual(selected, [
-        "src/ui/components/PublicationDatePicker/PublicationDatePicker.test.tsx",
+        "src/features/content/PublicationDatePicker/PublicationDatePicker.test.tsx",
       ]);
     }
 

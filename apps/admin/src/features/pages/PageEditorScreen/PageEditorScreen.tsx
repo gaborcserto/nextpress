@@ -1,0 +1,91 @@
+"use client";
+
+import { PrivateDraftBoundary } from "@/features/content/private-drafts/PrivateDraftBoundary";
+import {
+  createTagAction,
+  loadEntityTagsAction,
+  loadTagOptionsAction,
+  updateEntityTagsAction,
+} from "@/features/taxonomy/tag.client";
+import { ApiRequestError } from "@/lib/api/client";
+import { Alert } from "@/ui/primitives";
+import { AdminPageLayout } from "@/ui/shell/AdminPageLayout";
+
+import { usePageEditor } from "./PageEditorScreen.hooks";
+import { PageForm } from "../PageForm";
+
+import type { PageEditorScreenProps } from "./PageEditorScreen.types";
+
+export default function PageEditorScreen({ id }: PageEditorScreenProps) {
+  return id ? (
+    <PrivateDraftBoundary key={id} id={id} kind="PAGE">
+      <LegacyPageEditorScreen id={id} />
+    </PrivateDraftBoundary>
+  ) : (
+    <LegacyPageEditorScreen />
+  );
+}
+
+function LegacyPageEditorScreen({ id }: PageEditorScreenProps) {
+  const { isEdit, item, isLoading, notFound, error, saving, handleSubmit } =
+    usePageEditor(id);
+
+  const title = isEdit ? "Edit Page" : "Create Page";
+  const subtitle = isEdit
+    ? "Update your page details."
+    : "Add a new page to your site.";
+  const submitLabel = isEdit ? "Save" : "Create";
+
+  if (error && !(error instanceof ApiRequestError && error.status === 404)) {
+    return (
+      <AdminPageLayout title={title} description={subtitle}>
+        <Alert
+          status="error"
+          message="Unable to load page. Please try again."
+        />
+      </AdminPageLayout>
+    );
+  }
+
+  if (isEdit && isLoading) {
+    return (
+      <AdminPageLayout title={title} description={subtitle}>
+        <div className="flex items-center gap-2" role="status">
+          <span className="loading loading-spinner" />
+          <span>Loading page…</span>
+        </div>
+      </AdminPageLayout>
+    );
+  }
+
+  if (isEdit && (notFound || !item)) {
+    return (
+      <AdminPageLayout title={title} description={subtitle}>
+        <div className="py-10 text-center text-base-content/70">
+          Page not found.
+        </div>
+      </AdminPageLayout>
+    );
+  }
+
+  if (!item) {
+    return null;
+  }
+
+  return (
+    <PageForm
+      key={id ?? "new"}
+      contentId={id}
+      initial={item}
+      submitting={saving}
+      submitLabel={submitLabel}
+      onSubmitAction={handleSubmit}
+      loadTagOptionsAction={loadTagOptionsAction}
+      createTagAction={createTagAction}
+      loadEntityTagsAction={loadEntityTagsAction}
+      updateEntityTagsAction={updateEntityTagsAction}
+      sidebarTitle={title}
+      sidebarSubtitle={subtitle}
+    />
+  );
+}

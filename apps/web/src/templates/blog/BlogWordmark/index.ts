@@ -1,0 +1,1 @@
+export { BlogWordmark } from "./BlogWordmark";

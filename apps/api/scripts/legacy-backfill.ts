@@ -42,12 +42,14 @@ async function main() {
     inspectLegacyExecution,
     LegacyExecutionSchema,
     preflightLegacyExecution,
-  } = await import("../src/lib/services/legacy-backfill-execution.server");
+  } =
+    await import("../src/lib/services/legacy-backfill/legacy-backfill-execution.server");
   const {
     acquireBackfillOwnership,
     releaseBackfillOwnership,
     renewBackfillOwnership,
-  } = await import("../src/lib/services/legacy-backfill-fence.server");
+  } =
+    await import("../src/lib/services/legacy-backfill/legacy-backfill-fence.server");
   const { transitionLegacyOwnership } =
     await import("../src/lib/services/legacy-writer-ownership.server");
   const command = commandSchema.parse(process.argv[2]);

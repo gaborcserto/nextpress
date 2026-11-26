@@ -76,8 +76,8 @@ function isDocumentationOnly(file) {
 // Other workspace source still gets Turbo's reverse dependency selection.
 const adminUnitTest = /^apps\/admin\/src\/.+(?<!\.integration)\.test\.tsx?$/;
 const presentation = new Set([
-  "apps/admin/src/components/admin/SettingsScreen/SettingsTabs.module.css",
-  "apps/web/src/components/public-content/GalleryEmpty.tsx",
+  "apps/admin/src/ui/components/TabStrip.module.css",
+  "apps/web/src/components/public-content/MediaGallery/GalleryEmpty.tsx",
 ]);
 const mockedApi = "apps/api/src/lib/api/openapi.test.ts";
 const knownSource =

@@ -5,11 +5,11 @@ import {
   lockBackfillDomain,
   verifyBackfillDatabase,
   type BackfillOwnership,
-} from "./legacy-backfill-fence.server";
+} from "./legacy-backfill/legacy-backfill-fence.server";
 import {
   BackfillConflictError,
   inspectLegacyPage,
-} from "./legacy-backfill-planning.server";
+} from "./legacy-backfill/legacy-backfill-planning.server";
 
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 

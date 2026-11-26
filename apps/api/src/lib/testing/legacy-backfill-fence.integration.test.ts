@@ -10,10 +10,10 @@ import { verifyDisposableDatabase } from "./docker-database";
 
 const url = process.env.NEXTPRESS_CONTENT_TEST_DATABASE_URL;
 let db: typeof import("@nextpress/db/src/client").prisma;
-let fence: typeof import("../services/legacy-backfill-fence.server");
-let persistence: typeof import("../services/legacy-backfill-persistence.server");
-let backfill: typeof import("../services/legacy-content-backfill.server");
-let execution: typeof import("../services/legacy-backfill-execution.server");
+let fence: typeof import("../services/legacy-backfill/legacy-backfill-fence.server");
+let persistence: typeof import("../services/legacy-backfill/legacy-backfill-persistence.server");
+let backfill: typeof import("../services/legacy-backfill/legacy-content-backfill.server");
+let execution: typeof import("../services/legacy-backfill/legacy-backfill-execution.server");
 let writerOwnership: typeof import("../services/legacy-writer-ownership.server");
 const prefix = "b053-";
 
@@ -64,11 +64,14 @@ describe.skipIf(!url)("database-enforced legacy backfill coordination", () => {
     const candidate = (await import("@nextpress/db/src/client")).prisma;
     await verifyDisposableDatabase(name, candidate);
     db = candidate;
-    fence = await import("../services/legacy-backfill-fence.server");
+    fence =
+      await import("../services/legacy-backfill/legacy-backfill-fence.server");
     persistence =
-      await import("../services/legacy-backfill-persistence.server");
-    backfill = await import("../services/legacy-content-backfill.server");
-    execution = await import("../services/legacy-backfill-execution.server");
+      await import("../services/legacy-backfill/legacy-backfill-persistence.server");
+    backfill =
+      await import("../services/legacy-backfill/legacy-content-backfill.server");
+    execution =
+      await import("../services/legacy-backfill/legacy-backfill-execution.server");
     writerOwnership =
       await import("../services/legacy-writer-ownership.server");
   });

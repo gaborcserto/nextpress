@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import SignInForm from "@/components/auth/SignInForm";
+import SignInForm from "@/features/auth/SignInForm";
 import {
   getOperationalOAuthProviders,
   getSessionWithRole,

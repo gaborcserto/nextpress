@@ -1,0 +1,1 @@
+export { PostTaxonomies } from "./PostTaxonomies";

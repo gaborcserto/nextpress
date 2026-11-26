@@ -10,7 +10,7 @@ import {
   PublicPostSummarySchema,
   ContentListSchema,
 } from "./api-contracts";
-import { readRichContent, serializeRichContent } from "./content";
+import { readRichContent, serializeRichContent } from "./editorial/content";
 
 describe("portable CMS contracts", () => {
   it("requires persisted publication date and the API publication projection in list rows", () => {

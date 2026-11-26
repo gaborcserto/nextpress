@@ -8,7 +8,7 @@ import { ToolbarSearch, type ToolbarSearchWidth } from "./ToolbarSearch";
 
 import type { ReactNode } from "react";
 
-import type { ContentListQuery } from "@/lib/content/useContentList";
+import type { ContentListQuery } from "@/hooks/useContentList";
 
 type FilterField = {
   name: string;

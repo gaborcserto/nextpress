@@ -7,7 +7,7 @@ const { session, redirect } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/session.server", () => ({ getSessionWithRole: session }));
 vi.mock("next/navigation", () => ({ redirect }));
-vi.mock("@/ui/shell", () => ({
+vi.mock("@/components/shell/AppShell", () => ({
   AppShell: ({
     children,
     role,

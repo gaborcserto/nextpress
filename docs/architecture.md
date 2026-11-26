@@ -39,6 +39,10 @@ Private autosaves preserve publication state. Explicit publication commands use 
 
 Private endpoints use authenticated roles, ownership checks, origin checks for writes, and private no-store responses. Admission requires `NEXTPRESS_PRIVATE_DRAFT_REHEARSAL=enabled`, development or test mode, an independently verified database and role, and the installed writer guards. Production remains disabled. A deployment rehearsal against representative data, role and database verification, and an operational scheduler are still required before production cutover.
 
+### Admin source ownership
+
+Admin routes compose screens from `apps/admin/src/features`. Posts and Pages own their forms, editor and list screens, and API adapters. The content feature owns their shared editor lifecycle and preview. Media, taxonomy, dashboard, settings, menus, users, profile, and authentication own their UI and feature-local support. The authenticated shell lives in `components/shell`. Design-system primitives and reusable presentation live in `ui`. API transport, session handling, and cross-feature configuration live in `lib`.
+
 ### Admin dashboard
 
 Admin loads one private, non-cacheable summary through its existing same-origin API forwarding. The API admits administrators and editors for the full collection and scopes authors to their own Posts and Pages. Counts and the two lists share a PostgreSQL repeatable-read snapshot and a single publication cutoff. Each list returns at most eight records with an ID tie-break for equal timestamps. Recent updates use the content record's modification date and show its author when available.

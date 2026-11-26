@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import SlateEditor from "./SlateEditor";
 
-vi.mock("@/components/admin/Media/MediaPicker", () => ({
+vi.mock("@/features/media/MediaPicker/MediaPicker", () => ({
   MediaPicker: ({ onCancel }: { onCancel: () => void }) => (
     <div role="dialog" aria-label="Media Library">
       <button type="button" onClick={onCancel}>

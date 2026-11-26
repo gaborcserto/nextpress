@@ -18,12 +18,12 @@ import {
   isEditor,
   type ContentActor,
 } from "@/lib/auth/content-access";
+import { ContentVersionConflictError } from "@/lib/content-conflicts";
 import {
   editorialPublicationState,
   editorialPublicationWhere,
   resolvePublicationDate,
 } from "@/lib/publication";
-import { ContentVersionConflictError } from "@/lib/utils";
 import { escapeListSearch } from "@/lib/validation/list-query";
 
 import { setTagsForPage } from "./tagRepo";

@@ -5,9 +5,9 @@ import { verifyDisposableDatabase } from "./docker-database";
 import {
   acquireBackfillOwnership,
   releaseBackfillOwnership,
-} from "../services/legacy-backfill-fence.server";
-import { persistFencedLegacyPage } from "../services/legacy-backfill-persistence.server";
-import { BackfillConflictError } from "../services/legacy-content-backfill.server";
+} from "../services/legacy-backfill/legacy-backfill-fence.server";
+import { persistFencedLegacyPage } from "../services/legacy-backfill/legacy-backfill-persistence.server";
+import { BackfillConflictError } from "../services/legacy-backfill/legacy-content-backfill.server";
 
 import type { PrismaClient } from "@nextpress/db/generated/prisma/client";
 

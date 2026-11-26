@@ -1,4 +1,4 @@
-import navigationStyles from "@/components/public-content/post-list.module.css";
+import navigationStyles from "@/components/public-content/PostList/post-list.module.css";
 import { TagLinks } from "@/components/public-content/TagLinks";
 import { Container } from "@/components/public-ui/Container";
 import { getMaxPostsPage } from "@/lib/content/post-archive";

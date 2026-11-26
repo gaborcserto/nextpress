@@ -366,7 +366,7 @@ const scenarios = [
   [
     "Admin unit test",
     [
-      "apps/admin/src/ui/components/PublicationDatePicker/publication-time.test.ts",
+      "apps/admin/src/features/content/PublicationDatePicker/publication-time.test.ts",
     ],
     "apps/admin",
     false,
@@ -374,28 +374,42 @@ const scenarios = [
   ],
   [
     "Admin component test",
-    ["apps/admin/src/components/admin/PrivateDraftBoundary.test.tsx"],
+    [
+      "apps/admin/src/features/content/private-drafts/PrivateDraftBoundary.test.tsx",
+    ],
     "apps/admin",
     false,
     false,
   ],
   [
     "Admin CSS",
-    ["apps/admin/src/components/admin/SettingsScreen/SettingsTabs.module.css"],
+    ["apps/admin/src/ui/components/TabStrip.module.css"],
     "apps/admin",
     true,
     false,
   ],
   [
     "Admin business logic",
-    ["apps/admin/src/lib/api/client.ts"],
+    ["apps/admin/src/features/content/editor/useEditorSubmission.ts"],
+    "apps/admin",
+    true,
+    true,
+  ],
+  [
+    "Admin feature move with old and new paths",
+    [
+      "apps/admin/src/components/admin/Media/MediaBrowser.tsx",
+      "apps/admin/src/features/media/MediaBrowser/MediaBrowser.tsx",
+      "apps/admin/src/components/admin/SettingsScreen/SettingsTabs.module.css",
+      "apps/admin/src/ui/components/TabStrip.module.css",
+    ],
     "apps/admin",
     true,
     true,
   ],
   [
     "Web display component",
-    ["apps/web/src/components/public-content/GalleryEmpty.tsx"],
+    ["apps/web/src/components/public-content/MediaGallery/GalleryEmpty.tsx"],
     "apps/web",
     true,
     false,

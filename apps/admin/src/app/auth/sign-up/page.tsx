@@ -1,4 +1,4 @@
-import { SignUpForm } from "@/components/auth/SignUpForm";
+import { SignUpForm } from "@/features/auth/SignUpForm";
 import { getOperationalOAuthProviders } from "@/lib/auth/session.server";
 
 export const dynamic = "force-dynamic";

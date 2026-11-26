@@ -6,14 +6,10 @@ import {
   type SiteDateTime,
 } from "@nextpress/shared/site-date-time";
 import Link from "next/link";
-import { createContext, useContext, useId, useState } from "react";
-import { IoGlobeOutline, IoSunnyOutline, IoMoonOutline } from "react-icons/io5";
+import { createContext, useContext, useState } from "react";
 
-import { PreferenceChoice } from "@/components/public-shell/PreferenceChoice";
-
-import { getMessage, getMessages, isLocale } from "./messages";
+import { getMessage, getMessages } from "./messages";
 import { localizedHref, pathLocale } from "./routing";
-import styles from "./VisitorControls.module.css";
 
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 
@@ -38,6 +34,10 @@ export function PreferenceProvider({
       {children}
     </ModeContext.Provider>
   );
+}
+
+export function useColorModePreference() {
+  return useContext(ModeContext);
 }
 
 const SiteDateTimeContext = createContext(DEFAULT_SITE_DATE_TIME);
@@ -88,107 +88,6 @@ export function LocalizedDate({ value }: { value: string }) {
 
   return (
     <time dateTime={value}>{formatSiteDateTime(value, dateTime, locale)}</time>
-  );
-}
-
-function savePreference(name: string, value: string) {
-  document.cookie = `${name}=${value}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-}
-
-export function VisitorControls() {
-  const { mode, setMode } = useContext(ModeContext);
-  const locale = useContext(LocaleContext);
-  const text = useMessages();
-  const themeLabelId = useId();
-
-  function changeLanguage(value: string) {
-    if (!isLocale(value)) {
-      return;
-    }
-
-    savePreference("np-locale", value);
-    const location = new URL(window.location.href);
-
-    if (location.pathname === "/live-preview") {
-      location.searchParams.set("locale", value);
-      window.location.assign(location);
-
-      return;
-    }
-
-    // A document navigation refreshes root HTML language and server-rendered metadata.
-    window.location.assign(
-      localizedHref(
-        window.location.pathname +
-          window.location.search +
-          window.location.hash,
-        value,
-      ),
-    );
-  }
-
-  function toggleMode() {
-    const dark =
-      mode === "dark" ||
-      (mode === "system" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches);
-    const nextMode = dark ? "light" : "dark";
-
-    savePreference("np-color-mode", nextMode);
-    document.documentElement.dataset.colorMode = nextMode;
-    setMode(nextMode);
-  }
-
-  return (
-    <div className={styles.controls}>
-      <PreferenceChoice
-        label={text.language.label}
-        value={locale}
-        onChange={changeLanguage}
-        icon={<IoGlobeOutline aria-hidden="true" />}
-        options={[
-          {
-            value: "en",
-            label: text.language.english,
-            mobileLabel: "EN",
-            lang: "en",
-          },
-          {
-            value: "hu",
-            label: text.language.hungarian,
-            mobileLabel: "HU",
-            lang: "hu",
-          },
-        ]}
-      />
-      <button
-        type="button"
-        className={styles.themeToggle}
-        data-mode={mode}
-        aria-labelledby={themeLabelId}
-        onClick={toggleMode}
-      >
-        <span className={styles.modeIcon} aria-hidden="true">
-          <IoSunnyOutline className={styles.sun} />
-          <IoMoonOutline className={styles.moon} />
-        </span>
-        <span id={themeLabelId} className="visually-hidden">
-          <span className={styles.whenLight}>
-            {text.appearance.switchToDark}
-          </span>
-          <span className={styles.whenDark}>
-            {text.appearance.switchToLight}
-          </span>
-        </span>
-        <span className={styles.themeLabel} aria-hidden="true">
-          {text.appearance.label}
-        </span>
-        <span className={styles.themeState} aria-hidden="true">
-          <span className={styles.whenLight}>{text.appearance.light}</span>
-          <span className={styles.whenDark}>{text.appearance.dark}</span>
-        </span>
-      </button>
-    </div>
   );
 }
 

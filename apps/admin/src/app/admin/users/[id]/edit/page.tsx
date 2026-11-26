@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { UserEditScreen } from "@/components/admin/UsersScreen/UserEditScreen";
+import { UserEditScreen } from "@/features/users/UserEditScreen/UserEditScreen";
 import { getSessionWithRole } from "@/lib/auth/session.server";
 
 export default async function UserEditPage({

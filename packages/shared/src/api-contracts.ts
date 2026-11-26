@@ -9,7 +9,8 @@ import {
   SerializedRichContentSchema,
   RichBlocksSchema,
   RichDocumentSchema,
-} from "./content";
+} from "./editorial/content";
+import { PageDocumentSchema } from "./editorial/page-document";
 import {
   EditorImageSchema,
   GalleryIdsSchema,
@@ -17,7 +18,6 @@ import {
   MediaIdSchema,
   maxGalleryImages,
 } from "./media";
-import { PageDocumentSchema } from "./page-document";
 import {
   PostListingModeSchema,
   MAX_POSTS_PER_PAGE,
