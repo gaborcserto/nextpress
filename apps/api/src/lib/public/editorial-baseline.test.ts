@@ -25,7 +25,11 @@ vi.mock("@nextpress/db", () => ({
   },
 }));
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  findFirst.mockReset();
+  findMany.mockReset();
+  vi.useRealTimers();
+});
 
 it.each(editorialFixtures)(
   "retains current public visibility: $type $scenario",
@@ -70,16 +74,29 @@ it.each(editorialFixtures)(
   },
 );
 
-it.each([-1, 0, 1])("uses inclusive UTC boundary at %i ms", async (offset) => {
-  vi.useFakeTimers();
-  vi.setSystemTime(new Date(baselineInstant));
-  findFirst.mockImplementation(async ({ where }) =>
-    new Date(Date.parse(baselineInstant) + offset) <= where.publishedAt.lte
-      ? { ...editorialFixtures[1], publishedAt: new Date(baselineInstant) }
-      : null,
-  );
-  expect(Boolean(await getPublishedPost("boundary"))).toBe(offset <= 0);
-});
+it.each([
+  { offset: -1, visible: true },
+  { offset: 0, visible: true },
+  { offset: 1, visible: false },
+])(
+  "uses the inclusive UTC boundary at $offset ms",
+  async ({ offset, visible }) => {
+    const cutoff = new Date(baselineInstant);
+    const publishedAt = new Date(cutoff.getTime() + offset);
+    vi.useFakeTimers();
+    vi.setSystemTime(cutoff);
+    findFirst.mockImplementation(async ({ where }) => {
+      expect(where.publishedAt).toEqual({ not: null, lte: cutoff });
+
+      return publishedAt <= where.publishedAt.lte
+        ? { ...editorialFixtures[1], publishedAt }
+        : null;
+    });
+
+    expect(Boolean(await getPublishedPost("boundary"))).toBe(visible);
+    expect(findFirst).toHaveBeenCalledTimes(1);
+  },
+);
 
 it("fingerprints complete stored data separately from public projections", () => {
   expect(baselineHash({ a: 1, b: null })).toBe(baselineHash({ b: null, a: 1 }));

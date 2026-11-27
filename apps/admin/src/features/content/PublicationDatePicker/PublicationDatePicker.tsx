@@ -321,11 +321,20 @@ function PublicationDatePickerFields({
     year: "numeric",
     month: "long",
   });
+  const weekdayFormatter = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+  const dayLabelFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "full",
+    timeZone: "UTC",
+  });
+  const dayNumberFormatter = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    timeZone: "UTC",
+  });
   const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
-    new Intl.DateTimeFormat(locale, {
-      weekday: "short",
-      timeZone: "UTC",
-    }).format(localDate(2024, 0, index + 1)),
+    weekdayFormatter.format(localDate(2024, 0, index + 1)),
   );
   const daySteps: Record<string, number> = {
     ArrowLeft: -1,
@@ -818,10 +827,7 @@ function PublicationDatePickerFields({
                     data-outside={day.getUTCMonth() !== cursor.getUTCMonth()}
                     data-today={dateKey(day) === today}
                     aria-pressed={draftDateKey === dateKey(day)}
-                    aria-label={new Intl.DateTimeFormat(locale, {
-                      dateStyle: "full",
-                      timeZone: "UTC",
-                    }).format(day)}
+                    aria-label={dayLabelFormatter.format(day)}
                     tabIndex={dateKey(day) === (draftDateKey || today) ? 0 : -1}
                     onKeyDown={(event) => {
                       const delta = daySteps[event.key];
@@ -845,10 +851,7 @@ function PublicationDatePickerFields({
                       selectCalendarDate(day);
                     }}
                   >
-                    {new Intl.DateTimeFormat(locale, {
-                      day: "numeric",
-                      timeZone: "UTC",
-                    }).format(day)}
+                    {dayNumberFormatter.format(day)}
                   </button>
                 ))}
               </div>

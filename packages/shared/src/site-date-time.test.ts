@@ -46,16 +46,16 @@ it.each([
 ] as const)(
   "honors the %s preset regardless of locale date order",
   (dateFormat, expected) => {
-    expect(
-      formatSiteDateTime(
-        "2026-11-21T14:54:23Z",
-        {
-          ...DEFAULT_SITE_DATE_TIME,
-          dateFormat,
-          timeFormat: "12h",
-        },
-        "en-US",
-      ),
-    ).toBe(`${expected}, 2:54 PM`);
+    const instant = "2026-11-21T14:54:23Z";
+    const settings = {
+      ...DEFAULT_SITE_DATE_TIME,
+      dateFormat,
+      timeFormat: "12h",
+    } as const;
+
+    expect(formatSiteDateTime(instant, settings, "hu", "date")).toBe(expected);
+    expect(formatSiteDateTime(instant, settings, "en-US")).toBe(
+      `${expected}, 2:54 PM`,
+    );
   },
 );

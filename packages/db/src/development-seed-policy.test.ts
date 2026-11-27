@@ -28,17 +28,20 @@ describe("development content seed policy", () => {
     ).not.toThrow();
   });
 
-  it("rejects remote databases even when the environment is not marked production", () => {
+  it.each([
+    {
+      scenario: "a remote cms database",
+      url: "postgresql://user:pass@db.example.test:5432/cms",
+    },
+    {
+      scenario: "a local production database",
+      url: "postgresql://user:pass@localhost:5432/production",
+    },
+  ])("rejects $scenario even with explicit opt-in", ({ url }) => {
     expect(() =>
       assertDevelopmentSeedAllowed({
         ...local,
-        DATABASE_URL: "postgresql://user:pass@db.example.test:5432/cms",
-      }),
-    ).toThrow(/restricted to local/);
-    expect(() =>
-      assertDevelopmentSeedAllowed({
-        ...local,
-        DATABASE_URL: "postgresql://user:pass@localhost:5432/production",
+        DATABASE_URL: url,
       }),
     ).toThrow(/restricted to local/);
   });

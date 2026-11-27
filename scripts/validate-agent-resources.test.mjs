@@ -6,8 +6,10 @@ import test from "node:test";
 
 import { validateAgentResources } from "./validate-agent-resources.mjs";
 
-async function fixture(skill = "example", bom = false) {
+async function fixture(t, { bom = false } = {}) {
+  const skill = "example";
   const root = await mkdtemp(path.join(os.tmpdir(), "agents-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, ".agents/skills", skill), { recursive: true });
   await mkdir(path.join(root, ".agents/workflows"), { recursive: true });
   await writeFile(
@@ -32,82 +34,64 @@ async function fixture(skill = "example", bom = false) {
   return root;
 }
 
-test("accepts BOM-free skill frontmatter", async () => {
-  const root = await fixture();
+test("accepts BOM-free skill frontmatter", async (t) => {
+  const root = await fixture(t);
 
-  try {
-    assert.deepEqual(await validateAgentResources(root), []);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  assert.deepEqual(await validateAgentResources(root), []);
 });
 
-test("accepts actual UTF-8 BOM before valid skill frontmatter", async () => {
-  const root = await fixture("example", true);
+test("accepts actual UTF-8 BOM before valid skill frontmatter", async (t) => {
+  const root = await fixture(t, { bom: true });
 
-  try {
-    assert.deepEqual(await validateAgentResources(root), []);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  assert.deepEqual(await validateAgentResources(root), []);
 });
 
-test("reports invalid metadata, missing links, and unknown scripts", async () => {
-  const root = await fixture();
+test("reports invalid metadata, missing links, and unknown scripts", async (t) => {
+  const root = await fixture(t);
 
-  try {
-    await writeFile(
-      path.join(root, ".agents/skills/example/SKILL.md"),
-      "---\nname: wrong\ndescription: ok\n---\n[missing](missing.md) npm run nope",
-    );
-    const errors = await validateAgentResources(root);
-    assert.ok(errors.some((error) => error.includes("must match directory")));
-    assert.ok(
-      errors.some((error) => error.includes("missing local reference")),
-    );
-    assert.ok(
-      errors.some((error) => error.includes("unknown root npm script nope")),
-    );
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  await writeFile(
+    path.join(root, ".agents/skills/example/SKILL.md"),
+    "---\nname: wrong\ndescription: ok\n---\n[missing](missing.md) npm run nope",
+  );
+  const errors = await validateAgentResources(root);
+  assert.ok(errors.some((error) => error.includes("must match directory")));
+  assert.ok(errors.some((error) => error.includes("missing local reference")));
+  assert.ok(
+    errors.some((error) => error.includes("unknown root npm script nope")),
+  );
 });
 
-test("validates workflow contents, nested references and Claude imports", async () => {
-  const root = await fixture();
+test("validates workflow contents, nested references and Claude imports", async (t) => {
+  const root = await fixture(t);
 
-  try {
-    await writeFile(
-      path.join(root, ".agents/workflows/change.md"),
-      "[missing](absent.md) npm run missing:workflow",
-    );
-    await mkdir(path.join(root, ".agents/skills/example/references"));
-    await writeFile(
-      path.join(root, ".agents/skills/example/references/detail.md"),
-      "[invalid](absent.md) npm run missing:reference",
-    );
-    await writeFile(path.join(root, "CLAUDE.md"), "@absent.md\n");
-    const errors = await validateAgentResources(root);
+  await writeFile(
+    path.join(root, ".agents/workflows/change.md"),
+    "[missing](absent.md) npm run missing:workflow",
+  );
+  await mkdir(path.join(root, ".agents/skills/example/references"));
+  await writeFile(
+    path.join(root, ".agents/skills/example/references/detail.md"),
+    "[invalid](absent.md) npm run missing:reference",
+  );
+  await writeFile(path.join(root, "CLAUDE.md"), "@absent.md\n");
+  const errors = await validateAgentResources(root);
 
-    for (const fragment of [
-      "missing:workflow",
-      "missing:reference",
-      "CLAUDE.md: missing local reference absent.md",
-      "change.md: missing local reference absent.md",
-    ]) {
-      assert.ok(
-        errors.some((error) => error.includes(fragment)),
-        fragment,
-      );
-    }
-
-    await writeFile(path.join(root, "CLAUDE.md"), "@AGENTS.md\n");
+  for (const fragment of [
+    "missing:workflow",
+    "missing:reference",
+    "CLAUDE.md: missing local reference absent.md",
+    "change.md: missing local reference absent.md",
+  ]) {
     assert.ok(
-      !(await validateAgentResources(root)).some((error) =>
-        error.startsWith("CLAUDE.md:"),
-      ),
+      errors.some((error) => error.includes(fragment)),
+      fragment,
     );
-  } finally {
-    await rm(root, { recursive: true, force: true });
   }
+
+  await writeFile(path.join(root, "CLAUDE.md"), "@AGENTS.md\n");
+  assert.ok(
+    !(await validateAgentResources(root)).some((error) =>
+      error.startsWith("CLAUDE.md:"),
+    ),
+  );
 });

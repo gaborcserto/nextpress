@@ -143,7 +143,7 @@ Avoid generic boilerplate, wrapper layers, fragmented helpers, speculative abstr
 ## Testing and dependencies
 
 - Add or update focused tests when behavior changes. Bug fixes should normally include a regression test that fails for the original defect.
-- Prefer behavior and boundary assertions over implementation details. Follow nearby Vitest and React Testing Library patterns and keep tests in the owning workspace.
+- Apply the [testing skill](.agents/skills/nextpress-testing/SKILL.md) to new and substantially modified tests and dedicated test reviews. Keep ordinary feature work scoped to the affected tests and their support code.
 - Run targeted workspace checks while developing, then the relevant root checks before completion. Do not weaken or delete a meaningful test to make a change pass.
 - Prefer the platform and existing dependencies. Add or upgrade a dependency only when the task requires it and the benefit justifies the maintenance and security cost.
 - Change dependencies in the owning workspace and let npm update `package-lock.json`; do not hand-edit the lockfile.

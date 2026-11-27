@@ -407,14 +407,17 @@ describe("media deletion transaction characterization", () => {
     );
   });
 
-  it("commits metadata deletion and removes the file on success; a repeat is not found", async () => {
+  it("deletes metadata and bytes once even if deletion is requested again", async () => {
     await deleteMedia("asset", actor);
     expect(metadataPresent).toBe(false);
     expect(filePresent).toBe(false);
     await expect(deleteMedia("asset", actor)).rejects.toBeInstanceOf(
       ContentNotFoundError,
     );
-    expect(storage.remove).toHaveBeenCalledTimes(1);
+    expect(tx.media.delete).toHaveBeenCalledExactlyOnceWith({
+      where: { id: "asset" },
+    });
+    expect(storage.remove).toHaveBeenCalledExactlyOnceWith(key);
   });
 
   it("preserves the file when metadata deletion fails", async () => {

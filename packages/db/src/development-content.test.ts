@@ -60,14 +60,16 @@ describe("development content fixtures", () => {
     }
   });
 
-  it("covers public, draft, future, page, and supported rich-content states", () => {
+  it("covers public, draft, scheduled, and page fixtures", () => {
+    const referenceTime = Date.parse("2026-01-01T00:00:00.000Z");
+
     expect(
       developmentPages.filter(
         ({ type, status, publishedAt }) =>
           type === "POST" &&
           status === "PUBLISHED" &&
           publishedAt &&
-          publishedAt.getTime() < Date.now(),
+          publishedAt.getTime() < referenceTime,
       ),
     ).toHaveLength(4);
     expect(developmentPages.some(({ status }) => status === "DRAFT")).toBe(
@@ -78,10 +80,13 @@ describe("development content fixtures", () => {
         ({ status, publishedAt }) =>
           status === "PUBLISHED" &&
           publishedAt &&
-          publishedAt.getTime() > Date.now(),
+          publishedAt.getTime() > referenceTime,
       ),
     ).toBe(true);
     expect(developmentPages.some(({ type }) => type === "PAGE")).toBe(true);
+  });
+
+  it("includes representative rich-content blocks and inline marks", () => {
     const blocks = developmentPages.flatMap(({ blocks }) => blocks);
     expect(blocks.some(({ type }) => type === "heading")).toBe(true);
     expect(blocks.some(({ type }) => type === "blockquote")).toBe(true);

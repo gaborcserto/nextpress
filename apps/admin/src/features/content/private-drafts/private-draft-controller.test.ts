@@ -285,6 +285,39 @@ describe("private autosave controller", () => {
     controller.dispose();
   });
 
+  it("cancels autosave when edits return to acknowledged values before debounce", async () => {
+    const transport = vi.fn();
+    const original = {
+      title: "Original",
+      content: "Historical bytes",
+    };
+    const controller = new PrivateDraftController(
+      privateDraftFixture("PAGE", 2),
+      original,
+      original,
+      transport,
+    );
+
+    try {
+      const edited = { ...original, title: "Unsent" };
+      controller.update(edited, edited);
+      expect(controller.snapshot()).toMatchObject({ dirty: true, version: 2 });
+      await vi.advanceTimersByTimeAsync(500);
+
+      controller.update({ ...original }, { ...original });
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      expect(controller.snapshot()).toMatchObject({
+        dirty: false,
+        phase: "saved",
+        version: 2,
+      });
+      expect(transport).not.toHaveBeenCalled();
+    } finally {
+      controller.dispose();
+    }
+  });
+
   it("initializes on explicit Save with an empty patch and never publishes", async () => {
     const transport = vi.fn().mockResolvedValue(privateDraftFixture("PAGE", 1));
     const controller = new PrivateDraftController(

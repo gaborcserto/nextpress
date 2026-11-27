@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { disposableDatabaseName } from "./disposable-database";
 import { verifyDisposableDatabase } from "./docker-database";
+import { waitForRehearsalApp } from "./rehearsal-app-readiness";
 
 import type { WorkingAggregateEnvelope } from "@nextpress/shared/working-aggregate";
 import type { ChildProcess } from "node:child_process";
@@ -38,6 +39,11 @@ async function freePort(port: number) {
 
 async function startApp(workspace: "api" | "admin" | "web", port: number) {
   await freePort(port);
+  const readinessPath = {
+    api: "api/health",
+    admin: "auth/sign-in",
+    web: "live-preview",
+  }[workspace];
   const child = spawn(
     process.execPath,
     [
@@ -70,35 +76,7 @@ async function startApp(workspace: "api" | "admin" | "web", port: number) {
     },
   );
   processes.push({ child, port });
-  const deadline = Date.now() + 90000;
-
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error("Isolated application exited before readiness");
-    }
-
-    try {
-      const readiness = {
-        api: "api/health",
-        admin: "auth/sign-in",
-        web: "live-preview",
-      };
-      const response = await fetch(
-        `http://localhost:${port}/${readiness[workspace]}`,
-        { signal: AbortSignal.timeout(5000) },
-      );
-
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // Bounded startup polling; no content operation is retried here.
-    }
-
-    await new Promise((done) => setTimeout(done, 250));
-  }
-
-  throw new Error("Isolated application readiness timed out");
+  await waitForRehearsalApp(child, `http://localhost:${port}/${readinessPath}`);
 }
 
 function http(
@@ -684,12 +662,42 @@ describe.skipIf(!ownerUrl || !appUrl)(
         const context = await browser.newContext();
         const page = await context.newPage();
         page.setDefaultTimeout(20_000);
+        const rememberedEmail = "remembered@example.invalid";
+        await page.addInitScript(
+          ({ origin, remembered }) => {
+            if (location.origin === origin) {
+              localStorage.setItem(
+                "nextpress.admin.remembered-email",
+                remembered,
+              );
+            }
+          },
+          { origin: adminOrigin, remembered: rememberedEmail },
+        );
+
         await page.goto(`${adminOrigin}/auth/sign-in`);
-        await page.getByLabel("Email", { exact: true }).fill(email);
+        const emailInput = page.getByLabel("Email", { exact: true });
+        // The server renders an empty value. The remembered email appears after hydration.
+        await browserExpect(emailInput).toHaveValue(rememberedEmail, {
+          timeout: 20_000,
+        });
+        await emailInput.fill(email);
         await page.getByLabel("Password", { exact: true }).fill(password);
-        await page
-          .getByRole("button", { name: "Sign in", exact: true })
-          .click();
+        const signIn = page.getByRole("button", {
+          name: "Sign in",
+          exact: true,
+        });
+
+        const [signInResponse] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.url() === `${adminOrigin}/api/auth/sign-in/email` &&
+              response.request().method() === "POST",
+          ),
+          signIn.click(),
+        ]);
+
+        expect(signInResponse.status()).toBe(200);
         await page.waitForURL(`${adminOrigin}/admin`);
 
         for (const kind of ["PAGE", "POST"] as const) {

@@ -11,20 +11,25 @@ import { PreferenceChoice } from "./PreferenceChoice";
 
 function renderChoice() {
   const onChange = vi.fn();
-  render(
+
+  const choice = (value: string) => (
     <PreferenceChoice
       label="Language"
-      value="en"
+      value={value}
       icon={<IoGlobeOutline aria-hidden="true" />}
       options={[
         { value: "en", label: "English" },
         { value: "hu", label: "Magyar" },
       ]}
       onChange={onChange}
-    />,
+    />
   );
+  const { rerender } = render(choice("en"));
 
-  return onChange;
+  return {
+    onChange,
+    rerenderChoice: (value: string) => rerender(choice(value)),
+  };
 }
 
 it("keeps the closing panel mounted but immediately removes it from interaction and accessibility", () => {
@@ -50,23 +55,51 @@ it("keeps the closing panel mounted but immediately removes it from interaction 
   expect(trigger).toHaveAttribute("aria-expanded", "false");
 });
 
-it("preserves selection and focus when dismissing through selection, outside pointer or Tab", () => {
-  const onChange = renderChoice();
+it("restores focus after selection and reflects the value accepted by its parent", () => {
+  const { onChange, rerenderChoice } = renderChoice();
   const trigger = screen.getByRole("button", { name: "Language" });
   fireEvent.click(trigger);
+
   fireEvent.click(screen.getByRole("menuitemradio", { name: "Magyar" }));
-  expect(onChange).toHaveBeenCalledWith("hu");
+  expect(onChange).toHaveBeenCalledExactlyOnceWith("hu");
   expect(trigger).toHaveFocus();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+  rerenderChoice("hu");
   fireEvent.click(trigger);
+
+  expect(
+    screen.getByRole("menuitemradio", { name: "Magyar", checked: true }),
+  ).toHaveFocus();
+  expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+it("dismisses from an outside pointer without editing the controlled value", () => {
+  const { onChange } = renderChoice();
+  const trigger = screen.getByRole("button", { name: "Language" });
+  fireEvent.click(trigger);
+
   fireEvent.pointerDown(document.body);
+
   expect(trigger).toHaveFocus();
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+it("dismisses when focus leaves the menu without emitting a choice", () => {
+  const { onChange } = renderChoice();
+  const trigger = screen.getByRole("button", { name: "Language" });
   fireEvent.click(trigger);
-  fireEvent.blur(screen.getByRole("menuitemradio", { name: "English" }), {
-    relatedTarget: document.body,
-  });
+
+  fireEvent.blur(
+    screen.getByRole("menuitemradio", { name: "English", checked: true }),
+    {
+      relatedTarget: document.body,
+    },
+  );
+
   expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 import type { Root } from "react-dom/client";
