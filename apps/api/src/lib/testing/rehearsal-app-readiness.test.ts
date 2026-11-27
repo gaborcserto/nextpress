@@ -1,19 +1,26 @@
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { EventEmitter } from "node:events";
 import { expect, it } from "vitest";
 
 import { waitForRehearsalApp } from "./rehearsal-app-readiness";
 
+import type { ChildProcess } from "node:child_process";
+
 const readinessUrl = "http://127.0.0.1:1/live-preview";
 
 it("reports a spawn failure instead of waiting for HTTP readiness", async () => {
-  const child = spawn(process.execPath, [], {
-    cwd: fileURLToPath(import.meta.url),
-    stdio: "ignore",
-  });
+  const child = new EventEmitter() as ChildProcess;
+  child.exitCode = null;
+  child.signalCode = null;
 
-  await expect(waitForRehearsalApp(child, readinessUrl)).rejects.toThrow(
-    `Could not start ${readinessUrl}`,
+  const readiness = waitForRehearsalApp(child, readinessUrl);
+  child.emit(
+    "error",
+    Object.assign(new Error("spawn failed"), { code: "ENOENT" }),
+  );
+
+  await expect(readiness).rejects.toThrow(
+    `Could not start ${readinessUrl}: ENOENT`,
   );
 });
 
