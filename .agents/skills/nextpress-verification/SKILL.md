@@ -15,6 +15,7 @@ Read root and owning workspace scripts before selecting commands. Do not claim a
 
 - For behavior changes, run focused tests in the owning workspace, then relevant lint and typecheck. Follow [NextPress testing](../nextpress-testing/SKILL.md) for test design.
 - For OpenAPI contract changes, run `npm run openapi:validate`. For database schema changes, follow the repository's Prisma workflow and do not edit generated artifacts.
+- For validation/error changes, cover valid and invalid boundary values, stable status/error/field mapping, and authorization independently. For shared schema changes, verify affected API, Shared, Admin and Web consumers; for OpenAPI changes, check documented methods, inputs and responses against runtime behavior. Scale the checks to the consumers and security sensitivity actually changed.
 - For agent resources or repository configuration, validate local links, scripts, workflow syntax, and `git diff --check` as applicable.
 - Broader root checks include `npm test`, `npm run coverage`, `npm run lint`, `npm run typecheck`, and `npm run build`; choose those required by scope rather than running unrelated costly checks automatically.
 - Review `git status` and the complete diff. Preserve unrelated changes and report exact commands and outcomes.

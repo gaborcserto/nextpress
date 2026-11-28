@@ -18,5 +18,6 @@ Make the control flow and domain intent easier to understand without introducing
 - Prefer descriptive names, direct control flow, and small cohesive functions. Keep app-specific code in its owning workspace.
 - Avoid generic wrappers, helper dumping grounds, speculative factories, duplicated types or validation, and comments that narrate obvious behavior.
 - Preserve strict TypeScript, domain/schema-derived types, and existing error contracts. Do not trade correctness, authorization, accessibility, or performance for shorter code.
+- Before adding or removing a dependency, verify the installed platform and first-party capabilities against applicable official documentation and establish a concrete need. Keep one authoritative validation rule at its owning boundary; share schemas only for genuinely shared contracts, and infer types from schemas where that improves consistency without obscuring the domain.
 - Keep refactors behavior-preserving and separate them from behavior changes when that makes review clearer.
 - Run relevant tests and static checks for changed behavior. See [NextPress verification](../nextpress-verification/SKILL.md).

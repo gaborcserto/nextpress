@@ -137,6 +137,7 @@ Inspect the owning workspace's package scripts, Vitest configuration, nearby imp
   identity over incidental position. Use synchronous assertions for synchronous
   effects and choose an interaction API that exercises the relevant behavior.
 - API-specific: for route behavior, exercise exported route handlers with `Request` objects and mock external boundaries such as Prisma, hashing, and authentication. Cover authorization, invalid input, stable status/error contracts, and persistence calls without requiring a live database.
+- For boundary validation, choose cases that protect behavior: missing, malformed, duplicate or unsupported values; normalization and bounds; cross-field rules; and unknown fields where compatibility makes them relevant. Assert stable error identifiers and field/path mapping at the HTTP contract. Keep authorization assertions separate from schema acceptance. Check OpenAPI consistency when the contract changes and client/server validation consistency when both are affected. Form errors should remain localizable; search and pagination tests should verify allowlists and limits.
 - For Prisma schema invariants that do not require a database, follow the existing file-based schema test. Use database-backed tests only when the behavior cannot be established at a cheaper boundary and the required environment is part of the task.
 - Use E2E for critical behavior that depends on the assembled application and browser.
 

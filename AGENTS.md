@@ -27,18 +27,24 @@ For local editorial database migrations, Prisma CLI reads the dedicated ignored 
 
 ## Documentation placement
 
-- `.notes/`: internal audits, security assessments, investigations, research, migration plans, temporary reports, and development notes.
-- `docs/`: reserved for future public, user-facing NextPress documentation.
-- `.agents/`: agent instructions, skills, and workflows.
+- Tracked project documentation in `docs/` records approved architecture, development, operational guidance and roadmap information. Keep it aligned with verified behavior.
+- Future public-facing product documentation belongs in `docs/` when that documentation is authored; distinguish it clearly from internal engineering guidance.
+- Private audits, security findings, investigations, research, planning and implementation records belong under ignored `.notes/`; never publish them by copying them into tracked docs.
+- External supporting material belongs in `.references/` and is not automatically published.
+- `.agents/` contains maintained agent instructions, skills and workflows.
 - `scripts/`: executable development and repository maintenance utilities.
 
-Place internal architecture, development, planning, infrastructure, and code-quality documentation in `.notes/`.
+Keep private working material for architecture, development, planning, infrastructure, and code quality in `.notes/`; approved project guidance belongs in `docs/`.
 
 ## Native-first development
 
 Before implementing custom functionality or adding a dependency, check the installed Next.js, React, Node.js, and modern Web Platform capabilities against version-specific official documentation. Prefer stable, officially supported capabilities that meet functional, architectural, security, accessibility, and performance requirements. Keep custom code where domain behavior, security, portability, or missing capabilities justify it. Avoid speculative abstractions and experimental APIs for convenience.
 
 Preserve API, Admin, and Public Web boundaries and self-hosted operation without Vercel, a CDN, or a cloud provider. Document significant deviations from native capabilities. NATIVE-01 owns the separate project-wide audit.
+
+For technology decisions, check official documentation for the installed versions and verify package/runtime facts against manifests, lockfiles and local types. Prefer native or first-party capabilities when they meet the concrete need; add dependencies only with evidence of incremental value and fit with the owning workspace.
+
+API Route Handlers own authoritative validation of untrusted inputs and server-side authorization. Keep each schema with its owning boundary; share only actual cross-workspace contracts. Document behavior changes in OpenAPI and preserve stable error contracts. Validation does not replace authentication, authorization, database constraints, transactions, rate limits or body/resource limits.
 
 ## Grounded implementation
 

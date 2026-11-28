@@ -15,6 +15,8 @@ Apply this skill to public frontend visual work. Repository-wide architecture an
 - **Blog presets:** Classic, Modern, and Minimal intentionally have different type, palette, and density. Preserve each identity when changing preset-aware UI; do not apply those choices to other templates.
 - **Future templates:** may establish distinct visual identities while meeting the shared responsive, accessible, theme, and localization standards.
 
+For forms, associate labels and descriptions with controls, expose field errors accessibly, and provide an error summary when it helps users recover. Preserve keyboard and focus behavior, visible submitting/loading/disabled states, and map server errors without making client validation authoritative. Keep error presentation ready for localization and check long translated labels within responsive layouts.
+
 Avoid arbitrary values when a token fits, unnecessary decoration, and generic generated-looking layouts. Do not hardcode translated UI text; retain English and Hungarian compatibility and the current localization architecture.
 
 ## Workflow
